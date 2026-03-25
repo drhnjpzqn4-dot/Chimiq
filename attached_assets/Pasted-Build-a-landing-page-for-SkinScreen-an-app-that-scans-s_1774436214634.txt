@@ -1,0 +1,50 @@
+Build a landing page for SkinScreen — an app that scans skincare ingredient lists and warns users about dangerous ingredient combinations.
+
+THE PROBLEM WE SOLVE:
+The average woman (and even teenagers!) uses 4-7 skincare products daily = up to 400 ingredients on their skin. No consumer app today checks how these products interact with each other. Influencers push more products = more spending = more skin problems. SkinScreen breaks that spiral.
+
+OUR ANGLE: Don ’t mix chemicals you don’t know how they react together. And do you really know what ingredients you put on your sensitive skin? 
+
+WHAT TO BUILD:
+A single-page landing site with these sections:
+
+1. HERO: Bold headline + subheadline + waitlist email signup form
+   - Headline: "40 products. 400 ingredients. Do you know what they do to each other?"
+   - Sub: "SkinScreen scans your skincare and finds dangerous combinations — before they find your skin."
+   - CTA button: "Join the waitlist"
+
+2. THE SPIRAL: Visual showing "The Skincare Spiral" — how one product leads to 5 more
+   - Step 1: Influencer recommends serum
+   - Step 2: Skin dries out → buy moisturizer  
+   - Step 3: Moisturizer doesn't penetrate → buy booster
+   - Step 4: Booster + serum = breakout → buy calming cream
+   - Step 5: 40 jars on the shelf, skin worse than before
+   - SkinScreen breaks the cycle
+
+3. HOW IT WORKS: 3 steps with icons
+   - Scan your ingredient list
+   - Add your other products  
+   - See what combinations are safe — and what to avoid
+
+4. THE NUMBERS: Stats section
+   - "$500 billion beauty industry built on confusion"
+   - "Average teen spends $300/year on products that may conflict"
+   - "SkinScreen users use 40% fewer products"
+
+5. WAITLIST: "Be first to know when SkinScreen launches"
+   - Email input + signup button
+   - "Join 200+ people waiting for smarter skincare" (social proof)
+
+DESIGN:
+- Clean, minimal, Apple-inspired — lots of white space
+- Accent color: soft sage green (#7BAF7A) — natural, trustworthy, not clinical
+- Typography: serif for headlines (elegant), sans-serif for body (clean)
+- NO dark mode
+- Mobile-first, looks perfect on iPhone
+- Small animated elements — the "spiral" visualization should have a subtle animation showing products piling up
+
+TONE: Smart friend, not scary. Empowering, not shaming. Science-backed, not preachy.
+
+Make it feel premium. This should look like a funded startup, not a school project.
+
+All other beauty apps want you to buy more products. SkinScreen wants you to buy the right  Let me know what I might have overlooked and what other features that would benefit the users. Maybe  help me research what people complain about on social media and different forums.
