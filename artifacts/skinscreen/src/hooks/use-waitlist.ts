@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export function useWaitlist() {
   const { toast } = useToast();
-  
+
   return useJoinWaitlistMutation({
     mutation: {
       onSuccess: (data) => {
@@ -21,14 +21,14 @@ export function useWaitlist() {
           });
         }
       },
-      onError: (error: any) => {
+      onError: (error: Error & { response?: { data?: { error?: string } } }) => {
         toast({
           title: "Something went wrong",
-          description: error?.response?.data?.error || "Please try again later.",
+          description: error?.response?.data?.error ?? "Please try again later.",
           variant: "destructive",
           duration: 5000,
         });
-      }
-    }
+      },
+    },
   });
 }
