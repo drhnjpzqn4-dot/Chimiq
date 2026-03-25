@@ -1,0 +1,17 @@
+packages:
+  "framer-motion": "For premium smooth scroll animations and staggered entrance effects"
+  "clsx": "For conditional class merging in reusable UI components"
+  "tailwind-merge": "For conflict resolution in Tailwind classes"
+  "lucide-react": "For beautiful, consistent iconography"
+  "react-hook-form": "For robust form state management"
+  "@hookform/resolvers": "For Zod schema validation integration"
+  "zod": "For waitlist form validation"
+
+images:
+  - path: "artifacts/skinscreen/public/images/hero-abstract.png"
+    description: "Extremely minimal, premium, abstract 3D fluid shape in soft sage green and white, studio lighting, Apple-inspired, soft shadows, plenty of negative space"
+    aspect_ratio: "16:9"
+
+notes:
+  - "Waitlist API hook used from @workspace/api-client-react"
+  - "Design is mobile-first, Apple-inspired minimal, no dark mode"

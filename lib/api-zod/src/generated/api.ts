@@ -14,3 +14,17 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Adds an email to the SkinScreen waitlist. Deduplicates automatically.
+ * @summary Join the waitlist
+ */
+export const JoinWaitlistBody = zod.object({
+  email: zod.string().email().describe("Email address to add to the waitlist"),
+});
+
+export const JoinWaitlistResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+  alreadyRegistered: zod.boolean(),
+});

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: waitlist
+    description: Waitlist operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /waitlist:
+    post:
+      operationId: joinWaitlist
+      tags: [waitlist]
+      summary: Join the waitlist
+      description: Adds an email to the SkinScreen waitlist. Deduplicates automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WaitlistRequest"
+      responses:
+        "200":
+          description: Successfully joined (or already on) the waitlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistResponse"
+        "400":
+          description: Invalid email address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +66,32 @@ components:
           type: string
       required:
         - status
-
+    WaitlistRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address to add to the waitlist
+      required:
+        - email
+    WaitlistResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        alreadyRegistered:
+          type: boolean
+      required:
+        - success
+        - message
+        - alreadyRegistered
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
