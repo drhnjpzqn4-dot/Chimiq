@@ -48,11 +48,11 @@ export default function Home() {
 
       {/* HERO */}
       <section id="hero" className="relative pt-32 pb-24 md:pt-48 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div className="absolute inset-0 -z-10 flex justify-center items-center opacity-30 pointer-events-none">
+        <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
           <img
-            src={`${import.meta.env.BASE_URL}images/hero-abstract.png`}
+            src={`${import.meta.env.BASE_URL}images/hero-bg.png`}
             alt=""
-            className="w-full max-w-4xl h-auto object-cover blur-3xl"
+            className="absolute right-0 top-0 h-full w-auto max-w-[55%] md:max-w-[65%] object-cover object-left opacity-25 md:opacity-30"
           />
         </div>
 
