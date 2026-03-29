@@ -3,7 +3,11 @@ import { WaitlistForm } from "@/components/WaitlistForm";
 import { DangerCard } from "@/components/DangerCard";
 import { SpiralSection } from "@/components/SpiralSection";
 import { IngredientScanner } from "@/components/IngredientScanner";
-import { ScanLine, Layers, ShieldCheck } from "lucide-react";
+import {
+  ScanLine, Layers, ShieldCheck,
+  AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
+  Sun, Moon, Plus, CheckCircle2, ShoppingBag, Bell,
+} from "lucide-react";
 
 const dangerCombinations = [
   {
@@ -40,6 +44,39 @@ const dangerCombinations = [
     citation: "Parvez, S. et al. (2006). Naturally occurring tyrosinase inhibitors. Phytother Res.",
     citationUrl: "https://doi.org/10.1002/ptr.1954",
     severity: "HIGH RISK" as const,
+  },
+];
+
+const communityFears = [
+  {
+    icon: AlertTriangle,
+    headline: "\"Am I destroying my skin?\"",
+    body: "Retinol + AHAs together — the #1 fear in every skincare forum.",
+  },
+  {
+    icon: HelpCircle,
+    headline: "\"Is this purging or breaking out?\"",
+    body: "Can't tell if your acids are working or quietly causing damage.",
+  },
+  {
+    icon: ShieldOff,
+    headline: "\"I wrecked my moisture barrier.\"",
+    body: "Tight, raw, sensitive skin from over-exfoliation. A painful lesson to learn.",
+  },
+  {
+    icon: XCircle,
+    headline: "\"I'm using products that cancel out.\"",
+    body: "Benzoyl peroxide silently degrades retinol — two products, zero results.",
+  },
+  {
+    icon: FlaskConical,
+    headline: "\"Should I mix Vitamin C and Niacinamide?\"",
+    body: "Thousands ask this every month. The answer is nuanced — and matters.",
+  },
+  {
+    icon: Layers,
+    headline: "\"What order do I layer these in?\"",
+    body: "Thinness rule, wait times, actives first — the rules nobody explains clearly.",
   },
 ];
 
@@ -80,6 +117,43 @@ export default function Home() {
         <FadeIn delay={0.4} className="w-full flex justify-center">
           <WaitlistForm buttonSize="lg" />
         </FadeIn>
+      </section>
+
+      {/* SOUND FAMILIAR — COMMUNITY FEARS */}
+      <section id="fears" className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn>
+            <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
+              Sound familiar?
+            </h2>
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
+              These are the questions filling Reddit, TikTok, and dermatologist waiting rooms. You're not alone — and you deserve a real answer.
+            </p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {communityFears.map((fear, idx) => {
+              const Icon = fear.icon;
+              return (
+                <FadeIn key={fear.headline} delay={idx * 0.08}>
+                  <div className="flex flex-col gap-3 p-6 rounded-2xl bg-white border border-border/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 h-full">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <p className="font-serif text-base font-semibold text-foreground leading-snug">
+                        {fear.headline}
+                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {fear.body}
+                    </p>
+                  </div>
+                </FadeIn>
+              );
+            })}
+          </div>
+        </div>
       </section>
 
       {/* DANGER ZONE */}
@@ -123,10 +197,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* HOW SKINSCREEN WORKS */}
       <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <FadeIn>
-          <h2 className="text-3xl md:text-5xl font-serif text-center mb-16">How it works</h2>
+          <h2 className="text-3xl md:text-5xl font-serif text-center mb-16">How SkinScreen works</h2>
         </FadeIn>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
@@ -179,6 +253,109 @@ export default function Home() {
               </div>
             </div>
           </FadeIn>
+        </div>
+      </section>
+
+      {/* MY SHELF — COMING SOON */}
+      <section id="my-shelf" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#F5F5F7]">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+
+            {/* Left: description */}
+            <FadeIn direction="right">
+              <div>
+                <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary text-sm font-medium tracking-wide mb-6">
+                  Coming at Launch
+                </span>
+                <h2 className="text-3xl md:text-5xl font-serif mb-6 leading-tight">
+                  Your personal<br />
+                  <span className="italic text-muted-foreground">skincare shelf.</span>
+                </h2>
+                <p className="text-muted-foreground text-lg leading-relaxed mb-8">
+                  Stop testing combinations on your face. My Shelf lets you build your full routine digitally — and checks any new product against everything you already use, <em>before you buy it</em>.
+                </p>
+                <ul className="space-y-4 mb-10">
+                  {[
+                    { icon: Sun, text: "Organise your morning & evening routines in one place" },
+                    { icon: ShoppingBag, text: "Scan a new product in-store and instantly see if it conflicts with your shelf" },
+                    { icon: Bell, text: "Get safety alerts when a new conflict is discovered in your routine" },
+                  ].map(({ icon: Icon, text }) => (
+                    <li key={text} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <span className="text-foreground leading-snug">{text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="#waitlist"
+                  className="inline-flex items-center gap-2 text-primary font-medium hover:gap-3 transition-all duration-200 text-sm"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Join the waitlist to get early access
+                </a>
+              </div>
+            </FadeIn>
+
+            {/* Right: shelf UI mockup */}
+            <FadeIn direction="left" delay={0.15}>
+              <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
+                {/* Phone-style header */}
+                <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
+                  <span className="font-serif text-lg font-semibold text-foreground">My Shelf</span>
+                  <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">5 products</span>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Morning routine */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sun className="w-4 h-4 text-[#F59E0B]" />
+                      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Morning</span>
+                    </div>
+                    <div className="space-y-2">
+                      {["Vitamin C Serum", "Hyaluronic Acid", "SPF 50 Sunscreen"].map((p) => (
+                        <div key={p} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#FAFAF8] border border-border/30">
+                          <span className="w-2 h-2 rounded-full bg-[#22C55E] shrink-0" />
+                          <span className="text-sm text-foreground">{p}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Evening routine */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Moon className="w-4 h-4 text-[#7BAF7A]" />
+                      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Evening</span>
+                    </div>
+                    <div className="space-y-2">
+                      {["Retinol 0.5%", "Niacinamide Serum"].map((p) => (
+                        <div key={p} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#FAFAF8] border border-border/30">
+                          <span className="w-2 h-2 rounded-full bg-[#22C55E] shrink-0" />
+                          <span className="text-sm text-foreground">{p}</span>
+                        </div>
+                      ))}
+                      {/* Conflict warning example */}
+                      <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-red-50 border border-red-200">
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                        <span className="text-sm text-red-700">Glycolic Acid Toner</span>
+                        <span className="ml-auto text-[10px] font-semibold text-red-500 uppercase tracking-wide">Conflict</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Add product button */}
+                  <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-colors duration-200">
+                    <Plus className="w-4 h-4" />
+                    Add product
+                  </button>
+                </div>
+              </div>
+            </FadeIn>
+
+          </div>
         </div>
       </section>
 
