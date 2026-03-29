@@ -85,8 +85,8 @@ export default function Home() {
     <main className="min-h-screen bg-background overflow-hidden">
 
       {/* HERO */}
-      <section id="hero" className="isolate relative pt-32 pb-24 md:pt-48 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
+      <section id="hero" className="isolate relative pt-24 pb-20 sm:pt-36 sm:pb-24 md:pt-48 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
+        <div className="hidden sm:block absolute inset-0 -z-10 pointer-events-none overflow-hidden">
           <img
             src={`${import.meta.env.BASE_URL}images/hero-bg.png`}
             alt=""
@@ -101,9 +101,9 @@ export default function Home() {
         </FadeIn>
 
         <FadeIn delay={0.2} className="max-w-4xl">
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-serif text-foreground leading-[1.1] tracking-tight mb-6">
-            40 products. 400 ingredients.
-            <br className="hidden md:block" />
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-serif text-foreground leading-[1.15] tracking-tight mb-6">
+            40 products. 400 ingredients.{" "}
+            <br className="hidden sm:block" />
             <span className="italic text-muted-foreground">Do you know what they do to each other?</span>
           </h1>
         </FadeIn>
