@@ -82,6 +82,34 @@ export default function Home() {
         </FadeIn>
       </section>
 
+      {/* DANGER ZONE */}
+      <section id="danger-zone" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn>
+            <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
+              What you don't know can hurt your skin.
+            </h2>
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
+              These are real, documented ingredient conflicts — the kind your dermatologist knows, but the beauty industry doesn't advertise.
+            </p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            {dangerCombinations.map((combo, idx) => (
+              <DangerCard
+                key={combo.pair}
+                pair={combo.pair}
+                risk={combo.risk}
+                citation={combo.citation}
+                citationUrl={combo.citationUrl}
+                severity={combo.severity}
+                delay={idx * 0.1}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* THE SKINCARE SPIRAL */}
       <section id="spiral" className="py-24 bg-[#F5F5F7]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -151,34 +179,6 @@ export default function Home() {
               </div>
             </div>
           </FadeIn>
-        </div>
-      </section>
-
-      {/* DANGER ZONE */}
-      <section id="danger-zone" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
-        <div className="max-w-7xl mx-auto">
-          <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
-              What you don't know can hurt your skin.
-            </h2>
-            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
-              These are real, documented ingredient conflicts — the kind your dermatologist knows, but the beauty industry doesn't advertise.
-            </p>
-          </FadeIn>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-            {dangerCombinations.map((combo, idx) => (
-              <DangerCard
-                key={combo.pair}
-                pair={combo.pair}
-                risk={combo.risk}
-                citation={combo.citation}
-                citationUrl={combo.citationUrl}
-                severity={combo.severity}
-                delay={idx * 0.1}
-              />
-            ))}
-          </div>
         </div>
       </section>
 
