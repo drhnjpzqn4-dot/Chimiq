@@ -83,11 +83,41 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
     setScanError(null);
 
     const reader = new FileReader();
+    reader.onerror = () => {
+      setScanError("Couldn't read the image file. Please try a different photo.");
+    };
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      const base64 = dataUrl.split(",")[1];
-      const mimeType = file.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif";
-      scanLabel.mutate({ data: { imageBase64: base64, mimeType } });
+      const img = new Image();
+      img.onerror = () => {
+        setScanError("Couldn't decode the image. Please try a clearer photo or a different format.");
+      };
+      img.onload = () => {
+        const MAX_EDGE = 1500;
+        let { width, height } = img;
+        if (width > MAX_EDGE || height > MAX_EDGE) {
+          if (width >= height) {
+            height = Math.round((height * MAX_EDGE) / width);
+            width = MAX_EDGE;
+          } else {
+            width = Math.round((width * MAX_EDGE) / height);
+            height = MAX_EDGE;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          setScanError("Image processing failed. Please try again or enter ingredients manually.");
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        const base64 = compressedDataUrl.split(",")[1];
+        scanLabel.mutate({ data: { imageBase64: base64, mimeType: "image/jpeg" } });
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
 
