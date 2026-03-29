@@ -1,10 +1,10 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import OpenAI from "openai";
 
 const AnalyzeBody = z.object({
-  product1: z.string().min(1, "Product 1 ingredients are required").max(3000),
-  product2: z.string().min(1, "Product 2 ingredients are required").max(3000),
+  product1: z.string().trim().min(1, "Product 1 ingredients are required").max(3000),
+  product2: z.string().trim().min(1, "Product 2 ingredients are required").max(3000),
 });
 
 const ConflictResultSchema = z.object({
@@ -50,6 +50,17 @@ Required response format:
 const router: IRouter = Router();
 
 router.post("/analyze", async (req, res) => {
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+
+  if (!baseURL || !apiKey) {
+    req.log.error("OpenAI integration env vars not configured");
+    res.status(500).json({ error: "Analysis service is not available. Please try again later." });
+    return;
+  }
+
+  const openai = new OpenAI({ apiKey, baseURL });
+
   const parseResult = AnalyzeBody.safeParse(req.body);
 
   if (!parseResult.success) {
