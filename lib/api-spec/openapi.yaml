@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: waitlist
     description: Waitlist operations
+  - name: analyzer
+    description: Ingredient conflict analysis
 paths:
   /healthz:
     get:
@@ -57,6 +59,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /analyze:
+    post:
+      operationId: analyzeIngredients
+      tags: [analyzer]
+      summary: Analyze two products for ingredient conflicts
+      description: Takes two ingredient lists and returns clinically-documented conflict pairs with severity ratings and citations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeRequest"
+      responses:
+        "200":
+          description: Conflict analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -95,3 +128,54 @@ components:
           type: string
       required:
         - error
+    AnalyzeRequest:
+      type: object
+      properties:
+        product1:
+          type: string
+          maxLength: 3000
+          description: Ingredient list for the first product
+        product2:
+          type: string
+          maxLength: 3000
+          description: Ingredient list for the second product
+      required:
+        - product1
+        - product2
+    ConflictResult:
+      type: object
+      properties:
+        pair:
+          type: string
+          description: The two conflicting ingredients (e.g. "Retinol + Glycolic Acid")
+        severity:
+          type: string
+          enum: [HIGH_RISK, CAUTION, SAFE]
+        explanation:
+          type: string
+          description: Plain-English explanation of the conflict
+        citation:
+          type: string
+          description: Research citation reference
+        citationUrl:
+          type: string
+          description: URL to the research paper (DOI or PubMed)
+      required:
+        - pair
+        - severity
+        - explanation
+        - citation
+        - citationUrl
+    AnalyzeResponse:
+      type: object
+      properties:
+        conflicts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConflictResult"
+        overallSafe:
+          type: boolean
+          description: True if no conflicts were found
+      required:
+        - conflicts
+        - overallSafe

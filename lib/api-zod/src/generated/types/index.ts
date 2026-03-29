@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./analyzeRequest";
+export * from "./analyzeResponse";
+export * from "./conflictResult";
+export * from "./conflictResultSeverity";
 export * from "./errorResponse";
 export * from "./healthStatus";
 export * from "./waitlistRequest";

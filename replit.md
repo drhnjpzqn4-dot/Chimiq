@@ -91,6 +91,13 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `lib/integrations-openai-ai-server` (`@workspace/integrations-openai-ai-server`)
+
+OpenAI SDK client pre-configured with Replit AI Integration credentials (`AI_INTEGRATIONS_OPENAI_BASE_URL` + `AI_INTEGRATIONS_OPENAI_API_KEY`). Used by the API server's `/api/analyze` route for ingredient conflict analysis.
+
+- Import: `import { openai } from "@workspace/integrations-openai-ai-server";`
+- Model used: `gpt-5.2` with `max_completion_tokens` and `response_format: { type: "json_object" }`
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.

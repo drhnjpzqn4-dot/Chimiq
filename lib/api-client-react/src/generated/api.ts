@@ -17,6 +17,8 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AnalyzeRequest,
+  AnalyzeResponse,
   ErrorResponse,
   HealthStatus,
   WaitlistRequest,
@@ -193,4 +195,91 @@ export const useJoinWaitlist = <
   TContext
 > => {
   return useMutation(getJoinWaitlistMutationOptions(options));
+};
+
+/**
+ * Takes two ingredient lists and returns clinically-documented conflict pairs with severity ratings and citations.
+ * @summary Analyze two products for ingredient conflicts
+ */
+export const getAnalyzeIngredientsUrl = () => {
+  return `/api/analyze`;
+};
+
+export const analyzeIngredients = async (
+  analyzeRequest: AnalyzeRequest,
+  options?: RequestInit,
+): Promise<AnalyzeResponse> => {
+  return customFetch<AnalyzeResponse>(getAnalyzeIngredientsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(analyzeRequest),
+  });
+};
+
+export const getAnalyzeIngredientsMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeIngredients>>,
+    TError,
+    { data: BodyType<AnalyzeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeIngredients>>,
+  TError,
+  { data: BodyType<AnalyzeRequest> },
+  TContext
+> => {
+  const mutationKey = ["analyzeIngredients"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeIngredients>>,
+    { data: BodyType<AnalyzeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeIngredients(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeIngredientsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeIngredients>>
+>;
+export type AnalyzeIngredientsMutationBody = BodyType<AnalyzeRequest>;
+export type AnalyzeIngredientsMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Analyze two products for ingredient conflicts
+ */
+export const useAnalyzeIngredients = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeIngredients>>,
+    TError,
+    { data: BodyType<AnalyzeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeIngredients>>,
+  TError,
+  { data: BodyType<AnalyzeRequest> },
+  TContext
+> => {
+  return useMutation(getAnalyzeIngredientsMutationOptions(options));
 };

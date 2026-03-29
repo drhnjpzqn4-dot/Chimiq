@@ -28,3 +28,43 @@ export const JoinWaitlistResponse = zod.object({
   message: zod.string(),
   alreadyRegistered: zod.boolean(),
 });
+
+/**
+ * Takes two ingredient lists and returns clinically-documented conflict pairs with severity ratings and citations.
+ * @summary Analyze two products for ingredient conflicts
+ */
+export const analyzeIngredientsBodyProduct1Max = 3000;
+
+export const analyzeIngredientsBodyProduct2Max = 3000;
+
+export const AnalyzeIngredientsBody = zod.object({
+  product1: zod
+    .string()
+    .max(analyzeIngredientsBodyProduct1Max)
+    .describe("Ingredient list for the first product"),
+  product2: zod
+    .string()
+    .max(analyzeIngredientsBodyProduct2Max)
+    .describe("Ingredient list for the second product"),
+});
+
+export const AnalyzeIngredientsResponse = zod.object({
+  conflicts: zod.array(
+    zod.object({
+      pair: zod
+        .string()
+        .describe(
+          'The two conflicting ingredients (e.g. \"Retinol + Glycolic Acid\")',
+        ),
+      severity: zod.enum(["HIGH_RISK", "CAUTION", "SAFE"]),
+      explanation: zod
+        .string()
+        .describe("Plain-English explanation of the conflict"),
+      citation: zod.string().describe("Research citation reference"),
+      citationUrl: zod
+        .string()
+        .describe("URL to the research paper (DOI or PubMed)"),
+    }),
+  ),
+  overallSafe: zod.boolean().describe("True if no conflicts were found"),
+});

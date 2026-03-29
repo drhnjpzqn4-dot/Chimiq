@@ -2,6 +2,7 @@ import { FadeIn } from "@/components/FadeIn";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { DangerCard } from "@/components/DangerCard";
 import { SpiralSection } from "@/components/SpiralSection";
+import { IngredientScanner } from "@/components/IngredientScanner";
 import { ScanLine, Layers, ShieldCheck } from "lucide-react";
 
 const dangerCombinations = [
@@ -178,6 +179,26 @@ export default function Home() {
               />
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* TRY IT NOW — INGREDIENT SCANNER */}
+      <section id="try-it-now" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#F5F5F7]">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn>
+            <div className="text-center mb-12">
+              <span className="inline-block py-1 px-3 rounded-full bg-primary/10 text-primary text-sm font-medium tracking-wide mb-4">
+                Live Preview
+              </span>
+              <h2 className="text-3xl md:text-5xl font-serif mb-4">
+                Try the scanner now
+              </h2>
+              <p className="text-muted-foreground max-w-xl mx-auto">
+                Paste two ingredient lists below and see SkinScreen's AI-powered conflict detection in action — dermatologist-informed, research-backed.
+              </p>
+            </div>
+          </FadeIn>
+          <IngredientScanner />
         </div>
       </section>
 

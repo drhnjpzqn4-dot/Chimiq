@@ -23,3 +23,43 @@ export interface WaitlistResponse {
 export interface ErrorResponse {
   error: string;
 }
+
+export interface AnalyzeRequest {
+  /**
+   * Ingredient list for the first product
+   * @maxLength 3000
+   */
+  product1: string;
+  /**
+   * Ingredient list for the second product
+   * @maxLength 3000
+   */
+  product2: string;
+}
+
+export type ConflictResultSeverity =
+  (typeof ConflictResultSeverity)[keyof typeof ConflictResultSeverity];
+
+export const ConflictResultSeverity = {
+  HIGH_RISK: "HIGH_RISK",
+  CAUTION: "CAUTION",
+  SAFE: "SAFE",
+} as const;
+
+export interface ConflictResult {
+  /** The two conflicting ingredients (e.g. "Retinol + Glycolic Acid") */
+  pair: string;
+  severity: ConflictResultSeverity;
+  /** Plain-English explanation of the conflict */
+  explanation: string;
+  /** Research citation reference */
+  citation: string;
+  /** URL to the research paper (DOI or PubMed) */
+  citationUrl: string;
+}
+
+export interface AnalyzeResponse {
+  conflicts: ConflictResult[];
+  /** True if no conflicts were found */
+  overallSafe: boolean;
+}
