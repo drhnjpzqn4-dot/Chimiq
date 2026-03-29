@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { JoinWaitlistBody, JoinWaitlistResponse } from "@workspace/api-zod";
 import { db, waitlistEntriesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { syncToAcumbamail } from "../lib/acumbamail";
 
 const router: IRouter = Router();
 
@@ -34,6 +35,11 @@ router.post("/waitlist", async (req, res) => {
     }
 
     await db.insert(waitlistEntriesTable).values({ email: normalizedEmail });
+
+    // Sync to Acumbamail — fire-and-forget, never blocks the response
+    syncToAcumbamail(normalizedEmail).catch((err) => {
+      req.log.warn({ err }, "Acumbamail sync failed (non-blocking)");
+    });
 
     const response = JoinWaitlistResponse.parse({
       success: true,
