@@ -14,6 +14,8 @@ tags:
     description: Waitlist operations
   - name: analyzer
     description: Ingredient conflict analysis
+  - name: scanner
+    description: Product label scanning
 paths:
   /healthz:
     get:
@@ -86,6 +88,43 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /scan-label:
+    post:
+      operationId: scanLabel
+      tags: [scanner]
+      summary: Scan a product label image to extract ingredients
+      description: Accepts a base64-encoded product label image and returns the extracted ingredient list as plain text using Claude vision.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanLabelRequest"
+      responses:
+        "200":
+          description: Extracted ingredients from the label
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanLabelResponse"
+        "400":
+          description: Invalid input (missing or invalid image)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: No ingredient list found on the label
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Scan failed
           content:
             application/json:
               schema:
@@ -179,3 +218,24 @@ components:
       required:
         - conflicts
         - overallSafe
+    ScanLabelRequest:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+          description: Base64-encoded image data (JPEG or PNG)
+        mimeType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp, image/gif]
+          description: MIME type of the image
+      required:
+        - imageBase64
+        - mimeType
+    ScanLabelResponse:
+      type: object
+      properties:
+        ingredients:
+          type: string
+          description: Extracted ingredient list as plain text
+      required:
+        - ingredients

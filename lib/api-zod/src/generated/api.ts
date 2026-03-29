@@ -68,3 +68,18 @@ export const AnalyzeIngredientsResponse = zod.object({
   ),
   overallSafe: zod.boolean().describe("True if no conflicts were found"),
 });
+
+/**
+ * Accepts a base64-encoded product label image and returns the extracted ingredient list as plain text using Claude vision.
+ * @summary Scan a product label image to extract ingredients
+ */
+export const ScanLabelBody = zod.object({
+  imageBase64: zod.string().describe("Base64-encoded image data (JPEG or PNG)"),
+  mimeType: zod
+    .enum(["image/jpeg", "image/png", "image/webp", "image/gif"])
+    .describe("MIME type of the image"),
+});
+
+export const ScanLabelResponse = zod.object({
+  ingredients: zod.string().describe("Extracted ingredient list as plain text"),
+});

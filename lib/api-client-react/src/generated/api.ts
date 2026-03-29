@@ -21,6 +21,8 @@ import type {
   AnalyzeResponse,
   ErrorResponse,
   HealthStatus,
+  ScanLabelRequest,
+  ScanLabelResponse,
   WaitlistRequest,
   WaitlistResponse,
 } from "./api.schemas";
@@ -282,4 +284,91 @@ export const useAnalyzeIngredients = <
   TContext
 > => {
   return useMutation(getAnalyzeIngredientsMutationOptions(options));
+};
+
+/**
+ * Accepts a base64-encoded product label image and returns the extracted ingredient list as plain text using Claude vision.
+ * @summary Scan a product label image to extract ingredients
+ */
+export const getScanLabelUrl = () => {
+  return `/api/scan-label`;
+};
+
+export const scanLabel = async (
+  scanLabelRequest: ScanLabelRequest,
+  options?: RequestInit,
+): Promise<ScanLabelResponse> => {
+  return customFetch<ScanLabelResponse>(getScanLabelUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(scanLabelRequest),
+  });
+};
+
+export const getScanLabelMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scanLabel>>,
+    TError,
+    { data: BodyType<ScanLabelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof scanLabel>>,
+  TError,
+  { data: BodyType<ScanLabelRequest> },
+  TContext
+> => {
+  const mutationKey = ["scanLabel"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof scanLabel>>,
+    { data: BodyType<ScanLabelRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return scanLabel(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ScanLabelMutationResult = NonNullable<
+  Awaited<ReturnType<typeof scanLabel>>
+>;
+export type ScanLabelMutationBody = BodyType<ScanLabelRequest>;
+export type ScanLabelMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Scan a product label image to extract ingredients
+ */
+export const useScanLabel = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scanLabel>>,
+    TError,
+    { data: BodyType<ScanLabelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof scanLabel>>,
+  TError,
+  { data: BodyType<ScanLabelRequest> },
+  TContext
+> => {
+  return useMutation(getScanLabelMutationOptions(options));
 };

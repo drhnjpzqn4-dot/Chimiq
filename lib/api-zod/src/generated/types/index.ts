@@ -12,5 +12,8 @@ export * from "./conflictResult";
 export * from "./conflictResultSeverity";
 export * from "./errorResponse";
 export * from "./healthStatus";
+export * from "./scanLabelRequest";
+export * from "./scanLabelRequestMimeType";
+export * from "./scanLabelResponse";
 export * from "./waitlistRequest";
 export * from "./waitlistResponse";

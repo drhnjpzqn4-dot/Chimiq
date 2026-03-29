@@ -63,3 +63,28 @@ export interface AnalyzeResponse {
   /** True if no conflicts were found */
   overallSafe: boolean;
 }
+
+/**
+ * MIME type of the image
+ */
+export type ScanLabelRequestMimeType =
+  (typeof ScanLabelRequestMimeType)[keyof typeof ScanLabelRequestMimeType];
+
+export const ScanLabelRequestMimeType = {
+  "image/jpeg": "image/jpeg",
+  "image/png": "image/png",
+  "image/webp": "image/webp",
+  "image/gif": "image/gif",
+} as const;
+
+export interface ScanLabelRequest {
+  /** Base64-encoded image data (JPEG or PNG) */
+  imageBase64: string;
+  /** MIME type of the image */
+  mimeType: ScanLabelRequestMimeType;
+}
+
+export interface ScanLabelResponse {
+  /** Extracted ingredient list as plain text */
+  ingredients: string;
+}
