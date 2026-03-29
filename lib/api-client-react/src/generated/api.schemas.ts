@@ -24,6 +24,8 @@ export interface ErrorResponse {
   error: string;
 }
 
+export type SkinProfile = "sensitive" | "young" | "mature" | "pregnant";
+
 export interface AnalyzeRequest {
   /**
    * Ingredient list for the first product
@@ -35,6 +37,62 @@ export interface AnalyzeRequest {
    * @maxLength 3000
    */
   product2: string;
+  /** Optional skin profile to personalise analysis */
+  skinProfile?: SkinProfile;
+}
+
+export interface AnalyzeSingleRequest {
+  /**
+   * Ingredient list for the product to analyze
+   * @maxLength 3000
+   */
+  ingredients: string;
+  /** Optional skin profile to personalise analysis */
+  skinProfile?: SkinProfile;
+}
+
+export type IngredientFlagCategory =
+  | "ENDOCRINE_DISRUPTOR"
+  | "FORMALDEHYDE_RELEASER"
+  | "FRAGRANCE"
+  | "HARSH_PRESERVATIVE"
+  | "PHOTOSENSITISER"
+  | "KNOWN_ALLERGEN"
+  | "NANOPARTICLE"
+  | "CAUTION";
+
+export type IngredientFlagSeverity = "HIGH_RISK" | "CAUTION";
+
+export interface IngredientFlag {
+  /** The flagged ingredient name */
+  ingredient: string;
+  /** Risk category */
+  category: IngredientFlagCategory;
+  severity: IngredientFlagSeverity;
+  /** Plain-English explanation */
+  explanation: string;
+  /** Research citation reference */
+  citation: string;
+  /** URL to the research paper */
+  citationUrl: string;
+}
+
+export interface AnalyzeSingleResponse {
+  flags: IngredientFlag[];
+  /** True if no significant concerns were found */
+  overallSafe: boolean;
+  /** Short verdict string e.g. "3 concerns found" */
+  verdictTitle: string;
+  /** 1-2 sentence summary */
+  verdictSummary: string;
+}
+
+export interface ProductLookupResponse {
+  found: boolean;
+  productName?: string;
+  brand?: string;
+  /** Ingredient list as plain text */
+  ingredients?: string;
 }
 
 export type ConflictResultSeverity =

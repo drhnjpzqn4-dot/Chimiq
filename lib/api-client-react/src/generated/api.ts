@@ -19,8 +19,11 @@ import type {
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
+  AnalyzeSingleRequest,
+  AnalyzeSingleResponse,
   ErrorResponse,
   HealthStatus,
+  ProductLookupResponse,
   ScanLabelRequest,
   ScanLabelResponse,
   WaitlistRequest,
@@ -372,3 +375,159 @@ export const useScanLabel = <
 > => {
   return useMutation(getScanLabelMutationOptions(options));
 };
+
+/**
+ * Analyzes a single product's ingredient list for safety concerns.
+ * @summary Analyze a single product for ingredient safety flags
+ */
+export const getAnalyzeSingleUrl = () => {
+  return `/api/analyze-single`;
+};
+
+export const analyzeSingle = async (
+  analyzeSingleRequest: AnalyzeSingleRequest,
+  options?: RequestInit,
+): Promise<AnalyzeSingleResponse> => {
+  return customFetch<AnalyzeSingleResponse>(getAnalyzeSingleUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(analyzeSingleRequest),
+  });
+};
+
+export const getAnalyzeSingleMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeSingle>>,
+    TError,
+    { data: BodyType<AnalyzeSingleRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeSingle>>,
+  TError,
+  { data: BodyType<AnalyzeSingleRequest> },
+  TContext
+> => {
+  const mutationKey = ["analyzeSingle"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeSingle>>,
+    { data: BodyType<AnalyzeSingleRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+    return analyzeSingle(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeSingleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeSingle>>
+>;
+export type AnalyzeSingleMutationBody = BodyType<AnalyzeSingleRequest>;
+export type AnalyzeSingleMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Analyze a single product for ingredient safety flags
+ */
+export const useAnalyzeSingle = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeSingle>>,
+    TError,
+    { data: BodyType<AnalyzeSingleRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeSingle>>,
+  TError,
+  { data: BodyType<AnalyzeSingleRequest> },
+  TContext
+> => {
+  return useMutation(getAnalyzeSingleMutationOptions(options));
+};
+
+/**
+ * Looks up a skincare product by name using Open Beauty Facts and returns its ingredient list.
+ * @summary Look up product ingredients by name
+ */
+export const getProductLookupUrl = (q: string) => {
+  return `/api/product-lookup?q=${encodeURIComponent(q)}`;
+};
+
+export const productLookup = async (
+  q: string,
+  options?: RequestInit,
+): Promise<ProductLookupResponse> => {
+  return customFetch<ProductLookupResponse>(getProductLookupUrl(q), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getProductLookupQueryKey = (q: string) => {
+  return [`/api/product-lookup`, q] as const;
+};
+
+export const getProductLookupQueryOptions = <
+  TData = Awaited<ReturnType<typeof productLookup>>,
+  TError = ErrorType<unknown>,
+>(
+  q: string,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof productLookup>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getProductLookupQueryKey(q);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof productLookup>>> = ({ signal }) =>
+    productLookup(q, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: q.length >= 2,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof productLookup>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type ProductLookupQueryResult = NonNullable<Awaited<ReturnType<typeof productLookup>>>;
+export type ProductLookupQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Look up product ingredients by name
+ */
+export function useProductLookup<
+  TData = Awaited<ReturnType<typeof productLookup>>,
+  TError = ErrorType<unknown>,
+>(
+  q: string,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof productLookup>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getProductLookupQueryOptions(q, options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
