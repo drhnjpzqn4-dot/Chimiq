@@ -123,17 +123,17 @@ export function IngredientScanner() {
           size="lg"
           onClick={handleScan}
           disabled={!product1.trim() || !product2.trim() || analyze.isPending}
-          className="min-w-[200px] gap-2"
+          className="w-full sm:w-auto min-w-[200px] gap-2"
         >
           {analyze.isPending ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Scanning…
+              Checking…
             </>
           ) : (
             <>
               <FlaskConical className="w-4 h-4" />
-              Scan for Conflicts
+              Check Compatibility
             </>
           )}
         </Button>

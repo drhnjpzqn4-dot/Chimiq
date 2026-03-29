@@ -183,7 +183,7 @@ export default function Home() {
       </section>
 
       {/* TRY IT NOW — INGREDIENT SCANNER */}
-      <section id="try-it-now" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#F5F5F7]">
+      <section id="try-it-now" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
         <div className="max-w-5xl mx-auto">
           <FadeIn>
             <div className="text-center mb-12">
@@ -191,10 +191,10 @@ export default function Home() {
                 Live Preview
               </span>
               <h2 className="text-3xl md:text-5xl font-serif mb-4">
-                Try the scanner now
+                Try It Now
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                Paste two ingredient lists below and see SkinScreen's AI-powered conflict detection in action — dermatologist-informed, research-backed.
+                Paste two ingredient lists and see SkinScreen detect conflicts in seconds — dermatologist-informed, research-backed.
               </p>
             </div>
           </FadeIn>
