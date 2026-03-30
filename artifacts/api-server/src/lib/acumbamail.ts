@@ -18,6 +18,7 @@ export async function syncToAcumbamail(email: string): Promise<void> {
       email,
       double_optin: "0",
     });
+    body.append("merge_fields[email]", email);
 
     const response = await fetch(ACUMBAMAIL_API_URL, {
       method: "POST",
@@ -26,7 +27,9 @@ export async function syncToAcumbamail(email: string): Promise<void> {
     });
 
     if (!response.ok) {
-      logger.warn({ status: response.status }, "[acumbamail] Non-200 response from Acumbamail API");
+      let responseBody = "";
+      try { responseBody = await response.text(); } catch { /* ignore */ }
+      logger.warn({ status: response.status, body: responseBody }, "[acumbamail] Non-200 response from Acumbamail API");
       return;
     }
 
