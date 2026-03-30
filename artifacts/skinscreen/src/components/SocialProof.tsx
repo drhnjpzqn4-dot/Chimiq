@@ -163,13 +163,14 @@ export function SocialProof({ style = "mixed" }: SocialProofProps) {
         </FadeIn>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {posts.map((post, idx) =>
-            post.platform === "reddit" ? (
+          {posts.map((post, idx) => {
+            const renderAs = style === "mixed" ? post.platform : style;
+            return renderAs === "reddit" ? (
               <RedditCard key={`${post.handle}-${idx}`} post={post} delay={idx * 0.07} />
             ) : (
               <TikTokCard key={`${post.handle}-${idx}`} post={post} delay={idx * 0.07} />
-            )
-          )}
+            );
+          })}
         </div>
 
         <FadeIn delay={0.5}>
