@@ -87,83 +87,84 @@ interface ProductSearchProps {
 function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
   const [inputVal, setInputVal] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
-  const [dismissed, setDismissed] = useState(false);
+  const [autoFilled, setAutoFilled] = useState<string | null>(null);
+  const autoFilledRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       const trimmed = inputVal.trim();
-      if (trimmed.length >= 3 && !dismissed) {
-        setDebouncedQ(trimmed);
-      } else {
-        setDebouncedQ("");
-      }
+      autoFilledRef.current = false;
+      setAutoFilled(null);
+      setDebouncedQ(trimmed.length >= 3 ? trimmed : "");
     }, 500);
     return () => clearTimeout(timer);
-  }, [inputVal, dismissed]);
+  }, [inputVal]);
 
   const { data, isFetching } = useProductLookup(debouncedQ);
 
-  const handleUse = () => {
-    if (data?.found && data.ingredients) {
+  useEffect(() => {
+    if (!isFetching && data?.found && data.ingredients && !autoFilledRef.current) {
+      autoFilledRef.current = true;
       onIngredients(data.ingredients, data.productName ?? debouncedQ);
+      setAutoFilled(data.productName ?? debouncedQ);
       setInputVal("");
       setDebouncedQ("");
     }
-  };
+  }, [isFetching, data, debouncedQ, onIngredients]);
 
-  const showResult = !dismissed && debouncedQ.length >= 3 && !isFetching && data;
+  const clear = () => {
+    setInputVal("");
+    setDebouncedQ("");
+    setAutoFilled(null);
+    autoFilledRef.current = false;
+  };
 
   return (
     <div className="mb-2">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none" />
-        <input
-          type="text"
-          value={inputVal}
-          onChange={(e) => setInputVal(e.target.value)}
-          placeholder="Search product name to auto-fill..."
-          disabled={disabled}
-          className={cn(
-            "w-full pl-8 pr-8 py-2 text-xs rounded-xl border border-border/50 bg-white/70",
-            "placeholder:text-muted-foreground/40 text-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
-            "transition-all duration-150 disabled:opacity-50",
-          )}
-        />
-        {isFetching && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 animate-spin" />
-        )}
-        {inputVal && !isFetching && (
+      {autoFilled ? (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
+          <p className="text-xs font-medium text-primary truncate flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            Auto-filled from: {autoFilled}
+          </p>
           <button
             type="button"
-            onClick={() => { setInputVal(""); setDebouncedQ(""); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+            onClick={clear}
+            className="shrink-0 text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors"
           >
-            <X className="w-3.5 h-3.5" />
+            Clear
           </button>
-        )}
-      </div>
-      {showResult && (
-        <div className="mt-1.5">
-          {data.found && data.ingredients ? (
-            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-primary truncate">
-                  {data.productName}
-                  {data.brand ? ` · ${data.brand}` : ""}
-                </p>
-                <p className="text-[10px] text-muted-foreground/60">Ingredients found</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleUse}
-                className="shrink-0 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors"
-              >
-                Use
-              </button>
-            </div>
-          ) : (
-            <p className="text-[10px] text-muted-foreground/50 px-1">
+        </div>
+      ) : (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none" />
+          <input
+            type="text"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            placeholder="Search product name to auto-fill ingredients..."
+            disabled={disabled}
+            className={cn(
+              "w-full pl-8 pr-8 py-2 text-xs rounded-xl border border-border/50 bg-white/70",
+              "placeholder:text-muted-foreground/40 text-foreground",
+              "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
+              "transition-all duration-150 disabled:opacity-50",
+            )}
+          />
+          {isFetching && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 animate-spin" />
+          )}
+          {inputVal && !isFetching && (
+            <button
+              type="button"
+              onClick={clear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {!isFetching && debouncedQ.length >= 3 && data && !data.found && (
+            <p className="mt-1.5 text-[10px] text-muted-foreground/50 px-1">
               Not found — paste the ingredient list manually below
             </p>
           )}
