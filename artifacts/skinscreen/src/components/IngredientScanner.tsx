@@ -388,8 +388,11 @@ export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; c
   const [mode, setMode] = useState<"single" | "compare">("single");
   const [skinProfile, setSkinProfile] = useState<SkinProfile | undefined>(undefined);
   const [ingredients, setIngredients] = useState("");
+  const [productName, setProductName] = useState<string>("");
   const [product1, setProduct1] = useState("");
+  const [product1Name, setProduct1Name] = useState<string>("");
   const [product2, setProduct2] = useState("");
+  const [product2Name, setProduct2Name] = useState<string>("");
   const [submitted, setSubmitted] = useState(false);
 
   const analyzeSingle = useAnalyzeSingle({ mutation: {} });
@@ -468,13 +471,13 @@ export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; c
       {mode === "single" ? (
         <div className="mb-6">
           <ProductSearch
-            onIngredients={(ings) => { setIngredients(ings); resetResults(); }}
+            onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); resetResults(); }}
           />
           <ProductTextArea
             label="Ingredient List"
             index={1}
             value={ingredients}
-            onChange={(val) => { setIngredients(val); resetResults(); }}
+            onChange={(val) => { setIngredients(val); setProductName(""); resetResults(); }}
             placeholder={PLACEHOLDER_SINGLE}
           />
         </div>
@@ -482,25 +485,25 @@ export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; c
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
             <ProductSearch
-              onIngredients={(ings) => { setProduct1(ings); resetResults(); }}
+              onIngredients={(ings, name) => { setProduct1(ings); setProduct1Name(name || ""); resetResults(); }}
             />
             <ProductTextArea
               label="Product 1 Ingredients"
               index={1}
               value={product1}
-              onChange={(val) => { setProduct1(val); resetResults(); }}
+              onChange={(val) => { setProduct1(val); setProduct1Name(""); resetResults(); }}
               placeholder={PLACEHOLDER_1}
             />
           </div>
           <div>
             <ProductSearch
-              onIngredients={(ings) => { setProduct2(ings); resetResults(); }}
+              onIngredients={(ings, name) => { setProduct2(ings); setProduct2Name(name || ""); resetResults(); }}
             />
             <ProductTextArea
               label="Product 2 Ingredients"
               index={2}
               value={product2}
-              onChange={(val) => { setProduct2(val); resetResults(); }}
+              onChange={(val) => { setProduct2(val); setProduct2Name(""); resetResults(); }}
               placeholder={PLACEHOLDER_2}
             />
           </div>
@@ -544,6 +547,16 @@ export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; c
       {/* Single-product results */}
       {singleResult && (
         <div className="space-y-8">
+          {/* Product name label */}
+          {productName && (
+            <FadeIn>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+                <span>Results for: <span className="font-semibold text-foreground">{productName}</span></span>
+              </div>
+            </FadeIn>
+          )}
+
           {/* Verdict headline */}
           <FadeIn>
             <div className={cn(
@@ -621,6 +634,26 @@ export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; c
       {/* Compare results */}
       {compareResult && (
         <div className="space-y-10">
+          {/* Product name labels */}
+          {(product1Name || product2Name) && (
+            <FadeIn>
+              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                {product1Name && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                    <span>Product 1: <span className="font-semibold text-foreground">{product1Name}</span></span>
+                  </div>
+                )}
+                {product2Name && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <span>Product 2: <span className="font-semibold text-foreground">{product2Name}</span></span>
+                  </div>
+                )}
+              </div>
+            </FadeIn>
+          )}
+
           {/* Verdict headline */}
           <FadeIn>
             <div className={cn(
