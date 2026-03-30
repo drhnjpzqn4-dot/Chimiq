@@ -9,7 +9,7 @@ import {
   useProductLookup,
   getProductLookupQueryKey,
 } from "@workspace/api-client-react";
-import type { RoutineConflict } from "@workspace/api-client-react";
+import type { RoutineConflict, RoutineConflictResponse } from "@workspace/api-client-react";
 import {
   Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle,
   CheckCircle2, X, ShieldCheck, ShieldOff, Loader2,
@@ -250,50 +250,40 @@ function ConflictCard({ conflict, delay }: { conflict: RoutineConflict; delay?: 
   );
 }
 
+type AnalysisState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "done"; data: RoutineConflictResponse };
+
 interface RoutineCheckPanelProps {
   productCount: number;
+  analysisState: AnalysisState;
+  onRun: () => void;
   onClear: () => void;
 }
 
-function RoutineCheckPanel({ productCount, onClear }: RoutineCheckPanelProps) {
+function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: RoutineCheckPanelProps) {
   const [open, setOpen] = useState(true);
-  const analyzeRoutine = useAnalyzeRoutine();
-  const hasRun = analyzeRoutine.data !== undefined;
-  const isLoading = analyzeRoutine.isPending;
 
-  const runCheck = useCallback(() => {
-    analyzeRoutine.mutate();
-  }, [analyzeRoutine]);
-
-  const data = analyzeRoutine.data;
-
-  if (!hasRun && !isLoading) {
+  if (analysisState.status === "idle") {
+    if (productCount < 2) return null;
     return (
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 border-t border-border/30 pt-3">
         <button
-          onClick={runCheck}
-          disabled={productCount < 2}
-          className={cn(
-            "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all duration-200",
-            productCount >= 2
-              ? "bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20"
-              : "bg-[#F5F5F7] text-muted-foreground/50 border border-border/30 cursor-not-allowed",
-          )}
-          title={productCount < 2 ? "Add at least 2 products to analyse your routine" : undefined}
+          onClick={onRun}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all duration-200 bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20"
         >
           <Zap className="w-4 h-4" />
           Check my routine
-          {productCount < 2 && (
-            <span className="text-xs opacity-70">(add {2 - productCount} more product{productCount < 1 ? "s" : ""})</span>
-          )}
         </button>
       </div>
     );
   }
 
-  if (isLoading) {
+  if (analysisState.status === "loading") {
     return (
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 border-t border-border/30 pt-3">
         <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary/70 text-sm">
           <Loader2 className="w-4 h-4 animate-spin" />
           Analysing your routine…
@@ -302,15 +292,15 @@ function RoutineCheckPanel({ productCount, onClear }: RoutineCheckPanelProps) {
     );
   }
 
-  if (analyzeRoutine.isError) {
+  if (analysisState.status === "error") {
     return (
-      <div className="px-4 pb-4 space-y-2">
+      <div className="px-4 pb-4 border-t border-border/30 pt-3 space-y-2">
         <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
           <AlertTriangle className="w-4 h-4" />
           Analysis failed. Please try again.
         </div>
         <button
-          onClick={runCheck}
+          onClick={onRun}
           className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Retry
@@ -319,9 +309,7 @@ function RoutineCheckPanel({ productCount, onClear }: RoutineCheckPanelProps) {
     );
   }
 
-  if (!data) return null;
-
-  const { conflicts, overallSafe, highRiskCount, cautionCount } = data;
+  const { conflicts, overallSafe, highRiskCount, cautionCount } = analysisState.data;
 
   return (
     <div className="border-t border-border/30">
@@ -359,7 +347,7 @@ function RoutineCheckPanel({ productCount, onClear }: RoutineCheckPanelProps) {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={(e) => { e.stopPropagation(); onClear(); analyzeRoutine.reset(); }}
+            onClick={(e) => { e.stopPropagation(); onClear(); }}
             className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors px-1"
           >
             Clear
@@ -396,7 +384,7 @@ function RoutineCheckPanel({ productCount, onClear }: RoutineCheckPanelProps) {
             </div>
           )}
           <button
-            onClick={() => { onClear(); analyzeRoutine.reset(); }}
+            onClick={onClear}
             className="mt-3 w-full text-xs text-muted-foreground/60 hover:text-muted-foreground py-1.5 transition-colors"
           >
             Re-check after changes
@@ -415,7 +403,9 @@ interface MyShelfProps {
 export function MyShelf({ displayName }: MyShelfProps) {
   const [tab, setTab] = useState<"morning" | "evening">("morning");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [analysisState, setAnalysisState] = useState<AnalysisState>({ status: "idle" });
   const queryClient = useQueryClient();
+  const analyzeRoutineMutation = useAnalyzeRoutine();
 
   const shelfQuery = useGetShelf({ query: { queryKey: getGetShelfQueryKey() } });
   const removeMutation = useRemoveFromShelf();
@@ -427,18 +417,35 @@ export function MyShelf({ displayName }: MyShelfProps) {
     return true;
   });
 
+  const resetAnalysis = useCallback(() => {
+    setAnalysisState({ status: "idle" });
+    analyzeRoutineMutation.reset();
+  }, [analyzeRoutineMutation]);
+
+  const handleRunAnalysis = useCallback(() => {
+    setAnalysisState({ status: "loading" });
+    analyzeRoutineMutation.mutate(undefined, {
+      onSuccess: (data) => setAnalysisState({ status: "done", data }),
+      onError: () => setAnalysisState({ status: "error" }),
+    });
+  }, [analyzeRoutineMutation]);
+
   const handleAdded = useCallback(() => {
     setShowAddForm(false);
     queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
-  }, [queryClient]);
+    resetAnalysis();
+  }, [queryClient, resetAnalysis]);
 
   const handleRemove = useCallback(
     async (id: number) => {
       await removeMutation.mutateAsync({ id });
       queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
+      resetAnalysis();
     },
-    [removeMutation, queryClient],
+    [removeMutation, queryClient, resetAnalysis],
   );
+
+  const analysisData = analysisState.status === "done" ? analysisState.data : null;
 
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
@@ -449,9 +456,23 @@ export function MyShelf({ displayName }: MyShelfProps) {
             <span className="ml-2 text-sm text-muted-foreground">— {displayName}</span>
           )}
         </div>
-        <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">
-          {allProducts.length} product{allProducts.length !== 1 ? "s" : ""}
-        </span>
+        <div className="flex items-center gap-2">
+          {analysisData && (
+            analysisData.overallSafe ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-[#16A34A] text-[10px] font-bold">
+                <ShieldCheck className="w-3 h-3" /> All clear
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold">
+                <ShieldOff className="w-3 h-3" />
+                {analysisData.highRiskCount + analysisData.cautionCount} conflict{(analysisData.highRiskCount + analysisData.cautionCount) !== 1 ? "s" : ""}
+              </span>
+            )
+          )}
+          <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">
+            {allProducts.length} product{allProducts.length !== 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
 
       <div className="flex border-b border-border/30">
@@ -540,7 +561,9 @@ export function MyShelf({ displayName }: MyShelfProps) {
 
       <RoutineCheckPanel
         productCount={allProducts.length}
-        onClear={() => {}}
+        analysisState={analysisState}
+        onRun={handleRunAnalysis}
+        onClear={resetAnalysis}
       />
     </div>
   );
