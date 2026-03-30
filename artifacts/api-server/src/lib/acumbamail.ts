@@ -27,9 +27,7 @@ export async function syncToAcumbamail(email: string): Promise<void> {
     });
 
     if (!response.ok) {
-      let responseBody = "";
-      try { responseBody = await response.text(); } catch { /* ignore */ }
-      logger.warn({ status: response.status, body: responseBody }, "[acumbamail] Non-200 response from Acumbamail API");
+      logger.warn({ status: response.status }, "[acumbamail] Non-200 response from Acumbamail API");
       return;
     }
 
@@ -56,7 +54,7 @@ export async function syncToAcumbamail(email: string): Promise<void> {
       return;
     }
 
-    logger.info({ email }, "[acumbamail] Subscriber synced successfully");
+    logger.info("[acumbamail] Subscriber synced successfully");
   } catch (err) {
     logger.warn({ err }, "[acumbamail] Sync failed (network or unexpected error)");
   }
