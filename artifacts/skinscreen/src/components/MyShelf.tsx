@@ -313,17 +313,18 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
 
   return (
     <div className="border-t border-border/30">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-[#FAFAF8] transition-colors"
-      >
-        <div className="flex items-center gap-2">
+      <div className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-[#FAFAF8] transition-colors">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+          aria-expanded={open}
+        >
           {overallSafe ? (
-            <ShieldCheck className="w-4 h-4 text-[#22C55E]" />
+            <ShieldCheck className="w-4 h-4 text-[#22C55E] shrink-0" />
           ) : highRiskCount > 0 ? (
-            <ShieldOff className="w-4 h-4 text-red-500" />
+            <ShieldOff className="w-4 h-4 text-red-500 shrink-0" />
           ) : (
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
           )}
           <span className="text-sm font-medium text-foreground">
             {overallSafe
@@ -344,21 +345,23 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
               )}
             </div>
           )}
-        </div>
+        </button>
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={(e) => { e.stopPropagation(); onClear(); }}
+            onClick={onClear}
             className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors px-1"
           >
             Clear
           </button>
-          {open ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground/60" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground/60" />
-          )}
+          <button onClick={() => setOpen((v) => !v)} aria-label={open ? "Collapse" : "Expand"}>
+            {open ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground/60" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground/60" />
+            )}
+          </button>
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="px-4 pb-4">

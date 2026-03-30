@@ -170,36 +170,59 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
     return;
   }
 
+  const MAX_PRODUCTS = 10;
+  const CONCURRENCY = 3;
+
+  // Cap to most recently-added products to limit LLM cost
+  const cappedProducts = products.slice(-MAX_PRODUCTS);
+
   const anthropic = new Anthropic({ apiKey, baseURL });
 
   // Generate all unique product pairs
   const pairs: Array<{ i: number; j: number }> = [];
-  for (let i = 0; i < products.length - 1; i++) {
-    for (let j = i + 1; j < products.length; j++) {
+  for (let i = 0; i < cappedProducts.length - 1; i++) {
+    for (let j = i + 1; j < cappedProducts.length; j++) {
       pairs.push({ i, j });
     }
   }
 
+  // Concurrency-limited executor
+  async function runWithConcurrency<T>(
+    tasks: Array<() => Promise<T>>,
+    limit: number,
+  ): Promise<T[]> {
+    const results: T[] = [];
+    let idx = 0;
+    async function worker() {
+      while (idx < tasks.length) {
+        const current = idx++;
+        results[current] = await tasks[current]();
+      }
+    }
+    const workers = Array.from({ length: Math.min(limit, tasks.length) }, worker);
+    await Promise.all(workers);
+    return results;
+  }
+
   try {
-    // Run all pairs in parallel
-    const pairResults = await Promise.all(
-      pairs.map(async ({ i, j }) => {
-        const p1 = products[i];
-        const p2 = products[j];
-        const conflicts = await analyzePair(
-          anthropic,
-          p1.productName,
-          p1.ingredients,
-          p2.productName,
-          p2.ingredients,
-        );
-        return conflicts.map((c) => ({
-          ...c,
-          product1Name: p1.productName,
-          product2Name: p2.productName,
-        }));
-      }),
-    );
+    const tasks = pairs.map(({ i, j }) => async () => {
+      const p1 = cappedProducts[i];
+      const p2 = cappedProducts[j];
+      const conflicts = await analyzePair(
+        anthropic,
+        p1.productName,
+        p1.ingredients,
+        p2.productName,
+        p2.ingredients,
+      );
+      return conflicts.map((c) => ({
+        ...c,
+        product1Name: p1.productName,
+        product2Name: p2.productName,
+      }));
+    });
+
+    const pairResults = await runWithConcurrency(tasks, CONCURRENCY);
 
     // Flatten, deduplicate by pair name, sort by severity
     const severityOrder = { HIGH_RISK: 0, CAUTION: 1, SAFE: 2 };
