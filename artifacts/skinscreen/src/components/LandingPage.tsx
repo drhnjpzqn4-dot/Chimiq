@@ -134,7 +134,7 @@ export function LandingPage({ config }: LandingPageProps) {
         </FadeIn>
 
         <FadeIn delay={0.4} className="w-full flex justify-center">
-          <WaitlistForm buttonSize="lg" />
+          <WaitlistForm buttonSize="lg" buttonLabel={config.hero.ctaLabel} />
         </FadeIn>
       </section>
 
@@ -354,7 +354,7 @@ export function LandingPage({ config }: LandingPageProps) {
               </p>
             </div>
           </FadeIn>
-          <IngredientScanner />
+          <IngredientScanner ctaLabel={config.scannerCtaLabel} />
         </div>
       </section>
 

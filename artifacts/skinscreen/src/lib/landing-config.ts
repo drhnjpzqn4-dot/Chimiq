@@ -4,6 +4,7 @@ export interface LandingConfig {
     headline: string;
     headlineItalic: string;
     subhead: string;
+    ctaLabel: string;
   };
   theGoal: {
     headline: string;
@@ -11,6 +12,10 @@ export interface LandingConfig {
   };
   socialProofStyle: "mixed" | "reddit" | "tiktok";
   scannerSubhead: string;
+  scannerCtaLabel: {
+    single: string;
+    compare: string;
+  };
 }
 
 export const generalConfig: LandingConfig = {
@@ -20,6 +25,7 @@ export const generalConfig: LandingConfig = {
     headlineItalic: "Do you know what they do to each other?",
     subhead:
       "SkinScreen scans your skincare and finds dangerous combinations — before they find your skin.",
+    ctaLabel: "Join the waitlist",
   },
   theGoal: {
     headline: "Healthy skin needs less, not more.",
@@ -28,6 +34,10 @@ export const generalConfig: LandingConfig = {
   socialProofStyle: "mixed",
   scannerSubhead:
     "Paste two ingredient lists and see SkinScreen detect conflicts in seconds — dermatologist-informed, research-backed.",
+  scannerCtaLabel: {
+    single: "Scan Ingredients",
+    compare: "Check Compatibility",
+  },
 };
 
 export const variantAConfig: LandingConfig = {
@@ -37,6 +47,7 @@ export const variantAConfig: LandingConfig = {
     headlineItalic: "before you started their routine.",
     subhead:
       "TikTok recommended 12 products. Your skin barrier only ever needed 3. SkinScreen shows you what the algorithm won't.",
+    ctaLabel: "Show me what's in my routine",
   },
   theGoal: {
     headline: "You were sold a problem that didn't exist.",
@@ -45,6 +56,10 @@ export const variantAConfig: LandingConfig = {
   socialProofStyle: "tiktok",
   scannerSubhead:
     "Paste your routine's ingredient lists and find out if the products you were sold are working — or working against you.",
+  scannerCtaLabel: {
+    single: "See what this is doing to my skin",
+    compare: "Are these products fighting each other?",
+  },
 };
 
 export const variantBConfig: LandingConfig = {
@@ -54,6 +69,7 @@ export const variantBConfig: LandingConfig = {
     headlineItalic: "Your skin deserves better than that.",
     subhead:
       "Underneath the serums, retinols and collagen creams, some combinations quietly do damage. SkinScreen shows you what's really happening.",
+    ctaLabel: "Tell me what's really in my products",
   },
   theGoal: {
     headline: "Less is more. The science agrees.",
@@ -62,4 +78,8 @@ export const variantBConfig: LandingConfig = {
   socialProofStyle: "reddit",
   scannerSubhead:
     "Paste your skincare ingredient lists and find out whether your anti-ageing routine is working with your skin — or quietly working against it.",
+  scannerCtaLabel: {
+    single: "Analyse this product",
+    compare: "Check for conflicts",
+  },
 };

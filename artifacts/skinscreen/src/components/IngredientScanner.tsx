@@ -384,7 +384,7 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
   );
 }
 
-export function IngredientScanner() {
+export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; compare: string } } = {}) {
   const [mode, setMode] = useState<"single" | "compare">("single");
   const [skinProfile, setSkinProfile] = useState<SkinProfile | undefined>(undefined);
   const [ingredients, setIngredients] = useState("");
@@ -524,7 +524,7 @@ export function IngredientScanner() {
           {isPending ? (
             <><Loader2 className="w-4 h-4 animate-spin" />Analysing…</>
           ) : (
-            <><FlaskConical className="w-4 h-4" />{mode === "single" ? "Scan Ingredients" : "Check Compatibility"}</>
+            <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? "Scan Ingredients") : (ctaLabel?.compare ?? "Check Compatibility")}</>
           )}
         </Button>
       </div>

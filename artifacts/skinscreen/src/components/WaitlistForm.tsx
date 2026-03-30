@@ -14,7 +14,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function WaitlistForm({ className, buttonSize = "lg" }: { className?: string, buttonSize?: "default" | "lg" }) {
+export function WaitlistForm({ className, buttonSize = "lg", buttonLabel = "Join the waitlist" }: { className?: string, buttonSize?: "default" | "lg", buttonLabel?: string }) {
   const joinWaitlist = useWaitlist();
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -65,7 +65,7 @@ export function WaitlistForm({ className, buttonSize = "lg" }: { className?: str
           {joinWaitlist.isPending ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            "Join the waitlist"
+            buttonLabel
           )}
         </Button>
       </div>
