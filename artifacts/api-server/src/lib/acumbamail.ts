@@ -54,7 +54,7 @@ export async function syncToAcumbamail(email: string): Promise<void> {
       return;
     }
 
-    logger.info("[acumbamail] Subscriber synced successfully");
+    logger.info({ domain: email.split("@")[1] ?? "unknown" }, "[acumbamail] Subscriber synced successfully");
   } catch (err) {
     logger.warn({ err }, "[acumbamail] Sync failed (network or unexpected error)");
   }
