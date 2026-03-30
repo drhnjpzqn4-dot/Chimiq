@@ -187,6 +187,24 @@ export const SuggestAlternativesResponse = zod.object({
 });
 
 /**
+ * @summary Get the currently authenticated user's profile (returns 401 if not authenticated)
+ */
+export const GetMeHeader = zod.object({
+  Authorization: zod
+    .string()
+    .optional()
+    .describe("Opaque session token — `Bearer <sid>`."),
+});
+
+export const GetMeResponse = zod.object({
+  id: zod.string(),
+  email: zod.string().email().nullable(),
+  firstName: zod.string().nullable(),
+  lastName: zod.string().nullable(),
+  profileImageUrl: zod.string().nullable(),
+});
+
+/**
  * @summary Get the currently authenticated user
  */
 export const GetCurrentAuthUserHeader = zod.object({
@@ -267,7 +285,7 @@ export const LogoutMobileSessionHeader = zod.object({
 });
 
 export const LogoutMobileSessionResponse = zod.object({
-  token: zod.string(),
+  success: zod.boolean(),
 });
 
 /**

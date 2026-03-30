@@ -42,8 +42,7 @@ export function useAuth(): AuthState {
   }, []);
 
   const login = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const base = ((import.meta as any).env?.BASE_URL ?? "/").replace(/\/+$/, "") || "/";
+    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "/";
     window.location.href = `/api/login?returnTo=${encodeURIComponent(base)}`;
   }, []);
 
