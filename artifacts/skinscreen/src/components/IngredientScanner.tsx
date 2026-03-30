@@ -104,7 +104,11 @@ function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
     return () => clearTimeout(timer);
   }, [inputVal]);
 
-  const { data, isFetching } = useProductLookup(debouncedQ);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, isFetching } = useProductLookup(
+    { q: debouncedQ },
+    { query: { enabled: debouncedQ.length >= 3 } as any },
+  );
 
   useEffect(() => {
     if (!isFetching && data?.found && data.ingredients && !autoFilledRef.current) {
