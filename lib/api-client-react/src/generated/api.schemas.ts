@@ -24,7 +24,14 @@ export interface ErrorResponse {
   error: string;
 }
 
-export type SkinProfile = "sensitive" | "young" | "mature" | "pregnant";
+export type SkinProfile = (typeof SkinProfile)[keyof typeof SkinProfile];
+
+export const SkinProfile = {
+  sensitive: "sensitive",
+  young: "young",
+  mature: "mature",
+  pregnant: "pregnant",
+} as const;
 
 export interface AnalyzeRequest {
   /**
@@ -52,16 +59,26 @@ export interface AnalyzeSingleRequest {
 }
 
 export type IngredientFlagCategory =
-  | "ENDOCRINE_DISRUPTOR"
-  | "FORMALDEHYDE_RELEASER"
-  | "FRAGRANCE"
-  | "HARSH_PRESERVATIVE"
-  | "PHOTOSENSITISER"
-  | "KNOWN_ALLERGEN"
-  | "NANOPARTICLE"
-  | "CAUTION";
+  (typeof IngredientFlagCategory)[keyof typeof IngredientFlagCategory];
 
-export type IngredientFlagSeverity = "HIGH_RISK" | "CAUTION";
+export const IngredientFlagCategory = {
+  ENDOCRINE_DISRUPTOR: "ENDOCRINE_DISRUPTOR",
+  FORMALDEHYDE_RELEASER: "FORMALDEHYDE_RELEASER",
+  FRAGRANCE: "FRAGRANCE",
+  HARSH_PRESERVATIVE: "HARSH_PRESERVATIVE",
+  PHOTOSENSITISER: "PHOTOSENSITISER",
+  KNOWN_ALLERGEN: "KNOWN_ALLERGEN",
+  NANOPARTICLE: "NANOPARTICLE",
+  CAUTION: "CAUTION",
+} as const;
+
+export type IngredientFlagSeverity =
+  (typeof IngredientFlagSeverity)[keyof typeof IngredientFlagSeverity];
+
+export const IngredientFlagSeverity = {
+  HIGH_RISK: "HIGH_RISK",
+  CAUTION: "CAUTION",
+} as const;
 
 export interface IngredientFlag {
   /** The flagged ingredient name */
@@ -146,3 +163,46 @@ export interface ScanLabelResponse {
   /** Extracted ingredient list as plain text */
   ingredients: string;
 }
+
+export interface SuggestAlternativesRequest {
+  /**
+   * Full ingredient list of the scanned product
+   * @maxLength 3000
+   */
+  ingredients: string;
+  /**
+   * Ingredient names that were flagged as concerns
+   * @minItems 1
+   * @maxItems 20
+   */
+  flaggedIngredients: string[];
+  /**
+   * Optional hint about the product type (e.g. moisturiser, cleanser)
+   * @maxLength 100
+   */
+  productType?: string;
+}
+
+export interface AlternativeSuggestion {
+  /** Product name */
+  name: string;
+  /** Brand name */
+  brand: string;
+  /** One sentence explaining why this product is safer */
+  whySafer: string;
+  /** Short phrase describing the key ingredient improvement */
+  keyImprovement: string;
+}
+
+export interface SuggestAlternativesResponse {
+  alternatives: AlternativeSuggestion[];
+  /** The product type inferred from the ingredient list */
+  inferredProductType: string;
+}
+
+export type ProductLookupParams = {
+  /**
+   * Product name search query
+   */
+  q: string;
+};

@@ -7,17 +7,12 @@
  */
 import type { SkinProfile } from "./skinProfile";
 
-export interface AnalyzeRequest {
+export interface AnalyzeSingleRequest {
   /**
-   * Ingredient list for the first product
+   * Ingredient list for the product to analyze
    * @maxLength 3000
    */
-  product1: string;
-  /**
-   * Ingredient list for the second product
-   * @maxLength 3000
-   */
-  product2: string;
+  ingredients: string;
   /** Optional skin profile to personalise analysis */
   skinProfile?: SkinProfile;
 }

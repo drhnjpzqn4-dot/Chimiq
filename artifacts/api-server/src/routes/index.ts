@@ -5,6 +5,7 @@ import analyzeRouter from "./analyze";
 import analyzeSingleRouter from "./analyze-single";
 import scanLabelRouter from "./scan-label";
 import productLookupRouter from "./product-lookup";
+import suggestAlternativesRouter from "./suggest-alternatives";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(analyzeRouter);
 router.use(analyzeSingleRouter);
 router.use(scanLabelRouter);
 router.use(productLookupRouter);
+router.use(suggestAlternativesRouter);
 
 export default router;

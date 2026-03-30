@@ -92,6 +92,94 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /analyze-single:
+    post:
+      operationId: analyzeSingle
+      tags: [analyzer]
+      summary: Analyze a single product for ingredient concerns
+      description: Takes one ingredient list and flags individual concerning ingredients with severity, category, and citations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeSingleRequest"
+      responses:
+        "200":
+          description: Single-product analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeSingleResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /product-lookup:
+    get:
+      operationId: productLookup
+      tags: [scanner]
+      summary: Look up a product by name to get its ingredients
+      description: Searches for a product by name and returns its ingredient list if found.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Product name search query
+      responses:
+        "200":
+          description: Product lookup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductLookupResponse"
+        "500":
+          description: Lookup failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /suggest-alternatives:
+    post:
+      operationId: suggestAlternatives
+      tags: [scanner]
+      summary: Suggest safer product alternatives
+      description: Given a flagged ingredient list, suggests 2-3 real, widely-available products that serve the same function without the problematic ingredients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestAlternativesRequest"
+      responses:
+        "200":
+          description: Safer product alternatives
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestAlternativesResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Suggestion generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /scan-label:
     post:
       operationId: scanLabel
@@ -167,6 +255,9 @@ components:
           type: string
       required:
         - error
+    SkinProfile:
+      type: string
+      enum: [sensitive, young, mature, pregnant]
     AnalyzeRequest:
       type: object
       properties:
@@ -178,9 +269,100 @@ components:
           type: string
           maxLength: 3000
           description: Ingredient list for the second product
+        skinProfile:
+          $ref: "#/components/schemas/SkinProfile"
+          description: Optional skin profile to personalise analysis
       required:
         - product1
         - product2
+    AnalyzeSingleRequest:
+      type: object
+      properties:
+        ingredients:
+          type: string
+          maxLength: 3000
+          description: Ingredient list for the product to analyze
+        skinProfile:
+          $ref: "#/components/schemas/SkinProfile"
+          description: Optional skin profile to personalise analysis
+      required:
+        - ingredients
+    IngredientFlagCategory:
+      type: string
+      enum:
+        - ENDOCRINE_DISRUPTOR
+        - FORMALDEHYDE_RELEASER
+        - FRAGRANCE
+        - HARSH_PRESERVATIVE
+        - PHOTOSENSITISER
+        - KNOWN_ALLERGEN
+        - NANOPARTICLE
+        - CAUTION
+    IngredientFlagSeverity:
+      type: string
+      enum: [HIGH_RISK, CAUTION]
+    IngredientFlag:
+      type: object
+      properties:
+        ingredient:
+          type: string
+          description: The flagged ingredient name
+        category:
+          $ref: "#/components/schemas/IngredientFlagCategory"
+          description: Risk category
+        severity:
+          $ref: "#/components/schemas/IngredientFlagSeverity"
+        explanation:
+          type: string
+          description: Plain-English explanation
+        citation:
+          type: string
+          description: Research citation reference
+        citationUrl:
+          type: string
+          description: URL to the research paper
+      required:
+        - ingredient
+        - category
+        - severity
+        - explanation
+        - citation
+        - citationUrl
+    AnalyzeSingleResponse:
+      type: object
+      properties:
+        flags:
+          type: array
+          items:
+            $ref: "#/components/schemas/IngredientFlag"
+        overallSafe:
+          type: boolean
+          description: True if no significant concerns were found
+        verdictTitle:
+          type: string
+          description: Short verdict string e.g. "3 concerns found"
+        verdictSummary:
+          type: string
+          description: 1-2 sentence summary
+      required:
+        - flags
+        - overallSafe
+        - verdictTitle
+        - verdictSummary
+    ProductLookupResponse:
+      type: object
+      properties:
+        found:
+          type: boolean
+        productName:
+          type: string
+        brand:
+          type: string
+        ingredients:
+          type: string
+          description: Ingredient list as plain text
+      required:
+        - found
     ConflictResult:
       type: object
       properties:
@@ -239,3 +421,57 @@ components:
           description: Extracted ingredient list as plain text
       required:
         - ingredients
+    SuggestAlternativesRequest:
+      type: object
+      properties:
+        ingredients:
+          type: string
+          maxLength: 3000
+          description: Full ingredient list of the scanned product
+        flaggedIngredients:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 20
+          description: Ingredient names that were flagged as concerns
+        productType:
+          type: string
+          maxLength: 100
+          description: Optional hint about the product type (e.g. moisturiser, cleanser)
+      required:
+        - ingredients
+        - flaggedIngredients
+    AlternativeSuggestion:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Product name
+        brand:
+          type: string
+          description: Brand name
+        whySafer:
+          type: string
+          description: One sentence explaining why this product is safer
+        keyImprovement:
+          type: string
+          description: Short phrase describing the key ingredient improvement
+      required:
+        - name
+        - brand
+        - whySafer
+        - keyImprovement
+    SuggestAlternativesResponse:
+      type: object
+      properties:
+        alternatives:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlternativeSuggestion"
+        inferredProductType:
+          type: string
+          description: The product type inferred from the ingredient list
+      required:
+        - alternatives
+        - inferredProductType

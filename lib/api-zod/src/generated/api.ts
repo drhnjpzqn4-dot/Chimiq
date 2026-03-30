@@ -46,6 +46,10 @@ export const AnalyzeIngredientsBody = zod.object({
     .string()
     .max(analyzeIngredientsBodyProduct2Max)
     .describe("Ingredient list for the second product"),
+  skinProfile: zod
+    .enum(["sensitive", "young", "mature", "pregnant"])
+    .optional()
+    .describe("Optional skin profile to personalise analysis"),
 });
 
 export const AnalyzeIngredientsResponse = zod.object({
@@ -67,6 +71,119 @@ export const AnalyzeIngredientsResponse = zod.object({
     }),
   ),
   overallSafe: zod.boolean().describe("True if no conflicts were found"),
+});
+
+/**
+ * Takes one ingredient list and flags individual concerning ingredients with severity, category, and citations.
+ * @summary Analyze a single product for ingredient concerns
+ */
+export const analyzeSingleBodyIngredientsMax = 3000;
+
+export const AnalyzeSingleBody = zod.object({
+  ingredients: zod
+    .string()
+    .max(analyzeSingleBodyIngredientsMax)
+    .describe("Ingredient list for the product to analyze"),
+  skinProfile: zod
+    .enum(["sensitive", "young", "mature", "pregnant"])
+    .optional()
+    .describe("Optional skin profile to personalise analysis"),
+});
+
+export const AnalyzeSingleResponse = zod.object({
+  flags: zod.array(
+    zod.object({
+      ingredient: zod.string().describe("The flagged ingredient name"),
+      category: zod
+        .enum([
+          "ENDOCRINE_DISRUPTOR",
+          "FORMALDEHYDE_RELEASER",
+          "FRAGRANCE",
+          "HARSH_PRESERVATIVE",
+          "PHOTOSENSITISER",
+          "KNOWN_ALLERGEN",
+          "NANOPARTICLE",
+          "CAUTION",
+        ])
+        .describe("Risk category"),
+      severity: zod.enum(["HIGH_RISK", "CAUTION"]),
+      explanation: zod.string().describe("Plain-English explanation"),
+      citation: zod.string().describe("Research citation reference"),
+      citationUrl: zod.string().describe("URL to the research paper"),
+    }),
+  ),
+  overallSafe: zod
+    .boolean()
+    .describe("True if no significant concerns were found"),
+  verdictTitle: zod
+    .string()
+    .describe('Short verdict string e.g. \"3 concerns found\"'),
+  verdictSummary: zod.string().describe("1-2 sentence summary"),
+});
+
+/**
+ * Searches for a product by name and returns its ingredient list if found.
+ * @summary Look up a product by name to get its ingredients
+ */
+export const ProductLookupQueryParams = zod.object({
+  q: zod.coerce.string().describe("Product name search query"),
+});
+
+export const ProductLookupResponse = zod.object({
+  found: zod.boolean(),
+  productName: zod.string().optional(),
+  brand: zod.string().optional(),
+  ingredients: zod
+    .string()
+    .optional()
+    .describe("Ingredient list as plain text"),
+});
+
+/**
+ * Given a flagged ingredient list, suggests 2-3 real, widely-available products that serve the same function without the problematic ingredients.
+ * @summary Suggest safer product alternatives
+ */
+export const suggestAlternativesBodyIngredientsMax = 3000;
+
+export const suggestAlternativesBodyFlaggedIngredientsMax = 20;
+
+export const suggestAlternativesBodyProductTypeMax = 100;
+
+export const SuggestAlternativesBody = zod.object({
+  ingredients: zod
+    .string()
+    .max(suggestAlternativesBodyIngredientsMax)
+    .describe("Full ingredient list of the scanned product"),
+  flaggedIngredients: zod
+    .array(zod.string())
+    .min(1)
+    .max(suggestAlternativesBodyFlaggedIngredientsMax)
+    .describe("Ingredient names that were flagged as concerns"),
+  productType: zod
+    .string()
+    .max(suggestAlternativesBodyProductTypeMax)
+    .optional()
+    .describe(
+      "Optional hint about the product type (e.g. moisturiser, cleanser)",
+    ),
+});
+
+export const SuggestAlternativesResponse = zod.object({
+  alternatives: zod.array(
+    zod.object({
+      name: zod.string().describe("Product name"),
+      brand: zod.string().describe("Brand name"),
+      whySafer: zod
+        .string()
+        .describe("One sentence explaining why this product is safer"),
+      keyImprovement: zod
+        .string()
+        .describe("Short phrase describing the key ingredient improvement"),
+    }),
+  ),
+  inferredProductType: zod
+    .string()
+    .describe("The product type inferred from the ingredient list"),
 });
 
 /**

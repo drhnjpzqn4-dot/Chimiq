@@ -4,8 +4,9 @@ import {
   useAnalyzeSingle,
   useScanLabel,
   useProductLookup,
+  useSuggestAlternatives,
 } from "@workspace/api-client-react";
-import type { IngredientFlag, SkinProfile } from "@workspace/api-client-react";
+import type { IngredientFlag, SkinProfile, AlternativeSuggestion } from "@workspace/api-client-react";
 import { DangerCard } from "@/components/DangerCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,9 @@ import {
   ArrowLeftRight,
   Zap,
   X,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConflictResult } from "@workspace/api-client-react";
@@ -384,6 +388,119 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
   );
 }
 
+function AlternativeCard({ alt, delay }: { alt: AlternativeSuggestion; delay?: number }) {
+  return (
+    <FadeIn delay={delay} fullWidth>
+      <div className="flex flex-col h-full p-5 rounded-3xl border border-primary/20 bg-primary/[0.03] shadow-sm">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary/60 mb-0.5">{alt.brand}</p>
+            <h4 className="text-base font-serif font-semibold text-foreground leading-tight">{alt.name}</h4>
+          </div>
+          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+            <ShieldCheck className="w-3 h-3" />
+            Safer pick
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-3 flex-1">{alt.whySafer}</p>
+        <div className="pt-2.5 border-t border-border/40">
+          <p className="text-[11px] text-primary/70 font-medium">{alt.keyImprovement}</p>
+        </div>
+      </div>
+    </FadeIn>
+  );
+}
+
+function AlternativesSection({
+  ingredients,
+  flaggedIngredients,
+}: {
+  ingredients: string;
+  flaggedIngredients: string[];
+}) {
+  const [open, setOpen] = useState(true);
+  const suggestMutation = useSuggestAlternatives({ mutation: {} });
+
+  useEffect(() => {
+    if (flaggedIngredients.length > 0 && ingredients.trim()) {
+      suggestMutation.mutate({
+        data: { ingredients, flaggedIngredients },
+      });
+    }
+  }, [ingredients, flaggedIngredients.join(",")]);
+
+  const alternatives = suggestMutation.data?.alternatives ?? [];
+  const inferredType = suggestMutation.data?.inferredProductType;
+  const isLoading = suggestMutation.isPending;
+  const isError = suggestMutation.isError;
+
+  return (
+    <FadeIn>
+      <div className="rounded-3xl border border-primary/20 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-3 px-6 py-4 bg-primary/5 hover:bg-primary/8 transition-colors text-left"
+        >
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-sm font-semibold text-foreground">
+              What to use instead
+              {inferredType && <span className="font-normal text-muted-foreground ml-1">· {inferredType}</span>}
+            </span>
+            {isLoading && <Loader2 className="w-3.5 h-3.5 text-primary/60 animate-spin" />}
+          </div>
+          {open ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+          )}
+        </button>
+
+        {open && (
+          <div className="px-6 py-5">
+            {isLoading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-40 rounded-2xl bg-muted/40 animate-pulse"
+                    style={{ animationDelay: `${i * 0.15}s` }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {isError && (
+              <p className="text-sm text-muted-foreground/60 text-center py-4">
+                Could not load suggestions right now.
+              </p>
+            )}
+
+            {!isLoading && !isError && alternatives.length === 0 && (
+              <p className="text-sm text-muted-foreground/60 text-center py-4">
+                No suggestions available.
+              </p>
+            )}
+
+            {!isLoading && alternatives.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {alternatives.map((alt, i) => (
+                  <AlternativeCard key={`${alt.brand}-${alt.name}`} alt={alt} delay={i * 0.1} />
+                ))}
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground/40 text-center mt-4">
+              Suggestions are for informational purposes only · No affiliate links · SkinScreen has no brand partnerships
+            </p>
+          </div>
+        )}
+      </div>
+    </FadeIn>
+  );
+}
+
 export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; compare: string } } = {}) {
   const [mode, setMode] = useState<"single" | "compare">("single");
   const [skinProfile, setSkinProfile] = useState<SkinProfile | undefined>(undefined);
@@ -621,6 +738,14 @@ export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; c
                 {singleCaution.map((f, i) => <FlagCard key={f.ingredient} flag={f} delay={i * 0.1} />)}
               </div>
             </div>
+          )}
+
+          {/* Safer alternatives — only shown when flags exist */}
+          {!singleResult.overallSafe && singleResult.flags.length > 0 && (
+            <AlternativesSection
+              ingredients={ingredients}
+              flaggedIngredients={singleResult.flags.map((f) => f.ingredient)}
+            />
           )}
 
           <FadeIn>

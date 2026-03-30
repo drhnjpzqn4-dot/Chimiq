@@ -6,14 +6,25 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./alternativeSuggestion";
 export * from "./analyzeRequest";
 export * from "./analyzeResponse";
+export * from "./analyzeSingleRequest";
+export * from "./analyzeSingleResponse";
 export * from "./conflictResult";
 export * from "./conflictResultSeverity";
 export * from "./errorResponse";
 export * from "./healthStatus";
+export * from "./ingredientFlag";
+export * from "./ingredientFlagCategory";
+export * from "./ingredientFlagSeverity";
+export * from "./productLookupParams";
+export * from "./productLookupResponse";
 export * from "./scanLabelRequest";
 export * from "./scanLabelRequestMimeType";
 export * from "./scanLabelResponse";
+export * from "./skinProfile";
+export * from "./suggestAlternativesRequest";
+export * from "./suggestAlternativesResponse";
 export * from "./waitlistRequest";
 export * from "./waitlistResponse";
