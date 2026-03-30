@@ -197,6 +197,85 @@ export default function Home() {
         </div>
       </section>
 
+      {/* INGREDIENTS TO WATCH OUT FOR */}
+      <section id="ingredient-risks" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn>
+            <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
+              What's really hiding in your products
+            </h2>
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
+              Most of us read ingredient labels like a foreign language. Here are the 10 categories dermatologists flag most — and what they actually do.
+            </p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[
+              {
+                emoji: "🧱",
+                title: "Barrier disruption",
+                desc: "Harsh sulfates, stripping cleansers, and misused AHAs/BHAs erode the lipid layer that keeps moisture in and irritants out.",
+              },
+              {
+                emoji: "🔬",
+                title: "Endocrine disruptors",
+                desc: "Oxybenzone, octinoxate, and certain parabens can mimic hormones in the body — a particular concern for young skin and during pregnancy.",
+              },
+              {
+                emoji: "☣️",
+                title: "Formaldehyde releasers",
+                desc: "DMDM Hydantoin, quaternium-15, and diazolidinyl urea slowly release formaldehyde — a known carcinogen — as a preservative.",
+              },
+              {
+                emoji: "🌸",
+                title: "Hidden fragrance",
+                desc: "\"Parfum\" or \"Fragrance\" on a label can legally conceal up to 3,000 undisclosed chemicals, many of which are common allergens.",
+              },
+              {
+                emoji: "🧫",
+                title: "Harsh preservatives",
+                desc: "Methylisothiazolinone (MI) and methylchloroisothiazolinone (MCI) are among the leading causes of allergic contact dermatitis worldwide.",
+              },
+              {
+                emoji: "☀️",
+                title: "Photosensitisers",
+                desc: "AHAs, retinol, and benzoyl peroxide increase your skin's UV sensitivity. Using them without SPF dramatically raises hyperpigmentation and cancer risk.",
+              },
+              {
+                emoji: "⚡",
+                title: "Ingredient conflicts",
+                desc: "Some actives deactivate each other on contact (retinol + benzoyl peroxide), while others cause over-exfoliation when layered (retinol + AHAs).",
+              },
+              {
+                emoji: "🔴",
+                title: "Known allergens",
+                desc: "Nickel salts, balsam of Peru, propolis, and certain dyes cause sensitisation that worsens with repeated exposure — even in small amounts.",
+              },
+              {
+                emoji: "🔵",
+                title: "Nanoparticles",
+                desc: "Nano-sized zinc oxide and titanium dioxide in sunscreens may penetrate below the skin surface — evidence is still emerging on long-term effects.",
+              },
+              {
+                emoji: "🧪",
+                title: "Penetration enhancers",
+                desc: "PEGs, propylene glycol, and similar solvents increase skin permeability — useful for actives, but also carry any harmful co-ingredients deeper.",
+              },
+            ].map((risk, idx) => (
+              <FadeIn key={risk.title} delay={idx * 0.06}>
+                <div className="flex flex-col gap-3 p-6 rounded-2xl bg-white border border-border/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 h-full">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{risk.emoji}</span>
+                    <p className="font-serif text-base font-semibold text-foreground leading-snug">{risk.title}</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{risk.desc}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* HOW SKINSCREEN WORKS */}
       <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <FadeIn>
@@ -376,6 +455,53 @@ export default function Home() {
             </div>
           </FadeIn>
           <IngredientScanner />
+        </div>
+      </section>
+
+      {/* THE GOAL */}
+      <section id="the-goal" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#F5F5F7]">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn>
+            <h2 className="text-3xl md:text-5xl font-serif text-center mb-6">
+              Healthy skin needs less, not more.
+            </h2>
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16 text-lg leading-relaxed">
+              With the right products and the right combinations, you need a 3-step routine — not 12.
+              Healthy skin means fewer breakouts to cover. Fewer concealers. Less spending.
+              And fewer potentially harmful substances on the thinnest, most absorbent organ in your body.
+              SkinScreen helps you buy once, buy right, and stop the spiral.
+            </p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                emoji: "🧴",
+                title: "Fewer products",
+                desc: "A healthy skin barrier needs 3 products, not 12. SkinScreen helps you find the right ones.",
+              },
+              {
+                emoji: "💸",
+                title: "Less spending",
+                desc: "Stop buying fixes for problems your products are causing. Know what works before you buy.",
+              },
+              {
+                emoji: "🌿",
+                title: "Cleaner routine",
+                desc: "Know exactly what you're putting on your skin and why — ingredient by ingredient.",
+              },
+            ].map((card, idx) => (
+              <FadeIn key={card.title} delay={idx * 0.15}>
+                <div className="flex flex-col items-start gap-4 p-8 rounded-3xl bg-white border border-border/50 shadow-sm h-full">
+                  <span className="text-4xl">{card.emoji}</span>
+                  <div>
+                    <h3 className="text-xl font-serif font-semibold text-foreground mb-2">{card.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{card.desc}</p>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
         </div>
       </section>
 

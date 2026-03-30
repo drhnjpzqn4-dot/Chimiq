@@ -127,7 +127,28 @@ export function SpiralSection() {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="pt-4"
         >
-          <p className="text-2xl font-serif text-primary italic">SkinScreen breaks the cycle.</p>
+          <p className="text-2xl font-serif text-primary italic mb-8">SkinScreen breaks the cycle.</p>
+
+          {/* Outcome mini-cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { emoji: "🧴", title: "Fewer products", desc: "A healthy skin barrier needs 3 products, not 12." },
+              { emoji: "💸", title: "Less spending", desc: "Stop buying fixes for problems your products caused." },
+              { emoji: "🌿", title: "Cleaner routine", desc: "Know exactly what you're putting on your skin and why." },
+            ].map((card, i) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, y: 12 }}
+                animate={activeStep >= spiralSteps.length - 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+                transition={{ delay: 0.8 + i * 0.15, duration: 0.4 }}
+                className="flex flex-col gap-2 p-4 rounded-2xl bg-white border border-primary/15 shadow-sm"
+              >
+                <span className="text-2xl">{card.emoji}</span>
+                <p className="text-sm font-semibold text-foreground leading-snug">{card.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
       </div>
 
