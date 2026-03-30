@@ -403,12 +403,32 @@ interface MyShelfProps {
   displayName: string | null;
 }
 
+const DEMO_PRODUCTS = [
+  {
+    productName: "Neutrogena Rapid Clear BP Wash",
+    ingredients: "Water, Sodium C14-16 Olefin Sulfonate, PEG-80 Sorbitan Laurate, Cocamidopropyl Betaine, Glycerin, Sodium Lauroamphoacetate, Sodium Hydroxide, Hydroxyethylcellulose, Benzoyl Peroxide 10%, Glycol Distearate, Cocamide MEA, Laureth-4, Citric Acid, Tetrasodium EDTA",
+    routineSlot: "morning" as const,
+  },
+  {
+    productName: "RoC Retinol Correxion Serum",
+    ingredients: "Water, Dimethicone, Glycerin, Isopropyl Isostearate, Caprylic/Capric Triglyceride, PEG-100 Stearate, Propylene Glycol, Glyceryl Stearate, Cetyl Alcohol, Niacinamide, Retinol, Sodium Hyaluronate, Tocopherol, Phenoxyethanol, Ethylhexylglycerin, Disodium EDTA, Carbomer, Triethanolamine",
+    routineSlot: "evening" as const,
+  },
+  {
+    productName: "Paula's Choice 8% AHA Gel",
+    ingredients: "Water, Glycolic Acid 8%, Butylene Glycol, Sodium Hydroxide, Phenyl Trimethicone, Aloe Barbadensis Leaf Extract, Allantoin, Chamomilla Recutita Flower Extract, Polysorbate 20, Tetrasodium EDTA, Methylparaben",
+    routineSlot: "evening" as const,
+  },
+];
+
 export function MyShelf({ displayName }: MyShelfProps) {
   const [tab, setTab] = useState<"morning" | "evening">("morning");
   const [showAddForm, setShowAddForm] = useState(false);
   const [analysisState, setAnalysisState] = useState<AnalysisState>({ status: "idle" });
+  const [loadingDemo, setLoadingDemo] = useState(false);
   const queryClient = useQueryClient();
   const analyzeRoutineMutation = useAnalyzeRoutine();
+  const addMutation = useAddToShelf();
 
   const shelfQuery = useGetShelf({ query: { queryKey: getGetShelfQueryKey() } });
   const removeMutation = useRemoveFromShelf();
@@ -447,6 +467,19 @@ export function MyShelf({ displayName }: MyShelfProps) {
     },
     [removeMutation, queryClient, resetAnalysis],
   );
+
+  const handleLoadDemo = useCallback(async () => {
+    setLoadingDemo(true);
+    try {
+      for (const product of DEMO_PRODUCTS) {
+        await addMutation.mutateAsync({ data: product });
+      }
+      queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
+      resetAnalysis();
+    } finally {
+      setLoadingDemo(false);
+    }
+  }, [addMutation, queryClient, resetAnalysis]);
 
   const analysisData = analysisState.status === "done" ? analysisState.data : null;
 
@@ -518,9 +551,30 @@ export function MyShelf({ displayName }: MyShelfProps) {
             <p className="text-sm text-muted-foreground">
               No {tab} products yet
             </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
-              Add your first {tab} product below
-            </p>
+            {allProducts.length === 0 ? (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={handleLoadDemo}
+                  disabled={loadingDemo}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/15 px-3 py-1.5 rounded-full transition-colors disabled:opacity-60"
+                >
+                  {loadingDemo ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Zap className="w-3 h-3" />
+                  )}
+                  {loadingDemo ? "Loading…" : "Load example routine"}
+                </button>
+                <p className="text-[11px] text-muted-foreground/50 mt-1.5">
+                  3 real products with documented conflicts
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                Add your first {tab} product below
+              </p>
+            )}
           </div>
         ) : (
           filteredProducts.map((product) => (

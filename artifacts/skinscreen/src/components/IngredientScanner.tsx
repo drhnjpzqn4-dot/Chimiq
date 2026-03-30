@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   useAnalyzeIngredients,
   useAnalyzeSingle,
@@ -505,7 +505,89 @@ function AlternativesSection({
   );
 }
 
-export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; compare: string } } = {}) {
+export interface ScannerSeed {
+  mode: "single" | "compare";
+  product1?: string;
+  product1Name?: string;
+  product2?: string;
+  product2Name?: string;
+  ingredients?: string;
+  autoRun?: boolean;
+}
+
+const NEUTROGENA_BP_INGREDIENTS =
+  "Water, Sodium C14-16 Olefin Sulfonate, PEG-80 Sorbitan Laurate, Cocamidopropyl Betaine, Glycerin, Sodium Lauroamphoacetate, Sodium Hydroxide, Hydroxyethylcellulose, Benzoyl Peroxide 10%, Glycol Distearate, Cocamide MEA, Laureth-4, Citric Acid, Tetrasodium EDTA";
+
+const ROC_RETINOL_INGREDIENTS =
+  "Water, Dimethicone, Glycerin, Isopropyl Isostearate, Caprylic/Capric Triglyceride, PEG-100 Stearate, Propylene Glycol, Glyceryl Stearate, Cetyl Alcohol, Niacinamide, Retinol, Sodium Hyaluronate, Tocopherol, Phenoxyethanol, Ethylhexylglycerin, Disodium EDTA, Carbomer, Triethanolamine";
+
+const PAULAS_CHOICE_AHA_INGREDIENTS =
+  "Water, Glycolic Acid 8%, Butylene Glycol, Sodium Hydroxide, Phenyl Trimethicone, Aloe Barbadensis Leaf Extract, Allantoin, Chamomilla Recutita Flower Extract, Polysorbate 20, Tetrasodium EDTA, Methylparaben";
+
+const CERAVE_SA_INGREDIENTS =
+  "Water, Glycerin, Cetearyl Alcohol, Salicylic Acid 2%, Caprylic/Capric Triglyceride, Ceramide NP, Ceramide AP, Ceramide EOP, Niacinamide, Sodium Lauroyl Lactylate, Cholesterol, Phenoxyethanol, Methylparaben, Propylparaben, Ethylparaben, Carbomer, Sodium Hydroxide";
+
+const CERAVE_MOISTURISER_INGREDIENTS =
+  "Water, Glycerin, Cetearyl Alcohol, Caprylic/Capric Triglyceride, Dimethicone, Behentrimonium Methosulfate, Hyaluronic Acid, Niacinamide, Ceramide NP, Ceramide AP, Ceramide EOP, Sodium Lauroyl Lactylate, Cholesterol, Phenoxyethanol, Methylparaben, Propylparaben, Ethylparaben, Butylparaben, Carbomer, Sodium Hydroxide, Tocopheryl Acetate";
+
+interface ScannerPreset {
+  label: string;
+  badge: string;
+  badgeColor: "red" | "amber" | "green";
+  description: string;
+  seed: ScannerSeed;
+}
+
+const COMPARE_PRESETS: ScannerPreset[] = [
+  {
+    label: "Neutrogena BP Wash + RoC Retinol",
+    badge: "HIGH RISK",
+    badgeColor: "red",
+    description: "Benzoyl peroxide destroys retinol on contact",
+    seed: {
+      mode: "compare",
+      product1: NEUTROGENA_BP_INGREDIENTS,
+      product1Name: "Neutrogena Rapid Clear BP Wash",
+      product2: ROC_RETINOL_INGREDIENTS,
+      product2Name: "RoC Retinol Correxion Serum",
+      autoRun: true,
+    },
+  },
+  {
+    label: "CeraVe SA Cleanser + Paula's Choice AHA",
+    badge: "CAUTION",
+    badgeColor: "amber",
+    description: "Layering Salicylic Acid + Glycolic Acid",
+    seed: {
+      mode: "compare",
+      product1: CERAVE_SA_INGREDIENTS,
+      product1Name: "CeraVe SA Smoothing Cleanser",
+      product2: PAULAS_CHOICE_AHA_INGREDIENTS,
+      product2Name: "Paula's Choice 8% AHA Gel",
+      autoRun: true,
+    },
+  },
+];
+
+const SINGLE_PRESET: ScannerPreset = {
+  label: "CeraVe Moisturising Cream",
+  badge: "Scan ingredients",
+  badgeColor: "green",
+  description: "Popular moisturiser — what's really in it?",
+  seed: {
+    mode: "single",
+    ingredients: CERAVE_MOISTURISER_INGREDIENTS,
+    autoRun: true,
+  },
+};
+
+export function IngredientScanner({
+  ctaLabel,
+  seed: externalSeed,
+}: {
+  ctaLabel?: { single: string; compare: string };
+  seed?: ScannerSeed | null;
+} = {}) {
   const [mode, setMode] = useState<"single" | "compare">("single");
   const [skinProfile, setSkinProfile] = useState<SkinProfile | undefined>(undefined);
   const [ingredients, setIngredients] = useState("");
@@ -520,6 +602,42 @@ export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; c
   const analyzeCompare = useAnalyzeIngredients({ mutation: {} });
 
   const resetResults = () => setSubmitted(false);
+
+  const applySeed = useCallback((s: ScannerSeed) => {
+    setMode(s.mode);
+    setSubmitted(false);
+    analyzeSingle.reset();
+    analyzeCompare.reset();
+    if (s.mode === "compare") {
+      setProduct1(s.product1 ?? "");
+      setProduct1Name(s.product1Name ?? "");
+      setProduct2(s.product2 ?? "");
+      setProduct2Name(s.product2Name ?? "");
+      setIngredients("");
+      setProductName("");
+      if (s.autoRun && s.product1 && s.product2) {
+        setSubmitted(true);
+        analyzeCompare.mutate({ data: { product1: s.product1, product2: s.product2 } });
+      }
+    } else {
+      setIngredients(s.ingredients ?? "");
+      setProductName("");
+      setProduct1("");
+      setProduct1Name("");
+      setProduct2("");
+      setProduct2Name("");
+      if (s.autoRun && s.ingredients) {
+        setSubmitted(true);
+        analyzeSingle.mutate({ data: { ingredients: s.ingredients } });
+      }
+    }
+  }, [analyzeSingle, analyzeCompare]);
+
+  useEffect(() => {
+    if (externalSeed) {
+      applySeed(externalSeed);
+    }
+  }, [externalSeed, applySeed]);
 
   const handleScan = () => {
     setSubmitted(true);
@@ -550,6 +668,12 @@ export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; c
   const highRiskConflicts = compareConflicts.filter((c) => c.severity === "HIGH_RISK");
   const cautionConflicts = compareConflicts.filter((c) => c.severity === "CAUTION");
   const safeConflicts = compareConflicts.filter((c) => c.severity === "SAFE");
+
+  const isEmpty = mode === "single"
+    ? !ingredients.trim() && !submitted
+    : !product1.trim() && !product2.trim() && !submitted;
+
+  const presets = mode === "compare" ? COMPARE_PRESETS : [SINGLE_PRESET];
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -587,6 +711,44 @@ export function IngredientScanner({ ctaLabel }: { ctaLabel?: { single: string; c
           Compare two products
         </button>
       </div>
+
+      {/* Example presets — shown when scanner is empty */}
+      {isEmpty && (
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
+            Try an example
+          </p>
+          <div className={cn(
+            "grid gap-3",
+            presets.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-sm",
+          )}>
+            {presets.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => applySeed(preset.seed)}
+                className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white border border-border/50 hover:border-primary/40 hover:shadow-sm transition-all duration-150 text-left group"
+              >
+                <div className="flex items-center justify-between w-full gap-2">
+                  <span className="text-sm font-medium text-foreground leading-snug">{preset.label}</span>
+                  <span className={cn(
+                    "shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                    preset.badgeColor === "red" && "bg-red-100 text-red-600",
+                    preset.badgeColor === "amber" && "bg-amber-100 text-amber-700",
+                    preset.badgeColor === "green" && "bg-primary/10 text-primary",
+                  )}>
+                    {preset.badge}
+                  </span>
+                </div>
+                <span className="text-xs text-muted-foreground">{preset.description}</span>
+                <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  Load example →
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Input area */}
       {mode === "single" ? (

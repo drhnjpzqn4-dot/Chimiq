@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { FadeIn } from "@/components/FadeIn";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { DangerCard } from "@/components/DangerCard";
 import { SpiralSection } from "@/components/SpiralSection";
 import { IngredientScanner } from "@/components/IngredientScanner";
+import type { ScannerSeed } from "@/components/IngredientScanner";
 import { SocialProof } from "@/components/SocialProof";
 import { MyShelf, MyShelfSection } from "@/components/MyShelf";
 import type { LandingConfig } from "@/lib/landing-config";
@@ -13,6 +15,15 @@ import {
   Sun, Moon, Plus, CheckCircle2, ShoppingBag, Bell, User, LogOut,
   Skull, ExternalLink, Share2, ArrowDown,
 } from "lucide-react";
+
+const DISASTER_MIX_SEED: ScannerSeed = {
+  mode: "compare",
+  product1: "Water, Sodium C14-16 Olefin Sulfonate, PEG-80 Sorbitan Laurate, Cocamidopropyl Betaine, Glycerin, Sodium Lauroamphoacetate, Sodium Hydroxide, Hydroxyethylcellulose, Benzoyl Peroxide 10%, Glycol Distearate, Cocamide MEA, Laureth-4, Citric Acid, Tetrasodium EDTA",
+  product1Name: "Neutrogena Rapid Clear BP Wash",
+  product2: "Water, Dimethicone, Glycerin, Isopropyl Isostearate, Caprylic/Capric Triglyceride, PEG-100 Stearate, Propylene Glycol, Glyceryl Stearate, Cetyl Alcohol, Niacinamide, Retinol, Sodium Hyaluronate, Tocopherol, Phenoxyethanol, Ethylhexylglycerin, Disodium EDTA, Carbomer, Triethanolamine",
+  product2Name: "RoC Retinol Correxion Serum",
+  autoRun: true,
+};
 
 const dangerCombinations = [
   {
@@ -104,10 +115,17 @@ interface LandingPageProps {
 
 export function LandingPage({ config }: LandingPageProps) {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
+  const [scannerSeed, setScannerSeed] = useState<ScannerSeed | null>(null);
 
   const displayName = user
     ? (user.firstName ?? user.email?.split("@")[0] ?? "there")
     : null;
+
+  const handleDisasterMixScan = () => {
+    setScannerSeed({ ...DISASTER_MIX_SEED });
+    const el = document.getElementById("try-it-now");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <main className="min-h-screen bg-background overflow-hidden">
@@ -410,13 +428,14 @@ export function LandingPage({ config }: LandingPageProps) {
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <a
-                      href="#try-it-now"
+                    <button
+                      type="button"
+                      onClick={handleDisasterMixScan}
                       className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm"
                     >
                       Scan your routine
                       <ArrowDown className="w-4 h-4" />
-                    </a>
+                    </button>
                     <button
                       onClick={() => {
                         const text = "🚨 These 3 products are bought together ALL the time — and they're clinically documented to destroy each other.\n\nNeutrogena Benzoyl Peroxide + RoC Retinol + Paula's Choice Glycolic Acid\n\nBP oxidises retinol (you're wasting your money). Retinol + AHA strips your skin barrier. Both make UV damage 50% worse.\n\nCheck YOUR routine free: skinscreen.app";
@@ -590,7 +609,7 @@ export function LandingPage({ config }: LandingPageProps) {
               </p>
             </div>
           </FadeIn>
-          <IngredientScanner ctaLabel={config.scannerCtaLabel} />
+          <IngredientScanner ctaLabel={config.scannerCtaLabel} seed={scannerSeed} />
         </div>
       </section>
 
