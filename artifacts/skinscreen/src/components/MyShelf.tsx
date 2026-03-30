@@ -551,7 +551,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
             <p className="text-sm text-muted-foreground">
               No {tab} products yet
             </p>
-            {allProducts.length === 0 ? (
+            {shelfQuery.isSuccess && allProducts.length === 0 ? (
               <div className="mt-3">
                 <button
                   type="button"
