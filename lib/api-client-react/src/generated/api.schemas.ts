@@ -265,6 +265,37 @@ export interface AddToShelfRequest {
   routineSlot?: RoutineSlot;
 }
 
+export type RoutineConflictSeverity =
+  (typeof RoutineConflictSeverity)[keyof typeof RoutineConflictSeverity];
+
+export const RoutineConflictSeverity = {
+  HIGH_RISK: "HIGH_RISK",
+  CAUTION: "CAUTION",
+  SAFE: "SAFE",
+} as const;
+
+export interface RoutineConflict {
+  /** Name of the first conflicting product on the shelf */
+  product1Name: string;
+  /** Name of the second conflicting product on the shelf */
+  product2Name: string;
+  /** The two conflicting ingredients (e.g. "Retinol + Glycolic Acid") */
+  pair: string;
+  severity: RoutineConflictSeverity;
+  explanation: string;
+  citation: string;
+  citationUrl: string;
+}
+
+export interface RoutineConflictResponse {
+  conflicts: RoutineConflict[];
+  overallSafe: boolean;
+  /** Number of HIGH_RISK conflicts found */
+  highRiskCount: number;
+  /** Number of CAUTION conflicts found */
+  cautionCount: number;
+}
+
 export interface RemoveFromShelfResponse {
   success: boolean;
 }

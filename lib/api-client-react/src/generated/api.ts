@@ -34,6 +34,7 @@ import type {
   ProductLookupParams,
   ProductLookupResponse,
   RemoveFromShelfResponse,
+  RoutineConflictResponse,
   ScanLabelRequest,
   ScanLabelResponse,
   ShelfProduct,
@@ -1311,6 +1312,88 @@ export const useAddToShelf = <
   TContext
 > => {
   return useMutation(getAddToShelfMutationOptions(options));
+};
+
+/**
+ * Generates all product pairs from the user's shelf and runs conflict analysis on each pair in parallel. Returns deduplicated conflicts sorted by severity.
+ * @summary Analyse the user's full shelf for cross-product conflicts
+ */
+export const getAnalyzeRoutineUrl = () => {
+  return `/api/shelf/analyze-routine`;
+};
+
+export const analyzeRoutine = async (
+  options?: RequestInit,
+): Promise<RoutineConflictResponse> => {
+  return customFetch<RoutineConflictResponse>(getAnalyzeRoutineUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getAnalyzeRoutineMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeRoutine>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeRoutine>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["analyzeRoutine"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeRoutine>>,
+    void
+  > = () => {
+    return analyzeRoutine(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeRoutineMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeRoutine>>
+>;
+
+export type AnalyzeRoutineMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Analyse the user's full shelf for cross-product conflicts
+ */
+export const useAnalyzeRoutine = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeRoutine>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeRoutine>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getAnalyzeRoutineMutationOptions(options));
 };
 
 /**

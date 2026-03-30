@@ -5,11 +5,18 @@ import {
   getGetShelfQueryKey,
   useAddToShelf,
   useRemoveFromShelf,
+  useAnalyzeRoutine,
   useProductLookup,
   getProductLookupQueryKey,
 } from "@workspace/api-client-react";
-import { Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import type { RoutineConflict } from "@workspace/api-client-react";
+import {
+  Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle,
+  CheckCircle2, X, ShieldCheck, ShieldOff, Loader2,
+  ChevronDown, ChevronUp, ExternalLink, Zap,
+} from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { cn } from "@/lib/utils";
 
 type RoutineSlot = "morning" | "evening" | "both";
 
@@ -200,13 +207,213 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
   );
 }
 
+function ConflictCard({ conflict, delay }: { conflict: RoutineConflict; delay?: number }) {
+  const isHighRisk = conflict.severity === "HIGH_RISK";
+  return (
+    <FadeIn delay={delay} fullWidth>
+      <div className={cn(
+        "p-4 rounded-2xl border",
+        isHighRisk ? "bg-red-50/70 border-red-200" : "bg-amber-50/50 border-amber-200/70",
+      )}>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-muted-foreground mb-0.5">
+              {conflict.product1Name} + {conflict.product2Name}
+            </p>
+            <p className="text-sm font-serif font-semibold text-foreground leading-snug">
+              {conflict.pair}
+            </p>
+          </div>
+          <span className={cn(
+            "shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap",
+            isHighRisk ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700",
+          )}>
+            {isHighRisk ? (
+              <><ShieldOff className="w-3 h-3" /> HIGH RISK</>
+            ) : (
+              <><AlertTriangle className="w-3 h-3" /> CAUTION</>
+            )}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed mb-2.5">{conflict.explanation}</p>
+        <a
+          href={conflict.citationUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] text-muted-foreground/60 flex items-start gap-1.5 hover:text-primary transition-colors"
+        >
+          <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
+          <span className="italic leading-snug">{conflict.citation}</span>
+        </a>
+      </div>
+    </FadeIn>
+  );
+}
+
+interface RoutineCheckPanelProps {
+  productCount: number;
+  onClear: () => void;
+}
+
+function RoutineCheckPanel({ productCount, onClear }: RoutineCheckPanelProps) {
+  const [open, setOpen] = useState(true);
+  const analyzeRoutine = useAnalyzeRoutine();
+  const hasRun = analyzeRoutine.data !== undefined;
+  const isLoading = analyzeRoutine.isPending;
+
+  const runCheck = useCallback(() => {
+    analyzeRoutine.mutate();
+  }, [analyzeRoutine]);
+
+  const data = analyzeRoutine.data;
+
+  if (!hasRun && !isLoading) {
+    return (
+      <div className="px-4 pb-4">
+        <button
+          onClick={runCheck}
+          disabled={productCount < 2}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+            productCount >= 2
+              ? "bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20"
+              : "bg-[#F5F5F7] text-muted-foreground/50 border border-border/30 cursor-not-allowed",
+          )}
+          title={productCount < 2 ? "Add at least 2 products to analyse your routine" : undefined}
+        >
+          <Zap className="w-4 h-4" />
+          Check my routine
+          {productCount < 2 && (
+            <span className="text-xs opacity-70">(add {2 - productCount} more product{productCount < 1 ? "s" : ""})</span>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="px-4 pb-4">
+        <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary/70 text-sm">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Analysing your routine…
+        </div>
+      </div>
+    );
+  }
+
+  if (analyzeRoutine.isError) {
+    return (
+      <div className="px-4 pb-4 space-y-2">
+        <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+          <AlertTriangle className="w-4 h-4" />
+          Analysis failed. Please try again.
+        </div>
+        <button
+          onClick={runCheck}
+          className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const { conflicts, overallSafe, highRiskCount, cautionCount } = data;
+
+  return (
+    <div className="border-t border-border/30">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-[#FAFAF8] transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {overallSafe ? (
+            <ShieldCheck className="w-4 h-4 text-[#22C55E]" />
+          ) : highRiskCount > 0 ? (
+            <ShieldOff className="w-4 h-4 text-red-500" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          )}
+          <span className="text-sm font-medium text-foreground">
+            {overallSafe
+              ? "Routine check: all clear"
+              : `${highRiskCount + cautionCount} conflict${highRiskCount + cautionCount !== 1 ? "s" : ""} found`}
+          </span>
+          {!overallSafe && (
+            <div className="flex items-center gap-1">
+              {highRiskCount > 0 && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold">
+                  {highRiskCount} HIGH
+                </span>
+              )}
+              {cautionCount > 0 && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
+                  {cautionCount} CAUTION
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); onClear(); analyzeRoutine.reset(); }}
+            className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors px-1"
+          >
+            Clear
+          </button>
+          {open ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground/60" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-muted-foreground/60" />
+          )}
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4">
+          {overallSafe ? (
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-green-50 border border-green-200">
+              <ShieldCheck className="w-5 h-5 text-[#22C55E] shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-[#16A34A]">No conflicts found</p>
+                <p className="text-xs text-[#16A34A]/70 mt-0.5">
+                  Your routine looks good! No documented harmful interactions detected across your products.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {conflicts.map((conflict, i) => (
+                <ConflictCard
+                  key={`${conflict.product1Name}-${conflict.product2Name}-${conflict.pair}`}
+                  conflict={conflict}
+                  delay={i * 0.07}
+                />
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => { onClear(); analyzeRoutine.reset(); }}
+            className="mt-3 w-full text-xs text-muted-foreground/60 hover:text-muted-foreground py-1.5 transition-colors"
+          >
+            Re-check after changes
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface MyShelfProps {
   userId: string;
   displayName: string | null;
 }
 
 export function MyShelf({ displayName }: MyShelfProps) {
-  const [tab, setTab] = useState<"morning" | "evening" | "both">("morning");
+  const [tab, setTab] = useState<"morning" | "evening">("morning");
   const [showAddForm, setShowAddForm] = useState(false);
   const queryClient = useQueryClient();
 
@@ -330,13 +537,16 @@ export function MyShelf({ displayName }: MyShelfProps) {
           </button>
         </div>
       )}
+
+      <RoutineCheckPanel
+        productCount={allProducts.length}
+        onClear={() => {}}
+      />
     </div>
   );
 }
 
 export function MyShelfSection() {
-  const [showConflictNote] = useState(false);
-
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
       <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
@@ -379,8 +589,6 @@ export function MyShelfSection() {
             </div>
           </div>
         </div>
-
-        {showConflictNote && null}
 
         <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-colors duration-200">
           <Plus className="w-4 h-4" />

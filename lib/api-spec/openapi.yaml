@@ -374,6 +374,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /shelf/analyze-routine:
+    post:
+      tags: [shelf]
+      operationId: analyzeRoutine
+      summary: Analyse the user's full shelf for cross-product conflicts
+      description: Generates all product pairs from the user's shelf and runs conflict analysis on each pair in parallel. Returns deduplicated conflicts sorted by severity.
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Routine conflict analysis complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutineConflictResponse'
+        '400':
+          description: Not enough products on shelf to analyse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /shelf/{id}:
     delete:
       tags: [shelf]
@@ -794,6 +828,44 @@ components:
           maxLength: 5000
         routineSlot:
           $ref: '#/components/schemas/RoutineSlot'
+    RoutineConflict:
+      type: object
+      required: [product1Name, product2Name, pair, severity, explanation, citation, citationUrl]
+      properties:
+        product1Name:
+          type: string
+          description: Name of the first conflicting product on the shelf
+        product2Name:
+          type: string
+          description: Name of the second conflicting product on the shelf
+        pair:
+          type: string
+          description: The two conflicting ingredients (e.g. "Retinol + Glycolic Acid")
+        severity:
+          type: string
+          enum: [HIGH_RISK, CAUTION, SAFE]
+        explanation:
+          type: string
+        citation:
+          type: string
+        citationUrl:
+          type: string
+    RoutineConflictResponse:
+      type: object
+      required: [conflicts, overallSafe, highRiskCount, cautionCount]
+      properties:
+        conflicts:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutineConflict'
+        overallSafe:
+          type: boolean
+        highRiskCount:
+          type: integer
+          description: Number of HIGH_RISK conflicts found
+        cautionCount:
+          type: integer
+          description: Number of CAUTION conflicts found
     RemoveFromShelfResponse:
       type: object
       required: [success]

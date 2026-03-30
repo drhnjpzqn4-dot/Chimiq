@@ -11,6 +11,7 @@ import {
   ScanLine, Layers, ShieldCheck,
   AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
   Sun, Moon, Plus, CheckCircle2, ShoppingBag, Bell, User, LogOut,
+  Skull, ExternalLink, Share2, ArrowDown,
 } from "lucide-react";
 
 const dangerCombinations = [
@@ -252,7 +253,193 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 4. THE SKINCARE SPIRAL */}
+      {/* 4. DISASTER MIX — viral TikTok section */}
+      <section id="disaster-mix" className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <FadeIn>
+            <div className="text-center mb-12">
+              <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full bg-red-100 text-red-600 text-sm font-semibold tracking-wide mb-6">
+                <Skull className="w-3.5 h-3.5" />
+                Disaster Mix
+              </span>
+              <h2 className="text-3xl md:text-5xl font-serif mb-4">
+                The routine that sells millions —<br className="hidden sm:block" />
+                <span className="italic text-red-500">and quietly damages skin.</span>
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
+                These three products are consistently bought together. They're sold in the same store, recommended in the same "beginner skincare" guides. They are also a clinically documented disaster combination.
+              </p>
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={0.15}>
+            <div className="rounded-3xl border border-red-200 bg-red-50/40 overflow-hidden">
+              {/* The products */}
+              <div className="px-6 sm:px-10 pt-8 pb-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-red-400 mb-5 text-center">The routine</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                  {[
+                    {
+                      brand: "Neutrogena",
+                      name: "Rapid Clear Stubborn Acne Wash",
+                      activeIngredient: "Benzoyl Peroxide 10%",
+                      role: "AM cleanser",
+                      emoji: "🧴",
+                    },
+                    {
+                      brand: "RoC",
+                      name: "Retinol Correxion Line Smoothing Serum",
+                      activeIngredient: "Retinol (stabilised)",
+                      role: "PM serum",
+                      emoji: "💊",
+                    },
+                    {
+                      brand: "Paula's Choice",
+                      name: "Skin Perfecting 8% AHA Gel Exfoliant",
+                      activeIngredient: "Glycolic Acid 8%",
+                      role: "PM exfoliant",
+                      emoji: "⚗️",
+                    },
+                  ].map((product) => (
+                    <div key={product.name} className="flex flex-col gap-2 p-4 rounded-2xl bg-white border border-red-100 shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xl">{product.emoji}</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-red-400/80 bg-red-100/80 px-2 py-0.5 rounded-full">
+                          {product.role}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{product.brand}</p>
+                        <p className="text-sm font-serif font-semibold text-foreground leading-snug">{product.name}</p>
+                        <p className="text-xs font-medium text-red-500 mt-1">{product.activeIngredient}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* The conflicts */}
+                <div className="space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-red-400 text-center mb-2">What happens when you use them together</p>
+
+                  <div className="p-4 rounded-2xl bg-red-100/60 border border-red-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-red-500 flex items-center justify-center shrink-0 mt-0.5">
+                        <XCircle className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-red-700 mb-1">
+                          Benzoyl Peroxide oxidises Retinol — instantly
+                        </p>
+                        <p className="text-sm text-red-700/80 leading-relaxed">
+                          Benzoyl peroxide is a potent oxidising agent. When it contacts retinol — even rinsed off the skin and picked up on a towel, or transferred via hands — it chemically degrades the retinol molecule before it can reach your skin cells. You are paying for an active ingredient that is being destroyed in real time.
+                        </p>
+                        <a
+                          href="https://pubmed.ncbi.nlm.nih.gov/8450449/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 mt-2 text-[11px] text-red-500 hover:text-red-700 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span className="italic">Nighswonger et al. (1993). J Pharm Sci. PMID: 8450449</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-red-100/60 border border-red-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-red-500 flex items-center justify-center shrink-0 mt-0.5">
+                        <AlertTriangle className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-red-700 mb-1">
+                          Retinol + Glycolic Acid = barrier destruction
+                        </p>
+                        <p className="text-sm text-red-700/80 leading-relaxed">
+                          Both retinol and glycolic acid (AHA) speed up skin cell turnover and reduce the skin's natural barrier function when used alone. Together in an evening routine, they cause accelerated exfoliation that strips the protective lipid layer — leading to redness, peeling, raw skin, and dramatically increased sensitivity.
+                        </p>
+                        <a
+                          href="https://doi.org/10.3109/09546639409086912"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 mt-2 text-[11px] text-red-500 hover:text-red-700 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span className="italic">Kligman, A.M. (1988). J Dermatol Treat. DOI: 10.3109/09546639409086912</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                        <FlaskConical className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-700 mb-1">
+                          The triple hit: photosensitivity goes through the roof
+                        </p>
+                        <p className="text-sm text-amber-700/80 leading-relaxed">
+                          AHAs increase UV sensitivity by up to 50%. Retinol makes skin significantly more photosensitive. Using both without rigorous SPF application — as most people in this routine do — dramatically elevates the risk of hyperpigmentation, sunburn, and long-term UV damage.
+                        </p>
+                        <a
+                          href="https://doi.org/10.2147/CCID.S9042"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 mt-2 text-[11px] text-amber-600 hover:text-amber-800 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span className="italic">Kornhauser et al. (2010). Clin Cosmet Investig Dermatol. DOI: 10.2147/CCID.S9042</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA strip */}
+              <div className="px-6 sm:px-10 py-6 bg-red-100/60 border-t border-red-200">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-center sm:text-left">
+                    <p className="font-serif text-base font-semibold text-red-700">
+                      Does your routine have hidden combinations like this?
+                    </p>
+                    <p className="text-sm text-red-600/80 mt-1">
+                      SkinScreen checks every product pair in your routine — before your skin pays the price.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <a
+                      href="#try-it-now"
+                      className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm"
+                    >
+                      Scan your routine
+                      <ArrowDown className="w-4 h-4" />
+                    </a>
+                    <button
+                      onClick={() => {
+                        const text = "🚨 These 3 products are bought together ALL the time — and they're clinically documented to destroy each other.\n\nNeutrogena Benzoyl Peroxide + RoC Retinol + Paula's Choice Glycolic Acid\n\nBP oxidises retinol (you're wasting your money). Retinol + AHA strips your skin barrier. Both make UV damage 50% worse.\n\nCheck YOUR routine free: skinscreen.app";
+                        if (navigator.share) {
+                          navigator.share({ text }).catch(() => {});
+                        } else {
+                          navigator.clipboard.writeText(text).catch(() => {});
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-red-300 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* 5. THE SKINCARE SPIRAL */}
       <section id="spiral" className="py-24 bg-[#F5F5F7]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <FadeIn>
@@ -265,7 +452,7 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 5. THE GOAL — MOVED UP as emotional pivot */}
+      {/* 6. THE GOAL — MOVED UP as emotional pivot */}
       <section id="the-goal" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
         <div className="max-w-5xl mx-auto">
           <FadeIn>

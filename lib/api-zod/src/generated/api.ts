@@ -339,6 +339,42 @@ export const AddToShelfResponse = zod.object({
 });
 
 /**
+ * Generates all product pairs from the user's shelf and runs conflict analysis on each pair in parallel. Returns deduplicated conflicts sorted by severity.
+ * @summary Analyse the user's full shelf for cross-product conflicts
+ */
+export const AnalyzeRoutineHeader = zod.object({
+  Authorization: zod
+    .string()
+    .optional()
+    .describe("Opaque session token — `Bearer <sid>`."),
+});
+
+export const AnalyzeRoutineResponse = zod.object({
+  conflicts: zod.array(
+    zod.object({
+      product1Name: zod
+        .string()
+        .describe("Name of the first conflicting product on the shelf"),
+      product2Name: zod
+        .string()
+        .describe("Name of the second conflicting product on the shelf"),
+      pair: zod
+        .string()
+        .describe(
+          'The two conflicting ingredients (e.g. \"Retinol + Glycolic Acid\")',
+        ),
+      severity: zod.enum(["HIGH_RISK", "CAUTION", "SAFE"]),
+      explanation: zod.string(),
+      citation: zod.string(),
+      citationUrl: zod.string(),
+    }),
+  ),
+  overallSafe: zod.boolean(),
+  highRiskCount: zod.number().describe("Number of HIGH_RISK conflicts found"),
+  cautionCount: zod.number().describe("Number of CAUTION conflicts found"),
+});
+
+/**
  * @summary Remove a product from the user's shelf
  */
 export const RemoveFromShelfParams = zod.object({
