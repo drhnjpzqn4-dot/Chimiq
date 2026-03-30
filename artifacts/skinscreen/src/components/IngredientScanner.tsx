@@ -5,6 +5,7 @@ import {
   useScanLabel,
   useProductLookup,
   useSuggestAlternatives,
+  getProductLookupQueryKey,
 } from "@workspace/api-client-react";
 import type { IngredientFlag, SkinProfile, AlternativeSuggestion } from "@workspace/api-client-react";
 import { DangerCard } from "@/components/DangerCard";
@@ -104,10 +105,9 @@ function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
     return () => clearTimeout(timer);
   }, [inputVal]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, isFetching } = useProductLookup(
     { q: debouncedQ },
-    { query: { enabled: debouncedQ.length >= 3 } as any },
+    { query: { queryKey: getProductLookupQueryKey({ q: debouncedQ }), enabled: debouncedQ.length >= 3 } },
   );
 
   useEffect(() => {

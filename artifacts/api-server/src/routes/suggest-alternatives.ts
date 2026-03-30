@@ -16,7 +16,7 @@ const AlternativeSuggestionSchema = z.object({
 });
 
 const SuggestAlternativesResponseSchema = z.object({
-  alternatives: z.array(AlternativeSuggestionSchema),
+  alternatives: z.array(AlternativeSuggestionSchema).min(1).max(5),
   inferredProductType: z.string(),
 });
 
