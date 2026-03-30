@@ -18,3 +18,5 @@
 //   export type Post = typeof postsTable.$inferSelect;
 
 export * from "./waitlist";
+export * from "./auth";
+export * from "./shelf";

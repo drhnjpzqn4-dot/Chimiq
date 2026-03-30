@@ -6,23 +6,36 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./addToShelfRequest";
 export * from "./alternativeSuggestion";
 export * from "./analyzeRequest";
 export * from "./analyzeResponse";
 export * from "./analyzeSingleRequest";
 export * from "./analyzeSingleResponse";
+export * from "./authorizationSessionHeaderParameter";
+export * from "./authUser";
+export * from "./authUserEnvelope";
+export * from "./beginBrowserLoginParams";
 export * from "./conflictResult";
 export * from "./conflictResultSeverity";
 export * from "./errorResponse";
+export * from "./handleBrowserLoginCallbackParams";
 export * from "./healthStatus";
 export * from "./ingredientFlag";
 export * from "./ingredientFlagCategory";
 export * from "./ingredientFlagSeverity";
+export * from "./logoutSuccess";
+export * from "./mobileTokenExchangeRequest";
+export * from "./mobileTokenExchangeSuccess";
 export * from "./productLookupParams";
 export * from "./productLookupResponse";
+export * from "./removeFromShelfResponse";
+export * from "./routineSlot";
 export * from "./scanLabelRequest";
 export * from "./scanLabelRequestMimeType";
 export * from "./scanLabelResponse";
+export * from "./shelfProduct";
+export * from "./shelfResponse";
 export * from "./skinProfile";
 export * from "./suggestAlternativesRequest";
 export * from "./suggestAlternativesResponse";

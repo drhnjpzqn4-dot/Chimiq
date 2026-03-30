@@ -4,11 +4,13 @@ import { DangerCard } from "@/components/DangerCard";
 import { SpiralSection } from "@/components/SpiralSection";
 import { IngredientScanner } from "@/components/IngredientScanner";
 import { SocialProof } from "@/components/SocialProof";
+import { MyShelf, MyShelfSection } from "@/components/MyShelf";
 import type { LandingConfig } from "@/lib/landing-config";
+import { useAuth } from "@workspace/replit-auth-web";
 import {
   ScanLine, Layers, ShieldCheck,
   AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
-  Sun, Moon, Plus, CheckCircle2, ShoppingBag, Bell,
+  Sun, Moon, Plus, CheckCircle2, ShoppingBag, Bell, User, LogOut,
 } from "lucide-react";
 
 const dangerCombinations = [
@@ -100,8 +102,55 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ config }: LandingPageProps) {
+  const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
+
+  const displayName = user
+    ? (user.firstName ?? user.email?.split("@")[0] ?? "there")
+    : null;
+
   return (
     <main className="min-h-screen bg-background overflow-hidden">
+
+      {/* TOP NAV */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-border/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+          <a href="#hero" className="font-serif text-base font-semibold text-foreground tracking-tight">
+            SkinScreen
+          </a>
+          <div className="flex items-center gap-3">
+            {authLoading ? (
+              <div className="h-8 w-20 rounded-full bg-border/40 animate-pulse" />
+            ) : isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <a
+                  href="#my-shelf"
+                  className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">{displayName}</span>
+                  <span className="sm:hidden">My Shelf</span>
+                </a>
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-border/20"
+                  aria-label="Log out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Log out</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={login}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 px-4 py-2 rounded-full transition-colors"
+              >
+                <User className="w-3.5 h-3.5" />
+                Sign in
+              </button>
+            )}
+          </div>
+        </div>
+      </nav>
 
       {/* 1. HERO */}
       <section id="hero" className="isolate relative pt-24 pb-20 sm:pt-36 sm:pb-24 md:pt-48 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
@@ -358,15 +407,15 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 10. MY SHELF — COMING SOON (moved near bottom as "what's coming") */}
+      {/* 10. MY SHELF — live feature section */}
       <section id="my-shelf" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
 
             <FadeIn direction="right">
               <div>
                 <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary text-sm font-medium tracking-wide mb-6">
-                  Coming at Launch
+                  {isAuthenticated ? "Your routine" : "Now available"}
                 </span>
                 <h2 className="text-3xl md:text-5xl font-serif mb-6 leading-tight">
                   Your personal<br />
@@ -389,65 +438,53 @@ export function LandingPage({ config }: LandingPageProps) {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href="#waitlist"
-                  className="inline-flex items-center gap-2 text-primary font-medium hover:gap-3 transition-all duration-200 text-sm"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Join the waitlist to get early access
-                </a>
+                {!isAuthenticated && (
+                  <button
+                    onClick={login}
+                    className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    Sign in to build your shelf
+                  </button>
+                )}
+                {isAuthenticated && (
+                  <p className="flex items-center gap-2 text-primary font-medium text-sm">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Signed in as {displayName}
+                  </p>
+                )}
               </div>
             </FadeIn>
 
             <FadeIn direction="left" delay={0.15}>
-              <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
-                <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
-                  <span className="font-serif text-lg font-semibold text-foreground">My Shelf</span>
-                  <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">5 products</span>
-                </div>
-
-                <div className="p-6 space-y-6">
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Sun className="w-4 h-4 text-[#F59E0B]" />
-                      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Morning</span>
-                    </div>
-                    <div className="space-y-2">
-                      {["Vitamin C Serum", "Hyaluronic Acid", "SPF 50 Sunscreen"].map((p) => (
-                        <div key={p} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#FAFAF8] border border-border/30">
-                          <span className="w-2 h-2 rounded-full bg-[#22C55E] shrink-0" />
-                          <span className="text-sm text-foreground">{p}</span>
-                        </div>
-                      ))}
-                    </div>
+              {isAuthenticated && user ? (
+                <MyShelf userId={user.id} displayName={displayName} />
+              ) : (
+                <div className="relative">
+                  <div className="pointer-events-none opacity-60">
+                    <MyShelfSection />
                   </div>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Moon className="w-4 h-4 text-[#7BAF7A]" />
-                      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Evening</span>
-                    </div>
-                    <div className="space-y-2">
-                      {["Retinol 0.5%", "Niacinamide Serum"].map((p) => (
-                        <div key={p} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#FAFAF8] border border-border/30">
-                          <span className="w-2 h-2 rounded-full bg-[#22C55E] shrink-0" />
-                          <span className="text-sm text-foreground">{p}</span>
-                        </div>
-                      ))}
-                      <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-red-50 border border-red-200">
-                        <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                        <span className="text-sm text-red-700">Glycolic Acid Toner</span>
-                        <span className="ml-auto text-[10px] font-semibold text-red-500 uppercase tracking-wide">Conflict</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-white/70 backdrop-blur-sm">
+                    <div className="text-center px-6">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                        <User className="w-6 h-6 text-primary" />
                       </div>
+                      <p className="font-serif text-lg font-semibold text-foreground mb-2">
+                        Your shelf is waiting
+                      </p>
+                      <p className="text-sm text-muted-foreground mb-5">
+                        Sign in to start building your personal skincare routine.
+                      </p>
+                      <button
+                        onClick={login}
+                        className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-5 py-2.5 rounded-full font-medium text-sm transition-colors"
+                      >
+                        Sign in to get started
+                      </button>
                     </div>
                   </div>
-
-                  <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-colors duration-200">
-                    <Plus className="w-4 h-4" />
-                    Add product
-                  </button>
                 </div>
-              </div>
+              )}
             </FadeIn>
 
           </div>

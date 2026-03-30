@@ -55,9 +55,10 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
+- App setup: `src/app.ts` — mounts CORS (credentials:true), cookieParser, authMiddleware, JSON/urlencoded parsing, routes at `/api`
+- Auth: `src/lib/auth.ts` (OIDC config, session CRUD), `src/middlewares/authMiddleware.ts` (patches req.user + req.isAuthenticated()), `src/routes/auth.ts` (login/callback/logout/mobile-auth)
+- Routes: `src/routes/index.ts` mounts sub-routers; includes shelf, auth, analyze, scan-label, product-lookup, suggest-alternatives
+- Depends on: `@workspace/db`, `@workspace/api-zod`, `openid-client`, `cookie-parser`
 - `pnpm --filter @workspace/api-server run dev` — run the dev server
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
 - Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
@@ -87,9 +88,19 @@ Run codegen: `pnpm --filter @workspace/api-spec run codegen`
 
 Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
 
+IMPORTANT: `src/index.ts` only exports from `./generated/api` — do NOT add `export * from "./generated/types"` as it causes duplicate export collisions. Codegen re-adds this line every time; always revert it after running codegen.
+
 ### `lib/api-client-react` (`@workspace/api-client-react`)
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+
+### `lib/replit-auth-web` (`@workspace/replit-auth-web`)
+
+Browser-side Replit Auth helper. Exports `useAuth()` hook that fetches `/api/auth/user` and provides `login()` / `logout()` functions. Used by `@workspace/skinscreen`.
+
+- `login()` redirects to `/api/login?returnTo=<BASE_URL>` (full OIDC flow)
+- `logout()` redirects to `/api/logout`
+- DO NOT use generated API client hooks for auth — always use this package
 
 ### `lib/integrations-openai-ai-server` (`@workspace/integrations-openai-ai-server`)
 
