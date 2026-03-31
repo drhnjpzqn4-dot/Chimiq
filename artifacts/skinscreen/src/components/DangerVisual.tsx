@@ -4,15 +4,13 @@ import { FadeIn } from "@/components/FadeIn";
 
 const PRODUCT_A = {
   name: "The Ordinary AHA 30% + BHA 2%",
-  imageUrl:
-    "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dwdf7a6213/Images/products/The%20Ordinary/rdn-aha-30pct-bha-2pct-peeling-solution-30ml.png?sw=800&sh=800&sm=fit",
+  imageUrl: `${import.meta.env.BASE_URL}images/products/ordinary-aha-bha.png`,
   alt: "The Ordinary AHA 30% + BHA 2% Peeling Solution",
 };
 
 const PRODUCT_B = {
   name: "The Ordinary Retinol 0.5%",
-  imageUrl:
-    "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dwf2a8fcd2/Images/products/The%20Ordinary/rdn-retinol-0-5pct-in-squalane-30ml.png?sw=800&sh=800&sm=fit",
+  imageUrl: `${import.meta.env.BASE_URL}images/products/ordinary-retinol.png`,
   alt: "The Ordinary Retinol 0.5% in Squalane",
 };
 
