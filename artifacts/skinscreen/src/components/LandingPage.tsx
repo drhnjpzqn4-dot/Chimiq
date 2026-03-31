@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FadeIn } from "@/components/FadeIn";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { DangerCard } from "@/components/DangerCard";
+import { DangerVisual } from "@/components/DangerVisual";
 import { SpiralSection } from "@/components/SpiralSection";
 import { IngredientScanner } from "@/components/IngredientScanner";
 import type { ScannerSeed } from "@/components/IngredientScanner";
@@ -254,6 +255,8 @@ export function LandingPage({ config }: LandingPageProps) {
               These are real, documented ingredient conflicts — the kind your dermatologist knows, but the beauty industry doesn't advertise.
             </p>
           </FadeIn>
+
+          <DangerVisual />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             {dangerCombinations.map((combo, idx) => (
