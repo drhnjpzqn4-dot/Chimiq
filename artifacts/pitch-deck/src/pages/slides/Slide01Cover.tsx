@@ -14,7 +14,7 @@ export default function Slide01Cover() {
       <div className="relative z-10 h-full flex flex-col justify-between px-[8vw] py-[7vh]">
         <div className="flex items-center justify-between">
           <p className="font-body text-[1.3vw] font-medium tracking-[0.35em] uppercase text-white/50">
-            A Chimiq product
+            A Chimiq product by Seafari AB
           </p>
           <p className="font-body text-[1.3vw] text-white/40 tracking-wider">
             April 2026

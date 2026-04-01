@@ -19,26 +19,31 @@ export default function Slide04Market() {
           </p>
         </div>
 
-        <div className="flex flex-col justify-center w-[38vw] gap-[2.5vh]">
-          <div className="bg-white/10 rounded-2xl px-[2.8vw] py-[3vh] border border-white/10">
-            <p className="font-body text-[1.85vw] font-semibold text-white mb-[1.2vh]">
-              Timing is perfect
+        <div className="flex flex-col justify-center w-[38vw] gap-[2vh]">
+          <div className="bg-[#7BAF7A]/20 rounded-2xl px-[2.8vw] py-[2.5vh] border border-[#7BAF7A]/35">
+            <p className="font-body text-[1.3vw] font-bold tracking-[0.2em] uppercase text-[#7BAF7A] mb-[1vh]">
+              Why 2026
             </p>
-            <p className="font-body text-[1.5vw] text-white/65 leading-relaxed">
-              EU Cosmetics Regulation update 2024–2025 demands clearer labelling. Gen Z is the most health-conscious and the most misled by social media.
+            <p className="font-body text-[1.5vw] text-white/75 leading-relaxed">
+              EU Cosmetics Regulation update demands clearer labelling. AI analysis now cheap enough for real-time consumer use. Gen Z is the most health-conscious and the most misled generation.
             </p>
           </div>
-          <div className="bg-white/10 rounded-2xl px-[2.8vw] py-[3vh] border border-white/10">
-            <p className="font-body text-[1.85vw] font-semibold text-white mb-[1.2vh]">
+
+          <div className="bg-white/10 rounded-2xl px-[2.8vw] py-[2.5vh] border border-white/10">
+            <p className="font-body text-[1.85vw] font-semibold text-white mb-[1vh]">
               Proven model
             </p>
             <p className="font-body text-[1.5vw] text-white/65 leading-relaxed">
               Yuka: 13M users, profitable freemium — no combination analysis. SkinScreen is Yuka with the one feature that actually protects.
             </p>
           </div>
-          <div className="bg-[#7BAF7A]/20 rounded-2xl px-[2.8vw] py-[2vh] border border-[#7BAF7A]/30">
-            <p className="font-body text-[1.5vw] text-[#7BAF7A] font-medium">
-              Teen skincare segment growing fastest of all — highest social media influence, highest risk exposure, no dedicated solution.
+
+          <div className="bg-white/10 rounded-2xl px-[2.8vw] py-[2.5vh] border border-white/10">
+            <p className="font-body text-[1.85vw] font-semibold text-white mb-[1vh]">
+              Fastest-growing segment
+            </p>
+            <p className="font-body text-[1.5vw] text-white/65 leading-relaxed">
+              Teen skincare: highest social media influence, highest ingredient risk, and zero dedicated safety tools. First-mover window is now.
             </p>
           </div>
         </div>
