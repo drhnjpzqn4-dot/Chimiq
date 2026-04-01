@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chimiq — Pitch 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 32px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      z-index: 100;
+    }
+    .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+    .slide-counter { font-size: 13px; color: #6e6e73; }
+    .nav-arrows { display: flex; gap: 12px; }
+    .nav-btn {
+      background: none; border: 1px solid #d1d1d6; border-radius: 6px;
+      padding: 4px 12px; cursor: pointer; font-size: 16px; color: #1d1d1f;
+      transition: background 0.15s;
+    }
+    .nav-btn:hover { background: #f0f0f0; }
+
+    /* Slide container */
+    .deck { padding-top: 56px; }
+    .slide {
+      display: none;
+      min-height: calc(100vh - 56px);
+      padding: 60px 80px;
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .slide.active { display: flex; flex-direction: column; justify-content: center; }
+
+    /* Slide types */
+    .slide-cover {
+      align-items: center; text-align: center;
+      background: linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 100%);
+      max-width: 100%; padding: 80px;
+    }
+    .slide-cover .overline {
+      font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+      color: #6e6e73; margin-bottom: 20px;
+    }
+    .slide-cover h1 {
+      font-size: 72px; font-weight: 700; letter-spacing: -3px;
+      line-height: 1; color: #1d1d1f; margin-bottom: 8px;
+    }
+    .slide-cover .tagline {
+      font-size: 22px; color: #6e6e73; margin: 16px 0 32px;
+      font-weight: 300;
+    }
+    .slide-cover .domain {
+      font-size: 15px; color: #0071e3; letter-spacing: 0.5px;
+    }
+
+    /* Content slides */
+    .slide-label {
+      font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+      color: #6e6e73; margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 40px; font-weight: 700; letter-spacing: -1.5px;
+      line-height: 1.1; margin-bottom: 32px; color: #1d1d1f;
+    }
+    h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+
+    /* Stats grid */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 32px 0; }
+    .stat {
+      background: white; border-radius: 16px; padding: 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .stat-num { font-size: 42px; font-weight: 700; letter-spacing: -2px; color: #1d1d1f; }
+    .stat-unit { font-size: 16px; color: #6e6e73; margin-top: 4px; }
+
+    /* Cards */
+    .cards { display: grid; gap: 16px; }
+    .cards-2 { grid-template-columns: repeat(2, 1fr); }
+    .cards-3 { grid-template-columns: repeat(3, 1fr); }
+    .card {
+      background: white; border-radius: 16px; padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .card p { font-size: 15px; color: #6e6e73; line-height: 1.5; margin-top: 6px; }
+
+    /* Roadmap */
+    .roadmap { display: flex; gap: 16px; align-items: stretch; margin-top: 16px; }
+    .roadmap-step {
+      flex: 1; background: white; border-radius: 16px; padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      position: relative;
+    }
+    .roadmap-step.active-step { border: 2px solid #1d1d1f; }
+    .roadmap-step.moonshot { background: #1d1d1f; color: white; }
+    .roadmap-step.moonshot p { color: #a1a1a6; }
+    .step-num {
+      font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+      color: #6e6e73; margin-bottom: 8px;
+    }
+    .roadmap-step.moonshot .step-num { color: #a1a1a6; }
+    .roadmap-arrow {
+      display: flex; align-items: center; color: #d1d1d6; font-size: 20px;
+    }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th {
+      font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+      color: #6e6e73; padding: 12px 16px; text-align: left;
+      border-bottom: 1px solid #d1d1d6;
+    }
+    td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    tr:last-child td { border-bottom: none; }
+    .pill {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 500;
+    }
+    .pill-green { background: #d1fae5; color: #065f46; }
+    .pill-red { background: #fee2e2; color: #991b1b; }
+
+    /* Business model */
+    .biz-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px; }
+    .biz-card {
+      background: white; border-radius: 16px; padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .biz-card .price { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+    .biz-card p { font-size: 14px; color: #6e6e73; margin-top: 6px; line-height: 1.4; }
+
+    /* Team */
+    .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+    .team-card {
+      background: white; border-radius: 16px; padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06); text-align: center;
+    }
+    .team-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #f0f0f0; margin: 0 auto 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .team-role { font-size: 12px; color: #6e6e73; margin-top: 4px; }
+
+    /* Ask */
+    .ask-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+    .ask-card {
+      background: white; border-radius: 16px; padding: 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .ask-amount { font-size: 36px; font-weight: 700; letter-spacing: -1.5px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">Chimiq</div>
+  <div class="slide-counter" id="counter">1 / 8</div>
+  <div class="nav-arrows">
+    <button class="nav-btn" onclick="prevSlide()">&#8592;</button>
+    <button class="nav-btn" onclick="nextSlide()">&#8594;</button>
+  </div>
+</nav>
+
+<div class="deck">
+
+  <!-- SLIDE 1: COVER -->
+  <div class="slide slide-cover active">
+    <div class="overline">A Chimiq product</div>
+    <h1>SkinScreen</h1>
+    <p class="tagline">Vad smörjer du egentligen in dig i?</p>
+    <p style="font-size:15px;color:#6e6e73;max-width:480px;line-height:1.6;margin:0 auto 32px;">
+      AI-driven ingrediensanalys och kombinationsvarning för hudvård — byggt för tonåringar som förtjänar att veta sanningen om sin rutin.
+    </p>
+    <div class="domain">chimiq.com &nbsp;|&nbsp; @chim_iq</div>
+  </div>
+
+  <!-- SLIDE 2: PROBLEM -->
+  <div class="slide">
+    <div class="slide-label">Problemet</div>
+    <h2>Tonåringar smörjer in sig i 150–400 ingredienser varje dag</h2>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">400</div>
+        <div class="stat-unit">ingredienser/dag (4–7 produkter)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">62%</div>
+        <div class="stat-unit">ändrar rutin baserat på TikTok (J. Clin. Aesthetics, 2023)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">100B+</div>
+        <div class="stat-unit">visningar på #skincare på TikTok</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:8px;">
+      <h3>Resultat</h3>
+      <p>Hudläkare rapporterar kraftig ökning av irritationskontaktdermatit hos tonåringar. "Retinification" — tonåringar som använder anti-aging-produkter för 40-plussare. Ingen app löser kombinationsproblemet idag.</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: SOLUTION -->
+  <div class="slide">
+    <div class="slide-label">Lösningen</div>
+    <h2>Skanna. Kombinera. Förstå.</h2>
+    <div class="cards cards-3">
+      <div class="card">
+        <h3>Skanna</h3>
+        <p>Fotografera ingredienslistan. OCR + Claude Vision läser den på sekunder. Varje ämne förklaras på svenska.</p>
+      </div>
+      <div class="card">
+        <h3>Kombinera</h3>
+        <p>Ladda upp din hela hudrutin. SkinScreen ser vilka kombinationer som är farliga — retinol + AHA, BP + C-vitamin, etc.</p>
+      </div>
+      <div class="card">
+        <h3>Förstå</h3>
+        <p>Riskskala grön/gul/röd per ämne. EU CosIng + EWG som datakällor. Inga INCI-namn — ren svenska.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h3>Unik position</h3>
+      <p>Ingen konkurrent (INCI Beauty, Think Dirty, Yuka, CosDNA) hanterar kombinationsanalys. Det är vår vallgrav.</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: MARKET -->
+  <div class="slide">
+    <div class="slide-label">Marknaden</div>
+    <h2>$189 miljarder — tonårssegmentet växer snabbast</h2>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">$189B</div>
+        <div class="stat-unit">global hudvårdsmarknad 2025</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">$273B</div>
+        <div class="stat-unit">prognos 2030 (CAGR ~7,5%)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">13M</div>
+        <div class="stat-unit">användare för Yuka (liknande app, ingen kombination)</div>
+      </div>
+    </div>
+    <div class="cards cards-2" style="margin-top:16px;">
+      <div class="card">
+        <h3>Timing</h3>
+        <p>EU:s uppdaterade kosmetika-förordning 2024–2025 kräver tydligare märkning. Gen Z = mest hälsomedveten + mest vilseledd av social media.</p>
+      </div>
+      <div class="card">
+        <h3>Bevisad modell</h3>
+        <p>Yuka: 13M användare, lönsam freemium. SkinScreen är Yuka fast med kombinationsanalys — den enda funktionen som faktiskt skyddar.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: COMPETITION -->
+  <div class="slide">
+    <div class="slide-label">Konkurrens</div>
+    <h2>Alla ser enskilda ingredienser. Ingen ser kombinationerna.</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Produkt</th>
+          <th>Ingredienstolkning</th>
+          <th>Kombinationsanalys</th>
+          <th>Svenska</th>
+          <th>Tonårsfokus</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>SkinScreen</strong></td>
+          <td><span class="pill pill-green">Ja</span></td>
+          <td><span class="pill pill-green">Ja — unikt</span></td>
+          <td><span class="pill pill-green">Ja</span></td>
+          <td><span class="pill pill-green">Ja</span></td>
+        </tr>
+        <tr>
+          <td>INCI Beauty</td>
+          <td><span class="pill pill-green">Ja</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+        </tr>
+        <tr>
+          <td>Think Dirty</td>
+          <td><span class="pill pill-green">Ja</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+        </tr>
+        <tr>
+          <td>Yuka</td>
+          <td><span class="pill pill-green">Delvis</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+        </tr>
+        <tr>
+          <td>CosDNA</td>
+          <td><span class="pill pill-green">Ja</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+          <td><span class="pill pill-red">Nej</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SLIDE 6: BUSINESS MODEL -->
+  <div class="slide">
+    <div class="slide-label">Affärsmodell</div>
+    <h2>Freemium med tre intäktsströmmar</h2>
+    <div class="biz-grid">
+      <div class="biz-card">
+        <div class="price">Gratis</div>
+        <h3 style="margin-top:8px;">Ingredienstolkning</h3>
+        <p>Skanna enskilda produkter. Förstå varje ämne. Gratis för alltid — driver adoption.</p>
+      </div>
+      <div class="biz-card">
+        <div class="price">49–79 kr/mån</div>
+        <h3 style="margin-top:8px;">Kombinationsanalys</h3>
+        <p>Hela rutinen analyserad. Personliga rekommendationer. DIY-alternativ. Premiumprodukten.</p>
+      </div>
+      <div class="biz-card">
+        <div class="price">B2B-licens</div>
+        <h3 style="margin-top:8px;">Apotek & kliniker</h3>
+        <p>Licens för hudvårdskliniker, apotek, skolor. Vit-label möjlig.</p>
+      </div>
+      <div class="biz-card">
+        <div class="price">Affiliate</div>
+        <h3 style="margin-top:8px;">Rekommendationer</h3>
+        <p>Bara produkter vi står bakom. "SkinScreen-godkänd" = trovärdighet för varumärken.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: TEAM -->
+  <div class="slide">
+    <div class="slide-label">Teamet</div>
+    <h2>Kemi + Design + Strategi</h2>
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="team-avatar">⚗️</div>
+        <h3>Kemiexpert</h3>
+        <div class="team-role">KTH — kemiingenjör</div>
+        <p style="font-size:13px;color:#6e6e73;margin-top:10px;">Ingrediensdatabas, kombinationsregler, vetenskaplig validering. Garanterar att analysen håller.</p>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">🎨</div>
+        <h3>UX & Design</h3>
+        <div class="team-role">Formgivare + tonårsinsikt</div>
+        <p style="font-size:13px;color:#6e6e73;margin-top:10px;">Gränssnitt tonåringar faktiskt använder. DIY-innehåll. Betatestledare.</p>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">⚓️</div>
+        <h3>Pia L'Obry</h3>
+        <div class="team-role">Strategisk rådgivare — Seafari AB</div>
+        <p style="font-size:13px;color:#6e6e73;margin-top:10px;">Serieentreprenör sedan 1994. Produktarkitektur, affärsmodell, investerarrelationer.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px;">
+      <h3>Teknisk stack</h3>
+      <p>React Native (Expo) · Supabase (EU CosIng + EWG) · Claude API · Google ML Kit OCR · Node.js/Express</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: ROADMAP / ASK -->
+  <div class="slide">
+    <div class="slide-label">Roadmap — Chimiq-familjen</div>
+    <h2>SkinScreen är steg ett i ett större ekosystem</h2>
+    <div class="roadmap">
+      <div class="roadmap-step active-step">
+        <div class="step-num">Nu</div>
+        <h3>SkinScreen</h3>
+        <p style="font-size:14px;color:#6e6e73;margin-top:8px;line-height:1.5;">Foto-upload + Claude Vision. Kombinationsanalys. MVP live 31 mars.</p>
+      </div>
+      <div class="roadmap-arrow">→</div>
+      <div class="roadmap-step">
+        <div class="step-num">Nästa</div>
+        <h3>HairScreen</h3>
+        <p style="font-size:14px;color:#6e6e73;margin-top:8px;line-height:1.5;">Sulfater, silikoner, proteiner. Samma motor — ny kategori.</p>
+      </div>
+      <div class="roadmap-arrow">→</div>
+      <div class="roadmap-step">
+        <div class="step-num">Sedan</div>
+        <h3>MakeupScreen</h3>
+        <p style="font-size:14px;color:#6e6e73;margin-top:8px;line-height:1.5;">Smink och pigment. EU-förbjudna ämnen, tungmetaller, allergenanalys.</p>
+      </div>
+      <div class="roadmap-arrow">→</div>
+      <div class="roadmap-step moonshot">
+        <div class="step-num">🔬 Moonshot</div>
+        <h3>Chimiq Scanner</h3>
+        <p style="margin-top:8px;line-height:1.5;">NIR-spektroskopi + AI-resonemang (ref: ChemIQ, Oxford). Identifierar okända ämnen — inte bara matchar mot lista.</p>
+      </div>
+    </div>
+    <div class="ask-grid" style="margin-top:20px;">
+      <div class="ask-card">
+        <div class="ask-amount">31 mars</div>
+        <h3 style="margin-top:6px;">Replit-deadline</h3>
+        <p style="font-size:14px;color:#6e6e73;margin-top:4px;">MVP live. Foto-upload. Riktig förpackning skannad.</p>
+      </div>
+      <div class="ask-card">
+        <div class="ask-amount">chimiq.com</div>
+        <h3 style="margin-top:6px;">Varumärket är säkrat</h3>
+        <p style="font-size:14px;color:#6e6e73;margin-top:4px;">chimiq.com · chimiq.app · @chim_iq Instagram + TikTok</p>
+      </div>
+      <div class="ask-card">
+        <div class="ask-amount">$50K</div>
+        <h3 style="margin-top:6px;">Replit-priset</h3>
+        <p style="font-size:14px;color:#6e6e73;margin-top:4px;">Målet för buildathonet. Finansierar Fas 1 MVP och App Store-lansering.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<script>
+  let current = 1;
+  const total = 8;
+
+  function showSlide(n) {
+    document.querySelectorAll('.slide').forEach((s, i) => {
+      s.classList.toggle('active', i === n - 1);
+    });
+    document.getElementById('counter').textContent = n + ' / ' + total;
+    current = n;
+  }
+
+  function nextSlide() {
+    if (current < total) showSlide(current + 1);
+  }
+  function prevSlide() {
+    if (current > 1) showSlide(current - 1);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+    if (e.key === 'ArrowLeft') prevSlide();
+  });
+</script>
+</body>
+</html>
