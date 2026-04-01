@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FadeIn } from "@/components/FadeIn";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { DangerCard } from "@/components/DangerCard";
@@ -8,6 +8,8 @@ import { IngredientScanner } from "@/components/IngredientScanner";
 import type { ScannerSeed } from "@/components/IngredientScanner";
 import { SocialProof } from "@/components/SocialProof";
 import { MyShelf, MyShelfSection } from "@/components/MyShelf";
+import { ChatPanel } from "@/components/ChatPanel";
+import { FindDermatologist } from "@/components/FindDermatologist";
 import type { LandingConfig } from "@/lib/landing-config";
 import { useAuth } from "@workspace/replit-auth-web";
 import {
@@ -15,7 +17,14 @@ import {
   AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
   Sun, Moon, Plus, CheckCircle2, ShoppingBag, Bell, User, LogOut,
   Skull, ExternalLink, Share2, ArrowDown,
+  Activity,
 } from "lucide-react";
+
+interface SiteStats {
+  analyses: number;
+  products: number;
+  waitlist: number;
+}
 
 const DISASTER_MIX_SEED: ScannerSeed = {
   mode: "compare",
@@ -117,6 +126,14 @@ interface LandingPageProps {
 export function LandingPage({ config }: LandingPageProps) {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
   const [scannerSeed, setScannerSeed] = useState<ScannerSeed | null>(null);
+  const [stats, setStats] = useState<SiteStats | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => setStats(d as SiteStats))
+      .catch(() => {});
+  }, []);
 
   const displayName = user
     ? (user.firstName ?? user.email?.split("@")[0] ?? "there")
@@ -206,6 +223,29 @@ export function LandingPage({ config }: LandingPageProps) {
           <WaitlistForm buttonSize="lg" buttonLabel={config.hero.ctaLabel} />
         </FadeIn>
       </section>
+
+      {/* STATS BAR */}
+      {stats && (
+        <div className="border-y border-border/40 bg-white py-5 px-4">
+          <div className="max-w-3xl mx-auto grid grid-cols-3 divide-x divide-border/40">
+            {[
+              { label: "ingredient analyses", value: stats.analyses, icon: Activity },
+              { label: "products on shelves", value: stats.products, icon: Layers },
+              { label: "on the waitlist", value: stats.waitlist, icon: CheckCircle2 },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="flex flex-col items-center gap-1 px-4">
+                <div className="flex items-center gap-1.5">
+                  <Icon className="w-3.5 h-3.5 text-primary/60" />
+                  <span className="text-2xl font-serif font-bold text-foreground tabular-nums">
+                    {value}+
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground/70 text-center">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 2. SOUND FAMILIAR — COMMUNITY FEARS */}
       <section id="fears" className="py-24 px-4 sm:px-6 lg:px-8">
@@ -700,7 +740,10 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 11. WAITLIST CTA */}
+      {/* 11. FIND A DERMATOLOGIST */}
+      <FindDermatologist />
+
+      {/* 12. WAITLIST CTA */}
       <section id="waitlist" className="py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center border-t border-border/50">
         <FadeIn>
           <h2 className="text-4xl md:text-6xl font-serif text-foreground mb-6 tracking-tight">
@@ -720,6 +763,9 @@ export function LandingPage({ config }: LandingPageProps) {
       <footer className="py-8 text-center text-muted-foreground text-sm border-t border-border/50">
         <p>SkinScreen &copy; {new Date().getFullYear()}. Smarter skincare starts here.</p>
       </footer>
+
+      {/* FLOATING AI CHAT */}
+      <ChatPanel />
     </main>
   );
 }

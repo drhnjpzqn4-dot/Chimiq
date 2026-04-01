@@ -8,6 +8,9 @@ import productLookupRouter from "./product-lookup";
 import suggestAlternativesRouter from "./suggest-alternatives";
 import authRouter from "./auth";
 import shelfRouter from "./shelf";
+import chatRouter from "./chat";
+import barcodeLookupRouter from "./barcode-lookup";
+import statsRouter from "./stats";
 
 const router: IRouter = Router();
 
@@ -20,5 +23,8 @@ router.use(scanLabelRouter);
 router.use(productLookupRouter);
 router.use(suggestAlternativesRouter);
 router.use(shelfRouter);
+router.use(chatRouter);
+router.use(barcodeLookupRouter);
+router.use(statsRouter);
 
 export default router;

@@ -1,0 +1,264 @@
+import { useState, useRef, useEffect } from "react";
+import { MessageCircle, X, Send, Loader2, Bot, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@workspace/replit-auth-web";
+import { useGetShelf } from "@workspace/api-client-react";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+const STARTER_QUESTIONS = [
+  "Is it safe to use retinol and vitamin C together?",
+  "My skin is purging — is that normal?",
+  "What ingredients should I avoid if I'm pregnant?",
+  "Can I use niacinamide and AHA on the same day?",
+];
+
+function TypingDots() {
+  return (
+    <div className="flex items-center gap-1 py-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="w-2 h-2 rounded-full bg-primary/50 animate-bounce"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function ChatPanel() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const { user, isAuthenticated } = useAuth();
+  const shelfQuery = useGetShelf({ query: { enabled: isAuthenticated } });
+
+  const shelfContext = shelfQuery.data?.products
+    ?.map((p) => `${p.productName}: ${p.ingredients}`)
+    .join("\n") ?? "";
+
+  useEffect(() => {
+    if (open && messages.length === 0) {
+      setTimeout(() => inputRef.current?.focus(), 200);
+    }
+  }, [open, messages.length]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || loading) return;
+    setError(null);
+
+    const userMsg: Message = { role: "user", content: text.trim() };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          messages: newMessages,
+          shelfContext: shelfContext || undefined,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed");
+
+      const data = (await response.json()) as { reply: string };
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
+    }
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Ask SkinScreen AI"
+        className={cn(
+          "fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200",
+          "bg-primary text-white hover:bg-primary/90 hover:scale-105 active:scale-95",
+          open && "rotate-90 opacity-0 pointer-events-none",
+        )}
+      >
+        <MessageCircle className="w-6 h-6" />
+      </button>
+
+      <div
+        className={cn(
+          "fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] rounded-3xl shadow-2xl border border-border/40 overflow-hidden flex flex-col bg-white transition-all duration-300 origin-bottom-right",
+          open ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none",
+        )}
+        style={{ maxHeight: "min(600px, calc(100vh - 6rem))" }}
+      >
+        <div className="bg-primary px-5 py-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm leading-tight">Ask SkinScreen</p>
+              <p className="text-white/60 text-xs">AI skincare safety assistant</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setOpen(false)}
+            className="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+          {messages.length === 0 ? (
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-foreground leading-relaxed">
+                    Hi{user?.firstName ? `, ${user.firstName}` : ""}! I'm here to help you understand ingredient safety, combination risks, and skincare science.
+                    {shelfContext ? " I can see your current shelf products." : ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    I don't diagnose conditions or recommend specific products.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">
+                  Try asking
+                </p>
+                {STARTER_QUESTIONS.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => sendMessage(q)}
+                    className="w-full text-left text-sm px-3 py-2.5 rounded-xl bg-[#F5F5F7] hover:bg-primary/5 hover:text-primary text-foreground transition-colors leading-snug border border-transparent hover:border-primary/20"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "flex gap-2.5",
+                    msg.role === "user" ? "flex-row-reverse" : "flex-row",
+                  )}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Bot className="w-3 h-3 text-primary" />
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      "max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+                      msg.role === "user"
+                        ? "bg-primary text-white rounded-tr-sm"
+                        : "bg-[#F5F5F7] text-foreground rounded-tl-sm",
+                    )}
+                  >
+                    {msg.content.split("\n").map((line, j) => (
+                      <span key={j}>
+                        {line}
+                        {j < msg.content.split("\n").length - 1 && <br />}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="flex gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Bot className="w-3 h-3 text-primary" />
+                  </div>
+                  <div className="bg-[#F5F5F7] rounded-2xl rounded-tl-sm px-3.5 py-2.5">
+                    <TypingDots />
+                  </div>
+                </div>
+              )}
+              {error && (
+                <p className="text-xs text-destructive text-center py-1">{error}</p>
+              )}
+              <div ref={bottomRef} />
+            </>
+          )}
+        </div>
+
+        <div className="shrink-0 px-3 pb-3 pt-2 border-t border-border/30">
+          <div className="flex items-end gap-2 bg-[#F5F5F7] rounded-2xl px-3 py-2">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about ingredient safety..."
+              rows={1}
+              disabled={loading}
+              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none min-h-[24px] max-h-[96px] py-0.5"
+              style={{ height: "auto" }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => sendMessage(input)}
+              disabled={!input.trim() || loading}
+              className={cn(
+                "w-8 h-8 rounded-xl flex items-center justify-center transition-all shrink-0",
+                input.trim() && !loading
+                  ? "bg-primary text-white hover:bg-primary/90"
+                  : "bg-muted/50 text-muted-foreground cursor-not-allowed",
+              )}
+            >
+              {loading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground/40 text-center mt-1.5">
+            Not medical advice · Consult a dermatologist for diagnosis
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}

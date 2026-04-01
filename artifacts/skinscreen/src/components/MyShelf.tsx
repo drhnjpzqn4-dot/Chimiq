@@ -13,7 +13,7 @@ import type { RoutineConflict, RoutineConflictResponse } from "@workspace/api-cl
 import {
   Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle,
   CheckCircle2, X, ShieldCheck, ShieldOff, Loader2,
-  ChevronDown, ChevronUp, ExternalLink, Zap,
+  ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { cn } from "@/lib/utils";
@@ -622,6 +622,22 @@ export function MyShelf({ displayName }: MyShelfProps) {
         onRun={handleRunAnalysis}
         onClear={resetAnalysis}
       />
+
+      <div className="mx-4 mb-4 mt-2">
+        <div className="relative flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-primary/30 bg-primary/[0.03] cursor-not-allowed group">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FileText className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground leading-tight">Download PDF Safety Report</p>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">Full routine analysis — share with your dermatologist</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 bg-primary/10 text-primary px-2.5 py-1 rounded-full">
+            <Lock className="w-3 h-3" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide">Premium</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

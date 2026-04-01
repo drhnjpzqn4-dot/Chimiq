@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import {
   useAnalyzeIngredients,
   useAnalyzeSingle,
@@ -753,9 +754,17 @@ export function IngredientScanner({
       {/* Input area */}
       {mode === "single" ? (
         <div className="mb-6">
-          <ProductSearch
-            onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); resetResults(); }}
-          />
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <ProductSearch
+                onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); resetResults(); }}
+              />
+            </div>
+            <BarcodeScanButton
+              onResult={(ings, name) => { setIngredients(ings); setProductName(name); resetResults(); }}
+              disabled={isPending}
+            />
+          </div>
           <ProductTextArea
             label="Ingredient List"
             index={1}
