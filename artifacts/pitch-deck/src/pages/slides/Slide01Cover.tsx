@@ -31,8 +31,11 @@ export default function Slide01Cover() {
           <h1 className="font-display text-[10vw] font-bold tracking-tighter text-white leading-none mb-[2.5vh]">
             SkinScreen
           </h1>
-          <p className="font-body text-[2.1vw] font-light text-white/75 max-w-[55vw] leading-relaxed">
+          <p className="font-body text-[2.1vw] font-light text-white/75 max-w-[55vw] leading-relaxed mb-[2vh]">
             The first AI skincare scanner that detects dangerous ingredient combinations — before they damage your skin.
+          </p>
+          <p className="font-body text-[1.6vw] text-white/50 max-w-[52vw] leading-relaxed border-l-[0.25vw] border-[#7BAF7A]/60 pl-[1.5vw]">
+            Many common skincare ingredients are harmless alone — but when combined with other products in your routine, they can cause serious irritation, chemical burns, or long-term damage.
           </p>
         </div>
 
