@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "rN-r_FN9kYW-P3MyUDY93"
+uri = "file://artifacts/pitch-deck/public/hero.png"
+type = "image"
+title = "skincare hero cover"

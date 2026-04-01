@@ -1,0 +1,66 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "position": 1,
+    "filepath": "src/pages/slides/Slide01Cover.tsx",
+    "title": "Cover",
+    "description": "SkinScreen title slide — Chimiq product, tagline, MVP date",
+    "speakerNotes": ""
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide02Problem.tsx",
+    "title": "Problem",
+    "description": "400 ingredients/day, 62% TikTok influence, 100B+ views — and nobody checks for conflicts",
+    "speakerNotes": ""
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide03Solution.tsx",
+    "title": "Solution",
+    "description": "Scan. Analyse. Protect. — 3 pillars and the combination analysis moat",
+    "speakerNotes": ""
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440004",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide04Market.tsx",
+    "title": "Market",
+    "description": "$189B global skincare market, Yuka comparison, Gen Z timing",
+    "speakerNotes": ""
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440005",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide05Competition.tsx",
+    "title": "Competition",
+    "description": "Comparison table — SkinScreen is the only player with combination analysis",
+    "speakerNotes": ""
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440006",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide06Business.tsx",
+    "title": "Business Model",
+    "description": "Freemium tiers + A/B targeting: teen skin vs mature skin",
+    "speakerNotes": ""
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440007",
+    "position": 7,
+    "filepath": "src/pages/slides/Slide07Team.tsx",
+    "title": "Team",
+    "description": "Elin (Chemistry Lead), Sofie (UX & Design), Pia L'Obry (Strategic Advisor) + tech stack",
+    "speakerNotes": ""
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440008",
+    "position": 8,
+    "filepath": "src/pages/slides/Slide08Ask.tsx",
+    "title": "Traction & Ask",
+    "description": "10 signups, MVP live, $50K ask, Chimiq family roadmap",
+    "speakerNotes": ""
+  }
+]
