@@ -16,7 +16,7 @@ import {
   ScanLine, Layers, ShieldCheck,
   AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
   Sun, Moon, Plus, CheckCircle2, ShoppingBag, Bell, User, LogOut,
-  Skull, ExternalLink, Share2, ArrowDown,
+  Skull, ExternalLink, Share2, ArrowDown, FileText, MessageCircle,
 } from "lucide-react";
 
 interface SiteStats {
@@ -176,13 +176,12 @@ export function LandingPage({ config }: LandingPageProps) {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={login}
+              <a
+                href="#waitlist"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 px-4 py-2 rounded-full transition-colors"
               >
-                <User className="w-3.5 h-3.5" />
-                Sign in
-              </button>
+                Join waitlist
+              </a>
             )}
           </div>
         </div>
@@ -298,8 +297,8 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 2. SOUND FAMILIAR — COMMUNITY FEARS */}
-      <section id="fears" className="py-24 px-4 sm:px-6 lg:px-8">
+      {/* 2. SOUND FAMILIAR — hidden, starts with danger zone instead */}
+      <section id="fears" className="py-24 px-4 sm:px-6 lg:px-8 hidden">
         <div className="max-w-7xl mx-auto">
           <FadeIn>
             <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
@@ -598,60 +597,96 @@ export function LandingPage({ config }: LandingPageProps) {
       </section>
 
       {/* 6. HOW SKINSCREEN WORKS */}
-      <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <FadeIn>
-          <h2 className="text-3xl md:text-5xl font-serif text-center mb-16">How SkinScreen works</h2>
-        </FadeIn>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
-          <FadeIn delay={0.1}>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 text-primary shadow-sm">
-                <ScanLine className="w-10 h-10" />
-              </div>
-              <h3 className="text-2xl font-serif mb-3">1. Scan</h3>
-              <p className="text-muted-foreground">
-                Photograph or type your product's ingredient list. We instantly parse the complex chemical names.
+      <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn>
+            <div className="text-center mb-6">
+              <h2 className="text-3xl md:text-5xl font-serif mb-6">How SkinScreen works</h2>
+              <p className="text-xl md:text-2xl text-foreground font-medium max-w-3xl mx-auto leading-snug mb-4">
+                The first AI skincare scanner that detects dangerous ingredient combinations — before they damage your skin.
+              </p>
+              <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed mb-10">
+                Many common skincare ingredients are harmless alone — but when combined with other products in your routine, they can cause serious irritation, chemical burns, or long-term damage.
               </p>
             </div>
           </FadeIn>
 
-          <FadeIn delay={0.3}>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 text-primary shadow-sm">
-                <Layers className="w-10 h-10" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16 mb-14">
+            <FadeIn delay={0.1}>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 text-primary shadow-sm">
+                  <ScanLine className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-serif mb-3">1. Scan</h3>
+                <p className="text-muted-foreground">
+                  Photograph your product's ingredient list or scan its barcode. We instantly identify every ingredient — even the complex chemical names.
+                </p>
               </div>
-              <h3 className="text-2xl font-serif mb-3">2. Stack</h3>
-              <p className="text-muted-foreground">
-                Add your other skincare products to build your virtual shelf and establish your daily routine.
-              </p>
-            </div>
-          </FadeIn>
+            </FadeIn>
 
-          <FadeIn delay={0.5}>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 text-primary shadow-sm">
-                <ShieldCheck className="w-10 h-10" />
+            <FadeIn delay={0.3}>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 text-primary shadow-sm">
+                  <Layers className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-serif mb-3">2. Stack</h3>
+                <p className="text-muted-foreground">
+                  Add your other skincare products to build your virtual shelf and establish your daily routine.
+                </p>
               </div>
-              <h3 className="text-2xl font-serif mb-3">3. Screen</h3>
-              <div className="text-muted-foreground">
-                <p className="mb-3">Get your full safety analysis with clear ratings:</p>
-                <div className="flex flex-col items-center gap-1.5 text-sm font-medium">
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#22C55E] inline-block" />
-                    <span className="text-[#16A34A]">Safe to combine</span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#F59E0B] inline-block" />
-                    <span className="text-[#B45309]">Use with caution</span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#EF4444] inline-block" />
-                    <span className="text-[#B91C1C]">Avoid combining</span>
-                  </span>
+            </FadeIn>
+
+            <FadeIn delay={0.5}>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 text-primary shadow-sm">
+                  <ShieldCheck className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-serif mb-3">3. Screen</h3>
+                <div className="text-muted-foreground">
+                  <p className="mb-3">Get your full safety analysis with clear ratings:</p>
+                  <div className="flex flex-col items-center gap-1.5 text-sm font-medium">
+                    <span className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-[#22C55E] inline-block" />
+                      <span className="text-[#16A34A]">Safe to combine</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-[#F59E0B] inline-block" />
+                      <span className="text-[#B45309]">Use with caution</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-[#EF4444] inline-block" />
+                      <span className="text-[#B91C1C]">Avoid combining</span>
+                    </span>
+                  </div>
                 </div>
               </div>
+            </FadeIn>
+          </div>
+
+          {/* CTA to scanner */}
+          <FadeIn delay={0.6}>
+            <div className="text-center">
+              <a
+                href="#try-it-now"
+                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5"
+              >
+                Try it now →
+              </a>
+              <p className="text-muted-foreground text-sm mt-3">No sign-up needed. Works instantly.</p>
             </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* CTA BANNER — after how it works */}
+      <section className="py-14 px-4 sm:px-6 lg:px-8 bg-primary/8">
+        <div className="max-w-3xl mx-auto text-center">
+          <FadeIn>
+            <p className="text-lg font-medium text-foreground mb-2">SkinScreen is launching soon.</p>
+            <p className="text-muted-foreground mb-6">Early access members get unlimited scans, barcode lookup, and a personalised PDF safety report for their dermatologist.</p>
+            <a href="#waitlist" className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 shadow-md">
+              Join the waitlist — it's free
+            </a>
           </FadeIn>
         </div>
       </section>
@@ -715,7 +750,7 @@ export function LandingPage({ config }: LandingPageProps) {
             <FadeIn direction="right">
               <div>
                 <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary text-sm font-medium tracking-wide mb-6">
-                  {isAuthenticated ? "Your routine" : "Now available"}
+                  {isAuthenticated ? "Your routine" : "Coming soon"}
                 </span>
                 <h2 className="text-3xl md:text-5xl font-serif mb-6 leading-tight">
                   Your personal<br />
@@ -727,8 +762,10 @@ export function LandingPage({ config }: LandingPageProps) {
                 <ul className="space-y-4 mb-10">
                   {[
                     { icon: Sun, text: "Organise your morning & evening routines in one place" },
-                    { icon: ShoppingBag, text: "Scan a new product in-store and instantly see if it conflicts with your shelf" },
+                    { icon: ShoppingBag, text: "Scan a new product or scan its barcode in-store — instantly see if it conflicts with your shelf" },
                     { icon: Bell, text: "Get safety alerts when a new conflict is discovered in your routine" },
+                    { icon: FileText, text: "Download a personalised PDF safety report to share with your dermatologist" },
+                    { icon: MessageCircle, text: "Ask our AI dermatologist anything about your ingredients — backed by peer-reviewed research" },
                   ].map(({ icon: Icon, text }) => (
                     <li key={text} className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -739,13 +776,12 @@ export function LandingPage({ config }: LandingPageProps) {
                   ))}
                 </ul>
                 {!isAuthenticated && (
-                  <button
-                    onClick={login}
-                    className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors"
+                  <a
+                    href="#waitlist"
+                    className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                   >
-                    <User className="w-4 h-4" />
-                    Sign in to build your shelf
-                  </button>
+                    Join the waitlist to get early access
+                  </a>
                 )}
                 {isAuthenticated && (
                   <p className="flex items-center gap-2 text-primary font-medium text-sm">

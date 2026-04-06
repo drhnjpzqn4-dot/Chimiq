@@ -101,7 +101,7 @@ export function ChatPanel() {
         onClick={() => setOpen((v) => !v)}
         aria-label="Ask SkinScreen AI"
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200",
+          "fixed bottom-24 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200",
           "bg-primary text-white hover:bg-primary/90 hover:scale-105 active:scale-95",
           open && "rotate-90 opacity-0 pointer-events-none",
         )}
@@ -111,7 +111,7 @@ export function ChatPanel() {
 
       <div
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] rounded-3xl shadow-2xl border border-border/40 overflow-hidden flex flex-col bg-white transition-all duration-300 origin-bottom-right",
+          "fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] rounded-3xl shadow-2xl border border-border/40 overflow-hidden flex flex-col bg-white transition-all duration-300 origin-bottom-right",
           open ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none",
         )}
         style={{ maxHeight: "min(600px, calc(100vh - 6rem))" }}
