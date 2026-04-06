@@ -224,46 +224,9 @@ export function LandingPage({ config }: LandingPageProps) {
             </p>
           </FadeIn>
 
-          {/* Animated ingredient conflict tags */}
-          <FadeIn delay={0.45}>
-            <div className="flex flex-wrap justify-center gap-2 mt-10 mb-10 max-w-2xl mx-auto">
-              {[
-                { name: "Retinol", conflict: true, floatDuration: "2.6s", floatDelay: "0s", badgeDelay: "2.4s" },
-                { name: "Glycolic Acid", conflict: true, floatDuration: "3.1s", floatDelay: "0.4s", badgeDelay: "2.9s" },
-                { name: "Niacinamide", conflict: false, floatDuration: "2.8s", floatDelay: "0.7s", badgeDelay: "" },
-                { name: "Benzoyl Peroxide", conflict: true, floatDuration: "2.4s", floatDelay: "0.2s", badgeDelay: "3.3s" },
-                { name: "Vitamin C", conflict: false, floatDuration: "3.0s", floatDelay: "0.9s", badgeDelay: "" },
-                { name: "AHA / BHA", conflict: false, floatDuration: "2.7s", floatDelay: "0.5s", badgeDelay: "" },
-              ].map((ing) => (
-                <div
-                  key={ing.name}
-                  className="relative inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white/75 text-sm font-medium"
-                  style={{
-                    animation: `hero-float ${ing.floatDuration} ease-in-out infinite`,
-                    animationDelay: ing.floatDelay,
-                  }}
-                >
-                  {ing.name}
-                  {ing.conflict && (
-                    <span
-                      className="absolute -top-2.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-lg"
-                      style={{
-                        animation: `hero-conflict-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both`,
-                        animationDelay: ing.badgeDelay,
-                        opacity: 0,
-                      }}
-                    >
-                      ⚠ Conflict
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </FadeIn>
-
-          {/* Stats */}
+          {/* Stats — immediately below headline to sell stakes */}
           {stats && (
-            <FadeIn delay={0.55}>
+            <FadeIn delay={0.35}>
               <div className="flex items-center justify-center gap-8 sm:gap-14 mb-10">
                 {[
                   { label: "analyses run", value: stats.analyses },
@@ -278,6 +241,42 @@ export function LandingPage({ config }: LandingPageProps) {
             </FadeIn>
           )}
 
+          {/* Animated ingredient conflict tags */}
+          <FadeIn delay={0.45}>
+            <div className="flex flex-wrap justify-center gap-2 mb-10 max-w-2xl mx-auto">
+              {[
+                { name: "Retinol", conflict: true, floatDuration: "2.6s", floatDelay: "0s", badgeDelay: "2.4s", pulseDelay: "3.1s" },
+                { name: "Glycolic Acid", conflict: true, floatDuration: "3.1s", floatDelay: "0.4s", badgeDelay: "2.9s", pulseDelay: "3.6s" },
+                { name: "Niacinamide", conflict: false, floatDuration: "2.8s", floatDelay: "0.7s", badgeDelay: "", pulseDelay: "" },
+                { name: "Benzoyl Peroxide", conflict: true, floatDuration: "2.4s", floatDelay: "0.2s", badgeDelay: "3.3s", pulseDelay: "4.0s" },
+                { name: "Vitamin C", conflict: false, floatDuration: "3.0s", floatDelay: "0.9s", badgeDelay: "", pulseDelay: "" },
+                { name: "AHA / BHA", conflict: false, floatDuration: "2.7s", floatDelay: "0.5s", badgeDelay: "", pulseDelay: "" },
+              ].map((ing) => (
+                <div
+                  key={ing.name}
+                  className="relative inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white/75 text-sm font-medium"
+                  style={{
+                    animation: `hero-float ${ing.floatDuration} ease-in-out infinite`,
+                    animationDelay: ing.floatDelay,
+                  }}
+                >
+                  {ing.name}
+                  {ing.conflict && (
+                    <span
+                      className="absolute -top-2.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-lg"
+                      style={{
+                        animation: `hero-conflict-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${ing.badgeDelay} both, hero-conflict-pulse 1.8s ease-in-out ${ing.pulseDelay} infinite`,
+                        opacity: 0,
+                      }}
+                    >
+                      ⚠ Conflict
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+
           {/* CTAs — two side-by-side */}
           <FadeIn delay={0.65}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -291,7 +290,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 href="#waitlist"
                 className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/18 backdrop-blur-sm text-white border border-white/25 px-8 py-4 rounded-full text-base font-medium transition-all duration-200 hover:-translate-y-0.5 w-full sm:w-auto"
               >
-                Join the waitlist
+                Join waitlist
               </a>
             </div>
           </FadeIn>
@@ -705,23 +704,6 @@ export function LandingPage({ config }: LandingPageProps) {
             </div>
           </FadeIn>
           <IngredientScanner ctaLabel={config.scannerCtaLabel} seed={scannerSeed} />
-        </div>
-      </section>
-
-      {/* WAITLIST CTA — after scanner, natural sign-up moment */}
-      <section id="waitlist" className="py-16 px-4 sm:px-6 lg:px-8 bg-white border-t border-border/30">
-        <div className="max-w-xl mx-auto text-center">
-          <FadeIn>
-            <h2 className="text-2xl sm:text-3xl font-serif mb-3">
-              Get early access
-            </h2>
-            <p className="text-muted-foreground mb-8">
-              Be first to know when SkinScreen launches. Early access includes unlimited scans, full routine analysis, and the PDF safety report.
-            </p>
-            <div className="flex justify-center">
-              <WaitlistForm buttonSize="lg" buttonLabel="Join the waitlist" />
-            </div>
-          </FadeIn>
         </div>
       </section>
 
