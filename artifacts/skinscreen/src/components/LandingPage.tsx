@@ -192,7 +192,7 @@ export function LandingPage({ config }: LandingPageProps) {
       <section id="hero" className="isolate relative min-h-[92vh] flex flex-col overflow-hidden">
         {/* Full-bleed background image */}
         <img
-          src={`${import.meta.env.BASE_URL}images/hero-bg.png`}
+          src={`${import.meta.env.BASE_URL}images/hero-dark.png`}
           alt=""
           className="absolute inset-0 w-full h-full object-cover scale-105"
         />
@@ -219,7 +219,7 @@ export function LandingPage({ config }: LandingPageProps) {
               might be{" "}
               <span className="italic text-white/50">damaging your skin.</span>
             </h1>
-            <p className="text-xl sm:text-2xl text-white/40 font-light mt-3">
+            <p className="text-xl sm:text-2xl text-white/40 font-light italic mt-3">
               Most people have no idea.
             </p>
           </FadeIn>
@@ -278,30 +278,21 @@ export function LandingPage({ config }: LandingPageProps) {
             </FadeIn>
           )}
 
-          {/* Primary CTA */}
+          {/* CTAs — two side-by-side */}
           <FadeIn delay={0.65}>
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
                 href="#try-it-now"
-                className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-10 py-4 rounded-full text-lg font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
               >
-                Scan my ingredients
-                <ArrowDown className="w-5 h-5" />
+                Scan my ingredients →
               </a>
-
-              {/* Separator */}
-              <div className="flex items-center gap-4 w-full max-w-xs mt-1">
-                <div className="flex-1 h-px bg-white/12" />
-                <span className="text-white/30 text-xs">or join the waitlist</span>
-                <div className="flex-1 h-px bg-white/12" />
-              </div>
-
-              {/* Waitlist form — glass card */}
-              <div className="w-full max-w-sm">
-                <div className="bg-white/92 backdrop-blur-md rounded-2xl px-5 pt-4 pb-5 shadow-2xl border border-white/30">
-                  <WaitlistForm buttonSize="default" buttonLabel="Get early access" />
-                </div>
-              </div>
+              <a
+                href="#waitlist"
+                className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/18 backdrop-blur-sm text-white border border-white/25 px-8 py-4 rounded-full text-base font-medium transition-all duration-200 hover:-translate-y-0.5 w-full sm:w-auto"
+              >
+                Join the waitlist
+              </a>
             </div>
           </FadeIn>
 
@@ -714,6 +705,23 @@ export function LandingPage({ config }: LandingPageProps) {
             </div>
           </FadeIn>
           <IngredientScanner ctaLabel={config.scannerCtaLabel} seed={scannerSeed} />
+        </div>
+      </section>
+
+      {/* WAITLIST CTA — after scanner, natural sign-up moment */}
+      <section id="waitlist" className="py-16 px-4 sm:px-6 lg:px-8 bg-white border-t border-border/30">
+        <div className="max-w-xl mx-auto text-center">
+          <FadeIn>
+            <h2 className="text-2xl sm:text-3xl font-serif mb-3">
+              Get early access
+            </h2>
+            <p className="text-muted-foreground mb-8">
+              Be first to know when SkinScreen launches. Early access includes unlimited scans, full routine analysis, and the PDF safety report.
+            </p>
+            <div className="flex justify-center">
+              <WaitlistForm buttonSize="lg" buttonLabel="Join the waitlist" />
+            </div>
+          </FadeIn>
         </div>
       </section>
 
