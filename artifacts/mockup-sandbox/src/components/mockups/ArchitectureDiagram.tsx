@@ -101,7 +101,7 @@ function PaywallGate() {
           fontFamily: FONT,
         }}
       >
-        PAYWALL GATE — Premium Only Below
+        PAYWALL — My Shelf & All Premium Features Below
       </span>
     </div>
   );
@@ -463,16 +463,18 @@ export default function ArchitectureDiagram() {
           borderColor={BLUE_BORDER}
           bgColor={BLUE_LIGHT}
         >
-          <SectionRow label="Screens" borderColor={BLUE_BORDER} />
+          <SectionRow label="FREE TIER" borderColor={BLUE_BORDER} />
           <ScreenItem label="Auth gate (Login / Sign-up)" />
-          <ScreenItem label="Scan — home screen (OCR + text input)" />
-          <ScreenItem label="My Shelf — product list" />
-          <ScreenItem label="Analysis results — Safe / Caution / Avoid" />
+          <ScreenItem label="Scan — up to 2 products at a time (OCR + barcode)" />
+          <ScreenItem label="Analysis — Safe / Caution / Avoid for those 2 products" />
+          <ScreenItem label="Find a Dermatologist (free — search nearby)" />
+          <ScreenItem label="Pricing page — always visible, prominently pushed" />
           <PaywallGate />
-          <ScreenItem label="AI Chat" locked />
-          <ScreenItem label="PDF Report" locked />
-          <ScreenItem label="Find a Dermatologist" locked />
-          <ScreenItem label="Pricing / Billing" locked />
+          <SectionRow label="PREMIUM — My Shelf" borderColor={BLUE_BORDER} />
+          <ScreenItem label="Shelf — unlimited products saved" locked />
+          <ScreenItem label="Full routine cross-check (all products vs all)" locked />
+          <ScreenItem label="AI Dermatologist Chat" locked />
+          <ScreenItem label="PDF Safety Report — download & share with derm" locked />
         </DomainBox>
       </div>
 
