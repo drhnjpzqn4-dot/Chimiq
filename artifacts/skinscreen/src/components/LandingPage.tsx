@@ -564,38 +564,6 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 6. THE GOAL — MOVED UP as emotional pivot */}
-      <section id="the-goal" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
-        <div className="max-w-5xl mx-auto">
-          <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-serif text-center mb-6">
-              {config.theGoal.headline}
-            </h2>
-            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16 text-lg leading-relaxed">
-              {config.theGoal.body}
-            </p>
-          </FadeIn>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { emoji: "🧴", title: "Fewer products", desc: "A healthy skin barrier needs 3 products, not 12. SkinScreen helps you find the right ones." },
-              { emoji: "💸", title: "Less spending", desc: "Stop buying fixes for problems your products are causing. Know what works before you buy." },
-              { emoji: "🌿", title: "Cleaner routine", desc: "Know exactly what you're putting on your skin and why — ingredient by ingredient." },
-            ].map((card, idx) => (
-              <FadeIn key={card.title} delay={idx * 0.15}>
-                <div className="flex flex-col items-start gap-4 p-8 rounded-3xl bg-white border border-border/50 shadow-sm h-full">
-                  <span className="text-4xl">{card.emoji}</span>
-                  <div>
-                    <h3 className="text-xl font-serif font-semibold text-foreground mb-2">{card.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">{card.desc}</p>
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* 6. HOW SKINSCREEN WORKS */}
       <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -679,14 +647,19 @@ export function LandingPage({ config }: LandingPageProps) {
       </section>
 
       {/* CTA BANNER — after how it works */}
-      <section className="py-14 px-4 sm:px-6 lg:px-8 bg-primary/8">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-primary/8">
         <div className="max-w-3xl mx-auto text-center">
           <FadeIn>
-            <p className="text-lg font-medium text-foreground mb-2">SkinScreen is launching soon.</p>
-            <p className="text-muted-foreground mb-6">Early access members get unlimited scans, barcode lookup, and a personalised PDF safety report for their dermatologist.</p>
-            <a href="#waitlist" className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 shadow-md">
-              Join the waitlist — it's free
-            </a>
+            <h2 className="text-3xl md:text-5xl font-serif mb-4">SkinScreen is launching soon.</h2>
+            <p className="text-muted-foreground text-lg mb-8">Early access members get unlimited scans, barcode lookup, and a personalised PDF safety report for their dermatologist.</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a href="#try-it-now" className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 shadow-md w-full sm:w-auto justify-center">
+                Try the live preview
+              </a>
+              <a href="#waitlist" className="inline-flex items-center gap-2 border border-primary text-primary hover:bg-primary/8 px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 w-full sm:w-auto justify-center">
+                Join the waitlist — it's free
+              </a>
+            </div>
           </FadeIn>
         </div>
       </section>
@@ -823,6 +796,38 @@ export function LandingPage({ config }: LandingPageProps) {
               )}
             </FadeIn>
 
+          </div>
+        </div>
+      </section>
+
+      {/* THE GOAL — just above dermatologist */}
+      <section id="the-goal" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn>
+            <h2 className="text-3xl md:text-5xl font-serif text-center mb-6">
+              {config.theGoal.headline}
+            </h2>
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16 text-lg leading-relaxed">
+              {config.theGoal.body}
+            </p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { emoji: "🧴", title: "Fewer products", desc: "A healthy skin barrier needs 3 products, not 12. SkinScreen helps you find the right ones." },
+              { emoji: "💸", title: "Less spending", desc: "Stop buying fixes for problems your products are causing. Know what works before you buy." },
+              { emoji: "🌿", title: "Cleaner routine", desc: "Know exactly what you're putting on your skin and why — ingredient by ingredient." },
+            ].map((card, idx) => (
+              <FadeIn key={card.title} delay={idx * 0.15}>
+                <div className="flex flex-col items-start gap-4 p-8 rounded-3xl bg-white border border-border/50 shadow-sm h-full">
+                  <span className="text-4xl">{card.emoji}</span>
+                  <div>
+                    <h3 className="text-xl font-serif font-semibold text-foreground mb-2">{card.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{card.desc}</p>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
           </div>
         </div>
       </section>
