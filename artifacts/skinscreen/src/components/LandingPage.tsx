@@ -172,8 +172,12 @@ export function LandingPage({ config }: LandingPageProps) {
       {/* TOP NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-border/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <a href="#hero" className="font-serif text-base font-semibold text-foreground tracking-tight">
-            SkinScreen
+          <a href="#hero" className="flex items-center">
+            <img
+              src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
+              alt="ChimIQ"
+              className="h-8 w-auto"
+            />
           </a>
           <div className="flex items-center gap-3">
             {authLoading ? (
@@ -879,8 +883,15 @@ export function LandingPage({ config }: LandingPageProps) {
       </section>
 
       {/* FOOTER */}
-      <footer className="py-8 text-center text-muted-foreground text-sm border-t border-border/50">
-        <p>SkinScreen &copy; {new Date().getFullYear()}. Smarter skincare starts here.</p>
+      <footer className="py-10 text-center text-muted-foreground text-sm border-t border-border/50">
+        <div className="flex flex-col items-center gap-3">
+          <img
+            src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
+            alt="ChimIQ"
+            className="h-7 w-auto opacity-70"
+          />
+          <p>SkinScreen &copy; {new Date().getFullYear()} by ChimIQ &middot; Smarter skincare starts here.</p>
+        </div>
       </footer>
 
       {/* FLOATING AI CHAT */}

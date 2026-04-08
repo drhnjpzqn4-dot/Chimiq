@@ -33,9 +33,9 @@ export default defineConfig({
       strategies: "generateSW",
       includeAssets: ["favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png"],
       manifest: {
-        name: "SkinScreen by Chimiq",
+        name: "SkinScreen by ChimIQ",
         short_name: "SkinScreen",
-        description: "Know your UV risk before you step outside.",
+        description: "AI scanner for beauty products.",
         theme_color: "#7BAF7A",
         background_color: "#F5F1EB",
         display: "standalone",
