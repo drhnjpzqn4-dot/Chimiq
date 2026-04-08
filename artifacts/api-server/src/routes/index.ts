@@ -11,6 +11,7 @@ import shelfRouter from "./shelf";
 import chatRouter from "./chat";
 import barcodeLookupRouter from "./barcode-lookup";
 import statsRouter from "./stats";
+import paymentsRouter from "./payments";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(shelfRouter);
 router.use(chatRouter);
 router.use(barcodeLookupRouter);
 router.use(statsRouter);
+router.use(paymentsRouter);
 
 export default router;

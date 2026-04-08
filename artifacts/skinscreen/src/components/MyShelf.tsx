@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   useGetShelf,
   getGetShelfQueryKey,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { cn } from "@/lib/utils";
+import { useUserPlan } from "@/hooks/useUserPlan";
 
 type RoutineSlot = "morning" | "evening" | "both";
 
@@ -429,6 +431,8 @@ export function MyShelf({ displayName }: MyShelfProps) {
   const queryClient = useQueryClient();
   const analyzeRoutineMutation = useAnalyzeRoutine();
   const addMutation = useAddToShelf();
+  const [, navigate] = useLocation();
+  const { plan } = useUserPlan();
 
   const shelfQuery = useGetShelf({ query: { queryKey: getGetShelfQueryKey() } });
   const removeMutation = useRemoveFromShelf();
@@ -606,13 +610,23 @@ export function MyShelf({ displayName }: MyShelfProps) {
         </div>
       ) : (
         <div className="px-4 pb-4">
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-colors duration-200"
-          >
-            <Plus className="w-4 h-4" />
-            Add product
-          </button>
+          {plan === "free" && allProducts.length >= 2 ? (
+            <button
+              onClick={() => navigate("/pricing")}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-primary/40 text-primary text-sm font-medium hover:border-primary hover:bg-primary/5 transition-colors duration-200"
+            >
+              <Lock className="w-4 h-4" />
+              Unlock My Shelf — from $4.99/mo
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-colors duration-200"
+            >
+              <Plus className="w-4 h-4" />
+              Add product
+            </button>
+          )}
         </div>
       )}
 

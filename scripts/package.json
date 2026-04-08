@@ -5,7 +5,14 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "seed:products": "tsx ./src/seed-products-cache.ts",
+    "seed:stripe": "tsx ./src/seed-stripe-products.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "stripe": "*",
+    "csv-parse": "^5.6.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",

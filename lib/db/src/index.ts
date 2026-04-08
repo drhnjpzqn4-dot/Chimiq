@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
+import { eq } from "drizzle-orm";
 
 const { Pool } = pg;
 
@@ -14,3 +15,12 @@ export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
+
+export async function getUserPlan(userId: string): Promise<"free" | "premium"> {
+  const [user] = await db
+    .select({ plan: schema.usersTable.plan })
+    .from(schema.usersTable)
+    .where(eq(schema.usersTable.id, userId));
+  if (!user) return "free";
+  return (user.plan === "premium" ? "premium" : "free");
+}

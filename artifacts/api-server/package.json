@@ -21,6 +21,8 @@
     "openid-client": "^6.8.2",
     "pino": "^9",
     "pino-http": "^10",
+    "stripe": "*",
+    "stripe-replit-sync": "*",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -20,3 +20,4 @@
 export * from "./waitlist";
 export * from "./auth";
 export * from "./shelf";
+export * from "./cache";

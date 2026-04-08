@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
-import { db, shelfProductsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, shelfProductsTable, getUserPlan } from "@workspace/db";
+import { eq, and, count } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
 
 const router: IRouter = Router();
@@ -30,6 +30,19 @@ router.post("/shelf", async (req: Request, res: Response) => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+
+  const plan = await getUserPlan(req.user.id);
+  if (plan === "free") {
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(shelfProductsTable)
+      .where(eq(shelfProductsTable.userId, req.user.id));
+    if (total >= 2) {
+      res.status(402).json({ error: "upgrade_required" });
+      return;
+    }
+  }
+
   const parsed = AddToShelfBodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });

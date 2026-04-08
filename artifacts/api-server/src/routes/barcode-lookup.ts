@@ -1,4 +1,6 @@
 import { Router, type IRouter } from "express";
+import { db, cachedProductsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -7,6 +9,23 @@ router.get("/barcode/:code", async (req, res) => {
 
   if (!code || !/^[0-9]{6,14}$/.test(code)) {
     res.status(400).json({ found: false, error: "Invalid barcode" });
+    return;
+  }
+
+  const [cached] = await db
+    .select()
+    .from(cachedProductsTable)
+    .where(eq(cachedProductsTable.barcode, code));
+
+  if (cached) {
+    res.json({
+      found: true,
+      productName: cached.productName,
+      brand: cached.brand,
+      ingredients: cached.ingredients,
+      imageUrl: cached.imageUrl ?? null,
+      fromCache: true,
+    });
     return;
   }
 
@@ -45,12 +64,21 @@ router.get("/barcode/:code", async (req, res) => {
       return;
     }
 
+    const productName = (p["product_name"] as string | undefined) ?? "Unknown product";
+    const brand = (p["brands"] as string | undefined) ?? "";
+    const imageUrl = (p["image_front_small_url"] as string | undefined) ?? null;
+
+    db.insert(cachedProductsTable)
+      .values({ barcode: code, productName, brand, ingredients, imageUrl })
+      .onConflictDoNothing()
+      .catch((err) => req.log.warn({ err }, "Cache write failed"));
+
     res.json({
       found: true,
-      productName: (p["product_name"] as string | undefined) ?? "Unknown product",
-      brand: (p["brands"] as string | undefined) ?? "",
+      productName,
+      brand,
       ingredients,
-      imageUrl: (p["image_front_small_url"] as string | undefined) ?? null,
+      imageUrl,
     });
   } catch (err) {
     req.log.warn({ err }, "Barcode lookup failed");

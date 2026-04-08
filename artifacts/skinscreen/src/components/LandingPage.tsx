@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FadeIn } from "@/components/FadeIn";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { DangerCard } from "@/components/DangerCard";
@@ -10,8 +10,11 @@ import { SocialProof } from "@/components/SocialProof";
 import { MyShelf, MyShelfSection } from "@/components/MyShelf";
 import { ChatPanel } from "@/components/ChatPanel";
 import { FindDermatologist } from "@/components/FindDermatologist";
+import { PricingSection } from "@/components/PricingSection";
 import type { LandingConfig } from "@/lib/landing-config";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ScanLine, Layers, ShieldCheck,
   AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
@@ -126,6 +129,9 @@ export function LandingPage({ config }: LandingPageProps) {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
   const [scannerSeed, setScannerSeed] = useState<ScannerSeed | null>(null);
   const [stats, setStats] = useState<SiteStats | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const upgradedToastShown = useRef(false);
 
   useEffect(() => {
     fetch("/api/stats", { credentials: "include" })
@@ -133,6 +139,22 @@ export function LandingPage({ config }: LandingPageProps) {
       .then((d) => setStats(d as SiteStats))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (upgradedToastShown.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upgraded") === "true") {
+      upgradedToastShown.current = true;
+      toast({
+        title: "Welcome to Premium!",
+        description: "Your plan has been upgraded. Enjoy unlimited shelf products, AI Chat, and more.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["user-plan"] });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("upgraded");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [toast, queryClient]);
 
   const displayName = user
     ? (user.firstName ?? user.email?.split("@")[0] ?? "there")
@@ -835,7 +857,12 @@ export function LandingPage({ config }: LandingPageProps) {
       {/* 11. FIND A DERMATOLOGIST */}
       <FindDermatologist />
 
-      {/* 12. WAITLIST CTA */}
+      {/* 12. PRICING */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white border-t border-border/50">
+        <PricingSection />
+      </section>
+
+      {/* 13. WAITLIST CTA */}
       <section id="waitlist" className="py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center border-t border-border/50">
         <FadeIn>
           <h2 className="text-4xl md:text-6xl font-serif text-foreground mb-6 tracking-tight">
