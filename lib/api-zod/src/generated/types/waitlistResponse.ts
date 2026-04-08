@@ -10,4 +10,8 @@ export interface WaitlistResponse {
   success: boolean;
   message: string;
   alreadyRegistered: boolean;
+  /** Unique referral code for this user to share */
+  referralCode: string;
+  /** Number of people this user has referred so far */
+  referralCount: number;
 }

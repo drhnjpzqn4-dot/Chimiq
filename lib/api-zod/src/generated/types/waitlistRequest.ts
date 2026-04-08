@@ -9,4 +9,6 @@
 export interface WaitlistRequest {
   /** Email address to add to the waitlist */
   email: string;
+  /** Referral code of the person who invited this user */
+  referredBy?: string;
 }

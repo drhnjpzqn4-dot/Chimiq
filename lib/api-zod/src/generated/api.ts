@@ -21,12 +21,22 @@ export const HealthCheckResponse = zod.object({
  */
 export const JoinWaitlistBody = zod.object({
   email: zod.string().email().describe("Email address to add to the waitlist"),
+  referredBy: zod
+    .string()
+    .optional()
+    .describe("Referral code of the person who invited this user"),
 });
 
 export const JoinWaitlistResponse = zod.object({
   success: zod.boolean(),
   message: zod.string(),
   alreadyRegistered: zod.boolean(),
+  referralCode: zod
+    .string()
+    .describe("Unique referral code for this user to share"),
+  referralCount: zod
+    .number()
+    .describe("Number of people this user has referred so far"),
 });
 
 /**

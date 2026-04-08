@@ -1,10 +1,15 @@
 import { Router, type IRouter } from "express";
 import { JoinWaitlistBody, JoinWaitlistResponse } from "@workspace/api-zod";
 import { db, waitlistEntriesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { syncToAcumbamail } from "../lib/acumbamail";
+import crypto from "crypto";
 
 const router: IRouter = Router();
+
+function generateReferralCode(): string {
+  return crypto.randomBytes(4).toString("hex").toUpperCase();
+}
 
 router.post("/waitlist", async (req, res) => {
   const parseResult = JoinWaitlistBody.safeParse(req.body);
@@ -14,7 +19,7 @@ router.post("/waitlist", async (req, res) => {
     return;
   }
 
-  const { email } = parseResult.data;
+  const { email, referredBy } = parseResult.data;
   const normalizedEmail = email.trim().toLowerCase();
 
   try {
@@ -25,18 +30,47 @@ router.post("/waitlist", async (req, res) => {
       .limit(1);
 
     if (existing.length > 0) {
+      const entry = existing[0];
       const response = JoinWaitlistResponse.parse({
         success: true,
         message: "You're already on the list — we'll be in touch soon!",
         alreadyRegistered: true,
+        referralCode: entry.referralCode ?? "",
+        referralCount: entry.referralCount ?? 0,
       });
       res.json(response);
       return;
     }
 
-    await db.insert(waitlistEntriesTable).values({ email: normalizedEmail });
+    let referralCode: string;
+    let attempts = 0;
+    do {
+      referralCode = generateReferralCode();
+      attempts++;
+      if (attempts > 10) break;
+    } while (
+      (
+        await db
+          .select({ id: waitlistEntriesTable.id })
+          .from(waitlistEntriesTable)
+          .where(eq(waitlistEntriesTable.referralCode, referralCode))
+          .limit(1)
+      ).length > 0
+    );
 
-    // Sync to Acumbamail — fire-and-forget, never blocks the response
+    await db.insert(waitlistEntriesTable).values({
+      email: normalizedEmail,
+      referralCode,
+      referredBy: referredBy ?? null,
+    });
+
+    if (referredBy) {
+      await db
+        .update(waitlistEntriesTable)
+        .set({ referralCount: sql`${waitlistEntriesTable.referralCount} + 1` })
+        .where(eq(waitlistEntriesTable.referralCode, referredBy));
+    }
+
     syncToAcumbamail(normalizedEmail).catch((err) => {
       req.log.warn({ err }, "Acumbamail sync failed (non-blocking)");
     });
@@ -45,6 +79,8 @@ router.post("/waitlist", async (req, res) => {
       success: true,
       message: "You're on the list! We'll let you know when SkinScreen launches.",
       alreadyRegistered: false,
+      referralCode,
+      referralCount: 0,
     });
     res.json(response);
   } catch (err) {

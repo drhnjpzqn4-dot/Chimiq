@@ -493,6 +493,9 @@ components:
           type: string
           format: email
           description: Email address to add to the waitlist
+        referredBy:
+          type: string
+          description: Referral code of the person who invited this user
       required:
         - email
     WaitlistResponse:
@@ -504,10 +507,18 @@ components:
           type: string
         alreadyRegistered:
           type: boolean
+        referralCode:
+          type: string
+          description: Unique referral code for this user to share
+        referralCount:
+          type: number
+          description: Number of people this user has referred so far
       required:
         - success
         - message
         - alreadyRegistered
+        - referralCode
+        - referralCount
     ErrorResponse:
       type: object
       properties:
