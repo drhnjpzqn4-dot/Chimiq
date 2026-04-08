@@ -890,7 +890,7 @@ export function LandingPage({ config }: LandingPageProps) {
             alt="ChimIQ"
             className="h-7 w-auto opacity-70"
           />
-          <p>SkinScreen &copy; {new Date().getFullYear()} by ChimIQ &middot; Smarter skincare starts here.</p>
+          <p>SkinScreen &copy; {new Date().getFullYear()}. Smarter skincare starts here.</p>
         </div>
       </footer>
 

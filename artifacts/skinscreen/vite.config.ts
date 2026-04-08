@@ -35,7 +35,7 @@ export default defineConfig({
       manifest: {
         name: "SkinScreen by ChimIQ",
         short_name: "SkinScreen",
-        description: "AI scanner for beauty products.",
+        description: "Know your UV risk before you step outside.",
         theme_color: "#7BAF7A",
         background_color: "#F5F1EB",
         display: "standalone",
