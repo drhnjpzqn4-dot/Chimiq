@@ -185,7 +185,7 @@ export function LandingPage({ config }: LandingPageProps) {
             ) : isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <a
-                  href="#my-shelf"
+                  href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/app`}
                   className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
                 >
                   <User className="w-4 h-4" />
@@ -248,23 +248,6 @@ export function LandingPage({ config }: LandingPageProps) {
               Most people have no idea.
             </p>
           </FadeIn>
-
-          {/* Stats — immediately below headline to sell stakes */}
-          {stats && (
-            <FadeIn delay={0.35}>
-              <div className="flex items-center justify-center gap-8 sm:gap-14 mb-10">
-                {[
-                  { label: "analyses run", value: stats.analyses },
-                  { label: "on the waitlist", value: stats.waitlist },
-                ].map(({ label, value }) => (
-                  <div key={label} className="text-center">
-                    <div className="text-2xl sm:text-3xl font-serif font-bold text-white tabular-nums">{value}+</div>
-                    <div className="text-xs text-white/35 mt-1 uppercase tracking-wider">{label}</div>
-                  </div>
-                ))}
-              </div>
-            </FadeIn>
-          )}
 
           {/* Animated ingredient conflict tags */}
           <FadeIn delay={0.45}>
@@ -422,13 +405,17 @@ export function LandingPage({ config }: LandingPageProps) {
                       activeIngredient: "Benzoyl Peroxide 10%",
                       role: "AM cleanser",
                       emoji: "🧴",
+                      bg: "linear-gradient(160deg, #004B97 0%, #006ED6 100%)",
+                      accentColor: "#93C5FD",
                     },
                     {
                       brand: "RoC",
                       name: "Retinol Correxion Line Smoothing Serum",
                       activeIngredient: "Retinol (stabilised)",
                       role: "PM serum",
-                      emoji: "💊",
+                      emoji: "💧",
+                      bg: "linear-gradient(160deg, #1a1a2e 0%, #2d2d5e 100%)",
+                      accentColor: "#C9A84C",
                     },
                     {
                       brand: "Paula's Choice",
@@ -436,19 +423,29 @@ export function LandingPage({ config }: LandingPageProps) {
                       activeIngredient: "Glycolic Acid 8%",
                       role: "PM exfoliant",
                       emoji: "⚗️",
+                      bg: "linear-gradient(160deg, #1a1a1a 0%, #2d1a2d 100%)",
+                      accentColor: "#F472B6",
                     },
                   ].map((product) => (
-                    <div key={product.name} className="flex flex-col gap-2 p-4 rounded-2xl bg-white border border-red-100 shadow-sm">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xl">{product.emoji}</span>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-red-400/80 bg-red-100/80 px-2 py-0.5 rounded-full">
+                    <div key={product.name} className="flex flex-col rounded-2xl border border-red-100 shadow-sm overflow-hidden bg-white">
+                      <div
+                        className="h-36 flex flex-col items-center justify-center gap-1 relative"
+                        style={{ background: product.bg }}
+                      >
+                        <span className="text-[4.5rem] leading-none drop-shadow-lg">{product.emoji}</span>
+                        <span
+                          className="text-[9px] font-bold uppercase tracking-[0.2em] mt-1"
+                          style={{ color: product.accentColor }}
+                        >
+                          {product.brand}
+                        </span>
+                        <span className="absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-wider text-red-200/90 bg-red-500/40 px-2 py-0.5 rounded-full border border-red-400/30">
                           {product.role}
                         </span>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{product.brand}</p>
-                        <p className="text-sm font-serif font-semibold text-foreground leading-snug">{product.name}</p>
-                        <p className="text-xs font-medium text-red-500 mt-1">{product.activeIngredient}</p>
+                      <div className="p-3.5">
+                        <p className="text-sm font-serif font-semibold text-foreground leading-snug mb-1">{product.name}</p>
+                        <p className="text-xs font-semibold text-red-500">{product.activeIngredient}</p>
                       </div>
                     </div>
                   ))}
@@ -672,25 +669,7 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* CTA BANNER — after how it works */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-primary/8">
-        <div className="max-w-3xl mx-auto text-center">
-          <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-serif mb-4">SkinScreen is launching soon.</h2>
-            <p className="text-muted-foreground text-lg mb-8">Early access members get unlimited scans, barcode lookup, and a personalised PDF safety report for their dermatologist.</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a href="#try-it-now" className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 shadow-md w-full sm:w-auto justify-center">
-                Try the live preview
-              </a>
-              <a href="#waitlist" className="inline-flex items-center gap-2 border border-primary text-primary hover:bg-primary/8 px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 w-full sm:w-auto justify-center">
-                Join the waitlist — it's free
-              </a>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* 7. WHAT'S HIDING IN YOUR PRODUCTS — moved lower, calmer discovery zone */}
+      {/* 7. WHAT'S HIDING IN YOUR PRODUCTS */}
       <section id="ingredient-risks" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
         <div className="max-w-7xl mx-auto">
           <FadeIn>
@@ -715,6 +694,24 @@ export function LandingPage({ config }: LandingPageProps) {
               </FadeIn>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* CTA BANNER — after "What's really hiding" */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-primary/8">
+        <div className="max-w-3xl mx-auto text-center">
+          <FadeIn>
+            <h2 className="text-3xl md:text-5xl font-serif mb-4">SkinScreen is launching soon.</h2>
+            <p className="text-muted-foreground text-lg mb-8">Early access members get unlimited scans, barcode lookup, and a personalised PDF safety report for their dermatologist.</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a href="#try-it-now" className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 shadow-md w-full sm:w-auto justify-center">
+                Try the live preview
+              </a>
+              <a href="#waitlist" className="inline-flex items-center gap-2 border border-primary text-primary hover:bg-primary/8 px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 w-full sm:w-auto justify-center">
+                Join the waitlist — it's free
+              </a>
+            </div>
+          </FadeIn>
         </div>
       </section>
 
@@ -811,7 +808,7 @@ export function LandingPage({ config }: LandingPageProps) {
                         Sign in to start building your personal skincare routine.
                       </p>
                       <button
-                        onClick={login}
+                        onClick={() => login(`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/app`)}
                         className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-5 py-2.5 rounded-full font-medium text-sm transition-colors"
                       >
                         Sign in to get started
