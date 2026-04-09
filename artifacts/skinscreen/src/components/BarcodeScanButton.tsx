@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Barcode, X, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Barcode, X, Loader2, AlertCircle, CheckCircle2, PackagePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BarcodeScanButtonProps {
@@ -7,7 +7,15 @@ interface BarcodeScanButtonProps {
   disabled?: boolean;
 }
 
-type ScanState = "idle" | "requesting" | "scanning" | "loading" | "success" | "error" | "unsupported";
+type ScanState =
+  | "idle"
+  | "requesting"
+  | "scanning"
+  | "loading"
+  | "success"
+  | "error"
+  | "not_found"
+  | "unsupported";
 
 declare const BarcodeDetector: {
   new (options?: { formats?: string[] }): {
@@ -24,11 +32,27 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
   const [scannedProduct, setScannedProduct] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
+  const [submitName, setSubmitName] = useState("");
+  const [submitBrand, setSubmitBrand] = useState("");
+  const [submitIngredients, setSubmitIngredients] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const detectorRef = useRef<InstanceType<typeof BarcodeDetector> | null>(null);
   const scannedRef = useRef(false);
+
+  const resetSubmitForm = useCallback(() => {
+    setScannedBarcode(null);
+    setSubmitName("");
+    setSubmitBrand("");
+    setSubmitIngredients("");
+    setIsSubmitting(false);
+    setSubmitError(null);
+  }, []);
 
   const stopCamera = useCallback(() => {
     if (animFrameRef.current) {
@@ -50,7 +74,44 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
     setModalOpen(false);
     setState("idle");
     setErrorMsg(null);
-  }, [stopCamera]);
+    resetSubmitForm();
+  }, [stopCamera, resetSubmitForm]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!submitIngredients.trim() || !scannedBarcode) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/barcode/submit", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          barcode: scannedBarcode,
+          productName: submitName.trim() || undefined,
+          brand: submitBrand.trim() || undefined,
+          ingredients: submitIngredients.trim(),
+        }),
+      });
+      const data = (await res.json()) as { recorded?: boolean };
+      if (!res.ok || !data.recorded) throw new Error("Submit failed");
+
+      const name = [submitBrand.trim(), submitName.trim()].filter(Boolean).join(" ") || "Scanned product";
+      setScannedProduct(name);
+      setState("success");
+      const ings = submitIngredients.trim();
+      setTimeout(() => {
+        onResult(ings, name);
+        setModalOpen(false);
+        setState("idle");
+        setScannedProduct(null);
+        resetSubmitForm();
+      }, 1200);
+    } catch {
+      setSubmitError("Couldn't save right now. Please try again.");
+      setIsSubmitting(false);
+    }
+  }, [scannedBarcode, submitName, submitBrand, submitIngredients, onResult, resetSubmitForm]);
 
   const handleBarcodeFound = useCallback(
     async (code: string) => {
@@ -83,11 +144,13 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
             setScannedProduct(null);
           }, 1200);
         } else if (data.reason === "no_ingredients") {
-          setErrorMsg("Product found but no ingredient list available in the database.");
-          setState("error");
+          setScannedBarcode(code);
+          setSubmitName(data.productName ?? "");
+          setSubmitBrand(data.brand ?? "");
+          setState("not_found");
         } else {
-          setErrorMsg("Product not found in the Open Beauty Facts database. Try pasting the ingredients manually.");
-          setState("error");
+          setScannedBarcode(code);
+          setState("not_found");
         }
       } catch {
         setErrorMsg("Lookup failed. Check your connection and try again.");
@@ -106,6 +169,7 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
     setState("requesting");
     setModalOpen(true);
     setErrorMsg(null);
+    resetSubmitForm();
     scannedRef.current = false;
 
     try {
@@ -147,7 +211,7 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
           : "Could not access camera.",
       );
     }
-  }, [handleBarcodeFound]);
+  }, [handleBarcodeFound, resetSubmitForm]);
 
   useEffect(() => {
     return () => {
@@ -181,7 +245,9 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
             <div className="bg-primary px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Barcode className="w-4 h-4 text-white" />
-                <p className="text-white font-semibold text-sm">Scan Product Barcode</p>
+                <p className="text-white font-semibold text-sm">
+                  {state === "not_found" ? "Add Product" : "Scan Product Barcode"}
+                </p>
               </div>
               <button
                 onClick={close}
@@ -251,14 +317,84 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
                   </div>
                   <p className="text-sm text-center text-muted-foreground">{errorMsg}</p>
                   <button
-                    onClick={() => {
-                      setState("idle");
-                      setModalOpen(false);
-                    }}
+                    onClick={close}
                     className="text-sm font-medium text-primary hover:underline"
                   >
-                    Close
+                    Enter manually
                   </button>
+                </div>
+              )}
+
+              {state === "not_found" && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <PackagePlus className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm text-foreground leading-snug">
+                        {submitName ? "Ingredient list missing" : "New product found"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        {submitName
+                          ? `We found "${submitName}" but the ingredient list isn't recorded. Add it to help others too.`
+                          : "This barcode isn't in our database yet. Add the ingredient list and it'll be saved for everyone."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <input
+                      type="text"
+                      placeholder="Product name (optional)"
+                      value={submitName}
+                      onChange={(e) => setSubmitName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Brand (optional)"
+                      value={submitBrand}
+                      onChange={(e) => setSubmitBrand(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
+                    />
+                    <textarea
+                      placeholder="Paste the full ingredient list from the back of the product…"
+                      value={submitIngredients}
+                      onChange={(e) => setSubmitIngredients(e.target.value)}
+                      rows={4}
+                      className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none"
+                    />
+                  </div>
+
+                  {submitError && (
+                    <p className="text-xs text-red-500 text-center">{submitError}</p>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={!submitIngredients.trim() || isSubmitting}
+                      className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isSubmitting ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Saving…
+                        </span>
+                      ) : (
+                        "Save & analyse"
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={close}
+                      className="text-sm text-muted-foreground hover:text-foreground text-center py-1 transition-colors"
+                    >
+                      Skip — I'll paste manually
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
