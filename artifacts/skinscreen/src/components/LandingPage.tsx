@@ -176,7 +176,7 @@ export function LandingPage({ config }: LandingPageProps) {
             <img
               src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
               alt="ChimIQ"
-              className="h-8 w-auto"
+              className="h-11 w-auto"
             />
           </a>
           <div className="flex items-center gap-3">
@@ -400,50 +400,44 @@ export function LandingPage({ config }: LandingPageProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                   {[
                     {
-                      brand: "Neutrogena",
-                      name: "Rapid Clear Stubborn Acne Wash",
-                      activeIngredient: "Benzoyl Peroxide 10%",
-                      role: "AM cleanser",
-                      emoji: "🧴",
-                      bg: "linear-gradient(160deg, #004B97 0%, #006ED6 100%)",
-                      accentColor: "#93C5FD",
-                    },
-                    {
-                      brand: "RoC",
-                      name: "Retinol Correxion Line Smoothing Serum",
-                      activeIngredient: "Retinol (stabilised)",
+                      brand: "The Ordinary",
+                      name: "Retinol 1% in Squalane",
+                      activeIngredient: "Retinol 1%",
                       role: "PM serum",
-                      emoji: "💧",
-                      bg: "linear-gradient(160deg, #1a1a2e 0%, #2d2d5e 100%)",
-                      accentColor: "#C9A84C",
+                      image: `${import.meta.env.BASE_URL}images/the-ordinary-retinol.webp`,
+                      imageAlt: "The Ordinary Retinol 1% in Squalane bottle",
                     },
                     {
-                      brand: "Paula's Choice",
-                      name: "Skin Perfecting 8% AHA Gel Exfoliant",
-                      activeIngredient: "Glycolic Acid 8%",
+                      brand: "The Ordinary",
+                      name: "Salicylic Acid 2% Anhydrous Solution",
+                      activeIngredient: "Salicylic Acid 2%",
+                      role: "AM/PM treatment",
+                      image: `${import.meta.env.BASE_URL}images/the-ordinary-salicylic-acid.webp`,
+                      imageAlt: "The Ordinary Salicylic Acid 2% Anhydrous Solution bottle",
+                    },
+                    {
+                      brand: "The Ordinary",
+                      name: "AHA 30% + BHA 2% Peeling Solution",
+                      activeIngredient: "AHA 30% + BHA 2%",
                       role: "PM exfoliant",
-                      emoji: "⚗️",
-                      bg: "linear-gradient(160deg, #1a1a1a 0%, #2d1a2d 100%)",
-                      accentColor: "#F472B6",
+                      image: `${import.meta.env.BASE_URL}images/the-ordinary-aha-bha.webp`,
+                      imageAlt: "The Ordinary AHA 30% + BHA 2% Peeling Solution bottle",
                     },
                   ].map((product) => (
                     <div key={product.name} className="flex flex-col rounded-2xl border border-red-100 shadow-sm overflow-hidden bg-white">
-                      <div
-                        className="h-36 flex flex-col items-center justify-center gap-1 relative"
-                        style={{ background: product.bg }}
-                      >
-                        <span className="text-[4.5rem] leading-none drop-shadow-lg">{product.emoji}</span>
-                        <span
-                          className="text-[9px] font-bold uppercase tracking-[0.2em] mt-1"
-                          style={{ color: product.accentColor }}
-                        >
-                          {product.brand}
-                        </span>
+                      <div className="h-40 flex items-center justify-center relative bg-gray-50">
+                        <img
+                          src={product.image}
+                          alt={product.imageAlt}
+                          className="h-full w-full object-contain p-3"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
                         <span className="absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-wider text-red-200/90 bg-red-500/40 px-2 py-0.5 rounded-full border border-red-400/30">
                           {product.role}
                         </span>
                       </div>
                       <div className="p-3.5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{product.brand}</p>
                         <p className="text-sm font-serif font-semibold text-foreground leading-snug mb-1">{product.name}</p>
                         <p className="text-xs font-semibold text-red-500">{product.activeIngredient}</p>
                       </div>
@@ -885,7 +879,7 @@ export function LandingPage({ config }: LandingPageProps) {
           <img
             src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
             alt="ChimIQ"
-            className="h-7 w-auto opacity-70"
+            className="h-10 w-auto opacity-70"
           />
           <p>SkinScreen &copy; {new Date().getFullYear()}. Smarter skincare starts here.</p>
         </div>
