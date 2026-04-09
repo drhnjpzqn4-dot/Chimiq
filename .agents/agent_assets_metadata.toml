@@ -1,8 +1,19 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "rN-r_FN9kYW-P3MyUDY93"
 uri = "file://artifacts/pitch-deck/public/hero.png"
 type = "image"
 title = "skincare hero cover"
+
+[[outputs]]
+id = "YsVQRHreKNu2ydQaMV4Gc"
+uri = "file://.local/outputs/SkinScreen-Landing-Page.pptx"
+type = "slides"
+title = "SkinScreen Landing Page.pptx"
+
+[[outputs]]
+id = "p6wkiIcWd8RQwAtMeTVxr"
+uri = "file://.local/outputs/SkinScreen-Landing-Page.pdf"
+type = "pdf"
+title = "SkinScreen Landing Page.pdf"

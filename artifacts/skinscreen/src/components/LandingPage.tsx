@@ -222,7 +222,7 @@ export function LandingPage({ config }: LandingPageProps) {
           className="absolute inset-0 w-full h-full object-cover scale-105"
         />
         {/* Dark dramatic overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/70 to-[#0d200d]/80" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/55 to-transparent" />
         {/* Subtle sage vignette at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0d200d]/60 to-transparent" />
 
