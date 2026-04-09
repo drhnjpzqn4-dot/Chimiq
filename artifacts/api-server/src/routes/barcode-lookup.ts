@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
-import { db, cachedProductsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { db, cachedProductsTable, userSubmittedProductsTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -38,7 +39,8 @@ router.get("/barcode/:code", async (req, res) => {
 
     const contentType = response.headers.get("content-type") ?? "";
     if (!response.ok || !contentType.includes("json")) {
-      res.json({ found: false });
+      await recordUnknownBarcode(code, req.log);
+      res.json({ found: false, recorded: true });
       return;
     }
 
@@ -48,7 +50,8 @@ router.get("/barcode/:code", async (req, res) => {
     };
 
     if (data.status !== 1 || !data.product) {
-      res.json({ found: false });
+      await recordUnknownBarcode(code, req.log);
+      res.json({ found: false, recorded: true });
       return;
     }
 
@@ -60,7 +63,10 @@ router.get("/barcode/:code", async (req, res) => {
     ).trim();
 
     if (!ingredients || ingredients.length < 5) {
-      res.json({ found: false, reason: "no_ingredients" });
+      const productName = (p["product_name"] as string | undefined) ?? undefined;
+      const brand = (p["brands"] as string | undefined) ?? undefined;
+      await recordUnknownBarcode(code, req.log, productName, brand, undefined);
+      res.json({ found: false, reason: "no_ingredients", recorded: true });
       return;
     }
 
@@ -82,8 +88,84 @@ router.get("/barcode/:code", async (req, res) => {
     });
   } catch (err) {
     req.log.warn({ err }, "Barcode lookup failed");
-    res.json({ found: false });
+    await recordUnknownBarcode(code, req.log).catch(() => {});
+    res.json({ found: false, recorded: true });
   }
 });
+
+const SubmitProductBody = z.object({
+  barcode: z.string().regex(/^[0-9]{6,14}$/, "Invalid barcode"),
+  productName: z.string().trim().max(500).optional(),
+  brand: z.string().trim().max(200).optional(),
+  ingredients: z.string().trim().max(10000).optional(),
+});
+
+router.post("/barcode/submit", async (req, res) => {
+  const parseResult = SubmitProductBody.safeParse(req.body);
+
+  if (!parseResult.success) {
+    res.status(400).json({ error: "Invalid submission", issues: parseResult.error.issues });
+    return;
+  }
+
+  const { barcode, productName, brand, ingredients } = parseResult.data;
+
+  try {
+    await db
+      .insert(userSubmittedProductsTable)
+      .values({
+        barcode,
+        productName: productName ?? null,
+        brand: brand ?? null,
+        ingredients: ingredients ?? null,
+        obfContributed: "pending",
+      })
+      .onConflictDoUpdate({
+        target: userSubmittedProductsTable.barcode,
+        set: {
+          productName: sql`COALESCE(EXCLUDED.product_name, user_submitted_products.product_name)`,
+          brand: sql`COALESCE(EXCLUDED.brand, user_submitted_products.brand)`,
+          ingredients: sql`COALESCE(EXCLUDED.ingredients, user_submitted_products.ingredients)`,
+          submittedAt: sql`NOW()`,
+        },
+      });
+
+    res.json({ recorded: true, message: "Product submitted. Thank you for contributing!" });
+  } catch (err) {
+    req.log.error({ err }, "Failed to record user-submitted product");
+    res.status(500).json({ error: "Could not record submission. Please try again." });
+  }
+});
+
+async function recordUnknownBarcode(
+  barcode: string,
+  log: { warn: (obj: unknown, msg: string) => void },
+  productName?: string,
+  brand?: string,
+  ingredients?: string,
+): Promise<void> {
+  try {
+    await db
+      .insert(userSubmittedProductsTable)
+      .values({
+        barcode,
+        productName: productName ?? null,
+        brand: brand ?? null,
+        ingredients: ingredients ?? null,
+        obfContributed: "pending",
+      })
+      .onConflictDoUpdate({
+        target: userSubmittedProductsTable.barcode,
+        set: {
+          productName: sql`COALESCE(EXCLUDED.product_name, user_submitted_products.product_name)`,
+          brand: sql`COALESCE(EXCLUDED.brand, user_submitted_products.brand)`,
+          ingredients: sql`COALESCE(EXCLUDED.ingredients, user_submitted_products.ingredients)`,
+          submittedAt: sql`NOW()`,
+        },
+      });
+  } catch (err) {
+    log.warn({ err }, "Failed to record unknown barcode in user_submitted_products");
+  }
+}
 
 export default router;

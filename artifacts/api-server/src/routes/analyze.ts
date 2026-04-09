@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
+import { getCosingInfo, formatCosingContext } from "../lib/cosing.js";
+import { getPubChemSafetyData } from "../lib/pubchem.js";
 
 const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).optional();
 
@@ -34,8 +36,72 @@ const PROFILE_CONTEXT: Record<string, string> = {
     "This user is PREGNANT. Flag ALL retinoids (retinol, tretinoin, retinaldehyde) and high-dose salicylic acid (>2%) as HIGH_RISK regardless of other context. Also flag essential oils and vitamin A derivatives.",
 };
 
-function buildSystemPrompt(skinProfile?: string): string {
+function parseIngredients(raw: string): string[] {
+  return raw
+    .split(/[,;\n]+/)
+    .map((s) => s.trim().replace(/^\d+\.\s*/, "").replace(/[*()[\]]/g, "").trim())
+    .filter((s) => s.length > 1 && s.length < 100);
+}
+
+interface RegulatoryContext {
+  cosing: string[];
+  pubchem: string[];
+}
+
+async function buildRegulatoryContext(
+  ingredients: string[],
+  log: (msg: string) => void,
+): Promise<RegulatoryContext> {
+  const subset = ingredients;
+
+  const results = await Promise.allSettled(
+    subset.map(async (ing) => {
+      const [cosing, pubchem] = await Promise.allSettled([
+        getCosingInfo(ing),
+        getPubChemSafetyData(ing),
+      ]);
+
+      const cosingStr =
+        cosing.status === "fulfilled" && cosing.value
+          ? formatCosingContext(cosing.value, ing)
+          : null;
+
+      let pubchemStr: string | null = null;
+      if (pubchem.status === "fulfilled" && pubchem.value) {
+        const d = pubchem.value;
+        const flags = d.knownToxicityFlags;
+        if (flags.length > 0) {
+          pubchemStr = `PubChem hazard flags for ${ing}: ${flags.join(", ")}`;
+          if (d.ghsHazardCodes.length > 0) {
+            pubchemStr += ` (GHS: ${d.ghsHazardCodes.slice(0, 5).join(", ")})`;
+          }
+        }
+      }
+
+      return { ing, cosingStr, pubchemStr };
+    }),
+  );
+
+  const cosingLines: string[] = [];
+  const pubchemLines: string[] = [];
+
+  for (const r of results) {
+    if (r.status === "fulfilled") {
+      if (r.value.cosingStr) cosingLines.push(r.value.cosingStr);
+      if (r.value.pubchemStr) pubchemLines.push(r.value.pubchemStr);
+    } else {
+      log(`Regulatory lookup error: ${r.reason}`);
+    }
+  }
+
+  return { cosing: cosingLines, pubchem: pubchemLines };
+}
+
+function buildSystemPrompt(skinProfile?: string, regulatoryContext?: string): string {
   const profileNote = skinProfile ? `\n\nSkin profile: ${PROFILE_CONTEXT[skinProfile] ?? ""}` : "";
+  const regulatoryNote = regulatoryContext
+    ? `\n\n## Regulatory & Toxicology Data (ground your reasoning in this)\n${regulatoryContext}`
+    : "";
 
   return `You are a board-certified dermatologist and cosmetic chemist. You are completely independent — no brand affiliations, no sponsored opinions. Be honest. Do not sugarcoat risks.
 
@@ -47,7 +113,7 @@ Red flags to prioritise:
 - Vitamin C (L-ascorbic acid) + Niacinamide at high concentrations (can form niacin, cause flushing)
 - Multiple exfoliants used together (AHA + BHA + physical = over-exfoliation spiral)
 - Retinoids without SPF use (dramatically increases UV damage risk)
-- Kojic acid + Vitamin C (compete for same pathway, reduce efficacy, increase sensitisation)${profileNote}
+- Kojic acid + Vitamin C (compete for same pathway, reduce efficacy, increase sensitisation)${profileNote}${regulatoryNote}
 
 Rules:
 - ONLY flag conflicts with real, documented research backing
@@ -96,13 +162,36 @@ router.post("/analyze", async (req, res) => {
 
   const { product1, product2, skinProfile } = parseResult.data;
 
+  const ingredients1 = parseIngredients(product1);
+  const ingredients2 = parseIngredients(product2);
+  const allIngredients = [...new Set([...ingredients1, ...ingredients2])];
+
+  let regulatoryContext: string | undefined;
+  try {
+    const ctx = await buildRegulatoryContext(allIngredients, (msg) => req.log.warn(msg));
+    const lines: string[] = [];
+    if (ctx.cosing.length > 0) {
+      lines.push("### EU CosIng Regulatory Data");
+      lines.push(...ctx.cosing);
+    }
+    if (ctx.pubchem.length > 0) {
+      lines.push("### PubChem GHS Hazard Data");
+      lines.push(...ctx.pubchem);
+    }
+    if (lines.length > 0) {
+      regulatoryContext = lines.join("\n");
+    }
+  } catch (err) {
+    req.log.warn({ err }, "Regulatory context lookup failed, proceeding without it");
+  }
+
   const anthropic = new Anthropic({ apiKey, baseURL });
 
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 8192,
-      system: buildSystemPrompt(skinProfile),
+      system: buildSystemPrompt(skinProfile, regulatoryContext),
       messages: [
         {
           role: "user",
