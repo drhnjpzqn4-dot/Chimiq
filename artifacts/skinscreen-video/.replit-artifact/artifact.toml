@@ -1,0 +1,31 @@
+kind = "video"
+previewPath = "/skinscreen-video/"
+title = "SkinScreen Video"
+version = "1.0.0"
+id = "artifacts/skinscreen-video"
+router = "path"
+
+[[integratedSkills]]
+name = "video-js"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/skinscreen-video/" ]
+localPort = 23657
+
+[services.development]
+run = "pnpm --filter @workspace/skinscreen-video run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/skinscreen-video", "run", "build" ]
+publicDir = "artifacts/skinscreen-video/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23657"
+BASE_PATH = "/skinscreen-video/"
