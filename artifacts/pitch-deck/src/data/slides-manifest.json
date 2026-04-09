@@ -48,8 +48,16 @@
     "speakerNotes": ""
   },
   {
-    "id": "550e8400-e29b-41d4-a716-446655440007",
+    "id": "550e8400-e29b-41d4-a716-446655440010",
     "position": 7,
+    "filepath": "src/pages/slides/Slide07GTM.tsx",
+    "title": "Go-To-Market",
+    "description": "Built-in marketing team (Elin + Sofie), community-first channels, referral queue flywheel",
+    "speakerNotes": ""
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440007",
+    "position": 8,
     "filepath": "src/pages/slides/Slide07Team.tsx",
     "title": "Team",
     "description": "Elin (Chemistry Lead), Sofie (UX & Design), Pia L'Obry (Strategic Advisor) + tech stack",
@@ -57,7 +65,7 @@
   },
   {
     "id": "550e8400-e29b-41d4-a716-446655440008",
-    "position": 8,
+    "position": 9,
     "filepath": "src/pages/slides/Slide08Ask.tsx",
     "title": "Traction & Ask",
     "description": "10 signups, MVP live, $50K ask, Chimiq family roadmap",
