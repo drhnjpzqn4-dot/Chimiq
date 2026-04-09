@@ -26,7 +26,7 @@ export default function Slide06Business() {
             </div>
 
             <div className="bg-surface rounded-2xl px-[2.5vw] py-[2.5vh] border-2 border-primary shadow-sm">
-              <p className="font-display text-[2.5vw] font-bold text-primary mb-[0.6vh]">$4–8 / mo</p>
+              <p className="font-display text-[2.5vw] font-bold text-primary mb-[0.6vh]">$4.99 / mo</p>
               <p className="font-body text-[1.6vw] font-semibold text-text mb-[0.6vh]">Combination analysis</p>
               <p className="font-body text-[1.4vw] text-muted/80 leading-snug">
                 Full routine analysis. Personalised recommendations. Safer alternative suggestions.
