@@ -9,7 +9,6 @@ import type { ScannerSeed } from "@/components/IngredientScanner";
 import { SocialProof } from "@/components/SocialProof";
 import { MyShelf, MyShelfSection } from "@/components/MyShelf";
 import { ChatPanel } from "@/components/ChatPanel";
-import { FindDermatologist } from "@/components/FindDermatologist";
 import { PricingSection } from "@/components/PricingSection";
 import type { LandingConfig } from "@/lib/landing-config";
 import { useAuth } from "@workspace/replit-auth-web";
@@ -20,7 +19,9 @@ import {
   AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
   Sun, Moon, Plus, CheckCircle2, ShoppingBag, Bell, User, LogOut,
   Skull, ExternalLink, Share2, ArrowDown, FileText, MessageCircle,
+  Camera,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SiteStats {
   analyses: number;
@@ -75,60 +76,112 @@ const dangerCombinations = [
   },
 ];
 
-const communityFears = [
-  {
-    icon: AlertTriangle,
-    headline: "\"Am I destroying my skin?\"",
-    body: "Retinol + AHAs together — the #1 fear in every skincare forum.",
-  },
-  {
-    icon: HelpCircle,
-    headline: "\"Is this purging or breaking out?\"",
-    body: "Can't tell if your acids are working or quietly causing damage.",
-  },
-  {
-    icon: ShieldOff,
-    headline: "\"I wrecked my moisture barrier.\"",
-    body: "Tight, raw, sensitive skin from over-exfoliation. A painful lesson to learn.",
-  },
-  {
-    icon: XCircle,
-    headline: "\"I'm using products that cancel out.\"",
-    body: "Benzoyl peroxide silently degrades retinol — two products, zero results.",
-  },
-  {
-    icon: FlaskConical,
-    headline: "\"Should I mix Vitamin C and Niacinamide?\"",
-    body: "Thousands ask this every month. The answer is nuanced — and matters.",
-  },
-  {
-    icon: Layers,
-    headline: "\"What order do I layer these in?\"",
-    body: "Thinness rule, wait times, actives first — the rules nobody explains clearly.",
-  },
-];
-
-const ingredientRisks = [
-  { emoji: "🧱", title: "Barrier disruption", desc: "Harsh sulfates, stripping cleansers, and misused AHAs/BHAs erode the lipid layer that keeps moisture in and irritants out." },
-  { emoji: "🔬", title: "Endocrine disruptors", desc: "Oxybenzone, octinoxate, and certain parabens can mimic hormones in the body — a particular concern for young skin and during pregnancy." },
-  { emoji: "☣️", title: "Formaldehyde releasers", desc: "DMDM Hydantoin, quaternium-15, and diazolidinyl urea slowly release formaldehyde — a known carcinogen — as a preservative." },
-  { emoji: "🌸", title: "Hidden fragrance", desc: "\"Parfum\" or \"Fragrance\" on a label can legally conceal up to 3,000 undisclosed chemicals, many of which are common allergens." },
-  { emoji: "🧫", title: "Harsh preservatives", desc: "Methylisothiazolinone (MI) and methylchloroisothiazolinone (MCI) are among the leading causes of allergic contact dermatitis worldwide." },
-  { emoji: "☀️", title: "Photosensitisers", desc: "AHAs, retinol, and benzoyl peroxide increase your skin's UV sensitivity. Using them without SPF dramatically raises hyperpigmentation and cancer risk." },
-  { emoji: "⚡", title: "Ingredient conflicts", desc: "Some actives deactivate each other on contact (retinol + benzoyl peroxide), while others cause over-exfoliation when layered (retinol + AHAs)." },
-  { emoji: "🔴", title: "Known allergens", desc: "Nickel salts, balsam of Peru, propolis, and certain dyes cause sensitisation that worsens with repeated exposure — even in small amounts." },
-  { emoji: "🔵", title: "Nanoparticles", desc: "Nano-sized zinc oxide and titanium dioxide in sunscreens may penetrate below the skin surface — evidence is still emerging on long-term effects." },
-  { emoji: "🧪", title: "Penetration enhancers", desc: "PEGs, propylene glycol, and similar solvents increase skin permeability — useful for actives, but also carry any harmful co-ingredients deeper." },
-];
-
 interface LandingPageProps {
   config: LandingConfig;
+}
+
+function StickySubNav({ visible }: { visible: boolean }) {
+  return (
+    <div
+      className={cn(
+        "fixed top-14 left-0 right-0 z-40 bg-white transition-all duration-300",
+        "border-b border-[#E8F0E8]",
+        visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none",
+      )}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-center gap-10">
+        <a
+          href="#how-it-works"
+          onClick={(e) => { e.preventDefault(); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}
+          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
+        >
+          How it works
+        </a>
+        <a
+          href="#scanner"
+          onClick={(e) => { e.preventDefault(); document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }); }}
+          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
+        >
+          Try it now
+        </a>
+        <a
+          href="#waitlist"
+          onClick={(e) => { e.preventDefault(); document.getElementById("waitlist")?.scrollIntoView({ behavior: "smooth" }); }}
+          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
+        >
+          Get early access
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function ContactFooterForm() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const subject = encodeURIComponent("SkinScreen enquiry");
+    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`);
+    window.location.href = `mailto:pia@seafari.se?subject=${subject}&body=${body}`;
+    setSubmitted(true);
+    setName(""); setEmail(""); setMessage("");
+  };
+
+  if (submitted) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[200px]">
+        <p className="text-sm font-medium text-[#7BAF7A]">Thanks — we'll be in touch.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <h3 className="text-lg font-serif font-semibold text-foreground mb-1">Get in touch</h3>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Your name"
+        required
+        className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/30 focus:border-[#7BAF7A]/50"
+      />
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="your@email.com"
+        required
+        className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/30 focus:border-[#7BAF7A]/50"
+      />
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="What's on your mind?"
+        rows={4}
+        required
+        className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/30 focus:border-[#7BAF7A]/50 resize-none"
+      />
+      <button
+        type="submit"
+        className="w-full bg-[#7BAF7A] hover:bg-[#6a9e69] text-white py-3 rounded-xl text-sm font-semibold transition-colors"
+      >
+        Send message
+      </button>
+    </form>
+  );
 }
 
 export function LandingPage({ config }: LandingPageProps) {
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
   const [scannerSeed, setScannerSeed] = useState<ScannerSeed | null>(null);
   const [stats, setStats] = useState<SiteStats | null>(null);
+  const [subNavVisible, setSubNavVisible] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const upgradedToastShown = useRef(false);
@@ -156,13 +209,24 @@ export function LandingPage({ config }: LandingPageProps) {
     }
   }, [toast, queryClient]);
 
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setSubNavVisible(!entry.isIntersecting),
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const displayName = user
     ? (user.firstName ?? user.email?.split("@")[0] ?? "there")
     : null;
 
   const handleDisasterMixScan = () => {
     setScannerSeed({ ...DISASTER_MIX_SEED });
-    const el = document.getElementById("try-it-now");
+    const el = document.getElementById("scanner");
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -213,23 +277,21 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </nav>
 
-      {/* 1. HERO — dark, full-bleed, dramatic */}
-      <section id="hero" className="isolate relative min-h-[92vh] flex flex-col overflow-hidden">
-        {/* Full-bleed background image */}
+      {/* STICKY SUB-NAV */}
+      <StickySubNav visible={subNavVisible} />
+
+      {/* 1. HERO */}
+      <section ref={heroRef} id="hero" className="isolate relative min-h-[92vh] flex flex-col overflow-hidden">
         <img
           src={`${import.meta.env.BASE_URL}images/hero-dark.png`}
           alt=""
           className="absolute inset-0 w-full h-full object-cover scale-105"
         />
-        {/* Dark dramatic overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/55 to-transparent" />
-        {/* Subtle sage vignette at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0d200d]/60 to-transparent" />
 
-        {/* Content */}
         <div className="relative z-10 flex-1 flex flex-col justify-center items-center text-center px-4 sm:px-6 lg:px-8 pt-28 pb-16 max-w-5xl mx-auto w-full">
 
-          {/* Badge */}
           <FadeIn direction="down" delay={0.1}>
             <span className="inline-flex items-center gap-1.5 py-1.5 px-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white/70 text-xs font-medium tracking-widest uppercase mb-8">
               <ShieldCheck className="w-3 h-3 text-primary" />
@@ -237,7 +299,6 @@ export function LandingPage({ config }: LandingPageProps) {
             </span>
           </FadeIn>
 
-          {/* Headline */}
           <FadeIn delay={0.2} className="max-w-4xl">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] font-serif text-white leading-[1.08] tracking-tight mb-4">
               Your skincare routine<br className="hidden sm:block" />{" "}
@@ -249,7 +310,6 @@ export function LandingPage({ config }: LandingPageProps) {
             </p>
           </FadeIn>
 
-          {/* Animated ingredient conflict tags */}
           <FadeIn delay={0.45}>
             <div className="flex flex-wrap justify-center gap-2 mb-10 max-w-2xl mx-auto">
               {[
@@ -285,14 +345,15 @@ export function LandingPage({ config }: LandingPageProps) {
             </div>
           </FadeIn>
 
-          {/* CTAs — two side-by-side */}
+          {/* CTAs */}
           <FadeIn delay={0.65}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
-                href="#try-it-now"
+                href="#scanner"
+                onClick={(e) => { e.preventDefault(); document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }); }}
                 className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
               >
-                Scan my ingredients →
+                Try it now →
               </a>
               <a
                 href="#waitlist"
@@ -306,44 +367,96 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 2. SOUND FAMILIAR — hidden, starts with danger zone instead */}
-      <section id="fears" className="py-24 px-4 sm:px-6 lg:px-8 hidden">
-        <div className="max-w-7xl mx-auto">
+      {/* 2. HOW IT WORKS */}
+      <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-5xl mx-auto">
           <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
-              Sound familiar?
-            </h2>
-            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
-              These are the questions filling Reddit, TikTok, and dermatologist waiting rooms. You're not alone — and you deserve a real answer.
-            </p>
+            <div className="text-center mb-14">
+              <h2 className="text-3xl md:text-5xl font-serif mb-4">How SkinScreen works</h2>
+              <p className="text-muted-foreground max-w-xl mx-auto text-lg">
+                Three steps. Seconds. No guesswork.
+              </p>
+            </div>
           </FadeIn>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {communityFears.map((fear, idx) => {
-              const Icon = fear.icon;
-              return (
-                <FadeIn key={fear.headline} delay={idx * 0.08}>
-                  <div className="flex flex-col gap-3 p-6 rounded-2xl bg-white border border-border/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 h-full">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <Icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <p className="font-serif text-base font-semibold text-foreground leading-snug">
-                        {fear.headline}
-                      </p>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {fear.body}
-                    </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                Icon: Camera,
+                title: "Scan or paste",
+                desc: "Photograph your ingredient list, scan the barcode, or choose from popular products.",
+                delay: 0.1,
+              },
+              {
+                Icon: Layers,
+                title: "Build your routine",
+                desc: "Add multiple products to check how they interact — not just what's in them.",
+                delay: 0.25,
+              },
+              {
+                Icon: ShieldCheck,
+                title: "See the risks",
+                desc: "Get instant conflict detection with clear red, yellow, and green ratings — and what to do instead.",
+                delay: 0.4,
+              },
+            ].map(({ Icon, title, desc, delay }) => (
+              <FadeIn key={title} delay={delay}>
+                <div
+                  className="flex flex-col items-center text-center p-6 rounded-2xl"
+                  style={{ background: "#F7FAF7", borderRadius: 16 }}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center mb-5 text-primary shadow-sm">
+                    <Icon className="w-7 h-7" />
                   </div>
-                </FadeIn>
-              );
-            })}
+                  <h3 className="text-xl font-serif font-semibold mb-3">{title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
+                </div>
+              </FadeIn>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* 3. DANGER ZONE */}
+      {/* 3. SCANNER */}
+      <section id="scanner" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#F5F5F7]">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn>
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-5xl font-serif mb-4">Try It Now</h2>
+              <p className="text-muted-foreground max-w-xl mx-auto">{config.scannerSubhead}</p>
+            </div>
+          </FadeIn>
+
+          {/* Scanner card */}
+          <div
+            className="mx-auto"
+            style={{
+              background: "#F7FAF7",
+              border: "1px solid #DCE9DC",
+              borderRadius: 24,
+              padding: "40px",
+              maxWidth: 760,
+              boxShadow: "0 4px 32px rgba(0,0,0,0.05)",
+            }}
+          >
+            <p
+              className="mb-5"
+              style={{
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.12em",
+                color: "#7BAF7A",
+                fontWeight: 600,
+              }}
+            >
+              CHIMIQ SCANNER
+            </p>
+            <IngredientScanner ctaLabel={config.scannerCtaLabel} seed={scannerSeed} />
+          </div>
+        </div>
+      </section>
+
+      {/* 4. DANGER COMBINATIONS */}
       <section id="danger-zone" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
         <div className="max-w-7xl mx-auto">
           <FadeIn>
@@ -373,7 +486,7 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 4. DISASTER MIX — viral TikTok section */}
+      {/* 4b. DISASTER MIX */}
       <section id="disaster-mix" className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <FadeIn>
@@ -394,7 +507,6 @@ export function LandingPage({ config }: LandingPageProps) {
 
           <FadeIn delay={0.15}>
             <div className="rounded-3xl border border-red-200 bg-red-50/40 overflow-hidden">
-              {/* The products */}
               <div className="px-6 sm:px-10 pt-8 pb-6">
                 <p className="text-xs font-bold uppercase tracking-widest text-red-400 mb-5 text-center">The routine</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -445,7 +557,6 @@ export function LandingPage({ config }: LandingPageProps) {
                   ))}
                 </div>
 
-                {/* The conflicts */}
                 <div className="space-y-4">
                   <p className="text-xs font-bold uppercase tracking-widest text-red-400 text-center mb-2">What happens when you use them together</p>
 
@@ -455,21 +566,10 @@ export function LandingPage({ config }: LandingPageProps) {
                         <XCircle className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-red-700 mb-1">
-                          Benzoyl Peroxide oxidises Retinol — instantly
-                        </p>
+                        <p className="text-sm font-semibold text-red-700 mb-1">Benzoyl Peroxide oxidises Retinol — instantly</p>
                         <p className="text-sm text-red-700/80 leading-relaxed">
-                          Benzoyl peroxide is a potent oxidising agent. When it contacts retinol — even rinsed off the skin and picked up on a towel, or transferred via hands — it chemically degrades the retinol molecule before it can reach your skin cells. You are paying for an active ingredient that is being destroyed in real time.
+                          These two actives deactivate each other on contact. The retinol becomes useless — but both products continue stripping and drying your skin. You get the damage without the benefits.
                         </p>
-                        <a
-                          href="https://pubmed.ncbi.nlm.nih.gov/8450449/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 mt-2 text-[11px] text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          <span className="italic">Nighswonger et al. (1993). J Pharm Sci. PMID: 8450449</span>
-                        </a>
                       </div>
                     </div>
                   </div>
@@ -480,87 +580,27 @@ export function LandingPage({ config }: LandingPageProps) {
                         <AlertTriangle className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-red-700 mb-1">
-                          Retinol + Glycolic Acid = barrier destruction
-                        </p>
+                        <p className="text-sm font-semibold text-red-700 mb-1">Retinol + Salicylic Acid + AHA = triple exfoliation</p>
                         <p className="text-sm text-red-700/80 leading-relaxed">
-                          Both retinol and glycolic acid (AHA) speed up skin cell turnover and reduce the skin's natural barrier function when used alone. Together in an evening routine, they cause accelerated exfoliation that strips the protective lipid layer — leading to redness, peeling, raw skin, and dramatically increased sensitivity.
+                          Three exfoliants in one routine causes severe barrier disruption. The result: redness, peeling, increased UV sensitivity, and a cycle of buying more products to fix the damage these caused.
                         </p>
-                        <a
-                          href="https://doi.org/10.3109/09546639409086912"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 mt-2 text-[11px] text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          <span className="italic">Kligman, A.M. (1988). J Dermatol Treat. DOI: 10.3109/09546639409086912</span>
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-                        <FlaskConical className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-amber-700 mb-1">
-                          The triple hit: photosensitivity goes through the roof
-                        </p>
-                        <p className="text-sm text-amber-700/80 leading-relaxed">
-                          AHAs increase UV sensitivity by up to 50%. Retinol makes skin significantly more photosensitive. Using both without rigorous SPF application — as most people in this routine do — dramatically elevates the risk of hyperpigmentation, sunburn, and long-term UV damage.
-                        </p>
-                        <a
-                          href="https://doi.org/10.2147/CCID.S9042"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 mt-2 text-[11px] text-amber-600 hover:text-amber-800 transition-colors"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          <span className="italic">Kornhauser et al. (2010). Clin Cosmet Investig Dermatol. DOI: 10.2147/CCID.S9042</span>
-                        </a>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* CTA strip */}
-              <div className="px-6 sm:px-10 py-6 bg-red-100/60 border-t border-red-200">
+              <div className="px-6 sm:px-10 py-6 bg-red-50 border-t border-red-200">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-center sm:text-left">
-                    <p className="font-serif text-base font-semibold text-red-700">
-                      Does your routine have hidden combinations like this?
-                    </p>
-                    <p className="text-sm text-red-600/80 mt-1">
-                      SkinScreen checks every product pair in your routine — before your skin pays the price.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <button
-                      type="button"
-                      onClick={handleDisasterMixScan}
-                      className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm"
-                    >
-                      Scan your routine
-                      <ArrowDown className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        const text = "🚨 These 3 products are bought together ALL the time — and they're clinically documented to destroy each other.\n\nNeutrogena Benzoyl Peroxide + RoC Retinol + Paula's Choice Glycolic Acid\n\nBP oxidises retinol (you're wasting your money). Retinol + AHA strips your skin barrier. Both make UV damage 50% worse.\n\nCheck YOUR routine free: skinscreen.app";
-                        if (navigator.share) {
-                          navigator.share({ text }).catch(() => {});
-                        } else {
-                          navigator.clipboard.writeText(text).catch(() => {});
-                        }
-                      }}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-red-300 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      Share
-                    </button>
-                  </div>
+                  <p className="text-sm font-medium text-red-700">Is your routine doing this to your skin?</p>
+                  <button
+                    type="button"
+                    onClick={handleDisasterMixScan}
+                    className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm shrink-0"
+                  >
+                    <FlaskConical className="w-3.5 h-3.5" />
+                    Scan your routine
+                  </button>
                 </div>
               </div>
             </div>
@@ -568,171 +608,17 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 5. THE SKINCARE SPIRAL */}
+      {/* 5. SOCIAL PROOF */}
+      <SocialProof style={config.socialProofStyle} />
+
+      {/* 6. SKINCARE SPIRAL */}
       <section id="spiral" className="py-24 bg-[#F5F5F7]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">The Skincare Spiral</h2>
-            <p className="text-center text-muted-foreground mb-16 max-w-xl mx-auto">
-              One product leads to five more. Sound familiar?
-            </p>
-          </FadeIn>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SpiralSection />
         </div>
       </section>
 
-      {/* 6. HOW SKINSCREEN WORKS */}
-      <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <FadeIn>
-            <div className="text-center mb-6">
-              <h2 className="text-3xl md:text-5xl font-serif mb-6">How SkinScreen works</h2>
-              <p className="text-xl md:text-2xl text-foreground font-medium max-w-3xl mx-auto leading-snug mb-4">
-                The first AI skincare scanner that detects dangerous ingredient combinations — before they damage your skin.
-              </p>
-              <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed mb-10">
-                Many common skincare ingredients are harmless alone — but when combined with other products in your routine, they can cause serious irritation, chemical burns, or long-term damage.
-              </p>
-            </div>
-          </FadeIn>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16 mb-14">
-            <FadeIn delay={0.1}>
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 text-primary shadow-sm">
-                  <ScanLine className="w-10 h-10" />
-                </div>
-                <h3 className="text-2xl font-serif mb-3">1. Scan</h3>
-                <p className="text-muted-foreground">
-                  Photograph your product's ingredient list or scan its barcode. We instantly identify every ingredient — even the complex chemical names.
-                </p>
-              </div>
-            </FadeIn>
-
-            <FadeIn delay={0.3}>
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 text-primary shadow-sm">
-                  <Layers className="w-10 h-10" />
-                </div>
-                <h3 className="text-2xl font-serif mb-3">2. Stack</h3>
-                <p className="text-muted-foreground">
-                  Add your other skincare products to build your virtual shelf and establish your daily routine.
-                </p>
-              </div>
-            </FadeIn>
-
-            <FadeIn delay={0.5}>
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 text-primary shadow-sm">
-                  <ShieldCheck className="w-10 h-10" />
-                </div>
-                <h3 className="text-2xl font-serif mb-3">3. Screen</h3>
-                <div className="text-muted-foreground">
-                  <p className="mb-3">Get your full safety analysis with clear ratings:</p>
-                  <div className="flex flex-col items-center gap-1.5 text-sm font-medium">
-                    <span className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-[#22C55E] inline-block" />
-                      <span className="text-[#16A34A]">Safe to combine</span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-[#F59E0B] inline-block" />
-                      <span className="text-[#B45309]">Use with caution</span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-[#EF4444] inline-block" />
-                      <span className="text-[#B91C1C]">Avoid combining</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-          </div>
-
-          {/* CTA to scanner */}
-          <FadeIn delay={0.6}>
-            <div className="text-center">
-              <a
-                href="#try-it-now"
-                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5"
-              >
-                Try it now →
-              </a>
-              <p className="text-muted-foreground text-sm mt-3">No sign-up needed. Works instantly.</p>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* 7. WHAT'S HIDING IN YOUR PRODUCTS */}
-      <section id="ingredient-risks" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
-        <div className="max-w-7xl mx-auto">
-          <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
-              What's really hiding in your products
-            </h2>
-            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
-              Most of us read ingredient labels like a foreign language. Here are the 10 categories dermatologists flag most — and what they actually do.
-            </p>
-          </FadeIn>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {ingredientRisks.map((risk, idx) => (
-              <FadeIn key={risk.title} delay={idx * 0.06}>
-                <div className="flex flex-col gap-3 p-6 rounded-2xl bg-white border border-border/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 h-full">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{risk.emoji}</span>
-                    <p className="font-serif text-base font-semibold text-foreground leading-snug">{risk.title}</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{risk.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA BANNER — after "What's really hiding" */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-primary/8">
-        <div className="max-w-3xl mx-auto text-center">
-          <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-serif mb-4">SkinScreen is launching soon.</h2>
-            <p className="text-muted-foreground text-lg mb-8">Early access members get unlimited scans, barcode lookup, and a personalised PDF safety report for their dermatologist.</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a href="#try-it-now" className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 shadow-md w-full sm:w-auto justify-center">
-                Try the live preview
-              </a>
-              <a href="#waitlist" className="inline-flex items-center gap-2 border border-primary text-primary hover:bg-primary/8 px-7 py-3.5 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 w-full sm:w-auto justify-center">
-                Join the waitlist — it's free
-              </a>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* 8. SOCIAL PROOF — forum posts from research */}
-      <SocialProof style={config.socialProofStyle} />
-
-      {/* 9. TRY IT NOW — SCANNER (climax) */}
-      <section id="try-it-now" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#F5F5F7]">
-        <div className="max-w-5xl mx-auto">
-          <FadeIn>
-            <div className="text-center mb-12">
-              <span className="inline-block py-1 px-3 rounded-full bg-primary/10 text-primary text-sm font-medium tracking-wide mb-4">
-                Live Preview
-              </span>
-              <h2 className="text-3xl md:text-5xl font-serif mb-4">
-                Try It Now
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">
-                {config.scannerSubhead}
-              </p>
-            </div>
-          </FadeIn>
-          <IngredientScanner ctaLabel={config.scannerCtaLabel} seed={scannerSeed} />
-        </div>
-      </section>
-
-      {/* 10. MY SHELF — live feature section */}
+      {/* 7. MY SHELF */}
       <section id="my-shelf" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
@@ -802,7 +688,7 @@ export function LandingPage({ config }: LandingPageProps) {
                         Sign in to start building your personal skincare routine.
                       </p>
                       <button
-                        onClick={() => login(`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/app`)}
+                        onClick={() => { const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, ""); window.location.href = `/api/login?returnTo=${encodeURIComponent(base + "/app")}`; }}
                         className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-5 py-2.5 rounded-full font-medium text-sm transition-colors"
                       >
                         Sign in to get started
@@ -817,47 +703,12 @@ export function LandingPage({ config }: LandingPageProps) {
         </div>
       </section>
 
-      {/* THE GOAL — just above dermatologist */}
-      <section id="the-goal" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
-        <div className="max-w-5xl mx-auto">
-          <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-serif text-center mb-6">
-              {config.theGoal.headline}
-            </h2>
-            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16 text-lg leading-relaxed">
-              {config.theGoal.body}
-            </p>
-          </FadeIn>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { emoji: "🧴", title: "Fewer products", desc: "A healthy skin barrier needs 3 products, not 12. SkinScreen helps you find the right ones." },
-              { emoji: "💸", title: "Less spending", desc: "Stop buying fixes for problems your products are causing. Know what works before you buy." },
-              { emoji: "🌿", title: "Cleaner routine", desc: "Know exactly what you're putting on your skin and why — ingredient by ingredient." },
-            ].map((card, idx) => (
-              <FadeIn key={card.title} delay={idx * 0.15}>
-                <div className="flex flex-col items-start gap-4 p-8 rounded-3xl bg-white border border-border/50 shadow-sm h-full">
-                  <span className="text-4xl">{card.emoji}</span>
-                  <div>
-                    <h3 className="text-xl font-serif font-semibold text-foreground mb-2">{card.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">{card.desc}</p>
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 11. FIND A DERMATOLOGIST */}
-      <FindDermatologist />
-
-      {/* 12. PRICING */}
+      {/* 8. PRICING */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white border-t border-border/50">
         <PricingSection />
       </section>
 
-      {/* 13. WAITLIST CTA */}
+      {/* 9. WAITLIST */}
       <section id="waitlist" className="py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center border-t border-border/50">
         <FadeIn>
           <h2 className="text-4xl md:text-6xl font-serif text-foreground mb-6 tracking-tight">
@@ -873,15 +724,46 @@ export function LandingPage({ config }: LandingPageProps) {
         </FadeIn>
       </section>
 
-      {/* FOOTER */}
-      <footer className="py-10 text-center text-muted-foreground text-sm border-t border-border/50">
-        <div className="flex flex-col items-center gap-3">
-          <img
-            src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
-            alt="ChimIQ"
-            className="h-10 w-auto opacity-70"
-          />
-          <p>SkinScreen &copy; {new Date().getFullYear()}. Smarter skincare starts here.</p>
+      {/* 10. FOOTER */}
+      <footer className="border-t border-border/50" style={{ background: "#F7FAF7", paddingTop: 64, paddingBottom: 40 }}>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20">
+
+            {/* Column 1 — Contact */}
+            <div>
+              <ContactFooterForm />
+            </div>
+
+            {/* Column 2 — Brand */}
+            <div className="flex flex-col gap-5">
+              <img
+                src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
+                alt="ChimIQ"
+                className="w-auto opacity-90"
+                style={{ maxHeight: 28 }}
+              />
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                © {new Date().getFullYear()} ChimIQ. Smarter skincare starts here.
+              </p>
+              <div className="text-sm text-muted-foreground">
+                <span className="text-foreground font-medium">Skincare</span>
+                {" · "}
+                <span>
+                  Hair{" "}
+                  <span className="text-muted-foreground/50 text-xs">(coming soon)</span>
+                </span>
+                {" · "}
+                <span>
+                  Household{" "}
+                  <span className="text-muted-foreground/50 text-xs">(coming soon)</span>
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground/60 leading-relaxed max-w-xs">
+                SkinScreen is the first ChimIQ product. We scan ingredient lists across categories — because what you put on your skin, hair, and home matters.
+              </p>
+            </div>
+
+          </div>
         </div>
       </footer>
 
