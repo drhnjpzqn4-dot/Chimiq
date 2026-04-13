@@ -519,89 +519,178 @@ export interface ScannerSeed {
   autoRun?: boolean;
 }
 
-const QUICK_START_PRODUCTS: { name: string; ingredients: string }[] = [
+const QUICK_START_PRODUCTS: { name: string; imageUrl: string; ingredients: string }[] = [
   {
     name: "CeraVe Moisturising Cream",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/301/872/349/0766/front_en.8.400.jpg",
     ingredients: "Aqua, Glycerin, Cetearyl Alcohol, Caprylic/Capric Triglyceride, Behentrimonium Methosulfate, Ceteareth-20, Petrolatum, Panthenol, Niacinamide, Sodium Hyaluronate, Ceramide NP, Ceramide AP, Ceramide EOP, Phytosphingosine, Cholesterol, Carbomer, Dimethicone, Methylparaben, Propylparaben, Sodium Lauroyl Lactylate, Disodium EDTA, Xanthan Gum, Tocopherol",
   },
   {
-    name: "The Ordinary Retinol 0.5%",
-    ingredients: "Squalane, Caprylic/Capric Triglyceride, Retinol 0.5%, Solanum Lycopersicum Fruit Extract, Simmondsia Chinensis Seed Oil, BHT, Tocopherol",
+    name: "The Ordinary Retinol 0.5% in Squalane",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0009/front_en.6.400.jpg",
+    ingredients: "Squalane, Caprylic/Capric Triglyceride, Retinol, Solanum Lycopersicum Fruit Extract, Simmondsia Chinensis Seed Oil",
   },
   {
-    name: "La Roche-Posay Toleriane Double Repair",
-    ingredients: "Water, Niacinamide, Glycerin, Dimethicone, Caprylic/Capric Triglyceride, Ceramide NP, Hydroxyethyl Acrylate/Sodium Acryloyldimethyl Taurate Copolymer, Butylene Glycol, Tocopherol, Carbomer, Sodium Hyaluronate, Caprylyl Glycol, Shea Butter, Xylitol, Disodium EDTA, Phenoxyethanol, Sodium Hydroxide",
+    name: "The Ordinary AHA 30% + BHA 2%",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0559/front_en.9.400.jpg",
+    ingredients: "Aqua, Glycolic Acid, Aloe Barbadensis Leaf Juice, Sodium Hydroxide, Dextrin, Propanediol, Salicylic Acid, Charcoal Powder, Potassium Citrate, Lactic Acid, Tartaric Acid, Citric Acid, Panthenol, Sodium Hyaluronate Crosspolymer, Tasmannia Lanceolata Fruit/Leaf Extract, Ethyl Ascorbic Acid, Glycerin, Adansonia Digitata Seed Oil, Tocopherol, Potassium Sorbate, Sodium Benzoate",
+  },
+  {
+    name: "La Roche-Posay Toleriane Moisturizer",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/332/582/036/2921/front_en.7.400.jpg",
+    ingredients: "Water, Glycerin, Niacinamide, Dimethicone, Squalane, Ceramide NP, Ceramide AP, Ceramide EOP, Phytosphingosine, Cholesterol, Carbomer, Sodium Lauroyl Lactylate, Sodium Hyaluronate, Xanthan Gum, Citric Acid, Sodium Citrate, Disodium EDTA, Butylparaben, Ethylparaben, Methylparaben",
+  },
+  {
+    name: "Paula's Choice 2% BHA Exfoliant",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/670/367/011/5151/front_en.6.400.jpg",
+    ingredients: "Water, Methylpropanediol, Butylene Glycol, Salicylic Acid, Camellia Sinensis Leaf Extract, Sodium Hydroxide",
+  },
+  {
+    name: "The Ordinary Niacinamide 10% + Zinc 1%",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0030/front_en.11.400.jpg",
+    ingredients: "Aqua, Niacinamide, Pentylene Glycol, Zinc PCA, Dimethyl Isosorbide, Tamarindus Indica Seed Gum, Xanthan Gum, Isoceteth-20, Ethoxydiglycol, Phenoxyethanol, Chlorphenesin",
   },
   {
     name: "Neutrogena Hydro Boost Water Gel",
-    ingredients: "Water, Dimethicone, Glycerin, Trehalose, Sodium Hyaluronate, Phenoxyethanol, Dimethicone/Vinyl Dimethicone Crosspolymer, Carbomer, Sodium Hydroxide, Dimethyl Isosorbide, Isopropyl Isostearate, Cetearyl Olivate, Sorbitan Olivate, PEG-40 Hydrogenated Castor Oil",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/070/501/109/3908/front_en.7.400.jpg",
+    ingredients: "Water, Dimethicone, Glycerin, Dimethicone/Vinyl Dimethicone Crosspolymer, Sodium Hyaluronate, Phenoxyethanol, Methylparaben, Carbomer, Sodium Hydroxide",
   },
   {
-    name: "Paula's Choice BHA 2% Exfoliant",
-    ingredients: "Water, Methylpropanediol, Butylene Glycol, Salicylic Acid 2%, Camellia Oleifera Leaf Extract, Sodium Hydroxide, Tetrasodium EDTA, Methylisothiazolinone",
-  },
-  {
-    name: "COSRX Snail Mucin 96%",
-    ingredients: "Snail Secretion Filtrate 96.3%, Betaine, Glycerin, Sodium Hyaluronate, Allantoin, Panthenol, Ethyl Hexanediol, 1,2-Hexanediol, Phenoxyethanol, Carbomer, Sodium Hydroxide",
-  },
-  {
-    name: "The Inkey List Niacinamide 10%",
-    ingredients: "Aqua, Niacinamide 10%, Propanediol, Zinc PCA 1%, Allantoin, Hyaluronic Acid, Panthenol, Caprylyl Glycol, Phenoxyethanol, Sodium Hydroxide, Xanthan Gum",
+    name: "The Ordinary Vitamin C 23%",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/1426/front_en.5.400.jpg",
+    ingredients: "Ascorbic Acid, Squalane, Isodecyl Neopentanoate, Isononyl Isononanoate, Silica, Hydroxypropyl Cyclodextrin, Sodium Hyaluronate Crosspolymer, Triethoxycaprylylsilane",
   },
   {
     name: "Cetaphil Gentle Skin Cleanser",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/302/993/100/0785/front_en.9.400.jpg",
     ingredients: "Water, Cetyl Alcohol, Propylene Glycol, Sodium Lauryl Sulfate, Stearyl Alcohol, Methylparaben, Propylparaben, Butylparaben",
   },
   {
-    name: "Drunk Elephant C-Firma Serum",
-    ingredients: "Propanediol, Ascorbic Acid 15%, Glycerin, Sodium Hyaluronate Crosspolymer, Panthenol, Ferulic Acid, Tocopherol, Glutathione, Lactic Acid, Citric Acid, Sodium Citrate, Phenoxyethanol, Sodium Hydroxide",
-  },
-  {
-    name: "Eucerin Q10 Anti-Wrinkle Cream",
-    ingredients: "Aqua, Glycerin, Caprylic/Capric Triglyceride, Coenzyme Q10, Urea, L-Carnitine, Panthenol, Creatine, Tocopherol, Lactic Acid, Sodium Lactate, Carbomer, Triethanolamine, Phenoxyethanol, Sodium Hydroxide",
+    name: "Bioderma Sensibio H2O",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/340/139/932/7264/front_fr.8.400.jpg",
+    ingredients: "Aqua, Cucumis Sativus Fruit Extract, Fructooligosaccharides, Mannitol, Xylitol, Rhamnose, Cetrimonium Bromide, Disodium Cocoamphodiacetate, Disodium EDTA, Sodium Benzoate",
   },
 ];
+
+function ProductImageThumb({
+  src,
+  size,
+  radius,
+}: {
+  src?: string;
+  size: number;
+  radius: number;
+}) {
+  const [errored, setErrored] = useState(false);
+  if (!src || errored) {
+    return (
+      <div
+        className="flex items-center justify-center shrink-0"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: radius,
+          background: "#E8F4E8",
+          border: "1px solid #C9E4C9",
+        }}
+      >
+        <FlaskConical style={{ width: size * 0.45, height: size * 0.45, color: "#7BAF7A" }} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setErrored(true)}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        objectFit: "cover",
+        border: "1px solid #E0EDE0",
+        flexShrink: 0,
+        display: "block",
+      }}
+    />
+  );
+}
 
 function QuickStartDropdown({
   onSelect,
   disabled,
 }: {
-  onSelect: (ingredients: string, productName: string) => void;
+  onSelect: (ingredients: string, productName: string, imageUrl: string) => void;
   disabled?: boolean;
 }) {
-  const [value, setValue] = useState("");
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<typeof QUICK_START_PRODUCTS[0] | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const name = e.target.value;
-    setValue(name);
-    if (!name) return;
-    const product = QUICK_START_PRODUCTS.find((p) => p.name === name);
-    if (product) {
-      onSelect(product.ingredients, product.name);
-    }
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [open]);
+
+  const handleSelect = (product: typeof QUICK_START_PRODUCTS[0]) => {
+    setSelected(product);
+    setOpen(false);
+    onSelect(product.ingredients, product.name, product.imageUrl);
   };
 
   return (
-    <div className="mb-3">
+    <div className="mb-3 relative" ref={containerRef}>
       <p className="text-[14px] text-muted-foreground mb-1.5">Quick start — choose a popular product:</p>
-      <select
-        value={value}
-        onChange={handleChange}
+      <button
+        type="button"
         disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
         className={cn(
-          "w-full px-3 py-2 rounded-xl border border-border/60 bg-white text-sm text-foreground",
+          "w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-border/60 bg-white text-sm",
           "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
-          "transition-all duration-150 disabled:opacity-50 appearance-none cursor-pointer",
+          "transition-all duration-150 disabled:opacity-50 cursor-pointer",
         )}
-        style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237BAF7A' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 36 }}
       >
-        <option value="">— Select a product —</option>
-        {QUICK_START_PRODUCTS.map((p) => (
-          <option key={p.name} value={p.name}>
-            {p.name}
-          </option>
-        ))}
-      </select>
+        {selected ? (
+          <ProductImageThumb src={selected.imageUrl} size={40} radius={50} />
+        ) : (
+          <div
+            className="flex items-center justify-center shrink-0"
+            style={{ width: 40, height: 40, borderRadius: 50, background: "#F3F8F3", border: "1px solid #E0EDE0" }}
+          >
+            <Search style={{ width: 16, height: 16, color: "#9BA9A0" }} />
+          </div>
+        )}
+        <span className={cn("flex-1 text-left truncate", selected ? "text-foreground font-medium" : "text-muted-foreground")}>
+          {selected ? selected.name : "— Select a product —"}
+        </span>
+        {open ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+      </button>
+
+      {open && (
+        <div
+          className="absolute z-50 left-0 right-0 mt-1 bg-white rounded-2xl border border-border/60 shadow-lg overflow-hidden"
+          style={{ maxHeight: 320, overflowY: "auto" }}
+        >
+          {QUICK_START_PRODUCTS.map((p) => (
+            <button
+              key={p.name}
+              type="button"
+              onClick={() => handleSelect(p)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#F3F8F3] transition-colors text-left"
+            >
+              <ProductImageThumb src={p.imageUrl} size={40} radius={50} />
+              <span className="text-sm text-foreground leading-snug truncate">{p.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -699,6 +788,9 @@ export function IngredientScanner({
   const [product1Name, setProduct1Name] = useState<string>("");
   const [product2, setProduct2] = useState("");
   const [product2Name, setProduct2Name] = useState<string>("");
+  const [productImage, setProductImage] = useState<string>("");
+  const [product1Image, setProduct1Image] = useState<string>("");
+  const [product2Image, setProduct2Image] = useState<string>("");
   const [submitted, setSubmitted] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -864,31 +956,32 @@ export function IngredientScanner({
       {mode === "single" ? (
         <div className="mb-6">
           <QuickStartDropdown
-            onSelect={(ings, name) => { setIngredients(ings); setProductName(name); resetResults(); }}
+            onSelect={(ings, name, img) => { setIngredients(ings); setProductName(name); setProductImage(img); resetResults(); }}
             disabled={isPending}
           />
           <ScanDivider />
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <div className="flex-1 min-w-0">
               <ProductSearch
-                onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); resetResults(); }}
+                onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); setProductImage(""); resetResults(); }}
               />
             </div>
             <BarcodeScanButton
-              onResult={(ings, name) => { setIngredients(ings); setProductName(name); resetResults(); }}
+              onResult={(ings, name) => { setIngredients(ings); setProductName(name); setProductImage(""); resetResults(); }}
               disabled={isPending}
             />
           </div>
           {productName && (
-            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#7BAF7A" }}>
-              Product: {productName}
-            </p>
+            <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+              <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
+              <span style={{ fontWeight: 700, fontSize: 18, color: "#1A1A1A", lineHeight: 1.3 }}>{productName}</span>
+            </div>
           )}
           <ProductTextArea
             label="Ingredient List"
             index={1}
             value={ingredients}
-            onChange={(val) => { setIngredients(val); setProductName(""); resetResults(); }}
+            onChange={(val) => { setIngredients(val); setProductName(""); setProductImage(""); resetResults(); }}
             placeholder={PLACEHOLDER_SINGLE}
           />
         </div>
@@ -896,45 +989,47 @@ export function IngredientScanner({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
             <QuickStartDropdown
-              onSelect={(ings, name) => { setProduct1(ings); setProduct1Name(name); resetResults(); }}
+              onSelect={(ings, name, img) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(img); resetResults(); }}
               disabled={isPending}
             />
             <ScanDivider />
             <ProductSearch
-              onIngredients={(ings, name) => { setProduct1(ings); setProduct1Name(name || ""); resetResults(); }}
+              onIngredients={(ings, name) => { setProduct1(ings); setProduct1Name(name || ""); setProduct1Image(""); resetResults(); }}
             />
             {product1Name && (
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#7BAF7A" }}>
-                Product: {product1Name}
-              </p>
+              <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                <ProductImageThumb src={product1Image || undefined} size={64} radius={10} />
+                <span style={{ fontWeight: 700, fontSize: 15, color: "#1A1A1A", lineHeight: 1.3 }}>{product1Name}</span>
+              </div>
             )}
             <ProductTextArea
               label="Product 1 Ingredients"
               index={1}
               value={product1}
-              onChange={(val) => { setProduct1(val); setProduct1Name(""); resetResults(); }}
+              onChange={(val) => { setProduct1(val); setProduct1Name(""); setProduct1Image(""); resetResults(); }}
               placeholder={PLACEHOLDER_1}
             />
           </div>
           <div>
             <QuickStartDropdown
-              onSelect={(ings, name) => { setProduct2(ings); setProduct2Name(name); resetResults(); }}
+              onSelect={(ings, name, img) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(img); resetResults(); }}
               disabled={isPending}
             />
             <ScanDivider />
             <ProductSearch
-              onIngredients={(ings, name) => { setProduct2(ings); setProduct2Name(name || ""); resetResults(); }}
+              onIngredients={(ings, name) => { setProduct2(ings); setProduct2Name(name || ""); setProduct2Image(""); resetResults(); }}
             />
             {product2Name && (
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#7BAF7A" }}>
-                Product: {product2Name}
-              </p>
+              <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                <ProductImageThumb src={product2Image || undefined} size={64} radius={10} />
+                <span style={{ fontWeight: 700, fontSize: 15, color: "#1A1A1A", lineHeight: 1.3 }}>{product2Name}</span>
+              </div>
             )}
             <ProductTextArea
               label="Product 2 Ingredients"
               index={2}
               value={product2}
-              onChange={(val) => { setProduct2(val); setProduct2Name(""); resetResults(); }}
+              onChange={(val) => { setProduct2(val); setProduct2Name(""); setProduct2Image(""); resetResults(); }}
               placeholder={PLACEHOLDER_2}
             />
           </div>
@@ -980,16 +1075,20 @@ export function IngredientScanner({
         <div ref={resultsRef} className="space-y-8 scroll-mt-24">
           {/* Results header */}
           <FadeIn>
-            <h2
-              style={{
-                fontFamily: "'Playfair Display', Georgia, serif",
-                fontSize: 22,
-                fontWeight: 700,
-                color: "#1A1A1A",
-              }}
-            >
-              Results for: {productName || "Your product"}
-            </h2>
+            <div className="flex items-center gap-4">
+              <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
+              <h2
+                style={{
+                  fontFamily: "'Playfair Display', Georgia, serif",
+                  fontSize: 22,
+                  fontWeight: 700,
+                  color: "#1A1A1A",
+                  lineHeight: 1.3,
+                }}
+              >
+                Results for:<br />{productName || "Your product"}
+              </h2>
+            </div>
           </FadeIn>
 
           {/* Verdict headline */}
@@ -1075,8 +1174,10 @@ export function IngredientScanner({
                   setMode("compare");
                   setProduct1(ingredients);
                   setProduct1Name(productName || "Your product");
+                  setProduct1Image(productImage);
                   setIngredients("");
                   setProductName("");
+                  setProductImage("");
                   resetResults();
                   setTimeout(() => document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }), 100);
                 }}
@@ -1150,7 +1251,7 @@ export function IngredientScanner({
                 <button
                   type="button"
                   onClick={() => {
-                    setIngredients(""); setProductName(""); resetResults(); analyzeSingle.reset();
+                    setIngredients(""); setProductName(""); setProductImage(""); resetResults(); analyzeSingle.reset();
                     setTimeout(() => document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }), 100);
                   }}
                   className="text-sm text-muted-foreground hover:text-foreground border border-border/50 hover:border-border transition-colors px-6 py-2 rounded-xl"
@@ -1175,17 +1276,23 @@ export function IngredientScanner({
           {/* Product name labels */}
           {(product1Name || product2Name) && (
             <FadeIn>
-              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row gap-3">
                 {product1Name && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                    <span>Product 1: <span className="font-semibold text-foreground">{product1Name}</span></span>
+                  <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                    <ProductImageThumb src={product1Image || undefined} size={96} radius={12} />
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#7BAF7A" }}>Product 1</p>
+                      <p style={{ fontWeight: 700, fontSize: 15, color: "#1A1A1A", lineHeight: 1.3 }}>{product1Name}</p>
+                    </div>
                   </div>
                 )}
                 {product2Name && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                    <span>Product 2: <span className="font-semibold text-foreground">{product2Name}</span></span>
+                  <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl" style={{ background: "#FFF9F0", border: "1px solid #F0E0C0" }}>
+                    <ProductImageThumb src={product2Image || undefined} size={96} radius={12} />
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#C09070" }}>Product 2</p>
+                      <p style={{ fontWeight: 700, fontSize: 15, color: "#1A1A1A", lineHeight: 1.3 }}>{product2Name}</p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1311,8 +1418,8 @@ export function IngredientScanner({
                 <button
                   type="button"
                   onClick={() => {
-                    setProduct1(""); setProduct1Name("");
-                    setProduct2(""); setProduct2Name("");
+                    setProduct1(""); setProduct1Name(""); setProduct1Image("");
+                    setProduct2(""); setProduct2Name(""); setProduct2Image("");
                     resetResults(); analyzeCompare.reset();
                     setTimeout(() => document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }), 100);
                   }}

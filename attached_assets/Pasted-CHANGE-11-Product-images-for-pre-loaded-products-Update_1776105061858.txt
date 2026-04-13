@@ -1,0 +1,60 @@
+CHANGE 11 — Product images for pre-loaded products
+Update the hardcoded product data from Change 8 to include an imageUrl field for each product. Use these Open Beauty Facts image URLs (public CDN, no API key needed):
+jsconst POPULAR_PRODUCTS = [
+  {
+    name: "CeraVe Moisturising Cream",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/301/872/349/0766/front_en.8.400.jpg",
+    ingredients: "Aqua, Glycerin, Cetearyl Alcohol, Caprylic/Capric Triglyceride, Behentrimonium Methosulfate, Ceteareth-20, Petrolatum, Panthenol, Niacinamide, Sodium Hyaluronate, Ceramide NP, Ceramide AP, Ceramide EOP, Phytosphingosine, Cholesterol, Carbomer, Dimethicone, Methylparaben, Propylparaben, Sodium Lauroyl Lactylate, Disodium EDTA, Xanthan Gum, Tocopherol"
+  },
+  {
+    name: "The Ordinary Retinol 0.5% in Squalane",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0009/front_en.6.400.jpg",
+    ingredients: "Squalane, Caprylic/Capric Triglyceride, Retinol, Solanum Lycopersicum Fruit Extract, Simmondsia Chinensis Seed Oil"
+  },
+  {
+    name: "The Ordinary AHA 30% + BHA 2%",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0559/front_en.9.400.jpg",
+    ingredients: "Aqua, Glycolic Acid, Aloe Barbadensis Leaf Juice, Sodium Hydroxide, Dextrin, Propanediol, Salicylic Acid, Charcoal Powder, Potassium Citrate, Lactic Acid, Tartaric Acid, Citric Acid, Panthenol, Sodium Hyaluronate Crosspolymer, Tasmannia Lanceolata Fruit/Leaf Extract, Ethyl Ascorbic Acid, Glycerin, Adansonia Digitata Seed Oil, Tocopherol, Potassium Sorbate, Sodium Benzoate"
+  },
+  {
+    name: "La Roche-Posay Toleriane Moisturizer",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/332/582/036/2921/front_en.7.400.jpg",
+    ingredients: "Water, Glycerin, Niacinamide, Dimethicone, Squalane, Ceramide NP, Ceramide AP, Ceramide EOP, Phytosphingosine, Cholesterol, Carbomer, Sodium Lauroyl Lactylate, Sodium Hyaluronate, Xanthan Gum, Citric Acid, Sodium Citrate, Disodium EDTA, Butylparaben, Ethylparaben, Methylparaben"
+  },
+  {
+    name: "Paula's Choice 2% BHA Exfoliant",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/670/367/011/5151/front_en.6.400.jpg",
+    ingredients: "Water, Methylpropanediol, Butylene Glycol, Salicylic Acid, Camellia Sinensis Leaf Extract, Sodium Hydroxide"
+  },
+  {
+    name: "The Ordinary Niacinamide 10% + Zinc 1%",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0030/front_en.11.400.jpg",
+    ingredients: "Aqua, Niacinamide, Pentylene Glycol, Zinc PCA, Dimethyl Isosorbide, Tamarindus Indica Seed Gum, Xanthan Gum, Isoceteth-20, Ethoxydiglycol, Phenoxyethanol, Chlorphenesin"
+  },
+  {
+    name: "Neutrogena Hydro Boost Water Gel",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/070/501/109/3908/front_en.7.400.jpg",
+    ingredients: "Water, Dimethicone, Glycerin, Dimethicone/Vinyl Dimethicone Crosspolymer, Sodium Hyaluronate, Phenoxyethanol, Methylparaben, Carbomer, Sodium Hydroxide"
+  },
+  {
+    name: "The Ordinary Vitamin C 23%",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/1426/front_en.5.400.jpg",
+    ingredients: "Ascorbic Acid, Squalane, Isodecyl Neopentanoate, Isononyl Isononanoate, Silica, Hydroxypropyl Cyclodextrin, Sodium Hyaluronate Crosspolymer, Triethoxycaprylylsilane"
+  },
+  {
+    name: "Cetaphil Gentle Skin Cleanser",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/302/993/100/0785/front_en.9.400.jpg",
+    ingredients: "Water, Cetyl Alcohol, Propylene Glycol, Sodium Lauryl Sulfate, Stearyl Alcohol, Methylparaben, Propylparaben, Butylparaben"
+  },
+  {
+    name: "Bioderma Sensibio H2O",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/340/139/932/7264/front_fr.8.400.jpg",
+    ingredients: "Aqua, Cucumis Sativus Fruit Extract, Fructooligosaccharides, Mannitol, Xylitol, Rhamnose, Cetrimonium Bromide, Disodium Cocoamphodiacetate, Disodium EDTA, Sodium Benzoate"
+  }
+];
+Image display rules:
+In the dropdown: show a small circular product photo (40×40px, object-fit: cover, border-radius: 50%, subtle border 1px solid #E0EDE0) to the left of each product name. If the image fails to load (onError), show a neutral placeholder — a soft green circle with a small leaf or flask icon (Lucide FlaskConical), same size.
+In the scanner card, when a product is selected: show the product image larger (96×96px, border-radius: 12px, object-fit: cover) to the left of the product name heading. This replaces any generic icon. The product name sits to the right of the image: bold, 18px, #1A1A1A.
+In the results section: keep the same 96×96px product image anchored to the top of the results card, next to "Results for: [Product Name]".
+For custom scans (user uploads own photo or pastes ingredients without selecting from dropdown): after the user takes/uploads a photo of the product front, display that photo in the same 96×96px slot. If only ingredients are pasted with no photo, show the flask placeholder.
+Image loading: lazy-load all product images (loading="lazy"). Do not block the UI or scan function on image load. Images are purely presentational.

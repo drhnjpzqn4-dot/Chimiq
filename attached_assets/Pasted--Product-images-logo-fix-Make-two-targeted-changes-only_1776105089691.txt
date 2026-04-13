@@ -1,0 +1,32 @@
+ Product images + logo fix
+Make two targeted changes only. Do not touch anything else.
+CHANGE A — Fix stretched logo
+The ChimIQ logo in the footer is stretched. Find the footer logo <img> element and set:
+height: 32px
+width: auto
+object-fit: contain
+Remove any fixed width on that element. Apply the same rule to the logo in the top navigation bar for consistency.
+
+CHANGE B — Product images in the pre-loaded dropdown
+Update the hardcoded product array from the previous prompt to include an imageUrl for each product:
+jsconst POPULAR_PRODUCTS = [
+  { name: "CeraVe Moisturising Cream", imageUrl: "https://images.openbeautyfacts.org/images/products/301/872/349/0766/front_en.8.400.jpg", ingredients: "..." },
+  { name: "The Ordinary Retinol 0.5% in Squalane", imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0009/front_en.6.400.jpg", ingredients: "..." },
+  { name: "The Ordinary AHA 30% + BHA 2%", imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0559/front_en.9.400.jpg", ingredients: "..." },
+  { name: "La Roche-Posay Toleriane Moisturizer", imageUrl: "https://images.openbeautyfacts.org/images/products/332/582/036/2921/front_en.7.400.jpg", ingredients: "..." },
+  { name: "Paula's Choice 2% BHA Exfoliant", imageUrl: "https://images.openbeautyfacts.org/images/products/670/367/011/5151/front_en.6.400.jpg", ingredients: "..." },
+  { name: "The Ordinary Niacinamide 10% + Zinc 1%", imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0030/front_en.11.400.jpg", ingredients: "..." },
+  { name: "Neutrogena Hydro Boost Water Gel", imageUrl: "https://images.openbeautyfacts.org/images/products/070/501/109/3908/front_en.7.400.jpg", ingredients: "..." },
+  { name: "The Ordinary Vitamin C 23%", imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/1426/front_en.5.400.jpg", ingredients: "..." },
+  { name: "Cetaphil Gentle Skin Cleanser", imageUrl: "https://images.openbeautyfacts.org/images/products/302/993/100/0785/front_en.9.400.jpg", ingredients: "..." },
+  { name: "Bioderma Sensibio H2O", imageUrl: "https://images.openbeautyfacts.org/images/products/340/139/932/7264/front_fr.8.400.jpg", ingredients: "..." }
+]
+Keep all existing ingredient strings exactly as they are — only add the imageUrl field.
+Display the images in three places:
+
+In the dropdown list: small circle (40×40px, border-radius: 50%, object-fit: cover, border: 1px solid #DCE9DC) to the left of each product name. If image fails to load, show a soft green circle with a Lucide FlaskConical icon instead.
+In the scanner card when a product is selected: show the image at 96×96px (border-radius: 12px, object-fit: cover) to the left of the product name heading.
+In the results section: same 96×96px image anchored to the top of the results card, next to "Results for: [Product Name]".
+
+For custom scans with no pre-loaded product: if the user uploads a photo of the product front, display that photo in the same slot. If only ingredients are pasted with no photo, show the flask placeholder.
+All images must be lazy-loaded (loading="lazy"). Image loading must never block the scan or results display.
