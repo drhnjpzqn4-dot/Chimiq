@@ -240,7 +240,7 @@ export function LandingPage({ config }: LandingPageProps) {
             <img
               src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
               alt="ChimIQ"
-              className="h-11 w-auto"
+              style={{ height: 32, width: "auto", objectFit: "contain" }}
             />
           </a>
           <div className="flex items-center gap-3">
@@ -739,8 +739,8 @@ export function LandingPage({ config }: LandingPageProps) {
               <img
                 src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
                 alt="ChimIQ"
-                className="w-auto opacity-90"
-                style={{ maxHeight: 28 }}
+                className="opacity-90"
+                style={{ height: 32, width: "auto", objectFit: "contain" }}
               />
               <p className="text-sm text-muted-foreground leading-relaxed">
                 © {new Date().getFullYear()} ChimIQ. Smarter skincare starts here.
