@@ -688,7 +688,7 @@ export function LandingPage({ config }: LandingPageProps) {
                         Sign in to start building your personal skincare routine.
                       </p>
                       <button
-                        onClick={() => { const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, ""); window.location.href = `/api/login?returnTo=${encodeURIComponent(base + "/app")}`; }}
+                        onClick={() => login()}
                         className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-5 py-2.5 rounded-full font-medium text-sm transition-colors"
                       >
                         Sign in to get started
