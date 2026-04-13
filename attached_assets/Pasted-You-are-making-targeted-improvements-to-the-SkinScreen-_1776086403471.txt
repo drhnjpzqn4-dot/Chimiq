@@ -1,0 +1,145 @@
+You are making targeted improvements to the SkinScreen / ChimIQ web app (React + Vite). Make surgical changes only — do NOT rewrite the app or change any existing scan/analysis logic, AI chat, My Shelf, Pricing, brand colors, or typefaces.
+BRAND REFERENCE — do not change these:
+
+Primary green: #7BAF7A
+Background: white
+Fonts: Inter (body) + Playfair Display (headings) — already loaded
+Logo: /images/logo-chimiq-long.png
+Tone: clean, modern, Apple-inspired, light
+
+
+CHANGE 1 — Fix meta description
+In index.html, change:
+<meta name="description" content="Know your UV risk before you step outside.">
+to:
+<meta name="description" content="The first app that detects dangerous skincare ingredient combinations — before they damage your skin.">
+
+CHANGE 2 — Add sticky sub-navigation
+Add a secondary sticky navigation bar that becomes visible after scrolling past the hero section (use IntersectionObserver on the hero).
+Style: white background with subtle bottom border (border-bottom: 1px solid #E8F0E8), no shadow. Three anchor links centered:
+
+How it works → smooth scrolls to #how-it-works
+Try it now → smooth scrolls to #scanner
+Get early access → smooth scrolls to #waitlist
+
+Typography: 14px, medium weight, #7BAF7A color, spaced with gap: 40px. No underlines. Underline on hover only. This nav sits below the existing top nav.
+
+CHANGE 3 — Hero CTA
+Change the primary hero button from "Join waitlist" to "Try it now →". On click: smooth scroll to #scanner. Keep any existing secondary link as-is.
+
+CHANGE 4 — Reorder page sections
+Reorder the page sections in this exact sequence:
+
+Hero (existing — with updated CTA from Change 3)
+How it works — new section (see Change 5), add id="how-it-works"
+Scanner — existing scanner tool, add id="scanner", wrap in new visual card (see Change 6)
+Danger combinations / Disaster Mix content (existing — keep as-is)
+Social proof — Reddit/TikTok quotes (existing — keep as-is)
+The Skincare Spiral (existing — keep as-is)
+My Shelf coming soon (existing — keep as-is)
+Pricing (existing — keep as-is)
+Waitlist (existing — keep as-is), add id="waitlist"
+Footer (see Change 10)
+
+
+CHANGE 5 — New "How it works" section
+Insert this section between the hero and the scanner. Keep it minimal — 3 columns on desktop, stacked on mobile.
+Heading: "How SkinScreen works" (Playfair Display, centered)
+Subheading: "Three steps. Seconds. No guesswork." (Inter, muted color, centered)
+Three steps:
+
+Icon: camera | "Scan or paste" | "Photograph your ingredient list, scan the barcode, or choose from popular products."
+Icon: layers/stack | "Build your routine" | "Add multiple products to check how they interact — not just what's in them."
+Icon: shield-check | "See the risks" | "Get instant conflict detection with clear red, yellow, and green ratings — and what to do instead."
+
+Use Lucide icons (already in the project). Card style: subtle background #F7FAF7, border-radius 16px, padding 24px. No drop shadows.
+
+CHANGE 6 — Scanner visual card
+Wrap the entire scanner section (skin type selector + product input + analyze/compare tabs + results) in a visually distinct container:
+
+Background: #F7FAF7 (very light green tint)
+Border: 1px solid #DCE9DC
+Border-radius: 24px
+Padding: 40px (24px on mobile)
+Max-width: 760px, centered with margin: 0 auto
+Box-shadow: 0 4px 32px rgba(0, 0, 0, 0.05)
+
+Add a small label at the very top of this card, before the skin type selector:
+CHIMIQ SCANNER
+Style: uppercase, 11px, letter-spacing 0.12em, color #7BAF7A, font-weight 600.
+
+CHANGE 7 — Skin type selector — make more prominent
+The skin profile selector (Sensitive / Young skin / Mature skin / Pregnant) already exists. Make these changes:
+
+Add a clear label above it: "Your skin type" — Inter, 14px, font-weight 600, color #333, margin-bottom: 8px
+Make the selected/active button state use a solid background (#7BAF7A, white text) not just an outline, so the selection is obvious at a glance
+Ensure the selector appears FIRST inside the scanner card, before the product input area
+
+
+CHANGE 8 — Top 10 pre-loaded products dropdown
+Add a dropdown selector at the top of the ingredient input area in BOTH the "Analyze one product" and "Compare two products" tabs.
+Label above the dropdown: "Quick start — choose a popular product:" (14px, muted)
+The dropdown options and their ingredient lists must be hardcoded in the component — zero API calls, instant load:
+#Display nameIngredient list1CeraVe Moisturising CreamAqua, Glycerin, Cetearyl Alcohol, Caprylic/Capric Triglyceride, Behentrimonium Methosulfate, Ceteareth-20, Petrolatum, Panthenol, Niacinamide, Sodium Hyaluronate, Ceramide NP, Ceramide AP, Ceramide EOP, Phytosphingosine, Cholesterol, Carbomer, Dimethicone, Methylparaben, Propylparaben, Sodium Lauroyl Lactylate, Disodium EDTA, Xanthan Gum, Tocopherol2The Ordinary Retinol 0.5%Squalane, Caprylic/Capric Triglyceride, Retinol, Solanum Lycopersicum Fruit Extract, Simmondsia Chinensis Seed Oil3The Ordinary AHA 30% + BHA 2%Aqua, Glycolic Acid, Aloe Barbadensis Leaf Juice, Sodium Hydroxide, Dextrin, Propanediol, Salicylic Acid, Charcoal Powder, Potassium Citrate, Lactic Acid, Tartaric Acid, Citric Acid, Panthenol, Sodium Hyaluronate Crosspolymer, Tasmannia Lanceolata Fruit/Leaf Extract, Ethyl Ascorbic Acid, Glycerin, Adansonia Digitata Seed Oil, Tocopherol, Potassium Sorbate, Sodium Benzoate4La Roche-Posay Toleriane MoisturizerWater, Glycerin, Niacinamide, Dimethicone, Squalane, Ceramide NP, Ceramide AP, Ceramide EOP, Phytosphingosine, Cholesterol, Carbomer, Sodium Lauroyl Lactylate, Sodium Hyaluronate, Xanthan Gum, Citric Acid, Sodium Citrate, Disodium EDTA, Butylparaben, Ethylparaben, Methylparaben5Paula's Choice 2% BHA ExfoliantWater, Methylpropanediol, Butylene Glycol, Salicylic Acid, Camellia Sinensis Leaf Extract, Sodium Hydroxide6The Ordinary Niacinamide 10% + Zinc 1%Aqua, Niacinamide, Pentylene Glycol, Zinc PCA, Dimethyl Isosorbide, Tamarindus Indica Seed Gum, Xanthan Gum, Isoceteth-20, Ethoxydiglycol, Phenoxyethanol, Chlorphenesin7Neutrogena Hydro Boost Water GelWater, Dimethicone, Glycerin, Dimethicone/Vinyl Dimethicone Crosspolymer, Sodium Hyaluronate, Phenoxyethanol, Methylparaben, Carbomer, Sodium Hydroxide8The Ordinary Vitamin C 23%Ascorbic Acid, Squalane, Isodecyl Neopentanoate, Isononyl Isononanoate, Silica, Hydroxypropyl Cyclodextrin, Sodium Hyaluronate Crosspolymer, Triethoxycaprylylsilane9Cetaphil Gentle Skin CleanserWater, Cetyl Alcohol, Propylene Glycol, Sodium Lauryl Sulfate, Stearyl Alcohol, Methylparaben, Propylparaben, Butylparaben10Bioderma Sensibio H2OAqua, Cucumis Sativus Fruit Extract, Fructooligosaccharides, Mannitol, Xylitol, Rhamnose, Cetrimonium Bromide, Disodium Cocoamphodiacetate, Disodium EDTA, Sodium Benzoate
+Behavior when a product is selected from dropdown:
+
+Its ingredient list immediately populates the text area
+The product name appears as a heading above the text area: "Product: [Name]" in small caps, #7BAF7A color
+The text area becomes editable so user can still modify if needed
+Selecting is instant — no API call
+
+Below the dropdown, add a visual divider:
+— or scan your own product —
+Style: centered, 13px, muted gray, with a short horizontal rule on each side. Below this divider sits the existing photo/barcode upload button.
+
+CHANGE 9 — Results display improvements
+After the scan animation completes and results appear:
+A. Show product name in results header
+At the very top of the results section, display:
+Results for: [Product Name]
+Use the dropdown-selected name, or "Your product" if it was a custom paste/photo. Style: Playfair Display, 22px, color #1A1A1A. This heading must be the first thing visible in results.
+B. Auto-scroll to results
+After the scan completes, smooth-scroll automatically to the results section. The user should not have to scroll manually. Use scrollIntoView({ behavior: 'smooth', block: 'start' }) on the results container element.
+C. Post-results action buttons
+Directly below the results content, add these four elements in this order:
+
+"Compare against another product →" — full-width button, primary green (#7BAF7A), white text, border-radius 12px, height 52px. On click: scroll to the "Compare two products" tab in the scanner card, pre-fill with the current product, and focus the second product input. This is the most important button — it should be the most visually dominant.
+"Share your result" — secondary button (white background, green border, green text), same width as above. On click: use the Canvas API (html2canvas or equivalent) to generate a shareable image containing: ChimIQ logo, product name, top risk finding in large text, risk level badge (red/yellow/green), and "chimiq.com" at the bottom. On mobile: trigger native share sheet. On desktop: download as PNG.
+"Join the waitlist — check your full routine" — text link, centered, 14px, #7BAF7A, underline on hover. Links to #waitlist section.
+"New scan" — ghost button (transparent background, subtle border), centered below, smaller than the others. On click: reset the scanner to empty state and scroll back to #scanner.
+
+
+CHANGE 10 — Footer
+Replace the existing footer with this updated version. Keep the existing copyright text but expand the footer with:
+Column 1 — Contact
+Heading: "Get in touch"
+Form fields:
+
+Name (text input, placeholder "Your name")
+Email (email input, placeholder "your@email.com")
+Message (textarea, 4 rows, placeholder "What's on your mind?")
+Submit button: "Send message" — primary green, full width
+
+On submit: action="mailto:pia@seafari.se" with method="post" and enctype="text/plain" — or if there is an existing form handler in the project, use that instead. Show a success message: "Thanks — we'll be in touch." after submission.
+Column 2 — Brand
+
+ChimIQ logo (/images/logo-chimiq-long.png, max-height 28px)
+© 2026 ChimIQ. Smarter skincare starts here. (13px, muted)
+Skincare · Hair · Household with coming soon in lighter text after Hair and Household
+
+Footer background: #F7FAF7. Padding: 64px top, 40px bottom.
+
+DO NOT CHANGE (strictly):
+
+Any existing ingredient analysis or conflict detection logic
+Any API calls or AI integrations
+The AI chat widget
+My Shelf section functionality
+Pricing section content or Stripe integration
+The Disaster Mix content and examples
+The Reddit/TikTok social proof section
+The Skincare Spiral section
+Any Redux or state management
+Authentication or sign-in flows
+The dermatologist finder
+Color palette, fonts, or logo
