@@ -911,244 +911,311 @@ export function IngredientScanner({
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      {/* Skin profile */}
-      <div className="mb-6">
-        <SkinProfileSelector value={skinProfile} onChange={setSkinProfile} />
-      </div>
 
-      {/* Mode toggle */}
-      <div className="flex gap-2 mb-6 p-1 bg-white rounded-2xl border border-border/50 shadow-sm w-fit">
-        <button
-          type="button"
-          onClick={() => { setMode("single"); resetResults(); }}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150",
-            mode === "single"
-              ? "bg-primary text-white shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <Zap className="w-3.5 h-3.5" />
-          Analyze one product
-        </button>
-        <button
-          type="button"
-          onClick={() => { setMode("compare"); resetResults(); }}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150",
-            mode === "compare"
-              ? "bg-primary text-white shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <ArrowLeftRight className="w-3.5 h-3.5" />
-          Compare two products
-        </button>
-      </div>
-
-      {/* 3 numbered input options — always visible */}
-      <div className="space-y-6 mb-6">
-
-        {/* Option 1: Try an example */}
-        <div className="flex gap-4">
-          <div className="shrink-0">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: "#7BAF7A" }}>1</div>
+      {/* ── STEP 1: Skin type ── */}
+      <div className="flex gap-4 mb-2">
+        <div className="shrink-0 flex flex-col items-center">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+            style={{ background: "#7BAF7A" }}
+          >
+            1
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-[15px] text-foreground mb-0.5">Try an example</h3>
-            <p className="text-xs text-muted-foreground mb-3">Load a real-world preset — then press Scan to analyse.</p>
-            <div className={cn("grid gap-3", presets.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-sm")}>
-              {presets.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => applySeed(preset.seed)}
-                  className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white border border-border/50 hover:border-primary/40 hover:shadow-sm transition-all duration-150 text-left group"
-                >
-                  <div className="flex items-center justify-between w-full gap-2">
-                    <span className="text-sm font-medium text-foreground leading-snug">{preset.label}</span>
-                    <span className={cn(
-                      "shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                      preset.badgeColor === "red" && "bg-red-100 text-red-600",
-                      preset.badgeColor === "amber" && "bg-amber-100 text-amber-700",
-                      preset.badgeColor === "green" && "bg-primary/10 text-primary",
-                    )}>
-                      {preset.badge}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{preset.description}</span>
-                  <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                    Load example →
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <div className="w-px flex-1 mt-2" style={{ background: "#D8EAD8", minHeight: 24 }} />
         </div>
+        <div className="flex-1 min-w-0 pb-8">
+          <h3 className="font-bold text-[17px] text-foreground mb-0.5 mt-1.5">Select your skin type</h3>
+          <p className="text-xs text-muted-foreground mb-4">Optional — personalises flagging and risk levels.</p>
+          <SkinProfileSelector value={skinProfile} onChange={setSkinProfile} />
+        </div>
+      </div>
 
-        {/* Option 2: Quick start */}
-        <div className="flex gap-4">
-          <div className="shrink-0">
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold" style={{ borderColor: "#D0D0D0", color: "#888" }}>2</div>
+      {/* ── STEP 2: Select products ── */}
+      <div className="flex gap-4 mb-2">
+        <div className="shrink-0 flex flex-col items-center">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+            style={{ background: "#7BAF7A" }}
+          >
+            2
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-[15px] text-foreground mb-0.5">Quick start — popular product</h3>
-            <p className="text-xs text-muted-foreground mb-3">Choose from a curated list of products with images.</p>
-            {mode === "single" ? (
-              <QuickStartDropdown
-                key={quickStartResetKey}
-                onSelect={(ings, name, img) => { setIngredients(ings); setProductName(name); setProductImage(img); resetResults(); }}
-                disabled={isPending}
-              />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#7BAF7A" }}>Product 1</p>
-                  <QuickStartDropdown
-                    key={`p1-${quickStartResetKey}`}
-                    onSelect={(ings, name, img) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(img); resetResults(); }}
-                    disabled={isPending}
-                  />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#C09070" }}>Product 2</p>
-                  <QuickStartDropdown
-                    key={`p2-${quickStartResetKey}`}
-                    onSelect={(ings, name, img) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(img); resetResults(); }}
-                    disabled={isPending}
-                  />
+          <div className="w-px flex-1 mt-2" style={{ background: "#D8EAD8", minHeight: 24 }} />
+        </div>
+        <div className="flex-1 min-w-0 pb-8">
+          <h3 className="font-bold text-[17px] text-foreground mb-0.5 mt-1.5">Select products to scan</h3>
+          <p className="text-xs text-muted-foreground mb-4">Scan one product for flags, or compare two for conflicts.</p>
+
+          {/* 1 or 2 products toggle */}
+          <div className="flex gap-2 mb-6 p-1 bg-white rounded-2xl border border-border/50 shadow-sm w-fit">
+            <button
+              type="button"
+              onClick={() => { setMode("single"); resetResults(); }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150",
+                mode === "single"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              1 product
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode("compare"); resetResults(); }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150",
+                mode === "compare"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+              2 products
+            </button>
+          </div>
+
+          {/* Sub-options A / B / C */}
+          <div className="space-y-5">
+
+            {/* A — Preloaded sample */}
+            <div className="flex gap-3">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
+                style={{ background: "#EEF6EE", color: "#7BAF7A", border: "1.5px solid #C9E4C9" }}
+              >
+                A
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">Use a preloaded sample</h4>
+                <p className="text-xs text-muted-foreground mb-3">Load a real-world example — then hit Analyze.</p>
+                <div className={cn("grid gap-3", presets.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-sm")}>
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => applySeed(preset.seed)}
+                      className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white border border-border/50 hover:border-primary/40 hover:shadow-sm transition-all duration-150 text-left group"
+                    >
+                      <div className="flex items-center justify-between w-full gap-2">
+                        <span className="text-sm font-medium text-foreground leading-snug">{preset.label}</span>
+                        <span className={cn(
+                          "shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                          preset.badgeColor === "red" && "bg-red-100 text-red-600",
+                          preset.badgeColor === "amber" && "bg-amber-100 text-amber-700",
+                          preset.badgeColor === "green" && "bg-primary/10 text-primary",
+                        )}>
+                          {preset.badge}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{preset.description}</span>
+                      <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                        Load example →
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Option 3: Scan your own */}
-        <div className="flex gap-4">
-          <div className="shrink-0">
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold" style={{ borderColor: "#D0D0D0", color: "#888" }}>3</div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-[15px] text-foreground mb-0.5">Scan your own</h3>
-            <p className="text-xs text-muted-foreground mb-3">Search by name, scan a barcode, or paste the ingredient list.</p>
-            {mode === "single" ? (
-              <div>
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <div className="flex-1 min-w-0">
-                    <ProductSearch
-                      onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); setProductImage(""); resetResults(); }}
-                    />
-                  </div>
-                  <BarcodeScanButton
-                    onResult={(ings, name) => { setIngredients(ings); setProductName(name); setProductImage(""); resetResults(); }}
+            {/* divider */}
+            <div className="flex items-center gap-3 pl-10">
+              <div className="flex-1 border-t border-border/40" />
+              <span className="text-[11px] text-muted-foreground/50 shrink-0">or</span>
+              <div className="flex-1 border-t border-border/40" />
+            </div>
+
+            {/* B — Popular product */}
+            <div className="flex gap-3">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
+                style={{ background: "#EEF6EE", color: "#7BAF7A", border: "1.5px solid #C9E4C9" }}
+              >
+                B
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">Choose a popular product</h4>
+                <p className="text-xs text-muted-foreground mb-3">Pick from a curated list with product images.</p>
+                {mode === "single" ? (
+                  <QuickStartDropdown
+                    key={quickStartResetKey}
+                    onSelect={(ings, name, img) => { setIngredients(ings); setProductName(name); setProductImage(img); resetResults(); }}
                     disabled={isPending}
                   />
-                </div>
-                {productName && (
-                  <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
-                    <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
-                    <span style={{ fontWeight: 700, fontSize: 18, color: "#1A1A1A", lineHeight: 1.3 }}>{productName}</span>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#7BAF7A" }}>Product 1</p>
+                      <QuickStartDropdown
+                        key={`p1-${quickStartResetKey}`}
+                        onSelect={(ings, name, img) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(img); resetResults(); }}
+                        disabled={isPending}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#C09070" }}>Product 2</p>
+                      <QuickStartDropdown
+                        key={`p2-${quickStartResetKey}`}
+                        onSelect={(ings, name, img) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(img); resetResults(); }}
+                        disabled={isPending}
+                      />
+                    </div>
                   </div>
                 )}
-                <ProductTextArea
-                  label="Ingredient List"
-                  index={1}
-                  value={ingredients}
-                  onChange={(val) => { setIngredients(val); setProductName(""); setProductImage(""); resetResults(); }}
-                  placeholder={PLACEHOLDER_SINGLE}
-                />
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#7BAF7A" }}>Product 1</p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 min-w-0">
-                      <ProductSearch
-                        onIngredients={(ings, name) => { setProduct1(ings); setProduct1Name(name || ""); setProduct1Image(""); resetResults(); }}
+            </div>
+
+            {/* divider */}
+            <div className="flex items-center gap-3 pl-10">
+              <div className="flex-1 border-t border-border/40" />
+              <span className="text-[11px] text-muted-foreground/50 shrink-0">or</span>
+              <div className="flex-1 border-t border-border/40" />
+            </div>
+
+            {/* C — Scan your own */}
+            <div className="flex gap-3">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
+                style={{ background: "#EEF6EE", color: "#7BAF7A", border: "1.5px solid #C9E4C9" }}
+              >
+                C
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">Scan your own product</h4>
+                <p className="text-xs text-muted-foreground mb-3">Search by name, scan a barcode, or paste the ingredient list.</p>
+                {mode === "single" ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <ProductSearch
+                          onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); setProductImage(""); resetResults(); }}
+                        />
+                      </div>
+                      <BarcodeScanButton
+                        onResult={(ings, name) => { setIngredients(ings); setProductName(name); setProductImage(""); resetResults(); }}
+                        disabled={isPending}
                       />
                     </div>
-                    <BarcodeScanButton
-                      onResult={(ings, name) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(""); resetResults(); }}
-                      disabled={isPending}
+                    {productName && (
+                      <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                        <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
+                        <span style={{ fontWeight: 700, fontSize: 18, color: "#1A1A1A", lineHeight: 1.3 }}>{productName}</span>
+                      </div>
+                    )}
+                    <ProductTextArea
+                      label="Ingredient List"
+                      index={1}
+                      value={ingredients}
+                      onChange={(val) => { setIngredients(val); setProductName(""); setProductImage(""); resetResults(); }}
+                      placeholder={PLACEHOLDER_SINGLE}
                     />
                   </div>
-                  {product1Name && (
-                    <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
-                      <ProductImageThumb src={product1Image || undefined} size={64} radius={10} />
-                      <span style={{ fontWeight: 700, fontSize: 16, color: "#1A1A1A", lineHeight: 1.3 }}>{product1Name}</span>
-                    </div>
-                  )}
-                  <ProductTextArea
-                    label="Product 1 Ingredients"
-                    index={1}
-                    value={product1}
-                    onChange={(val) => { setProduct1(val); setProduct1Name(""); setProduct1Image(""); resetResults(); }}
-                    placeholder={PLACEHOLDER_1}
-                  />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#C09070" }}>Product 2</p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 min-w-0">
-                      <ProductSearch
-                        onIngredients={(ings, name) => { setProduct2(ings); setProduct2Name(name || ""); setProduct2Image(""); resetResults(); }}
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#7BAF7A" }}>Product 1</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <ProductSearch
+                            onIngredients={(ings, name) => { setProduct1(ings); setProduct1Name(name || ""); setProduct1Image(""); resetResults(); }}
+                          />
+                        </div>
+                        <BarcodeScanButton
+                          onResult={(ings, name) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(""); resetResults(); }}
+                          disabled={isPending}
+                        />
+                      </div>
+                      {product1Name && (
+                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                          <ProductImageThumb src={product1Image || undefined} size={64} radius={10} />
+                          <span style={{ fontWeight: 700, fontSize: 16, color: "#1A1A1A", lineHeight: 1.3 }}>{product1Name}</span>
+                        </div>
+                      )}
+                      <ProductTextArea
+                        label="Product 1 Ingredients"
+                        index={1}
+                        value={product1}
+                        onChange={(val) => { setProduct1(val); setProduct1Name(""); setProduct1Image(""); resetResults(); }}
+                        placeholder={PLACEHOLDER_1}
                       />
                     </div>
-                    <BarcodeScanButton
-                      onResult={(ings, name) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(""); resetResults(); }}
-                      disabled={isPending}
-                    />
-                  </div>
-                  {product2Name && (
-                    <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#FFF9F0", border: "1px solid #F0E0C0" }}>
-                      <ProductImageThumb src={product2Image || undefined} size={64} radius={10} />
-                      <span style={{ fontWeight: 700, fontSize: 16, color: "#1A1A1A", lineHeight: 1.3 }}>{product2Name}</span>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#C09070" }}>Product 2</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <ProductSearch
+                            onIngredients={(ings, name) => { setProduct2(ings); setProduct2Name(name || ""); setProduct2Image(""); resetResults(); }}
+                          />
+                        </div>
+                        <BarcodeScanButton
+                          onResult={(ings, name) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(""); resetResults(); }}
+                          disabled={isPending}
+                        />
+                      </div>
+                      {product2Name && (
+                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#FFF9F0", border: "1px solid #F0E0C0" }}>
+                          <ProductImageThumb src={product2Image || undefined} size={64} radius={10} />
+                          <span style={{ fontWeight: 700, fontSize: 16, color: "#1A1A1A", lineHeight: 1.3 }}>{product2Name}</span>
+                        </div>
+                      )}
+                      <ProductTextArea
+                        label="Product 2 Ingredients"
+                        index={2}
+                        value={product2}
+                        onChange={(val) => { setProduct2(val); setProduct2Name(""); setProduct2Image(""); resetResults(); }}
+                        placeholder={PLACEHOLDER_2}
+                      />
                     </div>
-                  )}
-                  <ProductTextArea
-                    label="Product 2 Ingredients"
-                    index={2}
-                    value={product2}
-                    onChange={(val) => { setProduct2(val); setProduct2Name(""); setProduct2Image(""); resetResults(); }}
-                    placeholder={PLACEHOLDER_2}
-                  />
-                </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
           </div>
         </div>
       </div>
 
-      {/* Scan button + Start over */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-3">
-        <p className="text-xs text-muted-foreground/60 flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 shrink-0" />
-          {mode === "single"
-            ? "Paste the full ingredient list from the product label."
-            : "Paste the ingredient lists from both product labels."}
-        </p>
-        <Button
-          size="lg"
-          onClick={handleScan}
-          disabled={!canSubmit || isPending}
-          className="w-full sm:w-auto min-w-[200px] gap-2"
-        >
-          {isPending ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />Analysing…</>
-          ) : (
-            <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? "Scan Ingredients") : (ctaLabel?.compare ?? "Check Compatibility")}</>
-          )}
-        </Button>
-      </div>
-      <div className="flex justify-end mb-10">
-        <button
-          type="button"
-          onClick={handleStartOver}
-          className="text-sm text-muted-foreground hover:text-foreground border border-border/40 hover:border-border/70 px-5 py-2 rounded-xl transition-colors"
-        >
-          Start over
-        </button>
+      {/* ── STEP 3: Analyze ── */}
+      <div className="flex gap-4 mb-10">
+        <div className="shrink-0">
+          <div
+            className={cn(
+              "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0",
+            )}
+            style={{ background: canSubmit ? "#7BAF7A" : "#BBBBBB" }}
+          >
+            3
+          </div>
+        </div>
+        <div className="flex-1 min-w-0 mt-1">
+          <h3 className="font-bold text-[17px] text-foreground mb-0.5">Analyze</h3>
+          <p className="text-xs text-muted-foreground mb-5">
+            {mode === "single"
+              ? "Paste or load your ingredient list above, then scan."
+              : "Load or paste both products above, then check compatibility."}
+          </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <Button
+              size="lg"
+              onClick={handleScan}
+              disabled={!canSubmit || isPending}
+              className="w-full sm:w-auto min-w-[200px] gap-2 text-base py-3 px-8"
+            >
+              {isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />Analysing…</>
+              ) : (
+                <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? "Scan Ingredients") : (ctaLabel?.compare ?? "Check Compatibility")}</>
+              )}
+            </Button>
+            <button
+              type="button"
+              onClick={handleStartOver}
+              className="text-sm text-muted-foreground hover:text-foreground border border-border/40 hover:border-border/70 px-5 py-2.5 rounded-xl transition-colors"
+            >
+              Start over
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Error */}

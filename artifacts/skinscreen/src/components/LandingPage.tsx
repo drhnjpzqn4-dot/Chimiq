@@ -810,12 +810,12 @@ export function LandingPage({ config }: LandingPageProps) {
             </div>
 
             {/* Column 2 — Brand */}
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4">
               <img
                 src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
                 alt="ChimIQ"
                 className="opacity-90"
-                style={{ height: 32, width: "auto", objectFit: "contain" }}
+                style={{ height: 52, width: "auto", objectFit: "contain", objectPosition: "left" }}
               />
               <p className="text-sm text-muted-foreground leading-relaxed">
                 © {new Date().getFullYear()} ChimIQ. Smarter skincare starts here.
