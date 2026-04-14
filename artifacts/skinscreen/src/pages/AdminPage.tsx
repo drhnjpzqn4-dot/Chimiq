@@ -12,6 +12,8 @@ interface Submission {
   submittedBy: string | null;
   status: string;
   aiReviewNote: string | null;
+  frontImageUrl: string | null;
+  ingredientsImageUrl: string | null;
 }
 
 export default function AdminPage() {
@@ -195,6 +197,30 @@ export default function AdminPage() {
                   </div>
 
                   <div className="p-6 space-y-4">
+                    {(s.frontImageUrl || s.ingredientsImageUrl) && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {s.frontImageUrl && (
+                          <div>
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Front photo</p>
+                            <img
+                              src={s.frontImageUrl}
+                              alt="Product front"
+                              className="w-full h-36 object-contain rounded-xl border border-border/60 bg-muted/20"
+                            />
+                          </div>
+                        )}
+                        {s.ingredientsImageUrl && (
+                          <div>
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Ingredients photo</p>
+                            <img
+                              src={s.ingredientsImageUrl}
+                              alt="Ingredients label"
+                              className="w-full h-36 object-contain rounded-xl border border-border/60 bg-muted/20"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 block">

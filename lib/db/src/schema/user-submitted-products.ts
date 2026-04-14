@@ -14,6 +14,8 @@ export const userSubmittedProductsTable = pgTable(
     status: text("status").notNull().default("pending"),
     aiReviewNote: text("ai_review_note"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    frontImageUrl: text("front_image_url"),
+    ingredientsImageUrl: text("ingredients_image_url"),
   },
   (t) => [index("user_submitted_products_barcode_idx").on(t.barcode)],
 );

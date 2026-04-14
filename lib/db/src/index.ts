@@ -18,9 +18,11 @@ export * from "./schema";
 
 export async function getUserPlan(userId: string): Promise<"free" | "premium"> {
   const [user] = await db
-    .select({ plan: schema.usersTable.plan })
+    .select({ plan: schema.usersTable.plan, premiumUntil: schema.usersTable.premiumUntil })
     .from(schema.usersTable)
     .where(eq(schema.usersTable.id, userId));
   if (!user) return "free";
-  return (user.plan === "premium" ? "premium" : "free");
+  if (user.plan === "premium") return "premium";
+  if (user.premiumUntil && user.premiumUntil > new Date()) return "premium";
+  return "free";
 }

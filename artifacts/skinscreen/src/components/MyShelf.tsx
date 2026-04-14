@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { ContributeModal } from "@/components/ContributeModal";
 import {
   useGetShelf,
   getGetShelfQueryKey,
@@ -14,7 +15,7 @@ import type { RoutineConflict, RoutineConflictResponse } from "@workspace/api-cl
 import {
   Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle,
   CheckCircle2, X, ShieldCheck, ShieldOff, Loader2,
-  ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock,
+  ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { cn } from "@/lib/utils";
@@ -426,6 +427,7 @@ const DEMO_PRODUCTS = [
 export function MyShelf({ displayName }: MyShelfProps) {
   const [tab, setTab] = useState<"morning" | "evening">("morning");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showContributeModal, setShowContributeModal] = useState(false);
   const [analysisState, setAnalysisState] = useState<AnalysisState>({ status: "idle" });
   const [loadingDemo, setLoadingDemo] = useState(false);
   const queryClient = useQueryClient();
@@ -609,7 +611,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
           <AddProductForm onClose={() => setShowAddForm(false)} onAdded={handleAdded} />
         </div>
       ) : (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 space-y-2">
           {plan === "free" && allProducts.length >= 2 ? (
             <button
               onClick={() => navigate("/pricing")}
@@ -627,7 +629,20 @@ export function MyShelf({ displayName }: MyShelfProps) {
               Add product
             </button>
           )}
+          <button
+            onClick={() => setShowContributeModal(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-200 bg-amber-50/50 text-amber-700 text-xs font-medium hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200"
+          >
+            <PackagePlus className="w-3.5 h-3.5" />
+            Contribute a product — earn free Premium
+          </button>
         </div>
+      )}
+
+      {showContributeModal && (
+        <ContributeModal
+          onClose={() => setShowContributeModal(false)}
+        />
       )}
 
       <RoutineCheckPanel
