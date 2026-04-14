@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, index, boolean } from "drizzle-orm/pg-core";
 
 export const userSubmittedProductsTable = pgTable(
   "user_submitted_products",
@@ -16,6 +16,7 @@ export const userSubmittedProductsTable = pgTable(
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     frontImageUrl: text("front_image_url"),
     ingredientsImageUrl: text("ingredients_image_url"),
+    rewardGranted: boolean("reward_granted").notNull().default(false),
   },
   (t) => [index("user_submitted_products_barcode_idx").on(t.barcode)],
 );

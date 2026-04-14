@@ -203,7 +203,7 @@ export default function AdminPage() {
                           <div>
                             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Front photo</p>
                             <img
-                              src={s.frontImageUrl}
+                              src={`/api/storage${s.frontImageUrl}`}
                               alt="Product front"
                               className="w-full h-36 object-contain rounded-xl border border-border/60 bg-muted/20"
                             />
@@ -213,7 +213,7 @@ export default function AdminPage() {
                           <div>
                             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Ingredients photo</p>
                             <img
-                              src={s.ingredientsImageUrl}
+                              src={`/api/storage${s.ingredientsImageUrl}`}
                               alt="Ingredients label"
                               className="w-full h-36 object-contain rounded-xl border border-border/60 bg-muted/20"
                             />

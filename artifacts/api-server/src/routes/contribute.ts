@@ -2,7 +2,9 @@ import { Router, type IRouter } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { db, userSubmittedProductsTable, cachedProductsTable, usersTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { objectStorageClient } from "../lib/objectStorage";
+import { randomUUID } from "crypto";
 
 const StartBody = z.object({
   barcode: z.string().regex(/^[0-9]{6,14}$/, "Invalid barcode").optional(),
@@ -25,6 +27,27 @@ const AdminReviewBody = z.object({
 
 const PREMIUM_CONTRIBUTION_MILESTONE = 5;
 const PREMIUM_DURATION_DAYS = 30;
+
+async function uploadImageToStorage(
+  imageBase64: string,
+  folder: string,
+  filename: string,
+): Promise<string | null> {
+  try {
+    const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+    const privateDir = process.env.PRIVATE_OBJECT_DIR;
+    if (!bucketId || !privateDir) return null;
+
+    const buffer = Buffer.from(imageBase64, "base64");
+    const objectKey = `${privateDir.replace(/\/$/, "")}/${folder}/${filename}`;
+    const bucket = objectStorageClient.bucket(bucketId);
+    const file = bucket.file(objectKey);
+    await file.save(buffer, { contentType: "image/jpeg", resumable: false });
+    return `/objects/${folder}/${filename}`;
+  } catch {
+    return null;
+  }
+}
 
 async function extractFromFrontImage(
   imageBase64: string,
@@ -111,16 +134,35 @@ Return only JSON, no other text.`,
   }
 }
 
-async function rewardContributor(
+async function rewardContributorIdempotent(
+  submissionId: string,
   userId: string,
   log: (msg: string, data?: unknown) => void,
 ): Promise<{ premiumUnlocked: boolean; premiumUntil: Date | null; totalContributions: number }> {
   try {
+    const [alreadyRewarded] = await db
+      .update(userSubmittedProductsTable)
+      .set({ rewardGranted: true })
+      .where(
+        sql`${userSubmittedProductsTable.id} = ${submissionId}
+          AND ${userSubmittedProductsTable.rewardGranted} = false`,
+      )
+      .returning({ id: userSubmittedProductsTable.id });
+
+    if (!alreadyRewarded) {
+      log("Reward already granted for submission, skipping", { submissionId });
+      const [user] = await db
+        .select({ acceptedContributions: usersTable.acceptedContributions })
+        .from(usersTable)
+        .where(eq(usersTable.id, userId));
+      return { premiumUnlocked: false, premiumUntil: null, totalContributions: user?.acceptedContributions ?? 0 };
+    }
+
     const [updated] = await db
       .update(usersTable)
       .set({ acceptedContributions: sql`accepted_contributions + 1` })
       .where(eq(usersTable.id, userId))
-      .returning({ acceptedContributions: usersTable.acceptedContributions });
+      .returning({ acceptedContributions: usersTable.acceptedContributions, premiumUntil: usersTable.premiumUntil });
 
     const newCount = updated?.acceptedContributions ?? 0;
 
@@ -170,6 +212,7 @@ async function approveSubmission(
       });
   }
 
+  log("Submission approved and cached", { submissionId: submission.id, barcode: submission.barcode });
   return true;
 }
 
@@ -195,6 +238,7 @@ router.post("/contribute/start", async (req, res) => {
         submittedBy: userId,
         status: "pending",
         obfContributed: "pending",
+        rewardGranted: false,
       })
       .returning();
 
@@ -222,6 +266,11 @@ router.post("/contribute/photos", async (req, res) => {
 
   if (!existing) {
     res.status(404).json({ error: "Submission not found." });
+    return;
+  }
+
+  if (existing.submittedBy && userId !== existing.submittedBy) {
+    res.status(403).json({ error: "You are not authorised to modify this submission." });
     return;
   }
 
@@ -257,16 +306,21 @@ router.post("/contribute/photos", async (req, res) => {
     }
   }
 
+  const imageFolder = `contributions/${submissionId}`;
+  const [frontImageUrl, ingredientsImageUrl] = await Promise.all([
+    frontImageBase64
+      ? uploadImageToStorage(frontImageBase64, imageFolder, `front-${randomUUID()}.jpg`)
+      : Promise.resolve(null),
+    ingredientsImageBase64
+      ? uploadImageToStorage(ingredientsImageBase64, imageFolder, `ingredients-${randomUUID()}.jpg`)
+      : Promise.resolve(null),
+  ]);
+
   const finalProductName = existing.productName ?? extractedProductName;
   const finalBrand = existing.brand ?? extractedBrand;
   const finalIngredients = ingredientsText?.trim() || extractedIngredients || null;
   const hasIngredients = finalIngredients && finalIngredients.length > 5;
   const status = hasIngredients && confidence === "high" ? "approved" : "needs_admin";
-
-  const frontDataUrl = frontImageBase64 ? `data:image/jpeg;base64,${frontImageBase64}` : null;
-  const ingredientsDataUrl = ingredientsImageBase64
-    ? `data:image/jpeg;base64,${ingredientsImageBase64}`
-    : null;
 
   try {
     const [updated] = await db
@@ -278,8 +332,8 @@ router.post("/contribute/photos", async (req, res) => {
         submittedBy: userId ?? existing.submittedBy,
         status,
         aiReviewNote: aiNote ?? null,
-        frontImageUrl: frontDataUrl ?? existing.frontImageUrl,
-        ingredientsImageUrl: ingredientsDataUrl ?? existing.ingredientsImageUrl,
+        frontImageUrl: frontImageUrl ?? existing.frontImageUrl,
+        ingredientsImageUrl: ingredientsImageUrl ?? existing.ingredientsImageUrl,
       })
       .where(eq(userSubmittedProductsTable.id, submissionId))
       .returning();
@@ -291,9 +345,12 @@ router.post("/contribute/photos", async (req, res) => {
       const approved = await approveSubmission(updated, (msg, data) =>
         req.log.info(data ?? {}, msg),
       );
-      if (approved && userId) {
-        const reward = await rewardContributor(userId, (msg, data) =>
-          req.log.info(data ?? {}, msg),
+      const effectiveUserId = userId ?? existing.submittedBy;
+      if (approved && effectiveUserId) {
+        const reward = await rewardContributorIdempotent(
+          submissionId,
+          effectiveUserId,
+          (msg, data) => req.log.info(data ?? {}, msg),
         );
         premiumUnlocked = reward.premiumUnlocked;
         premiumUntil = reward.premiumUntil;
@@ -324,6 +381,8 @@ router.get("/contribute/status/:id", async (req, res) => {
     return;
   }
 
+  const userId = (req as { user?: { id?: string } }).user?.id ?? null;
+
   try {
     const [submission] = await db
       .select({
@@ -333,6 +392,7 @@ router.get("/contribute/status/:id", async (req, res) => {
         brand: userSubmittedProductsTable.brand,
         ingredients: userSubmittedProductsTable.ingredients,
         aiReviewNote: userSubmittedProductsTable.aiReviewNote,
+        submittedBy: userSubmittedProductsTable.submittedBy,
       })
       .from(userSubmittedProductsTable)
       .where(eq(userSubmittedProductsTable.id, id));
@@ -342,7 +402,13 @@ router.get("/contribute/status/:id", async (req, res) => {
       return;
     }
 
-    res.json(submission);
+    if (submission.submittedBy && userId !== submission.submittedBy) {
+      res.status(403).json({ error: "Not authorised to view this submission." });
+      return;
+    }
+
+    const { submittedBy: _omit, ...safe } = submission;
+    res.json(safe);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch submission status");
     res.status(500).json({ error: "Could not fetch submission status." });
@@ -425,6 +491,16 @@ router.post("/admin/submissions/:id/approve", async (req, res) => {
   const { productName, brand, ingredients } = parseResult.data;
 
   try {
+    const [existing] = await db
+      .select()
+      .from(userSubmittedProductsTable)
+      .where(eq(userSubmittedProductsTable.id, id));
+
+    if (!existing) {
+      res.status(404).json({ error: "Submission not found." });
+      return;
+    }
+
     const [updated] = await db
       .update(userSubmittedProductsTable)
       .set({
@@ -439,8 +515,12 @@ router.post("/admin/submissions/:id/approve", async (req, res) => {
 
     if (updated) {
       await approveSubmission(updated, (msg, data) => req.log.info(data ?? {}, msg));
-      if (updated.submittedBy) {
-        await rewardContributor(updated.submittedBy, (msg, data) => req.log.info(data ?? {}, msg));
+      if (updated.submittedBy && !updated.rewardGranted) {
+        await rewardContributorIdempotent(
+          id,
+          updated.submittedBy,
+          (msg, data) => req.log.info(data ?? {}, msg),
+        );
       }
     }
 
@@ -461,6 +541,10 @@ router.post("/admin/submissions/:id/reject", async (req, res) => {
   }
 
   const { id } = req.params;
+  if (!id.match(/^[0-9a-f-]{36}$/i)) {
+    res.status(400).json({ error: "Invalid submission ID." });
+    return;
+  }
 
   try {
     await db
