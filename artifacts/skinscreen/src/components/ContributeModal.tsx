@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { PackagePlus, Camera, Loader2, CheckCircle2, Gift, Star, X } from "lucide-react";
+import { PackagePlus, Camera, Loader2, CheckCircle2, Gift, Star, X, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ContributeModalProps {
@@ -10,7 +10,7 @@ interface ContributeModalProps {
   onClose: () => void;
 }
 
-type Step = "info" | "ingredients" | "submitting" | "success";
+type Step = "front-photo" | "ingredients" | "submitting" | "success";
 
 interface SubmitResult {
   extractedIngredients?: string | null;
@@ -54,12 +54,14 @@ export function ContributeModal({
   onSuccess,
   onClose,
 }: ContributeModalProps) {
-  const [step, setStep] = useState<Step>("info");
+  const [step, setStep] = useState<Step>("front-photo");
   const [productName, setProductName] = useState(initialProductName);
   const [brand, setBrand] = useState(initialBrand);
   const [ingredientsText, setIngredientsText] = useState("");
   const [frontImageBase64, setFrontImageBase64] = useState<string | null>(null);
+  const [frontPreviewUrl, setFrontPreviewUrl] = useState<string | null>(null);
   const [ingredientsImageBase64, setIngredientsImageBase64] = useState<string | null>(null);
+  const [ingredientsPreviewUrl, setIngredientsPreviewUrl] = useState<string | null>(null);
   const [processingFront, setProcessingFront] = useState(false);
   const [processingIngredients, setProcessingIngredients] = useState(false);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
@@ -74,10 +76,13 @@ export function ContributeModal({
     if (!file) return;
     e.target.value = "";
     setProcessingFront(true);
+    setError(null);
     try {
+      const dataUrl = URL.createObjectURL(file);
+      setFrontPreviewUrl(dataUrl);
       setFrontImageBase64(await resizeImageBase64(file));
     } catch {
-      setError("Could not read the front photo. Please try again.");
+      setError("Could not read the photo. Please try again.");
     }
     setProcessingFront(false);
   }, []);
@@ -87,15 +92,18 @@ export function ContributeModal({
     if (!file) return;
     e.target.value = "";
     setProcessingIngredients(true);
+    setError(null);
     try {
+      const dataUrl = URL.createObjectURL(file);
+      setIngredientsPreviewUrl(dataUrl);
       setIngredientsImageBase64(await resizeImageBase64(file));
     } catch {
-      setError("Could not read the ingredients photo. Please try again.");
+      setError("Could not read the photo. Please try again.");
     }
     setProcessingIngredients(false);
   }, []);
 
-  const handleNextStep = useCallback(async () => {
+  const handleFrontPhotoNext = useCallback(async () => {
     setError(null);
     try {
       const res = await fetch("/api/contribute/start", {
@@ -160,18 +168,28 @@ export function ContributeModal({
     }
   }, [submissionId, frontImageBase64, ingredientsImageBase64, ingredientsText, onSuccess, brand, productName]);
 
+  const stepLabel: Record<Step, string> = {
+    "front-photo": "Step 1 of 2 — Product photo",
+    "ingredients": "Step 2 of 2 — Ingredient list",
+    "submitting": "Processing…",
+    "success": "Submitted!",
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="bg-primary px-5 py-4 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-2.5">
+            {step === "ingredients" && (
+              <button
+                onClick={() => setStep("front-photo")}
+                className="text-white/80 hover:text-white transition-colors mr-1"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
             <PackagePlus className="w-4 h-4 text-white" />
-            <p className="text-white font-semibold text-sm">
-              {step === "info" && "Add Product to Database"}
-              {step === "ingredients" && "Add Ingredient List"}
-              {step === "submitting" && "Processing…"}
-              {step === "success" && "Submitted!"}
-            </p>
+            <p className="text-white font-semibold text-sm">{stepLabel[step]}</p>
           </div>
           <button
             onClick={onClose}
@@ -182,7 +200,7 @@ export function ContributeModal({
         </div>
 
         <div className="p-5">
-          {(step === "info" || step === "ingredients") && (
+          {(step === "front-photo" || step === "ingredients") && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 mb-5">
               <Gift className="w-4 h-4 text-amber-600 shrink-0" />
               <p className="text-xs text-amber-700 font-medium leading-snug">
@@ -191,44 +209,91 @@ export function ContributeModal({
             </div>
           )}
 
-          {step === "info" && (
+          {step === "front-photo" && (
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-semibold text-foreground mb-3">
-                  {initialProductName
-                    ? `"${initialProductName}" needs its ingredient list.`
-                    : "Help us build the product database!"}
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Snap the front of the product bottle
                 </p>
                 <p className="text-xs text-muted-foreground mb-4">
                   {barcode
-                    ? `Barcode ${barcode} is not in our database yet. Add the product details and we'll make it available for everyone.`
-                    : "Share a product's details so other users can benefit from scanning it."}
+                    ? `Barcode ${barcode} isn't in our database yet. A photo helps our AI identify the product automatically.`
+                    : "A clear photo of the label helps our AI identify the product name and brand."}
                 </p>
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 block">
-                    Product name
-                  </label>
+              <input
+                ref={frontInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleFrontPhoto}
+              />
+
+              {frontPreviewUrl ? (
+                <div className="space-y-3">
+                  <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-muted/10">
+                    <img
+                      src={frontPreviewUrl}
+                      alt="Product front"
+                      className="w-full max-h-52 object-contain"
+                    />
+                    <button
+                      onClick={() => frontInputRef.current?.click()}
+                      disabled={processingFront}
+                      className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-white/90 text-xs font-medium text-foreground shadow hover:bg-white transition-colors border border-border/40"
+                    >
+                      Retake
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                    Photo captured — AI will read the label
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => frontInputRef.current?.click()}
+                  disabled={processingFront}
+                  className="w-full flex flex-col items-center gap-3 py-10 rounded-2xl border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all"
+                >
+                  {processingFront ? (
+                    <Loader2 className="w-7 h-7 animate-spin" />
+                  ) : (
+                    <Camera className="w-7 h-7" />
+                  )}
+                  <span className="text-sm font-medium">
+                    {processingFront ? "Processing…" : "Take photo"}
+                  </span>
+                  <span className="text-xs text-muted-foreground/60">
+                    Point camera at the front of the bottle
+                  </span>
+                </button>
+              )}
+
+              <div className="border-t border-border/30 pt-3 space-y-3">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  Manual override{" "}
+                  <span className="font-normal normal-case text-muted-foreground/60">
+                    (optional if photo is clear)
+                  </span>
+                </p>
+                <div className="grid grid-cols-2 gap-2">
                   <input
                     type="text"
-                    placeholder="e.g. Moisturising Lotion"
+                    placeholder="Product name"
                     value={productName}
                     onChange={(e) => setProductName(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
+                    className="px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
                   />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 block">
-                    Brand
-                  </label>
                   <input
                     type="text"
-                    placeholder="e.g. CeraVe"
+                    placeholder="Brand"
                     value={brand}
                     onChange={(e) => setBrand(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
+                    className="px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
                   />
                 </div>
               </div>
@@ -237,8 +302,9 @@ export function ContributeModal({
 
               <button
                 type="button"
-                onClick={handleNextStep}
-                className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+                onClick={handleFrontPhotoNext}
+                disabled={processingFront}
+                className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next — add ingredient list
               </button>
@@ -255,102 +321,79 @@ export function ContributeModal({
 
           {step === "ingredients" && (
             <div className="space-y-4">
-              <div className="rounded-xl border border-border/60 overflow-hidden">
-                <div className="px-3 py-2.5 bg-muted/30 border-b border-border/40">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                    Ingredients photo
-                  </p>
-                </div>
-                <div className="p-3 space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => ingredientsInputRef.current?.click()}
-                    disabled={processingIngredients}
-                    className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-3 rounded-xl border-2 border-dashed text-sm transition-all",
-                      ingredientsImageBase64
-                        ? "border-primary/60 bg-primary/5 text-primary font-medium"
-                        : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5",
-                    )}
-                  >
-                    {processingIngredients ? (
-                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                    ) : (
-                      <Camera className="w-4 h-4 shrink-0" />
-                    )}
-                    {ingredientsImageBase64
-                      ? "Ingredients photo captured — AI will extract the list"
-                      : processingIngredients
-                      ? "Processing photo…"
-                      : "Snap a photo of the ingredient list"}
-                  </button>
-                  <input
-                    ref={ingredientsInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handleIngredientsPhoto}
-                  />
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Now add the ingredient list
+                </p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Take a photo of the back label, or paste the text directly. Our AI will extract the ingredients.
+                </p>
+              </div>
 
-                  <div className="flex items-center gap-2 text-muted-foreground/40 text-[11px]">
-                    <div className="flex-1 h-px bg-border/50" />
-                    or type manually
-                    <div className="flex-1 h-px bg-border/50" />
+              <input
+                ref={ingredientsInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleIngredientsPhoto}
+              />
+
+              {ingredientsPreviewUrl ? (
+                <div className="space-y-2">
+                  <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-muted/10">
+                    <img
+                      src={ingredientsPreviewUrl}
+                      alt="Ingredients label"
+                      className="w-full max-h-40 object-contain"
+                    />
+                    <button
+                      onClick={() => ingredientsInputRef.current?.click()}
+                      disabled={processingIngredients}
+                      className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-white/90 text-xs font-medium text-foreground shadow hover:bg-white transition-colors border border-border/40"
+                    >
+                      Retake
+                    </button>
                   </div>
-
-                  <textarea
-                    placeholder="Paste the full ingredient list from the back of the product…"
-                    value={ingredientsText}
-                    onChange={(e) => setIngredientsText(e.target.value)}
-                    rows={4}
-                    className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border/60 overflow-hidden">
-                <div className="px-3 py-2.5 bg-muted/30 border-b border-border/40">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                    Product front photo{" "}
-                    <span className="font-normal normal-case text-muted-foreground/60">
-                      (optional — helps with AI review)
-                    </span>
+                  <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                    Ingredient photo captured
                   </p>
                 </div>
-                <div className="p-3">
-                  <button
-                    type="button"
-                    onClick={() => frontInputRef.current?.click()}
-                    disabled={processingFront}
-                    className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-3 rounded-xl border-2 border-dashed text-sm transition-all",
-                      frontImageBase64
-                        ? "border-primary/60 bg-primary/5 text-primary font-medium"
-                        : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5",
-                    )}
-                  >
-                    {processingFront ? (
-                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                    ) : (
-                      <Camera className="w-4 h-4 shrink-0" />
-                    )}
-                    {frontImageBase64
-                      ? "Front photo captured"
-                      : processingFront
-                      ? "Processing…"
-                      : "Snap a photo of the product front"}
-                  </button>
-                  <input
-                    ref={frontInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handleFrontPhoto}
-                  />
-                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => ingredientsInputRef.current?.click()}
+                  disabled={processingIngredients}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-3 py-3 rounded-xl border-2 border-dashed text-sm transition-all",
+                    "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5",
+                  )}
+                >
+                  {processingIngredients ? (
+                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  ) : (
+                    <Camera className="w-4 h-4 shrink-0" />
+                  )}
+                  <span>
+                    {processingIngredients ? "Processing photo…" : "Snap a photo of the ingredient list"}
+                  </span>
+                </button>
+              )}
+
+              <div className="flex items-center gap-2 text-muted-foreground/40 text-[11px]">
+                <div className="flex-1 h-px bg-border/50" />
+                or type/paste manually
+                <div className="flex-1 h-px bg-border/50" />
               </div>
+
+              <textarea
+                placeholder="Paste the full ingredient list from the back of the product…"
+                value={ingredientsText}
+                onChange={(e) => setIngredientsText(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none"
+              />
 
               {error && <p className="text-xs text-red-500 text-center">{error}</p>}
 
@@ -378,7 +421,7 @@ export function ContributeModal({
               <Loader2 className="w-10 h-10 text-primary animate-spin" />
               <div className="text-center">
                 <p className="font-semibold text-foreground">Processing your contribution…</p>
-                <p className="text-sm text-muted-foreground mt-1">AI is reviewing the ingredient list</p>
+                <p className="text-sm text-muted-foreground mt-1">AI is reviewing the photos and ingredient list</p>
               </div>
             </div>
           )}

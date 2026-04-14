@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { objectStorageClient } from "../lib/objectStorage";
+import { gcsClient } from "../lib/objectStorage";
 import { db, userSubmittedProductsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -60,7 +60,7 @@ router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
     }
 
     const objectKey = `${privateDir.replace(/\/$/, "")}/${relativePath}`;
-    const bucket = objectStorageClient.bucket(bucketId);
+    const bucket = gcsClient.bucket(bucketId);
     const file = bucket.file(objectKey);
     const [exists] = await file.exists();
     if (!exists) {

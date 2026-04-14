@@ -3,7 +3,7 @@ import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { db, userSubmittedProductsTable, cachedProductsTable, usersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { objectStorageClient } from "../lib/objectStorage";
+import { uploadBufferToGcs } from "../lib/objectStorage";
 import { randomUUID } from "crypto";
 
 const StartBody = z.object({
@@ -27,27 +27,6 @@ const AdminReviewBody = z.object({
 
 const PREMIUM_CONTRIBUTION_MILESTONE = 5;
 const PREMIUM_DURATION_DAYS = 30;
-
-async function uploadImageToStorage(
-  imageBase64: string,
-  folder: string,
-  filename: string,
-): Promise<string | null> {
-  try {
-    const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
-    const privateDir = process.env.PRIVATE_OBJECT_DIR;
-    if (!bucketId || !privateDir) return null;
-
-    const buffer = Buffer.from(imageBase64, "base64");
-    const objectKey = `${privateDir.replace(/\/$/, "")}/${folder}/${filename}`;
-    const bucket = objectStorageClient.bucket(bucketId);
-    const file = bucket.file(objectKey);
-    await file.save(buffer, { contentType: "image/jpeg", resumable: false });
-    return `/objects/${folder}/${filename}`;
-  } catch {
-    return null;
-  }
-}
 
 async function extractFromFrontImage(
   imageBase64: string,
@@ -140,7 +119,7 @@ async function rewardContributorIdempotent(
   log: (msg: string, data?: unknown) => void,
 ): Promise<{ premiumUnlocked: boolean; premiumUntil: Date | null; totalContributions: number }> {
   try {
-    const [alreadyRewarded] = await db
+    const [claimed] = await db
       .update(userSubmittedProductsTable)
       .set({ rewardGranted: true })
       .where(
@@ -149,7 +128,7 @@ async function rewardContributorIdempotent(
       )
       .returning({ id: userSubmittedProductsTable.id });
 
-    if (!alreadyRewarded) {
+    if (!claimed) {
       log("Reward already granted for submission, skipping", { submissionId });
       const [user] = await db
         .select({ acceptedContributions: usersTable.acceptedContributions })
@@ -162,7 +141,7 @@ async function rewardContributorIdempotent(
       .update(usersTable)
       .set({ acceptedContributions: sql`accepted_contributions + 1` })
       .where(eq(usersTable.id, userId))
-      .returning({ acceptedContributions: usersTable.acceptedContributions, premiumUntil: usersTable.premiumUntil });
+      .returning({ acceptedContributions: usersTable.acceptedContributions });
 
     const newCount = updated?.acceptedContributions ?? 0;
 
@@ -274,6 +253,11 @@ router.post("/contribute/photos", async (req, res) => {
     return;
   }
 
+  await db
+    .update(userSubmittedProductsTable)
+    .set({ status: "ai_reviewing" })
+    .where(eq(userSubmittedProductsTable.id, submissionId));
+
   const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
   const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
 
@@ -309,10 +293,20 @@ router.post("/contribute/photos", async (req, res) => {
   const imageFolder = `contributions/${submissionId}`;
   const [frontImageUrl, ingredientsImageUrl] = await Promise.all([
     frontImageBase64
-      ? uploadImageToStorage(frontImageBase64, imageFolder, `front-${randomUUID()}.jpg`)
+      ? uploadBufferToGcs(
+          Buffer.from(frontImageBase64, "base64"),
+          imageFolder,
+          `front-${randomUUID()}.jpg`,
+          "image/jpeg",
+        )
       : Promise.resolve(null),
     ingredientsImageBase64
-      ? uploadImageToStorage(ingredientsImageBase64, imageFolder, `ingredients-${randomUUID()}.jpg`)
+      ? uploadBufferToGcs(
+          Buffer.from(ingredientsImageBase64, "base64"),
+          imageFolder,
+          `ingredients-${randomUUID()}.jpg`,
+          "image/jpeg",
+        )
       : Promise.resolve(null),
   ]);
 

@@ -2,6 +2,7 @@ import { pgTable, text, timestamp, uuid, index, boolean, pgEnum } from "drizzle-
 
 export const submissionStatusEnum = pgEnum("submission_status", [
   "pending",
+  "ai_reviewing",
   "approved",
   "needs_admin",
   "rejected",
