@@ -428,7 +428,7 @@ router.get("/contribute/stats", async (req, res) => {
     const premiumUntil = user?.premiumUntil ?? null;
     const justUnlocked =
       premiumUntil !== null &&
-      new Date().getTime() - premiumUntil.getTime() < 24 * 60 * 60 * 1000 * 29;
+      premiumUntil.getTime() - Date.now() > 24 * 60 * 60 * 1000 * 29;
 
     res.json({
       acceptedContributions: user?.acceptedContributions ?? 0,
