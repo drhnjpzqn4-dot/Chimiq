@@ -1,10 +1,47 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { MyShelf } from "@/components/MyShelf";
-import { ScanLine, LogOut } from "lucide-react";
+import { ScanLine, LogOut, Star, Gift } from "lucide-react";
+
+interface ContributeStats {
+  acceptedContributions: number;
+}
+
+function ContributionBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+  const nextMilestone = Math.ceil(count / 5) * 5;
+  const remaining = nextMilestone - count;
+  const starsToShow = Math.min(count, 5);
+  const emptyStars = Math.max(0, 5 - count);
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
+      <Gift className="w-4 h-4 text-amber-600 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-amber-700">
+          {count} product{count !== 1 ? "s" : ""} contributed
+          {remaining > 0 && remaining <= 4 && (
+            <span className="font-normal text-amber-600"> · {remaining} more to earn free Premium</span>
+          )}
+          {remaining === 0 && (
+            <span className="font-normal text-amber-600"> · Premium unlocked!</span>
+          )}
+        </p>
+      </div>
+      <div className="flex items-center gap-0.5 shrink-0">
+        {[...Array(starsToShow)].map((_, i) => (
+          <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
+        ))}
+        {[...Array(emptyStars)].map((_, i) => (
+          <Star key={`e-${i}`} className="w-3 h-3 text-amber-200" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function AppPage() {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const [contributeStats, setContributeStats] = useState<ContributeStats | null>(null);
 
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
@@ -13,6 +50,15 @@ export default function AppPage() {
       window.location.href = `/api/login?returnTo=${encodeURIComponent(base + "/app")}`;
     }
   }, [isLoading, isAuthenticated, base]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetch("/api/contribute/stats", { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => setContributeStats(data as ContributeStats))
+        .catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -62,6 +108,12 @@ export default function AppPage() {
           </p>
         </div>
 
+        {contributeStats && contributeStats.acceptedContributions > 0 && (
+          <div className="mb-6">
+            <ContributionBadge count={contributeStats.acceptedContributions} />
+          </div>
+        )}
+
         <div className="mb-8">
           <MyShelf userId={user.id} displayName={displayName} />
         </div>
@@ -76,6 +128,9 @@ export default function AppPage() {
           </a>
           <p className="text-muted-foreground text-sm mt-3">
             Paste an ingredient list or scan a barcode to check against your shelf.
+          </p>
+          <p className="text-muted-foreground/50 text-xs mt-2">
+            When scanning a new barcode, you can contribute ingredient data and earn free Premium.
           </p>
         </div>
       </main>

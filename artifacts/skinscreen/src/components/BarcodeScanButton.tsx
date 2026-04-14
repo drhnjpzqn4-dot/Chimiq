@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Barcode, X, Loader2, AlertCircle, CheckCircle2, PackagePlus } from "lucide-react";
+import { Barcode, X, Loader2, AlertCircle, CheckCircle2, PackagePlus, Camera, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BarcodeScanButtonProps {
@@ -24,6 +24,34 @@ declare const BarcodeDetector: {
   getSupportedFormats(): Promise<string[]>;
 };
 
+function resizeImageBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const MAX_EDGE = 1200;
+        let { width, height } = img;
+        if (width > MAX_EDGE || height > MAX_EDGE) {
+          if (width >= height) { height = Math.round((height * MAX_EDGE) / width); width = MAX_EDGE; }
+          else { width = Math.round((width * MAX_EDGE) / height); height = MAX_EDGE; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82).split(",")[1]);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps) {
   const [state, setState] = useState<ScanState>(
     typeof window !== "undefined" && "BarcodeDetector" in window ? "idle" : "unsupported",
@@ -31,6 +59,7 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [scannedProduct, setScannedProduct] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [contributionNote, setContributionNote] = useState<string | null>(null);
 
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const [submitName, setSubmitName] = useState("");
@@ -39,11 +68,18 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [frontImageBase64, setFrontImageBase64] = useState<string | null>(null);
+  const [ingredientsImageBase64, setIngredientsImageBase64] = useState<string | null>(null);
+  const [processingFront, setProcessingFront] = useState(false);
+  const [processingIngredients, setProcessingIngredients] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const detectorRef = useRef<InstanceType<typeof BarcodeDetector> | null>(null);
   const scannedRef = useRef(false);
+  const frontInputRef = useRef<HTMLInputElement>(null);
+  const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
   const resetSubmitForm = useCallback(() => {
     setScannedBarcode(null);
@@ -52,6 +88,11 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
     setSubmitIngredients("");
     setIsSubmitting(false);
     setSubmitError(null);
+    setFrontImageBase64(null);
+    setIngredientsImageBase64(null);
+    setProcessingFront(false);
+    setProcessingIngredients(false);
+    setContributionNote(null);
   }, []);
 
   const stopCamera = useCallback(() => {
@@ -77,41 +118,103 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
     resetSubmitForm();
   }, [stopCamera, resetSubmitForm]);
 
+  const handleFrontPhoto = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setProcessingFront(true);
+    try {
+      const b64 = await resizeImageBase64(file);
+      setFrontImageBase64(b64);
+    } catch {
+      setSubmitError("Could not read front photo.");
+    }
+    setProcessingFront(false);
+  }, []);
+
+  const handleIngredientsPhoto = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setProcessingIngredients(true);
+    try {
+      const b64 = await resizeImageBase64(file);
+      setIngredientsImageBase64(b64);
+    } catch {
+      setSubmitError("Could not read ingredients photo.");
+    }
+    setProcessingIngredients(false);
+  }, []);
+
   const handleSubmit = useCallback(async () => {
-    if (!submitIngredients.trim() || !scannedBarcode) return;
+    const hasManual = submitIngredients.trim().length > 0;
+    const hasImages = frontImageBase64 || ingredientsImageBase64;
+    if (!hasManual && !hasImages) return;
+
     setIsSubmitting(true);
     setSubmitError(null);
+
     try {
-      const res = await fetch("/api/barcode/submit", {
+      const res = await fetch("/api/contribute", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          barcode: scannedBarcode,
+          barcode: scannedBarcode ?? undefined,
           productName: submitName.trim() || undefined,
           brand: submitBrand.trim() || undefined,
-          ingredients: submitIngredients.trim(),
+          ingredientsText: submitIngredients.trim() || undefined,
+          frontImageBase64: frontImageBase64 ?? undefined,
+          ingredientsImageBase64: ingredientsImageBase64 ?? undefined,
         }),
       });
-      const data = (await res.json()) as { recorded?: boolean };
-      if (!res.ok || !data.recorded) throw new Error("Submit failed");
 
+      const data = (await res.json()) as {
+        extractedIngredients?: string | null;
+        status?: string;
+        message?: string;
+        error?: string;
+      };
+
+      if (!res.ok) throw new Error(data.error ?? "Submit failed");
+
+      const extractedIngs = data.extractedIngredients;
       const name = [submitBrand.trim(), submitName.trim()].filter(Boolean).join(" ") || "Scanned product";
+
       setScannedProduct(name);
+      setContributionNote(data.message ?? "Thank you for contributing!");
       setState("success");
-      const ings = submitIngredients.trim();
-      setTimeout(() => {
-        onResult(ings, name);
-        setModalOpen(false);
-        setState("idle");
-        setScannedProduct(null);
-        resetSubmitForm();
-      }, 1200);
-    } catch {
-      setSubmitError("Couldn't save right now. Please try again.");
+
+      if (extractedIngs) {
+        setTimeout(() => {
+          onResult(extractedIngs, name);
+          setModalOpen(false);
+          setState("idle");
+          setScannedProduct(null);
+          resetSubmitForm();
+        }, 2200);
+      } else {
+        setTimeout(() => {
+          setModalOpen(false);
+          setState("idle");
+          setScannedProduct(null);
+          resetSubmitForm();
+        }, 2800);
+      }
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Couldn't save right now. Please try again.");
       setIsSubmitting(false);
     }
-  }, [scannedBarcode, submitName, submitBrand, submitIngredients, onResult, resetSubmitForm]);
+  }, [
+    scannedBarcode,
+    submitName,
+    submitBrand,
+    submitIngredients,
+    frontImageBase64,
+    ingredientsImageBase64,
+    onResult,
+    resetSubmitForm,
+  ]);
 
   const handleBarcodeFound = useCallback(
     async (code: string) => {
@@ -223,6 +326,8 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
     return null;
   }
 
+  const canSubmit = (submitIngredients.trim().length > 5 || ingredientsImageBase64 !== null) && !isSubmitting;
+
   return (
     <>
       <button
@@ -241,12 +346,12 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
 
       {modalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl">
-            <div className="bg-primary px-5 py-4 flex items-center justify-between">
+          <div className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-primary px-5 py-4 flex items-center justify-between sticky top-0 z-10">
               <div className="flex items-center gap-2.5">
                 <Barcode className="w-4 h-4 text-white" />
                 <p className="text-white font-semibold text-sm">
-                  {state === "not_found" ? "Add Product" : "Scan Product Barcode"}
+                  {state === "not_found" ? "Add Product to Database" : "Scan Product Barcode"}
                 </p>
               </div>
               <button
@@ -305,7 +410,11 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-foreground">{scannedProduct}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Ingredients loaded ✓</p>
+                    {contributionNote ? (
+                      <p className="text-sm text-muted-foreground mt-1">{contributionNote}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-1">Ingredients loaded ✓</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -333,14 +442,21 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
                     </div>
                     <div>
                       <p className="font-semibold text-sm text-foreground leading-snug">
-                        {submitName ? "Ingredient list missing" : "New product found"}
+                        {submitName ? "Ingredient list missing" : "New product — help us add it!"}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                         {submitName
-                          ? `We found "${submitName}" but the ingredient list isn't recorded. Add it to help others too.`
-                          : "This barcode isn't in our database yet. Add the ingredient list and it'll be saved for everyone."}
+                          ? `We found "${submitName}" but the ingredient list isn't recorded yet.`
+                          : "This barcode isn't in our database yet. Add it to help other users."}
                       </p>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                    <Gift className="w-4 h-4 text-amber-600 shrink-0" />
+                    <p className="text-xs text-amber-700 font-medium leading-snug">
+                      Earn free Premium — contribute 5 products to unlock your subscription.
+                    </p>
                   </div>
 
                   <div className="space-y-2.5">
@@ -358,13 +474,101 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
                       onChange={(e) => setSubmitBrand(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
                     />
-                    <textarea
-                      placeholder="Paste the full ingredient list from the back of the product…"
-                      value={submitIngredients}
-                      onChange={(e) => setSubmitIngredients(e.target.value)}
-                      rows={4}
-                      className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none"
-                    />
+                  </div>
+
+                  <div className="rounded-xl border border-border/60 overflow-hidden">
+                    <div className="px-3 py-2.5 bg-muted/30 border-b border-border/40">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                        Ingredient list
+                      </p>
+                    </div>
+
+                    <div className="p-3 space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => ingredientsInputRef.current?.click()}
+                        disabled={processingIngredients}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 border-dashed text-sm transition-all",
+                          ingredientsImageBase64
+                            ? "border-primary/60 bg-primary/5 text-primary"
+                            : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5",
+                        )}
+                      >
+                        {processingIngredients ? (
+                          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        ) : (
+                          <Camera className="w-4 h-4 shrink-0" />
+                        )}
+                        {ingredientsImageBase64
+                          ? "Ingredients photo captured ✓"
+                          : processingIngredients
+                          ? "Processing photo…"
+                          : "Snap photo of ingredient list"}
+                      </button>
+                      <input
+                        ref={ingredientsInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={handleIngredientsPhoto}
+                      />
+
+                      <div className="flex items-center gap-2 text-muted-foreground/40 text-[11px]">
+                        <div className="flex-1 h-px bg-border/50" />
+                        or type manually
+                        <div className="flex-1 h-px bg-border/50" />
+                      </div>
+
+                      <textarea
+                        placeholder="Paste the full ingredient list from the back of the product…"
+                        value={submitIngredients}
+                        onChange={(e) => setSubmitIngredients(e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border/60 overflow-hidden">
+                    <div className="px-3 py-2.5 bg-muted/30 border-b border-border/40">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                        Product front photo <span className="font-normal normal-case text-muted-foreground/60">(optional — helps with AI review)</span>
+                      </p>
+                    </div>
+                    <div className="p-3">
+                      <button
+                        type="button"
+                        onClick={() => frontInputRef.current?.click()}
+                        disabled={processingFront}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 border-dashed text-sm transition-all",
+                          frontImageBase64
+                            ? "border-primary/60 bg-primary/5 text-primary"
+                            : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5",
+                        )}
+                      >
+                        {processingFront ? (
+                          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        ) : (
+                          <Camera className="w-4 h-4 shrink-0" />
+                        )}
+                        {frontImageBase64
+                          ? "Front photo captured ✓"
+                          : processingFront
+                          ? "Processing photo…"
+                          : "Snap photo of product front"}
+                      </button>
+                      <input
+                        ref={frontInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={handleFrontPhoto}
+                      />
+                    </div>
                   </div>
 
                   {submitError && (
@@ -375,16 +579,16 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
                     <button
                       type="button"
                       onClick={handleSubmit}
-                      disabled={!submitIngredients.trim() || isSubmitting}
+                      disabled={!canSubmit}
                       className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {isSubmitting ? (
                         <span className="flex items-center justify-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Saving…
+                          Processing & saving…
                         </span>
                       ) : (
-                        "Save & analyse"
+                        "Contribute & analyse"
                       )}
                     </button>
                     <button

@@ -7,6 +7,7 @@ import HomeA from "@/pages/HomeA";
 import HomeB from "@/pages/HomeB";
 import Pricing from "@/pages/Pricing";
 import AppPage from "@/pages/AppPage";
+import AdminPage from "@/pages/AdminPage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/b" component={HomeB} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/app" component={AppPage} />
+      <Route path="/admin/submissions" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
   );

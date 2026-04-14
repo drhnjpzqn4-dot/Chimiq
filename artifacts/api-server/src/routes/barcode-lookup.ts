@@ -111,24 +111,14 @@ router.post("/barcode/submit", async (req, res) => {
   const { barcode, productName, brand, ingredients } = parseResult.data;
 
   try {
-    await db
-      .insert(userSubmittedProductsTable)
-      .values({
-        barcode,
-        productName: productName ?? null,
-        brand: brand ?? null,
-        ingredients: ingredients ?? null,
-        obfContributed: "pending",
-      })
-      .onConflictDoUpdate({
-        target: userSubmittedProductsTable.barcode,
-        set: {
-          productName: sql`COALESCE(EXCLUDED.product_name, user_submitted_products.product_name)`,
-          brand: sql`COALESCE(EXCLUDED.brand, user_submitted_products.brand)`,
-          ingredients: sql`COALESCE(EXCLUDED.ingredients, user_submitted_products.ingredients)`,
-          submittedAt: sql`NOW()`,
-        },
-      });
+    await db.insert(userSubmittedProductsTable).values({
+      barcode,
+      productName: productName ?? null,
+      brand: brand ?? null,
+      ingredients: ingredients ?? null,
+      status: "pending",
+      obfContributed: "pending",
+    });
 
     res.json({ recorded: true, message: "Product submitted. Thank you for contributing!" });
   } catch (err) {
@@ -145,24 +135,14 @@ async function recordUnknownBarcode(
   ingredients?: string,
 ): Promise<void> {
   try {
-    await db
-      .insert(userSubmittedProductsTable)
-      .values({
-        barcode,
-        productName: productName ?? null,
-        brand: brand ?? null,
-        ingredients: ingredients ?? null,
-        obfContributed: "pending",
-      })
-      .onConflictDoUpdate({
-        target: userSubmittedProductsTable.barcode,
-        set: {
-          productName: sql`COALESCE(EXCLUDED.product_name, user_submitted_products.product_name)`,
-          brand: sql`COALESCE(EXCLUDED.brand, user_submitted_products.brand)`,
-          ingredients: sql`COALESCE(EXCLUDED.ingredients, user_submitted_products.ingredients)`,
-          submittedAt: sql`NOW()`,
-        },
-      });
+    await db.insert(userSubmittedProductsTable).values({
+      barcode,
+      productName: productName ?? null,
+      brand: brand ?? null,
+      ingredients: ingredients ?? null,
+      status: "pending",
+      obfContributed: "pending",
+    });
   } catch (err) {
     log.warn({ err }, "Failed to record unknown barcode in user_submitted_products");
   }

@@ -13,6 +13,7 @@ import barcodeLookupRouter from "./barcode-lookup";
 import statsRouter from "./stats";
 import paymentsRouter from "./payments";
 import analysisCacheRouter from "./analysis-cache";
+import contributeRouter from "./contribute";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(barcodeLookupRouter);
 router.use(statsRouter);
 router.use(paymentsRouter);
 router.use(analysisCacheRouter);
+router.use(contributeRouter);
 
 export default router;
