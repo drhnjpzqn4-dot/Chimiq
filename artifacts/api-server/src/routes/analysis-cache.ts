@@ -3,7 +3,7 @@ import { z } from "zod";
 import { flagCacheEntry } from "../lib/analysis-cache.js";
 
 const FlagBody = z.object({
-  hash: z.string().min(1).max(128),
+  hash: z.string().regex(/^[0-9a-f]{64}$/, "Invalid cache hash format"),
 });
 
 const router: IRouter = Router();

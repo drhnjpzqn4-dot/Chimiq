@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import {
   useAnalyzeIngredients,
@@ -792,27 +793,31 @@ export function IngredientScanner({
   const [product1Image, setProduct1Image] = useState<string>("");
   const [product2Image, setProduct2Image] = useState<string>("");
   const [submitted, setSubmitted] = useState(false);
-  const [flaggedSingle, setFlaggedSingle] = useState(false);
-  const [flaggedCompare, setFlaggedCompare] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const analyzeSingle = useAnalyzeSingle({ mutation: {} });
   const analyzeCompare = useAnalyzeIngredients({ mutation: {} });
 
-  const flagOutdated = async (hash: string | undefined, onDone: () => void) => {
+  const flagOutdated = async (hash: string | undefined) => {
     if (!hash) return;
     try {
-      await fetch("/api/analysis-cache/flag", {
+      const res = await fetch("/api/analysis-cache/flag", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ hash }),
       });
-    } catch {}
-    onDone();
+      if (res.ok) {
+        toast.success("Thanks — we'll re-check this result soon.");
+      } else {
+        toast.error("Could not flag this result. Please try again.");
+      }
+    } catch {
+      toast.error("Could not flag this result. Please try again.");
+    }
   };
 
-  const resetResults = () => { setSubmitted(false); setFlaggedSingle(false); setFlaggedCompare(false); };
+  const resetResults = () => setSubmitted(false);
 
   const applySeed = useCallback((s: ScannerSeed) => {
     setMode(s.mode);
@@ -1279,17 +1284,13 @@ export function IngredientScanner({
 
           <FadeIn>
             <div className="text-center">
-              {flaggedSingle ? (
-                <p className="text-[11px] text-muted-foreground/60">Thanks — we'll re-check this result.</p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => flagOutdated((analyzeSingle.data as { cacheHash?: string })?.cacheHash, () => setFlaggedSingle(true))}
-                  className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
-                >
-                  Flag as outdated
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => flagOutdated((analyzeSingle.data as { cacheHash?: string })?.cacheHash)}
+                className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+              >
+                Flag as outdated
+              </button>
             </div>
           </FadeIn>
 
@@ -1464,17 +1465,13 @@ export function IngredientScanner({
 
           <FadeIn>
             <div className="text-center">
-              {flaggedCompare ? (
-                <p className="text-[11px] text-muted-foreground/60">Thanks — we'll re-check this result.</p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => flagOutdated((analyzeCompare.data as { cacheHash?: string })?.cacheHash, () => setFlaggedCompare(true))}
-                  className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
-                >
-                  Flag as outdated
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => flagOutdated((analyzeCompare.data as { cacheHash?: string })?.cacheHash)}
+                className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+              >
+                Flag as outdated
+              </button>
             </div>
           </FadeIn>
 
