@@ -24,3 +24,4 @@ export * from "./cache";
 export * from "./cosing";
 export * from "./pubchem-cache";
 export * from "./user-submitted-products";
+export * from "./analysis-cache";

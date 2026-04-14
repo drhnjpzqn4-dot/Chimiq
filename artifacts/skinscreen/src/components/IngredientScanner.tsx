@@ -792,12 +792,27 @@ export function IngredientScanner({
   const [product1Image, setProduct1Image] = useState<string>("");
   const [product2Image, setProduct2Image] = useState<string>("");
   const [submitted, setSubmitted] = useState(false);
+  const [flaggedSingle, setFlaggedSingle] = useState(false);
+  const [flaggedCompare, setFlaggedCompare] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const analyzeSingle = useAnalyzeSingle({ mutation: {} });
   const analyzeCompare = useAnalyzeIngredients({ mutation: {} });
 
-  const resetResults = () => setSubmitted(false);
+  const flagOutdated = async (hash: string | undefined, onDone: () => void) => {
+    if (!hash) return;
+    try {
+      await fetch("/api/analysis-cache/flag", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ hash }),
+      });
+    } catch {}
+    onDone();
+  };
+
+  const resetResults = () => { setSubmitted(false); setFlaggedSingle(false); setFlaggedCompare(false); };
 
   const applySeed = useCallback((s: ScannerSeed) => {
     setMode(s.mode);
@@ -1263,6 +1278,22 @@ export function IngredientScanner({
           </FadeIn>
 
           <FadeIn>
+            <div className="text-center">
+              {flaggedSingle ? (
+                <p className="text-[11px] text-muted-foreground/60">Thanks — we'll re-check this result.</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => flagOutdated((analyzeSingle.data as { cacheHash?: string })?.cacheHash, () => setFlaggedSingle(true))}
+                  className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+                >
+                  Flag as outdated
+                </button>
+              )}
+            </div>
+          </FadeIn>
+
+          <FadeIn>
             <p className="text-[11px] text-muted-foreground/50 text-center pb-2">
               Powered by dermatology research · Results are for informational purposes only · Always consult a board-certified dermatologist for personal advice
             </p>
@@ -1428,6 +1459,22 @@ export function IngredientScanner({
                   New comparison
                 </button>
               </div>
+            </div>
+          </FadeIn>
+
+          <FadeIn>
+            <div className="text-center">
+              {flaggedCompare ? (
+                <p className="text-[11px] text-muted-foreground/60">Thanks — we'll re-check this result.</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => flagOutdated((analyzeCompare.data as { cacheHash?: string })?.cacheHash, () => setFlaggedCompare(true))}
+                  className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+                >
+                  Flag as outdated
+                </button>
+              )}
             </div>
           </FadeIn>
 

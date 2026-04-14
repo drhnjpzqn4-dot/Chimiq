@@ -3,6 +3,13 @@ import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { getCosingInfo, formatCosingContext } from "../lib/cosing.js";
 import { getPubChemSafetyData } from "../lib/pubchem.js";
+import {
+  computeSingleHash,
+  getCacheEntry,
+  saveCacheEntry,
+  bumpCacheUsage,
+  isStale,
+} from "../lib/analysis-cache.js";
 
 const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).optional();
 
@@ -161,6 +168,51 @@ Required response format:
 }`;
 }
 
+async function runAIAnalysis(
+  anthropic: Anthropic,
+  ingredients: string,
+  skinProfile: string | undefined,
+  regulatoryContext: string | undefined,
+  log: (msg: string, data?: unknown) => void,
+): Promise<z.infer<typeof AnalyzeSingleResponseSchema> | null> {
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 8192,
+      system: buildSystemPrompt(skinProfile, regulatoryContext),
+      messages: [
+        {
+          role: "user",
+          content: `Analyze this product's ingredient list:\n\n${ingredients}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
+        },
+      ],
+    });
+
+    const block = message.content[0];
+    const raw = block.type === "text" ? block.text.trim() : "{}";
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : "{}";
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      log("Failed to parse Claude single-analysis JSON", { raw });
+      return null;
+    }
+
+    const result = AnalyzeSingleResponseSchema.safeParse(parsed);
+    if (!result.success) {
+      log("Claude single-analysis schema mismatch", { parsed, issues: result.error.issues });
+      return null;
+    }
+    return result.data;
+  } catch (err) {
+    log("Claude single-analysis error", { err });
+    return null;
+  }
+}
+
 const router: IRouter = Router();
 
 router.post("/analyze-single", async (req, res) => {
@@ -181,6 +233,45 @@ router.post("/analyze-single", async (req, res) => {
   }
 
   const { ingredients, skinProfile } = parseResult.data;
+  const hash = computeSingleHash(ingredients, skinProfile);
+
+  const cached = await getCacheEntry(hash).catch(() => null);
+
+  if (cached) {
+    const stale = isStale(cached);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(cached.resultJson);
+    } catch {
+      parsed = null;
+    }
+
+    const validated = parsed ? AnalyzeSingleResponseSchema.safeParse(parsed) : null;
+
+    if (validated?.success) {
+      bumpCacheUsage(hash).catch(() => {});
+
+      if (stale) {
+        const parsedIngredients = parseIngredients(ingredients);
+        const anthropic = new Anthropic({ apiKey, baseURL });
+        setImmediate(async () => {
+          try {
+            let regulatoryContext: string | undefined;
+            const ctx = await buildRegulatoryContext(parsedIngredients, () => {});
+            const lines: string[] = [];
+            if (ctx.cosing.length > 0) { lines.push("### EU CosIng Regulatory Data"); lines.push(...ctx.cosing); }
+            if (ctx.pubchem.length > 0) { lines.push("### PubChem GHS Hazard Data"); lines.push(...ctx.pubchem); }
+            if (lines.length > 0) regulatoryContext = lines.join("\n");
+            const fresh = await runAIAnalysis(anthropic, ingredients, skinProfile, regulatoryContext, () => {});
+            if (fresh) await saveCacheEntry(hash, "single", skinProfile, JSON.stringify(fresh));
+          } catch {}
+        });
+      }
+
+      return res.json({ ...validated.data, cacheHash: hash, fromCache: true });
+    }
+  }
 
   const parsedIngredients = parseIngredients(ingredients);
 
@@ -204,48 +295,24 @@ router.post("/analyze-single", async (req, res) => {
   }
 
   const anthropic = new Anthropic({ apiKey, baseURL });
+  const result = await runAIAnalysis(
+    anthropic,
+    ingredients,
+    skinProfile,
+    regulatoryContext,
+    (msg, data) => req.log.error(data ?? {}, msg),
+  );
 
-  try {
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-5",
-      max_tokens: 8192,
-      system: buildSystemPrompt(skinProfile, regulatoryContext),
-      messages: [
-        {
-          role: "user",
-          content: `Analyze this product's ingredient list:\n\n${ingredients}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
-        },
-      ],
-    });
-
-    const block = message.content[0];
-    const raw = block.type === "text" ? block.text.trim() : "{}";
-
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? jsonMatch[0] : "{}";
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
-      req.log.error({ raw }, "Failed to parse Claude single-analysis JSON");
-      res.status(500).json({ error: "Analysis failed. Please try again." });
-      return;
-    }
-
-    const result = AnalyzeSingleResponseSchema.safeParse(parsed);
-
-    if (!result.success) {
-      req.log.error({ parsed, issues: result.error.issues }, "Claude single-analysis schema mismatch");
-      res.status(500).json({ error: "Analysis failed. Please try again." });
-      return;
-    }
-
-    res.json(result.data);
-  } catch (err) {
-    req.log.error({ err }, "Claude single-analysis error");
+  if (!result) {
     res.status(500).json({ error: "Analysis failed. Please try again." });
+    return;
   }
+
+  saveCacheEntry(hash, "single", skinProfile, JSON.stringify(result)).catch((err) =>
+    req.log.warn({ err }, "Failed to save analysis cache"),
+  );
+
+  res.json({ ...result, cacheHash: hash, fromCache: false });
 });
 
 export default router;
