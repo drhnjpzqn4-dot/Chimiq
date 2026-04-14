@@ -1,4 +1,11 @@
-import { pgTable, text, timestamp, uuid, index, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, index, boolean, pgEnum } from "drizzle-orm/pg-core";
+
+export const submissionStatusEnum = pgEnum("submission_status", [
+  "pending",
+  "approved",
+  "needs_admin",
+  "rejected",
+]);
 
 export const userSubmittedProductsTable = pgTable(
   "user_submitted_products",
@@ -11,7 +18,7 @@ export const userSubmittedProductsTable = pgTable(
     submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
     obfContributed: text("obf_contributed").default("pending"),
     submittedBy: text("submitted_by"),
-    status: text("status").notNull().default("pending"),
+    status: submissionStatusEnum("status").notNull().default("pending"),
     aiReviewNote: text("ai_review_note"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     frontImageUrl: text("front_image_url"),

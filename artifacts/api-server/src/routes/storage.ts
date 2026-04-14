@@ -1,7 +1,17 @@
 import { Router, type IRouter } from "express";
 import { objectStorageClient } from "../lib/objectStorage";
+import { db, userSubmittedProductsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
+
+function isAdmin(req: { user?: { email?: string } }): boolean {
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+  return !!req.user?.email && adminEmails.includes(req.user.email);
+}
 
 router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
   const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
@@ -17,7 +27,38 @@ router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
     return;
   }
 
+  const typedReq = req as { user?: { id?: string; email?: string } };
+  const userId = typedReq.user?.id ?? null;
+
+  if (!userId) {
+    res.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
   try {
+    const contributionMatch = relativePath.match(/^contributions\/([0-9a-f-]{36})\//i);
+    if (contributionMatch) {
+      const submissionId = contributionMatch[1];
+      const [submission] = await db
+        .select({ submittedBy: userSubmittedProductsTable.submittedBy })
+        .from(userSubmittedProductsTable)
+        .where(eq(userSubmittedProductsTable.id, submissionId));
+
+      const ownerOrAdmin =
+        isAdmin(typedReq) ||
+        (submission?.submittedBy != null && submission.submittedBy === userId);
+
+      if (!ownerOrAdmin) {
+        res.status(403).json({ error: "Access denied." });
+        return;
+      }
+    } else {
+      if (!isAdmin(typedReq)) {
+        res.status(403).json({ error: "Admin access required." });
+        return;
+      }
+    }
+
     const objectKey = `${privateDir.replace(/\/$/, "")}/${relativePath}`;
     const bucket = objectStorageClient.bucket(bucketId);
     const file = bucket.file(objectKey);
@@ -29,7 +70,7 @@ router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
     const [metadata] = await file.getMetadata();
     const contentType = (metadata.contentType as string | undefined) ?? "application/octet-stream";
     res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.setHeader("Cache-Control", "private, max-age=3600");
     file.createReadStream().pipe(res);
   } catch (err) {
     req.log.error({ err }, "Storage object fetch failed");
