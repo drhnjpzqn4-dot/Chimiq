@@ -72,7 +72,7 @@ function SkinProfileSelector({
             type="button"
             onClick={() => onChange(value === p.value ? undefined : p.value)}
             className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150",
+              "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150",
               "border focus:outline-none focus:ring-2 focus:ring-primary/40",
               value === p.value
                 ? "border-transparent shadow-sm"
@@ -80,7 +80,6 @@ function SkinProfileSelector({
             )}
             style={value === p.value ? { background: "#7BAF7A", color: "#fff", borderColor: "#7BAF7A" } : {}}
           >
-            <span>{p.emoji}</span>
             {p.label}
           </button>
         ))}
@@ -647,7 +646,6 @@ function QuickStartDropdown({
 
   return (
     <div className="mb-3 relative" ref={containerRef}>
-      <p className="text-[14px] text-muted-foreground mb-1.5">Quick start — choose a popular product:</p>
       <button
         type="button"
         disabled={disabled}
@@ -743,7 +741,7 @@ const COMPARE_PRESETS: ScannerPreset[] = [
       product1Name: "Neutrogena Rapid Clear BP Wash",
       product2: ROC_RETINOL_INGREDIENTS,
       product2Name: "RoC Retinol Correxion Serum",
-      autoRun: true,
+      autoRun: false,
     },
   },
   {
@@ -757,7 +755,7 @@ const COMPARE_PRESETS: ScannerPreset[] = [
       product1Name: "CeraVe SA Smoothing Cleanser",
       product2: PAULAS_CHOICE_AHA_INGREDIENTS,
       product2Name: "Paula's Choice 8% AHA Gel",
-      autoRun: true,
+      autoRun: false,
     },
   },
 ];
@@ -770,7 +768,7 @@ const SINGLE_PRESET: ScannerPreset = {
   seed: {
     mode: "single",
     ingredients: CERAVE_MOISTURISER_INGREDIENTS,
-    autoRun: true,
+    autoRun: false,
   },
 };
 
@@ -793,6 +791,7 @@ export function IngredientScanner({
   const [product1Image, setProduct1Image] = useState<string>("");
   const [product2Image, setProduct2Image] = useState<string>("");
   const [submitted, setSubmitted] = useState(false);
+  const [quickStartResetKey, setQuickStartResetKey] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const analyzeSingle = useAnalyzeSingle({ mutation: {} });
@@ -891,11 +890,24 @@ export function IngredientScanner({
   const cautionConflicts = compareConflicts.filter((c) => c.severity === "CAUTION");
   const safeConflicts = compareConflicts.filter((c) => c.severity === "SAFE");
 
-  const isEmpty = mode === "single"
-    ? !ingredients.trim() && !submitted
-    : !product1.trim() && !product2.trim() && !submitted;
-
   const presets = mode === "compare" ? COMPARE_PRESETS : [SINGLE_PRESET];
+
+  const handleStartOver = () => {
+    setIngredients("");
+    setProductName("");
+    setProductImage("");
+    setProduct1("");
+    setProduct1Name("");
+    setProduct1Image("");
+    setProduct2("");
+    setProduct2Name("");
+    setProduct2Image("");
+    setSubmitted(false);
+    setSkinProfile(undefined);
+    setQuickStartResetKey((k) => k + 1);
+    analyzeSingle.reset();
+    analyzeCompare.reset();
+  };
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -934,130 +946,182 @@ export function IngredientScanner({
         </button>
       </div>
 
-      {/* Example presets — shown when scanner is empty */}
-      {isEmpty && (
-        <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
-            Try an example
-          </p>
-          <div className={cn(
-            "grid gap-3",
-            presets.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-sm",
-          )}>
-            {presets.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => applySeed(preset.seed)}
-                className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white border border-border/50 hover:border-primary/40 hover:shadow-sm transition-all duration-150 text-left group"
-              >
-                <div className="flex items-center justify-between w-full gap-2">
-                  <span className="text-sm font-medium text-foreground leading-snug">{preset.label}</span>
-                  <span className={cn(
-                    "shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                    preset.badgeColor === "red" && "bg-red-100 text-red-600",
-                    preset.badgeColor === "amber" && "bg-amber-100 text-amber-700",
-                    preset.badgeColor === "green" && "bg-primary/10 text-primary",
-                  )}>
-                    {preset.badge}
+      {/* 3 numbered input options — always visible */}
+      <div className="space-y-6 mb-6">
+
+        {/* Option 1: Try an example */}
+        <div className="flex gap-4">
+          <div className="shrink-0">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: "#7BAF7A" }}>1</div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-[15px] text-foreground mb-0.5">Try an example</h3>
+            <p className="text-xs text-muted-foreground mb-3">Load a real-world preset — then press Scan to analyse.</p>
+            <div className={cn("grid gap-3", presets.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-sm")}>
+              {presets.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => applySeed(preset.seed)}
+                  className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white border border-border/50 hover:border-primary/40 hover:shadow-sm transition-all duration-150 text-left group"
+                >
+                  <div className="flex items-center justify-between w-full gap-2">
+                    <span className="text-sm font-medium text-foreground leading-snug">{preset.label}</span>
+                    <span className={cn(
+                      "shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                      preset.badgeColor === "red" && "bg-red-100 text-red-600",
+                      preset.badgeColor === "amber" && "bg-amber-100 text-amber-700",
+                      preset.badgeColor === "green" && "bg-primary/10 text-primary",
+                    )}>
+                      {preset.badge}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{preset.description}</span>
+                  <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    Load example →
                   </span>
-                </div>
-                <span className="text-xs text-muted-foreground">{preset.description}</span>
-                <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                  Load example →
-                </span>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Input area */}
-      {mode === "single" ? (
-        <div className="mb-6">
-          <QuickStartDropdown
-            onSelect={(ings, name, img) => { setIngredients(ings); setProductName(name); setProductImage(img); resetResults(); }}
-            disabled={isPending}
-          />
-          <ScanDivider />
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <div className="flex-1 min-w-0">
-              <ProductSearch
-                onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); setProductImage(""); resetResults(); }}
+        {/* Option 2: Quick start */}
+        <div className="flex gap-4">
+          <div className="shrink-0">
+            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold" style={{ borderColor: "#D0D0D0", color: "#888" }}>2</div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-[15px] text-foreground mb-0.5">Quick start — popular product</h3>
+            <p className="text-xs text-muted-foreground mb-3">Choose from a curated list of products with images.</p>
+            {mode === "single" ? (
+              <QuickStartDropdown
+                key={quickStartResetKey}
+                onSelect={(ings, name, img) => { setIngredients(ings); setProductName(name); setProductImage(img); resetResults(); }}
+                disabled={isPending}
               />
-            </div>
-            <BarcodeScanButton
-              onResult={(ings, name) => { setIngredients(ings); setProductName(name); setProductImage(""); resetResults(); }}
-              disabled={isPending}
-            />
-          </div>
-          {productName && (
-            <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
-              <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
-              <span style={{ fontWeight: 700, fontSize: 18, color: "#1A1A1A", lineHeight: 1.3 }}>{productName}</span>
-            </div>
-          )}
-          <ProductTextArea
-            label="Ingredient List"
-            index={1}
-            value={ingredients}
-            onChange={(val) => { setIngredients(val); setProductName(""); setProductImage(""); resetResults(); }}
-            placeholder={PLACEHOLDER_SINGLE}
-          />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div>
-            <QuickStartDropdown
-              onSelect={(ings, name, img) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(img); resetResults(); }}
-              disabled={isPending}
-            />
-            <ScanDivider />
-            <ProductSearch
-              onIngredients={(ings, name) => { setProduct1(ings); setProduct1Name(name || ""); setProduct1Image(""); resetResults(); }}
-            />
-            {product1Name && (
-              <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
-                <ProductImageThumb src={product1Image || undefined} size={64} radius={10} />
-                <span style={{ fontWeight: 700, fontSize: 15, color: "#1A1A1A", lineHeight: 1.3 }}>{product1Name}</span>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#7BAF7A" }}>Product 1</p>
+                  <QuickStartDropdown
+                    key={`p1-${quickStartResetKey}`}
+                    onSelect={(ings, name, img) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(img); resetResults(); }}
+                    disabled={isPending}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#C09070" }}>Product 2</p>
+                  <QuickStartDropdown
+                    key={`p2-${quickStartResetKey}`}
+                    onSelect={(ings, name, img) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(img); resetResults(); }}
+                    disabled={isPending}
+                  />
+                </div>
               </div>
             )}
-            <ProductTextArea
-              label="Product 1 Ingredients"
-              index={1}
-              value={product1}
-              onChange={(val) => { setProduct1(val); setProduct1Name(""); setProduct1Image(""); resetResults(); }}
-              placeholder={PLACEHOLDER_1}
-            />
-          </div>
-          <div>
-            <QuickStartDropdown
-              onSelect={(ings, name, img) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(img); resetResults(); }}
-              disabled={isPending}
-            />
-            <ScanDivider />
-            <ProductSearch
-              onIngredients={(ings, name) => { setProduct2(ings); setProduct2Name(name || ""); setProduct2Image(""); resetResults(); }}
-            />
-            {product2Name && (
-              <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
-                <ProductImageThumb src={product2Image || undefined} size={64} radius={10} />
-                <span style={{ fontWeight: 700, fontSize: 15, color: "#1A1A1A", lineHeight: 1.3 }}>{product2Name}</span>
-              </div>
-            )}
-            <ProductTextArea
-              label="Product 2 Ingredients"
-              index={2}
-              value={product2}
-              onChange={(val) => { setProduct2(val); setProduct2Name(""); setProduct2Image(""); resetResults(); }}
-              placeholder={PLACEHOLDER_2}
-            />
           </div>
         </div>
-      )}
 
-      {/* Scan button */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-10">
+        {/* Option 3: Scan your own */}
+        <div className="flex gap-4">
+          <div className="shrink-0">
+            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold" style={{ borderColor: "#D0D0D0", color: "#888" }}>3</div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-[15px] text-foreground mb-0.5">Scan your own</h3>
+            <p className="text-xs text-muted-foreground mb-3">Search by name, scan a barcode, or paste the ingredient list.</p>
+            {mode === "single" ? (
+              <div>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <ProductSearch
+                      onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); setProductImage(""); resetResults(); }}
+                    />
+                  </div>
+                  <BarcodeScanButton
+                    onResult={(ings, name) => { setIngredients(ings); setProductName(name); setProductImage(""); resetResults(); }}
+                    disabled={isPending}
+                  />
+                </div>
+                {productName && (
+                  <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                    <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
+                    <span style={{ fontWeight: 700, fontSize: 18, color: "#1A1A1A", lineHeight: 1.3 }}>{productName}</span>
+                  </div>
+                )}
+                <ProductTextArea
+                  label="Ingredient List"
+                  index={1}
+                  value={ingredients}
+                  onChange={(val) => { setIngredients(val); setProductName(""); setProductImage(""); resetResults(); }}
+                  placeholder={PLACEHOLDER_SINGLE}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#7BAF7A" }}>Product 1</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <ProductSearch
+                        onIngredients={(ings, name) => { setProduct1(ings); setProduct1Name(name || ""); setProduct1Image(""); resetResults(); }}
+                      />
+                    </div>
+                    <BarcodeScanButton
+                      onResult={(ings, name) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(""); resetResults(); }}
+                      disabled={isPending}
+                    />
+                  </div>
+                  {product1Name && (
+                    <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                      <ProductImageThumb src={product1Image || undefined} size={64} radius={10} />
+                      <span style={{ fontWeight: 700, fontSize: 16, color: "#1A1A1A", lineHeight: 1.3 }}>{product1Name}</span>
+                    </div>
+                  )}
+                  <ProductTextArea
+                    label="Product 1 Ingredients"
+                    index={1}
+                    value={product1}
+                    onChange={(val) => { setProduct1(val); setProduct1Name(""); setProduct1Image(""); resetResults(); }}
+                    placeholder={PLACEHOLDER_1}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#C09070" }}>Product 2</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <ProductSearch
+                        onIngredients={(ings, name) => { setProduct2(ings); setProduct2Name(name || ""); setProduct2Image(""); resetResults(); }}
+                      />
+                    </div>
+                    <BarcodeScanButton
+                      onResult={(ings, name) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(""); resetResults(); }}
+                      disabled={isPending}
+                    />
+                  </div>
+                  {product2Name && (
+                    <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#FFF9F0", border: "1px solid #F0E0C0" }}>
+                      <ProductImageThumb src={product2Image || undefined} size={64} radius={10} />
+                      <span style={{ fontWeight: 700, fontSize: 16, color: "#1A1A1A", lineHeight: 1.3 }}>{product2Name}</span>
+                    </div>
+                  )}
+                  <ProductTextArea
+                    label="Product 2 Ingredients"
+                    index={2}
+                    value={product2}
+                    onChange={(val) => { setProduct2(val); setProduct2Name(""); setProduct2Image(""); resetResults(); }}
+                    placeholder={PLACEHOLDER_2}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Scan button + Start over */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-3">
         <p className="text-xs text-muted-foreground/60 flex items-center gap-1.5">
           <Info className="w-3.5 h-3.5 shrink-0" />
           {mode === "single"
@@ -1076,6 +1140,15 @@ export function IngredientScanner({
             <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? "Scan Ingredients") : (ctaLabel?.compare ?? "Check Compatibility")}</>
           )}
         </Button>
+      </div>
+      <div className="flex justify-end mb-10">
+        <button
+          type="button"
+          onClick={handleStartOver}
+          className="text-sm text-muted-foreground hover:text-foreground border border-border/40 hover:border-border/70 px-5 py-2 rounded-xl transition-colors"
+        >
+          Start over
+        </button>
       </div>
 
       {/* Error */}
@@ -1106,7 +1179,7 @@ export function IngredientScanner({
                   lineHeight: 1.3,
                 }}
               >
-                Results for:<br />{productName || "Your product"}
+                Results for:<br />{productName || "Scanned product"}
               </h2>
             </div>
           </FadeIn>
@@ -1221,7 +1294,7 @@ export function IngredientScanner({
                   ctx.fillStyle = "#7BAF7A"; ctx.fillRect(0, 0, W, 10);
                   ctx.fillStyle = "#7BAF7A"; ctx.font = "600 28px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText("ChimIQ · SkinScreen", 80, 90);
                   ctx.fillStyle = "#1A1A1A"; ctx.font = "700 52px Georgia, serif"; ctx.textAlign = "center";
-                  const name = productName || "Your product";
+                  const name = productName || "Scanned product";
                   ctx.fillText(name.length > 36 ? name.slice(0, 35) + "…" : name, W / 2, 240);
                   const topFlag = singleResult.flags[0];
                   const riskLevel = singleHighRisk.length > 0 ? "HIGH RISK" : singleResult.flags.length > 0 ? "CAUTION" : "SAFE";
@@ -1314,7 +1387,7 @@ export function IngredientScanner({
                     <ProductImageThumb src={product1Image || undefined} size={96} radius={12} />
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#7BAF7A" }}>Product 1</p>
-                      <p style={{ fontWeight: 700, fontSize: 15, color: "#1A1A1A", lineHeight: 1.3 }}>{product1Name}</p>
+                      <p style={{ fontWeight: 800, fontSize: 18, color: "#1A1A1A", lineHeight: 1.25, letterSpacing: "-0.01em" }}>{product1Name}</p>
                     </div>
                   </div>
                 )}
@@ -1323,7 +1396,7 @@ export function IngredientScanner({
                     <ProductImageThumb src={product2Image || undefined} size={96} radius={12} />
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#C09070" }}>Product 2</p>
-                      <p style={{ fontWeight: 700, fontSize: 15, color: "#1A1A1A", lineHeight: 1.3 }}>{product2Name}</p>
+                      <p style={{ fontWeight: 800, fontSize: 18, color: "#1A1A1A", lineHeight: 1.25, letterSpacing: "-0.01em" }}>{product2Name}</p>
                     </div>
                   </div>
                 )}

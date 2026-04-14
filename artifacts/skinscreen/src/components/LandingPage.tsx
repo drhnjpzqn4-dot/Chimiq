@@ -15,11 +15,10 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ScanLine, Layers, ShieldCheck,
+  ScanLine, ShieldCheck,
   AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
   Sun, Moon, Plus, CheckCircle2, ShoppingBag, Bell, User, LogOut,
   Skull, ExternalLink, Share2, ArrowDown, FileText, MessageCircle,
-  Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -305,13 +304,13 @@ export function LandingPage({ config }: LandingPageProps) {
               might be{" "}
               <span className="italic text-white/50">damaging your skin.</span>
             </h1>
-            <p className="text-xl sm:text-2xl text-white/40 font-light italic mt-3">
+            <p className="text-xl sm:text-2xl font-light italic mt-3" style={{ color: "#C94538" }}>
               Most people have no idea.
             </p>
           </FadeIn>
 
           <FadeIn delay={0.45}>
-            <div className="flex flex-wrap justify-center gap-2 mb-10 max-w-2xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-2 mt-10 mb-10 max-w-2xl mx-auto">
               {[
                 { name: "Retinol", conflict: true, floatDuration: "2.6s", floatDelay: "0s", badgeDelay: "2.4s", pulseDelay: "3.1s" },
                 { name: "Glycolic Acid", conflict: true, floatDuration: "3.1s", floatDelay: "0.4s", badgeDelay: "2.9s", pulseDelay: "3.6s" },
@@ -319,29 +318,45 @@ export function LandingPage({ config }: LandingPageProps) {
                 { name: "Benzoyl Peroxide", conflict: true, floatDuration: "2.4s", floatDelay: "0.2s", badgeDelay: "3.3s", pulseDelay: "4.0s" },
                 { name: "Vitamin C", conflict: false, floatDuration: "3.0s", floatDelay: "0.9s", badgeDelay: "", pulseDelay: "" },
                 { name: "AHA / BHA", conflict: false, floatDuration: "2.7s", floatDelay: "0.5s", badgeDelay: "", pulseDelay: "" },
-              ].map((ing) => (
-                <div
-                  key={ing.name}
-                  className="relative inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white/75 text-sm font-medium"
-                  style={{
-                    animation: `hero-float ${ing.floatDuration} ease-in-out infinite`,
-                    animationDelay: ing.floatDelay,
-                  }}
-                >
-                  {ing.name}
-                  {ing.conflict && (
-                    <span
-                      className="absolute -top-2.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-lg"
-                      style={{
-                        animation: `hero-conflict-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${ing.badgeDelay} both, hero-conflict-pulse 1.8s ease-in-out ${ing.pulseDelay} infinite`,
-                        opacity: 0,
-                      }}
-                    >
-                      ⚠ Conflict
-                    </span>
-                  )}
-                </div>
-              ))}
+              ].map((ing) => {
+                const isClickable = ing.conflict;
+                const pillContent = (
+                  <>
+                    {ing.name}
+                    {ing.conflict && (
+                      <span
+                        className="absolute -top-2.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-lg"
+                        style={{
+                          animation: `hero-conflict-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${ing.badgeDelay} both, hero-conflict-pulse 1.8s ease-in-out ${ing.pulseDelay} infinite`,
+                          opacity: 0,
+                        }}
+                      >
+                        ⚠ Conflict
+                      </span>
+                    )}
+                  </>
+                );
+                const pillClass = "relative inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white/75 text-sm font-medium";
+                const pillStyle = {
+                  animation: `hero-float ${ing.floatDuration} ease-in-out infinite`,
+                  animationDelay: ing.floatDelay,
+                };
+                return isClickable ? (
+                  <a
+                    key={ing.name}
+                    href="#danger-zone"
+                    onClick={(e) => { e.preventDefault(); document.getElementById("danger-zone")?.scrollIntoView({ behavior: "smooth" }); }}
+                    className={pillClass + " cursor-pointer hover:bg-white/18 transition-colors"}
+                    style={pillStyle}
+                  >
+                    {pillContent}
+                  </a>
+                ) : (
+                  <div key={ing.name} className={pillClass} style={pillStyle}>
+                    {pillContent}
+                  </div>
+                );
+              })}
             </div>
           </FadeIn>
 
@@ -380,39 +395,87 @@ export function LandingPage({ config }: LandingPageProps) {
           </FadeIn>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                Icon: Camera,
-                title: "Scan or paste",
-                desc: "Photograph your ingredient list, scan the barcode, or choose from popular products.",
-                delay: 0.1,
-              },
-              {
-                Icon: Layers,
-                title: "Build your routine",
-                desc: "Add multiple products to check how they interact — not just what's in them.",
-                delay: 0.25,
-              },
-              {
-                Icon: ShieldCheck,
-                title: "See the risks",
-                desc: "Get instant conflict detection with clear red, yellow, and green ratings — and what to do instead.",
-                delay: 0.4,
-              },
-            ].map(({ Icon, title, desc, delay }) => (
-              <FadeIn key={title} delay={delay}>
-                <div
-                  className="flex flex-col items-center text-center p-6 rounded-2xl"
-                  style={{ background: "#F7FAF7", borderRadius: 16 }}
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center mb-5 text-primary shadow-sm">
-                    <Icon className="w-7 h-7" />
-                  </div>
-                  <h3 className="text-xl font-serif font-semibold mb-3">{title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
+            {/* Card 1: Scan or paste */}
+            <FadeIn delay={0.1}>
+              <div className="flex flex-col items-center text-center p-6 rounded-2xl" style={{ background: "#F7FAF7", borderRadius: 16 }}>
+                <div className="mb-5">
+                  <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="5" width="50" height="56" rx="8" fill="white" stroke="#DCE9DC" strokeWidth="1.5"/>
+                    <rect x="19" y="16" width="24" height="3" rx="1.5" fill="#7BAF7A"/>
+                    <rect x="19" y="24" width="32" height="2" rx="1" fill="#C8DCC8"/>
+                    <rect x="19" y="29" width="27" height="2" rx="1" fill="#C8DCC8"/>
+                    <rect x="19" y="34" width="30" height="2" rx="1" fill="#C8DCC8"/>
+                    <rect x="19" y="39" width="20" height="2" rx="1" fill="#C8DCC8"/>
+                    <rect x="19" y="44" width="25" height="2" rx="1" fill="#C8DCC8"/>
+                    <rect x="10" y="68" width="50" height="7" rx="3" fill="#F0F7F0" stroke="#DCE9DC" strokeWidth="1"/>
+                    <rect x="14" y="70" width="1.5" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="17" y="70" width="1" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="19.5" y="70" width="2" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="23" y="70" width="1" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="25" y="70" width="1.5" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="28" y="70" width="2.5" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="32" y="70" width="1" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="34.5" y="70" width="1.5" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="37" y="70" width="1" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="39.5" y="70" width="2" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="43" y="70" width="1.5" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="46" y="70" width="2" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="50" y="70" width="1.5" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="53" y="70" width="1" height="3" rx="0.5" fill="#2A2A2A"/>
+                    <rect x="55.5" y="70" width="2" height="3" rx="0.5" fill="#2A2A2A"/>
+                  </svg>
                 </div>
-              </FadeIn>
-            ))}
+                <h3 className="text-xl font-serif font-semibold mb-3">Scan or paste</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">Photograph your ingredient list, scan the barcode, or choose from popular products.</p>
+              </div>
+            </FadeIn>
+
+            {/* Card 2: Build your routine */}
+            <FadeIn delay={0.25}>
+              <div className="flex flex-col items-center text-center p-6 rounded-2xl" style={{ background: "#F7FAF7", borderRadius: 16 }}>
+                <div className="mb-5">
+                  <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Bottle 1 — left */}
+                    <rect x="8" y="30" width="16" height="32" rx="5" fill="#A8CFA7"/>
+                    <rect x="11" y="22" width="10" height="10" rx="3" fill="#7BAF7A"/>
+                    <rect x="13" y="18" width="6" height="6" rx="2" fill="#5A9959"/>
+                    <rect x="10" y="42" width="12" height="2" rx="1" fill="white" opacity="0.5"/>
+                    <rect x="10" y="46" width="8" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
+                    {/* Bottle 2 — centre (taller) */}
+                    <rect x="32" y="24" width="16" height="38" rx="5" fill="#7BAF7A"/>
+                    <rect x="35" y="16" width="10" height="10" rx="3" fill="#5A9959"/>
+                    <rect x="37" y="12" width="6" height="6" rx="2" fill="#3E7A3D"/>
+                    <rect x="34" y="38" width="12" height="2" rx="1" fill="white" opacity="0.5"/>
+                    <rect x="34" y="42" width="8" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
+                    {/* Bottle 3 — right */}
+                    <rect x="56" y="30" width="16" height="32" rx="5" fill="#B8D9B7"/>
+                    <rect x="59" y="22" width="10" height="10" rx="3" fill="#8FC48E"/>
+                    <rect x="61" y="18" width="6" height="6" rx="2" fill="#7BAF7A"/>
+                    <rect x="58" y="42" width="12" height="2" rx="1" fill="white" opacity="0.5"/>
+                    <rect x="58" y="46" width="8" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-serif font-semibold mb-3">Build your routine</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">Add multiple products to check how they interact — not just what's in them.</p>
+              </div>
+            </FadeIn>
+
+            {/* Card 3: See the risks */}
+            <FadeIn delay={0.4}>
+              <div className="flex flex-col items-center text-center p-6 rounded-2xl" style={{ background: "#F7FAF7", borderRadius: 16 }}>
+                <div className="mb-5 flex items-center justify-center" style={{ height: 80 }}>
+                  <div style={{ background: "#FEF2F2", border: "1.5px solid #FECACA", borderRadius: 12, padding: "10px 14px", minWidth: 150 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                      <span style={{ background: "#EF4444", color: "#fff", borderRadius: 5, padding: "2px 7px", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>HIGH RISK</span>
+                    </div>
+                    <p style={{ fontWeight: 700, color: "#991B1B", fontSize: 11, lineHeight: 1.3, margin: 0 }}>Retinol + Glycolic Acid</p>
+                    <p style={{ color: "#B91C1C", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4, opacity: 0.8 }}>Degrades retinol efficacy</p>
+                  </div>
+                </div>
+                <h3 className="text-xl font-serif font-semibold mb-3">See the risks</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">Get instant conflict detection with clear red, yellow, and green ratings — and what to do instead.</p>
+              </div>
+            </FadeIn>
           </div>
         </div>
       </section>
@@ -422,7 +485,31 @@ export function LandingPage({ config }: LandingPageProps) {
         <div className="max-w-5xl mx-auto">
           <FadeIn>
             <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-5xl font-serif mb-4">Try It Now</h2>
+              <p
+                style={{
+                  textTransform: "uppercase",
+                  fontSize: 11,
+                  letterSpacing: "0.14em",
+                  color: "#7BAF7A",
+                  fontWeight: 600,
+                  marginBottom: 12,
+                }}
+              >
+                Try It Now
+              </p>
+              <h2
+                style={{
+                  fontFamily: "'Playfair Display', Georgia, serif",
+                  fontSize: "clamp(38px, 5vw, 44px)",
+                  fontWeight: 700,
+                  color: "#1A1A1A",
+                  marginBottom: 12,
+                  letterSpacing: "-0.01em",
+                  lineHeight: 1.1,
+                }}
+              >
+                CHIMIQ SCANNER
+              </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">{config.scannerSubhead}</p>
             </div>
           </FadeIn>
@@ -439,18 +526,6 @@ export function LandingPage({ config }: LandingPageProps) {
               boxShadow: "0 4px 32px rgba(0,0,0,0.05)",
             }}
           >
-            <p
-              className="mb-5"
-              style={{
-                textTransform: "uppercase",
-                fontSize: 11,
-                letterSpacing: "0.12em",
-                color: "#7BAF7A",
-                fontWeight: 600,
-              }}
-            >
-              CHIMIQ SCANNER
-            </p>
             <IngredientScanner ctaLabel={config.scannerCtaLabel} seed={scannerSeed} />
           </div>
         </div>
