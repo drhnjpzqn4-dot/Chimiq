@@ -144,11 +144,23 @@ export function ContributeModal({
 
   const handleSubmit = useCallback(async () => {
     if (!submissionId) return;
+    const trimmedText = ingredientsText.trim();
     const hasImages = frontImageBase64 || ingredientsImageBase64;
-    const hasText = ingredientsText.trim().length > 5;
+    const hasText = trimmedText.length > 5;
     if (!hasImages && !hasText) {
       setError("Please add at least one photo or paste the ingredient list.");
       return;
+    }
+    // Reject obvious non-ingredient input (no commas + very short, or looks like code/HTML).
+    if (hasText && !hasImages) {
+      const looksLikeCode = /<[a-z!\/][^>]*>|javascript:|on\w+\s*=|;\s*--|\bdrop\s+table\b|\bselect\s+.+\bfrom\b/i.test(trimmedText);
+      const tooShortOrNoCommas = trimmedText.length < 15 || (!trimmedText.includes(",") && trimmedText.length < 60);
+      if (looksLikeCode || tooShortOrNoCommas) {
+        setError(
+          "That doesn't look like an ingredient list. Paste the comma-separated INCI list from the product label (e.g. 'Aqua, Glycerin, Niacinamide…').",
+        );
+        return;
+      }
     }
 
     setStep("submitting");

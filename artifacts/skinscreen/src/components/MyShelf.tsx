@@ -433,12 +433,41 @@ interface UpgradeCardProps {
 }
 
 function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const benefits = [
     "Unlimited products on your shelf",
     "Full routine analysis (AM + PM)",
     "Downloadable PDF safety report",
     "Personalised skin profile alerts",
   ];
+
+  const handleClick = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/payments/checkout", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        // Fallback to pricing page if checkout endpoint fails (e.g. not configured)
+        onUpgrade();
+        return;
+      }
+      const data = (await res.json()) as { url?: string };
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        onUpgrade();
+      }
+    } catch {
+      setError("Could not start checkout. Please try again.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="rounded-2xl bg-gradient-to-br from-primary/8 via-primary/5 to-amber-50/40 border border-primary/30 p-5 shadow-sm">
       <div className="flex items-center gap-2 mb-2">
@@ -462,11 +491,15 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
         ))}
       </ul>
       <button
-        onClick={onUpgrade}
-        className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+        onClick={handleClick}
+        disabled={loading}
+        className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        Upgrade to Premium
+        {loading ? "Starting checkout…" : "Upgrade to Premium"}
       </button>
+      {error && (
+        <p className="text-[11px] text-red-600 text-center mt-2">{error}</p>
+      )}
       <p className="text-[10px] text-muted-foreground/60 text-center mt-2">
         Or contribute 30 new products to earn a free month
       </p>

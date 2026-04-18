@@ -13,8 +13,8 @@ import {
 } from "../lib/sanitize.js";
 
 const StartBody = z.object({
-  barcode: z.string().regex(/^[0-9]{6,14}$/, "Invalid barcode").optional(),
-  productName: z.string().trim().max(500).optional(),
+  barcode: z.string().regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required."),
+  productName: z.string().trim().min(1, "Product name is required.").max(500),
   brand: z.string().trim().max(200).optional(),
 });
 
@@ -395,6 +395,19 @@ router.post("/contribute/photos", async (req, res) => {
   const hasFrontPhoto = !!frontImageBase64 || !!existing.frontImageUrl;
   const hasRealBarcode = !!existing.barcode && existing.barcode !== "unknown";
 
+  // Hard-reject obviously-incomplete submissions with a clear error so users know what's missing
+  // (start route already enforces productName + barcode; here we enforce front photo + ingredients).
+  const missingFields: string[] = [];
+  if (!hasFrontPhoto) missingFields.push("front photo");
+  if (!hasIngredients) missingFields.push("ingredient list");
+  if (missingFields.length > 0) {
+    res.status(400).json({
+      error: `Please add the missing ${missingFields.join(" and ")} before submitting.`,
+      missingFields,
+    });
+    return;
+  }
+
   // All four fields required to count as a "complete contribution" toward the milestone
   const isCompleteContribution =
     hasIngredients && hasProductName && hasFrontPhoto && hasRealBarcode;
@@ -594,8 +607,28 @@ router.post("/admin/submissions/:id/approve", async (req, res) => {
       .returning();
 
     if (updated) {
+      // Same completeness gate as the user-facing /contribute/photos route, applied here so
+      // an admin click can never grant the milestone reward for an incomplete submission.
+      const adminHasName = !!updated.productName && updated.productName.trim().length > 0;
+      const adminHasIngredients = !!updated.ingredients && updated.ingredients.length > 5;
+      const adminHasFront = !!updated.frontImageUrl;
+      const adminHasBarcode = !!updated.barcode && updated.barcode !== "unknown";
+      const adminIsComplete =
+        adminHasName && adminHasIngredients && adminHasFront && adminHasBarcode;
+
+      // Also check the submission isn't a duplicate of an already-cached product —
+      // duplicates must never count toward a user's contribution milestone.
+      let isNewProduct = true;
+      if (adminHasBarcode) {
+        const [dup] = await db
+          .select({ barcode: cachedProductsTable.barcode })
+          .from(cachedProductsTable)
+          .where(eq(cachedProductsTable.barcode, updated.barcode!));
+        if (dup) isNewProduct = false;
+      }
+
       await approveSubmission(updated, (msg, data) => req.log.info(data ?? {}, msg));
-      if (updated.submittedBy && !updated.rewardGranted) {
+      if (updated.submittedBy && !updated.rewardGranted && adminIsComplete && isNewProduct) {
         await rewardContributorIdempotent(
           id,
           updated.submittedBy,
