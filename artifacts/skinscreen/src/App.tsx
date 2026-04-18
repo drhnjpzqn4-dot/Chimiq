@@ -8,6 +8,8 @@ import HomeB from "@/pages/HomeB";
 import Pricing from "@/pages/Pricing";
 import AppPage from "@/pages/AppPage";
 import AdminPage from "@/pages/AdminPage";
+import Discover from "@/pages/Discover";
+import { MistakeDetail, WorryDetail } from "@/pages/DiscoverDetail";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -28,6 +30,9 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/app" component={AppPage} />
       <Route path="/app/:rest*" component={AppPage} />
+      <Route path="/discover" component={Discover} />
+      <Route path="/discover/mistakes/:slug" component={MistakeDetail} />
+      <Route path="/discover/worries/:slug" component={WorryDetail} />
       <Route path="/admin/submissions" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>

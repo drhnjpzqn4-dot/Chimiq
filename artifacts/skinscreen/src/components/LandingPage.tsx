@@ -87,7 +87,7 @@ function StickySubNav({ visible }: { visible: boolean }) {
         visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none",
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-center gap-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-center gap-6 sm:gap-10">
         <a
           href="#how-it-works"
           onClick={(e) => { e.preventDefault(); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}
@@ -103,9 +103,15 @@ function StickySubNav({ visible }: { visible: boolean }) {
           Try it now
         </a>
         <a
+          href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/discover`}
+          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
+        >
+          Discover
+        </a>
+        <a
           href="#earn-premium"
           onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
-          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
+          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors hidden sm:inline"
         >
           Earn free premium
         </a>
