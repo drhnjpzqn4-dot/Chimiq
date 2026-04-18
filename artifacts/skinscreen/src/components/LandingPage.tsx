@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { FadeIn } from "@/components/FadeIn";
-import { WaitlistForm } from "@/components/WaitlistForm";
 import { DangerCard } from "@/components/DangerCard";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { DangerVisual } from "@/components/DangerVisual";
 import { SpiralSection } from "@/components/SpiralSection";
 import { IngredientScanner } from "@/components/IngredientScanner";
@@ -25,7 +25,6 @@ import { cn } from "@/lib/utils";
 interface SiteStats {
   analyses: number;
   products: number;
-  waitlist: number;
 }
 
 const DISASTER_MIX_SEED: ScannerSeed = {
@@ -104,11 +103,11 @@ function StickySubNav({ visible }: { visible: boolean }) {
           Try it now
         </a>
         <a
-          href="#waitlist"
-          onClick={(e) => { e.preventDefault(); document.getElementById("waitlist")?.scrollIntoView({ behavior: "smooth" }); }}
+          href="#earn-premium"
+          onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
           className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
         >
-          Get early access
+          Earn free premium
         </a>
       </div>
     </div>
@@ -231,6 +230,7 @@ export function LandingPage({ config }: LandingPageProps) {
 
   return (
     <main className="min-h-screen bg-background overflow-hidden">
+      <PWAInstallBanner />
 
       {/* TOP NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-border/30">
@@ -265,12 +265,13 @@ export function LandingPage({ config }: LandingPageProps) {
                 </button>
               </div>
             ) : (
-              <a
-                href="#waitlist"
+              <button
+                type="button"
+                onClick={() => login()}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 px-4 py-2 rounded-full transition-colors"
               >
-                Join waitlist
-              </a>
+                Sign in
+              </button>
             )}
           </div>
         </div>
@@ -363,18 +364,29 @@ export function LandingPage({ config }: LandingPageProps) {
           {/* CTAs */}
           <FadeIn delay={0.65}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              {isAuthenticated ? (
+                <a
+                  href="#scanner"
+                  onClick={(e) => { e.preventDefault(); document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }); }}
+                  className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
+                >
+                  Try it now →
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => login()}
+                  className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
+                >
+                  Sign in / Get started free
+                </button>
+              )}
               <a
-                href="#scanner"
-                onClick={(e) => { e.preventDefault(); document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }); }}
-                className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
-              >
-                Try it now →
-              </a>
-              <a
-                href="#waitlist"
+                href="#how-it-works"
+                onClick={(e) => { e.preventDefault(); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}
                 className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/18 backdrop-blur-sm text-white border border-white/25 px-8 py-4 rounded-full text-base font-medium transition-all duration-200 hover:-translate-y-0.5 w-full sm:w-auto"
               >
-                Join waitlist
+                See how it works
               </a>
             </div>
           </FadeIn>
@@ -727,12 +739,13 @@ export function LandingPage({ config }: LandingPageProps) {
                   ))}
                 </ul>
                 {!isAuthenticated && (
-                  <a
-                    href="#waitlist"
+                  <button
+                    type="button"
+                    onClick={() => login()}
                     className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                   >
-                    Join the waitlist to get early access
-                  </a>
+                    Sign in to start your shelf
+                  </button>
                 )}
                 {isAuthenticated && (
                   <p className="flex items-center gap-2 text-primary font-medium text-sm">
@@ -783,20 +796,78 @@ export function LandingPage({ config }: LandingPageProps) {
         <PricingSection />
       </section>
 
-      {/* 9. WAITLIST */}
-      <section id="waitlist" className="py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center border-t border-border/50">
+      {/* 9. EARN FREE PREMIUM */}
+      <section id="earn-premium" className="py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-t border-border/50">
         <FadeIn>
-          <h2 className="text-4xl md:text-6xl font-serif text-foreground mb-6 tracking-tight">
-            Be first to know when SkinScreen launches
-          </h2>
-          <p className="text-xl text-muted-foreground mb-3 max-w-2xl mx-auto">
-            Join 200+ people waiting for smarter skincare.
-          </p>
-          <p className="text-muted-foreground/70 mb-10 text-sm">Stop guessing. Start knowing.</p>
-          <div className="flex justify-center">
-            <WaitlistForm buttonSize="lg" />
+          <div className="text-center mb-14">
+            <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary text-sm font-medium tracking-wide mb-5">
+              Help the community · Earn free premium
+            </span>
+            <h2 className="text-4xl md:text-5xl font-serif text-foreground mb-4 tracking-tight">
+              Build the database. <span className="italic text-muted-foreground">Earn free premium.</span>
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Every product you contribute helps thousands of people avoid skin-damaging combinations.
+            </p>
           </div>
         </FadeIn>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+          <FadeIn direction="right">
+            <div className="h-full p-7 rounded-2xl bg-[#F7FAF7] border border-[#E8F0E8]">
+              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                <ShieldCheck className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="text-2xl font-serif text-foreground mb-3 leading-tight">
+                Your private skincare shelf
+              </h3>
+              <p className="text-muted-foreground mb-5 leading-relaxed">
+                Save every product you use. SkinScreen checks your full routine for conflicts and flags risks before they damage your skin.
+              </p>
+              <ul className="space-y-2.5 text-sm text-foreground/85">
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>Private to you — never shared</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>AI-powered conflict analysis backed by peer-reviewed research</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>Scan any new product before you buy it</span></li>
+              </ul>
+            </div>
+          </FadeIn>
+
+          <FadeIn direction="left" delay={0.1}>
+            <div className="h-full p-7 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/25">
+              <div className="w-11 h-11 rounded-xl bg-primary/20 flex items-center justify-center mb-5">
+                <Plus className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="text-2xl font-serif text-foreground mb-3 leading-tight">
+                Add 30 new products = <span className="text-primary">1 month premium free</span>
+              </h3>
+              <p className="text-muted-foreground mb-5 leading-relaxed">
+                Help us crowdsource the world's largest skincare ingredient database. Each new product needs:
+              </p>
+              <ul className="space-y-2.5 text-sm text-foreground/85 mb-6">
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>Product name</strong> &amp; brand</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>Barcode</strong> (so others can find it)</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>Photo</strong> of the packaging</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>Full ingredient list</strong></span></li>
+              </ul>
+              {!isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => login()}
+                  className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
+                >
+                  Sign in to contribute
+                </button>
+              ) : (
+                <a
+                  href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/app`}
+                  className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
+                >
+                  Start contributing
+                </a>
+              )}
+            </div>
+          </FadeIn>
+        </div>
       </section>
 
       {/* 10. FOOTER */}

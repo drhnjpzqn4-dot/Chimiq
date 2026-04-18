@@ -1398,12 +1398,12 @@ export function IngredientScanner({
 
               <div className="text-center">
                 <a
-                  href="#waitlist"
-                  onClick={(e) => { e.preventDefault(); document.getElementById("waitlist")?.scrollIntoView({ behavior: "smooth" }); }}
+                  href="#earn-premium"
+                  onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
                   className="text-sm hover:underline"
                   style={{ color: "#7BAF7A" }}
                 >
-                  Join the waitlist — check your full routine
+                  Sign in to save &amp; check your full routine
                 </a>
               </div>
 
@@ -1577,12 +1577,12 @@ export function IngredientScanner({
 
               <div className="text-center">
                 <a
-                  href="#waitlist"
-                  onClick={(e) => { e.preventDefault(); document.getElementById("waitlist")?.scrollIntoView({ behavior: "smooth" }); }}
+                  href="#earn-premium"
+                  onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
                   className="text-sm hover:underline"
                   style={{ color: "#7BAF7A" }}
                 >
-                  Join the waitlist — scan your full routine
+                  Sign in to scan your full routine
                 </a>
               </div>
 
