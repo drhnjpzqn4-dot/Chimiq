@@ -10,8 +10,6 @@ servers:
 tags:
   - name: health
     description: Health operations
-  - name: waitlist
-    description: Waitlist operations
   - name: analyzer
     description: Ingredient conflict analysis
   - name: scanner
@@ -34,37 +32,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
-  /waitlist:
-    post:
-      operationId: joinWaitlist
-      tags: [waitlist]
-      summary: Join the waitlist
-      description: Adds an email to the SkinScreen waitlist. Deduplicates automatically.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WaitlistRequest"
-      responses:
-        "200":
-          description: Successfully joined (or already on) the waitlist
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WaitlistResponse"
-        "400":
-          description: Invalid email address
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
   /analyze:
     post:
       operationId: analyzeIngredients
@@ -486,39 +453,6 @@ components:
           type: string
       required:
         - status
-    WaitlistRequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-          description: Email address to add to the waitlist
-        referredBy:
-          type: string
-          description: Referral code of the person who invited this user
-      required:
-        - email
-    WaitlistResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        message:
-          type: string
-        alreadyRegistered:
-          type: boolean
-        referralCode:
-          type: string
-          description: Unique referral code for this user to share
-        referralCount:
-          type: number
-          description: Number of people this user has referred so far
-      required:
-        - success
-        - message
-        - alreadyRegistered
-        - referralCode
-        - referralCount
     ErrorResponse:
       type: object
       properties:

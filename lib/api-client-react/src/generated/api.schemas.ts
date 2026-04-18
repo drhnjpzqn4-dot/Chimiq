@@ -9,23 +9,6 @@ export interface HealthStatus {
   status: string;
 }
 
-export interface WaitlistRequest {
-  /** Email address to add to the waitlist */
-  email: string;
-  /** Referral code of the person who invited this user */
-  referredBy?: string;
-}
-
-export interface WaitlistResponse {
-  success: boolean;
-  message: string;
-  alreadyRegistered: boolean;
-  /** Unique referral code for this user to share */
-  referralCode: string;
-  /** Number of people this user has referred so far */
-  referralCount: number;
-}
-
 export interface ErrorResponse {
   error: string;
 }

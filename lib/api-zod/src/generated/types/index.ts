@@ -42,5 +42,3 @@ export * from "./shelfResponse";
 export * from "./skinProfile";
 export * from "./suggestAlternativesRequest";
 export * from "./suggestAlternativesResponse";
-export * from "./waitlistRequest";
-export * from "./waitlistResponse";

@@ -5,7 +5,7 @@ packages:
   "lucide-react": "For beautiful, consistent iconography"
   "react-hook-form": "For robust form state management"
   "@hookform/resolvers": "For Zod schema validation integration"
-  "zod": "For waitlist form validation"
+  "zod": "For form validation"
 
 images:
   - path: "artifacts/skinscreen/public/images/hero-abstract.png"
@@ -13,5 +13,4 @@ images:
     aspect_ratio: "16:9"
 
 notes:
-  - "Waitlist API hook used from @workspace/api-client-react"
   - "Design is mobile-first, Apple-inspired minimal, no dark mode"

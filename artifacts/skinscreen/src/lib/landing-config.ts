@@ -25,7 +25,7 @@ export const generalConfig: LandingConfig = {
     headlineItalic: "Do you know what they do to each other?",
     subhead:
       "SkinScreen scans your skincare and finds dangerous combinations — before they find your skin.",
-    ctaLabel: "Join the waitlist",
+    ctaLabel: "Get early access",
   },
   theGoal: {
     headline: "Healthy skin needs less, not more.",
