@@ -5,6 +5,12 @@ import { db, userSubmittedProductsTable, cachedProductsTable, usersTable } from 
 import { eq, sql } from "drizzle-orm";
 import { uploadBufferToGcs } from "../lib/objectStorage";
 import { randomUUID } from "crypto";
+import {
+  sanitizeProductName,
+  sanitizeBrand,
+  sanitizeIngredients,
+  SanitizationError,
+} from "../lib/sanitize.js";
 
 const StartBody = z.object({
   barcode: z.string().regex(/^[0-9]{6,14}$/, "Invalid barcode").optional(),
@@ -25,7 +31,7 @@ const AdminReviewBody = z.object({
   ingredients: z.string().trim().max(10000).optional(),
 });
 
-const PREMIUM_CONTRIBUTION_MILESTONE = 5;
+const PREMIUM_CONTRIBUTION_MILESTONE = 30;
 const PREMIUM_DURATION_DAYS = 30;
 
 async function extractFromFrontImage(
@@ -207,13 +213,41 @@ router.post("/contribute/start", async (req, res) => {
   const { barcode, productName, brand } = parseResult.data;
   const userId = (req as { user?: { id?: string } }).user?.id ?? null;
 
+  let safeName: string;
+  let safeBrand: string;
+  try {
+    safeName = sanitizeProductName(productName, true);
+    safeBrand = sanitizeBrand(brand, true);
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
+
+  // Reject duplicates: only NEW products count toward the 30-product milestone
+  if (barcode) {
+    const [existingCached] = await db
+      .select({ barcode: cachedProductsTable.barcode, productName: cachedProductsTable.productName })
+      .from(cachedProductsTable)
+      .where(eq(cachedProductsTable.barcode, barcode));
+    if (existingCached) {
+      res.status(409).json({
+        error: `This product (${existingCached.productName}) is already in our database — thank you! Only new products count toward your contribution milestone.`,
+        alreadyInDatabase: true,
+      });
+      return;
+    }
+  }
+
   try {
     const [submission] = await db
       .insert(userSubmittedProductsTable)
       .values({
         barcode: barcode ?? "unknown",
-        productName: productName ?? null,
-        brand: brand ?? null,
+        productName: safeName || null,
+        brand: safeBrand || null,
         submittedBy: userId,
         status: "pending",
         obfContributed: "pending",
@@ -237,6 +271,19 @@ router.post("/contribute/photos", async (req, res) => {
 
   const { submissionId, frontImageBase64, ingredientsImageBase64, ingredientsText } = parseResult.data;
   const userId = (req as { user?: { id?: string } }).user?.id ?? null;
+
+  let safeIngredientsText: string | undefined;
+  try {
+    if (ingredientsText && ingredientsText.trim().length > 0) {
+      safeIngredientsText = sanitizeIngredients(ingredientsText, false);
+    }
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
 
   const [existing] = await db
     .select()
@@ -312,9 +359,31 @@ router.post("/contribute/photos", async (req, res) => {
 
   const finalProductName = existing.productName ?? extractedProductName;
   const finalBrand = existing.brand ?? extractedBrand;
-  const finalIngredients = ingredientsText?.trim() || extractedIngredients || null;
-  const hasIngredients = finalIngredients && finalIngredients.length > 5;
-  const status = hasIngredients && confidence === "high" ? "approved" : "needs_admin";
+  let finalIngredients: string | null =
+    safeIngredientsText || extractedIngredients || null;
+
+  // Sanitize AI-extracted ingredients too (defence in depth)
+  if (finalIngredients) {
+    try {
+      finalIngredients = sanitizeIngredients(finalIngredients, false);
+    } catch (err) {
+      if (err instanceof SanitizationError) {
+        finalIngredients = null;
+      }
+    }
+  }
+
+  const hasIngredients = !!finalIngredients && finalIngredients.length > 5;
+  const hasProductName = !!finalProductName && finalProductName.trim().length > 0;
+  const hasFrontPhoto = !!frontImageBase64 || !!existing.frontImageUrl;
+  const hasRealBarcode = !!existing.barcode && existing.barcode !== "unknown";
+
+  // All four fields required to count as a "complete contribution" toward the milestone
+  const isCompleteContribution =
+    hasIngredients && hasProductName && hasFrontPhoto && hasRealBarcode;
+
+  const status =
+    isCompleteContribution && confidence === "high" ? "approved" : "needs_admin";
 
   try {
     const [updated] = await db

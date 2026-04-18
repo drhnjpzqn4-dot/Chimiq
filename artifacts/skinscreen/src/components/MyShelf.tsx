@@ -15,7 +15,7 @@ import type { RoutineConflict, RoutineConflictResponse } from "@workspace/api-cl
 import {
   Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle,
   CheckCircle2, X, ShieldCheck, ShieldOff, Loader2,
-  ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus,
+  ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus, Sparkles, Check,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { cn } from "@/lib/utils";
@@ -424,8 +424,77 @@ const DEMO_PRODUCTS = [
   },
 ];
 
+type ShelfTab = "morning" | "evening" | "both";
+
+const FREE_TIER_LIMIT = 2;
+
+interface UpgradeCardProps {
+  onUpgrade: () => void;
+}
+
+function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
+  const benefits = [
+    "Unlimited products on your shelf",
+    "Full routine analysis (AM + PM)",
+    "Downloadable PDF safety report",
+    "Personalised skin profile alerts",
+  ];
+  return (
+    <div className="rounded-2xl bg-gradient-to-br from-primary/8 via-primary/5 to-amber-50/40 border border-primary/30 p-5 shadow-sm">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="w-4 h-4 text-primary" />
+        <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
+          Premium
+        </p>
+      </div>
+      <p className="font-serif text-xl font-semibold text-foreground leading-tight mb-1">
+        Unlock your whole shelf
+      </p>
+      <p className="text-sm text-muted-foreground mb-4">
+        From <span className="font-bold text-foreground">$4.99/mo</span> — cancel anytime.
+      </p>
+      <ul className="space-y-1.5 mb-4">
+        {benefits.map((b) => (
+          <li key={b} className="flex items-start gap-2 text-xs text-foreground">
+            <Check className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+            <span>{b}</span>
+          </li>
+        ))}
+      </ul>
+      <button
+        onClick={onUpgrade}
+        className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+      >
+        Upgrade to Premium
+      </button>
+      <p className="text-[10px] text-muted-foreground/60 text-center mt-2">
+        Or contribute 30 new products to earn a free month
+      </p>
+    </div>
+  );
+}
+
+function LockedSlotCard({ index, onUpgrade }: { index: number; onUpgrade: () => void }) {
+  return (
+    <button
+      onClick={onUpgrade}
+      className="w-full group flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#FAFAF8] border border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/[0.04] transition-colors text-left"
+    >
+      <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+        <Lock className="w-3 h-3 text-primary" />
+      </div>
+      <span className="text-sm text-muted-foreground flex-1 min-w-0">
+        Slot {index} — locked
+      </span>
+      <span className="text-[10px] font-semibold text-primary uppercase tracking-wide bg-primary/10 px-2 py-0.5 rounded-full shrink-0 group-hover:bg-primary/15 transition-colors">
+        Premium
+      </span>
+    </button>
+  );
+}
+
 export function MyShelf({ displayName }: MyShelfProps) {
-  const [tab, setTab] = useState<"morning" | "evening">("morning");
+  const [tab, setTab] = useState<ShelfTab>("morning");
   const [showAddForm, setShowAddForm] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
   const [analysisState, setAnalysisState] = useState<AnalysisState>({ status: "idle" });
@@ -445,6 +514,10 @@ export function MyShelf({ displayName }: MyShelfProps) {
     if (tab === "evening") return p.routineSlot === "evening" || p.routineSlot === "both";
     return true;
   });
+  const isFree = plan === "free";
+  // Locked-slot placeholders for free users beyond their 2-product limit
+  const lockedSlotsCount = isFree ? Math.max(0, FREE_TIER_LIMIT - allProducts.length) + 2 : 0;
+  const handleUpgrade = useCallback(() => navigate("/pricing"), [navigate]);
 
   const resetAnalysis = useCallback(() => {
     setAnalysisState({ status: "idle" });
@@ -518,7 +591,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
       </div>
 
       <div className="flex border-b border-border/30">
-        {(["morning", "evening"] as const).map((t) => (
+        {(["morning", "evening", "both"] as ShelfTab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -528,11 +601,9 @@ export function MyShelf({ displayName }: MyShelfProps) {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "morning" ? (
-              <Sun className="w-3.5 h-3.5 text-[#F59E0B]" />
-            ) : (
-              <Moon className="w-3.5 h-3.5 text-primary" />
-            )}
+            {t === "morning" && <Sun className="w-3.5 h-3.5 text-[#F59E0B]" />}
+            {t === "evening" && <Moon className="w-3.5 h-3.5 text-primary" />}
+            {t === "both" && <Layers className="w-3.5 h-3.5 text-primary" />}
             {t}
           </button>
         ))}
@@ -583,26 +654,40 @@ export function MyShelf({ displayName }: MyShelfProps) {
             )}
           </div>
         ) : (
-          filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="group flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#FAFAF8] border border-border/30 hover:border-border/50 transition-colors"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] shrink-0" />
-              <span className="text-sm text-foreground flex-1 min-w-0 truncate">{product.productName}</span>
-              {product.routineSlot === "both" && (
-                <span className="text-[10px] text-muted-foreground/60 shrink-0">AM+PM</span>
-              )}
-              <button
-                onClick={() => handleRemove(product.id)}
-                disabled={removeMutation.isPending}
-                className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-red-400 transition-all ml-1"
-                aria-label="Remove product"
+          <>
+            {filteredProducts.map((product) => (
+              <div
+                key={product.id}
+                className="group flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#FAFAF8] border border-border/30 hover:border-border/50 transition-colors"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] shrink-0" />
+                <span className="text-sm text-foreground flex-1 min-w-0 truncate">{product.productName}</span>
+                {product.routineSlot === "both" && (
+                  <span className="text-[10px] text-muted-foreground/60 shrink-0">AM+PM</span>
+                )}
+                <button
+                  onClick={() => handleRemove(product.id)}
+                  disabled={removeMutation.isPending}
+                  className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-red-400 transition-all ml-1"
+                  aria-label="Remove product"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+
+            {isFree && lockedSlotsCount > 0 && (
+              <div className="space-y-2 pt-1">
+                {Array.from({ length: lockedSlotsCount }).map((_, i) => (
+                  <LockedSlotCard
+                    key={`locked-${i}`}
+                    index={allProducts.length + i + 1}
+                    onUpgrade={handleUpgrade}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -611,15 +696,9 @@ export function MyShelf({ displayName }: MyShelfProps) {
           <AddProductForm onClose={() => setShowAddForm(false)} onAdded={handleAdded} />
         </div>
       ) : (
-        <div className="px-4 pb-4 space-y-2">
-          {plan === "free" && allProducts.length >= 2 ? (
-            <button
-              onClick={() => navigate("/pricing")}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-primary/40 text-primary text-sm font-medium hover:border-primary hover:bg-primary/5 transition-colors duration-200"
-            >
-              <Lock className="w-4 h-4" />
-              Unlock My Shelf — from $4.99/mo
-            </button>
+        <div className="px-4 pb-4 space-y-3">
+          {isFree && allProducts.length >= FREE_TIER_LIMIT ? (
+            <UpgradeCard onUpgrade={handleUpgrade} />
           ) : (
             <button
               onClick={() => setShowAddForm(true)}
@@ -634,7 +713,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-200 bg-amber-50/50 text-amber-700 text-xs font-medium hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200"
           >
             <PackagePlus className="w-3.5 h-3.5" />
-            Contribute a product — earn free Premium
+            Contribute a new product — 30 = 1 month free Premium
           </button>
         </div>
       )}

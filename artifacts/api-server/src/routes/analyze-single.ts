@@ -10,6 +10,7 @@ import {
   bumpCacheUsage,
   isStale,
 } from "../lib/analysis-cache.js";
+import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
 
 const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).optional();
 
@@ -232,7 +233,17 @@ router.post("/analyze-single", async (req, res) => {
     return;
   }
 
-  const { ingredients, skinProfile } = parseResult.data;
+  let ingredients: string;
+  try {
+    ingredients = sanitizeIngredients(parseResult.data.ingredients, false);
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
+  const { skinProfile } = parseResult.data;
   const hash = computeSingleHash(ingredients, skinProfile);
 
   const cached = await getCacheEntry(hash).catch(() => null);

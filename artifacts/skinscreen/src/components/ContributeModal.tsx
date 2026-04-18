@@ -57,6 +57,7 @@ export function ContributeModal({
   const [step, setStep] = useState<Step>("front-photo");
   const [productName, setProductName] = useState(initialProductName);
   const [brand, setBrand] = useState(initialBrand);
+  const [barcodeInput, setBarcodeInput] = useState(barcode ?? "");
   const [ingredientsText, setIngredientsText] = useState("");
   const [frontImageBase64, setFrontImageBase64] = useState<string | null>(null);
   const [frontPreviewUrl, setFrontPreviewUrl] = useState<string | null>(null);
@@ -105,25 +106,41 @@ export function ContributeModal({
 
   const handleFrontPhotoNext = useCallback(async () => {
     setError(null);
+    if (!frontImageBase64) {
+      setError("Please add a clear photo of the front of the product.");
+      return;
+    }
+    if (!productName.trim()) {
+      setError("Please enter the product name.");
+      return;
+    }
+    if (!barcodeInput.trim()) {
+      setError("Please enter or scan the product barcode.");
+      return;
+    }
     try {
       const res = await fetch("/api/contribute/start", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          barcode: barcode ?? undefined,
+          barcode: barcodeInput.trim() || undefined,
           productName: productName.trim() || undefined,
           brand: brand.trim() || undefined,
         }),
       });
-      const data = (await res.json()) as { submissionId?: string; error?: string };
+      const data = (await res.json()) as {
+        submissionId?: string;
+        error?: string;
+        alreadyInDatabase?: boolean;
+      };
       if (!res.ok || !data.submissionId) throw new Error(data.error ?? "Failed to start submission");
       setSubmissionId(data.submissionId);
       setStep("ingredients");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error. Please try again.");
     }
-  }, [barcode, productName, brand]);
+  }, [barcodeInput, productName, brand, frontImageBase64]);
 
   const handleSubmit = useCallback(async () => {
     if (!submissionId) return;
@@ -204,7 +221,8 @@ export function ContributeModal({
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 mb-5">
               <Gift className="w-4 h-4 text-amber-600 shrink-0" />
               <p className="text-xs text-amber-700 font-medium leading-snug">
-                Contribute 5 products to earn 30 days of free Premium.
+                Contribute 30 new products to earn 1 month of free Premium.
+                Each must include name, barcode, front photo & ingredients.
               </p>
             </div>
           )}
@@ -275,27 +293,60 @@ export function ContributeModal({
 
               <div className="border-t border-border/30 pt-3 space-y-3">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                  Manual override{" "}
-                  <span className="font-normal normal-case text-muted-foreground/60">
-                    (optional if photo is clear)
-                  </span>
+                  Required details
                 </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    placeholder="Product name"
-                    value={productName}
-                    onChange={(e) => setProductName(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Brand"
-                    value={brand}
-                    onChange={(e) => setBrand(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                  />
-                </div>
+                <input
+                  type="text"
+                  placeholder="Product name *"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                />
+                <input
+                  type="text"
+                  placeholder="Brand (optional)"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Barcode (8–14 digits) *"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value.replace(/\D/g, ""))}
+                  disabled={!!barcode}
+                  className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors disabled:bg-[#F5F5F7] disabled:text-muted-foreground"
+                />
+              </div>
+
+              <div className="rounded-xl bg-[#FAFAF8] border border-border/40 px-3 py-2.5 space-y-1">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  Required for milestone credit
+                </p>
+                {[
+                  { label: "Front photo", ok: !!frontImageBase64 },
+                  { label: "Product name", ok: !!productName.trim() },
+                  { label: "Barcode", ok: !!barcodeInput.trim() },
+                  { label: "Ingredient list (next step)", ok: false, neutral: true },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-2 text-xs">
+                    <CheckCircle2
+                      className={cn(
+                        "w-3.5 h-3.5 shrink-0",
+                        item.ok
+                          ? "text-green-500"
+                          : item.neutral
+                            ? "text-muted-foreground/30"
+                            : "text-muted-foreground/40",
+                      )}
+                    />
+                    <span className={item.ok ? "text-foreground" : "text-muted-foreground"}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
               </div>
 
               {error && <p className="text-xs text-red-500 text-center">{error}</p>}
@@ -303,7 +354,12 @@ export function ContributeModal({
               <button
                 type="button"
                 onClick={handleFrontPhotoNext}
-                disabled={processingFront}
+                disabled={
+                  processingFront ||
+                  !frontImageBase64 ||
+                  !productName.trim() ||
+                  !barcodeInput.trim()
+                }
                 className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next — add ingredient list
@@ -447,7 +503,7 @@ export function ContributeModal({
                   </div>
                   <p className="font-bold text-amber-700 text-base">Premium unlocked!</p>
                   <p className="text-xs text-amber-600 mt-1">
-                    You've contributed 5 products — enjoy 30 days of free Premium.
+                    You've contributed 30 new products — enjoy 1 month of free Premium.
                   </p>
                 </div>
               )}

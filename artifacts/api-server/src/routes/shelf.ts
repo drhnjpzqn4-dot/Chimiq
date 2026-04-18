@@ -3,6 +3,11 @@ import { z } from "zod";
 import { db, shelfProductsTable, getUserPlan } from "@workspace/db";
 import { eq, and, count } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
+import {
+  sanitizeProductName,
+  sanitizeIngredients,
+  SanitizationError,
+} from "../lib/sanitize.js";
 
 const router: IRouter = Router();
 
@@ -48,10 +53,28 @@ router.post("/shelf", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid input" });
     return;
   }
-  const { productName, ingredients, routineSlot } = parsed.data;
+
+  let safeName: string;
+  let safeIngredients: string;
+  try {
+    safeName = sanitizeProductName(parsed.data.productName);
+    safeIngredients = sanitizeIngredients(parsed.data.ingredients);
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
+
   const [product] = await db
     .insert(shelfProductsTable)
-    .values({ userId: req.user.id, productName, ingredients, routineSlot })
+    .values({
+      userId: req.user.id,
+      productName: safeName,
+      ingredients: safeIngredients,
+      routineSlot: parsed.data.routineSlot,
+    })
     .returning();
   res.json(product);
 });
