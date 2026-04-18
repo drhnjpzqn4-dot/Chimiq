@@ -199,7 +199,7 @@ export function PricingSection() {
                   {loading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />Redirecting…</>
                   ) : (
-                    <>Get Premium — $4.99/mo</>
+                    <>Get Premium — {billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo"}</>
                   )}
                 </button>
               )}

@@ -435,6 +435,7 @@ interface UpgradeCardProps {
 function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
   const benefits = [
     "Unlimited products on your shelf",
     "Full routine analysis (AM + PM)",
@@ -450,6 +451,7 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: billing }),
       });
       if (!res.ok) {
         // Fallback to pricing page if checkout endpoint fails (e.g. not configured)
@@ -476,12 +478,49 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
           Premium
         </p>
       </div>
-      <p className="font-serif text-xl font-semibold text-foreground leading-tight mb-1">
+      <p className="font-serif text-xl font-semibold text-foreground leading-tight mb-3">
         Unlock your whole shelf
       </p>
+
+      <div className="inline-flex items-center bg-white/70 border border-primary/20 rounded-full p-0.5 mb-3">
+        <button
+          type="button"
+          onClick={() => setBilling("monthly")}
+          className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+            billing === "monthly"
+              ? "bg-primary text-white"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Monthly
+        </button>
+        <button
+          type="button"
+          onClick={() => setBilling("yearly")}
+          className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors flex items-center gap-1.5 ${
+            billing === "yearly"
+              ? "bg-primary text-white"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Yearly
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+              billing === "yearly"
+                ? "bg-white text-primary"
+                : "bg-primary/15 text-primary"
+            }`}
+          >
+            Save 98 SEK
+          </span>
+        </button>
+      </div>
+
       <p className="text-sm text-muted-foreground mb-4">
-        From <span className="font-bold text-foreground">49 SEK/mo</span> · save with{" "}
-        <span className="font-bold text-foreground">490 SEK/yr</span> — cancel anytime.
+        <span className="font-bold text-foreground">
+          {billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo"}
+        </span>
+        {billing === "yearly" ? " · ≈ 41 SEK/mo" : ""} — cancel anytime.
       </p>
       <ul className="space-y-1.5 mb-4">
         {benefits.map((b) => (
@@ -496,7 +535,9 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
         disabled={loading}
         className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {loading ? "Starting checkout…" : "Upgrade to Premium"}
+        {loading
+          ? "Starting checkout…"
+          : `Upgrade — ${billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo"}`}
       </button>
       {error && (
         <p className="text-[11px] text-red-600 text-center mt-2">{error}</p>
