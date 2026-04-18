@@ -395,14 +395,17 @@ router.post("/contribute/photos", async (req, res) => {
   const hasFrontPhoto = !!frontImageBase64 || !!existing.frontImageUrl;
   const hasRealBarcode = !!existing.barcode && existing.barcode !== "unknown";
 
-  // Hard-reject obviously-incomplete submissions with a clear error so users know what's missing
-  // (start route already enforces productName + barcode; here we enforce front photo + ingredients).
+  // Hard-reject incomplete submissions with a clear error. We re-check ALL four required
+  // fields here (not just the two added in this step) — the start route enforces name +
+  // barcode, but defensive re-checking handles legacy rows, sanitization-to-empty, etc.
   const missingFields: string[] = [];
+  if (!hasProductName) missingFields.push("product name");
+  if (!hasRealBarcode) missingFields.push("barcode");
   if (!hasFrontPhoto) missingFields.push("front photo");
   if (!hasIngredients) missingFields.push("ingredient list");
   if (missingFields.length > 0) {
     res.status(400).json({
-      error: `Please add the missing ${missingFields.join(" and ")} before submitting.`,
+      error: `Please add the missing ${missingFields.join(", ")} before submitting.`,
       missingFields,
     });
     return;

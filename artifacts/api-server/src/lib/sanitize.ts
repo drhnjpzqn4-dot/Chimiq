@@ -83,6 +83,14 @@ export function sanitizeBrand(raw: unknown, allowEmpty = true): string {
   return sanitizeText(raw, { fieldName: "Brand", maxLength: 200, allowEmpty });
 }
 
+// Common English connector words that signal "this is prose, not an ingredient list".
+const PROSE_STOP_WORDS = new Set([
+  "the", "and", "is", "are", "was", "were", "this", "that", "these", "those",
+  "with", "without", "from", "for", "have", "has", "had", "will", "would",
+  "should", "could", "but", "because", "however", "therefore", "you", "your",
+  "we", "our", "they", "them", "their", "it", "its", "as", "if", "then",
+]);
+
 export function sanitizeIngredients(raw: unknown, allowEmpty = false): string {
   const cleaned = sanitizeText(raw, {
     fieldName: "Ingredient list",
@@ -91,12 +99,56 @@ export function sanitizeIngredients(raw: unknown, allowEmpty = false): string {
     allowEmpty,
   });
   if (cleaned.length === 0) return cleaned;
-  // Heuristic: must look like an ingredient list (has commas or newlines, mostly letters)
-  const letters = (cleaned.match(/[a-zA-Z]/g) ?? []).length;
-  if (letters < cleaned.length * 0.4) {
+
+  const letterRatio = (cleaned.match(/[a-zA-Z]/g) ?? []).length / cleaned.length;
+  if (letterRatio < 0.4) {
     throw new SanitizationError(
-      "Ingredient list looks invalid. Please paste a comma-separated INCI list.",
+      "Ingredient list looks invalid. Please paste the comma-separated INCI list from the product label.",
     );
   }
+
+  // Split on commas OR newlines (real INCI lists use one or the other).
+  const tokens = cleaned
+    .split(/[,\n;]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+
+  if (tokens.length < 3) {
+    throw new SanitizationError(
+      "Ingredient list must contain at least 3 ingredients separated by commas (e.g. 'Aqua, Glycerin, Niacinamide…').",
+    );
+  }
+
+  // Each token should look like an ingredient name: short-to-medium length, mostly
+  // letters/numbers/parens/hyphens, no full sentences. Allow up to 25% of tokens to
+  // be unusual (CI numbers, blends, etc.) before flagging.
+  let suspiciousTokens = 0;
+  for (const tok of tokens) {
+    const wordCount = tok.split(/\s+/).length;
+    const looksTooLong = tok.length > 80 || wordCount > 8;
+    const hasSentencePunct = /[.!?]{1,}\s+[A-Z]/.test(tok); // mid-token sentence break
+    const tokenLetters = (tok.match(/[a-zA-Z]/g) ?? []).length;
+    const tokenLetterRatio = tokenLetters / tok.length;
+    if (looksTooLong || hasSentencePunct || tokenLetterRatio < 0.3) {
+      suspiciousTokens += 1;
+    }
+  }
+  if (suspiciousTokens > Math.max(1, Math.floor(tokens.length * 0.25))) {
+    throw new SanitizationError(
+      "That doesn't look like an ingredient list. Paste the comma-separated INCI list (e.g. 'Aqua, Glycerin, Niacinamide…').",
+    );
+  }
+
+  // Reject obvious prose: too many English connector words across the whole text.
+  const allWords = cleaned.toLowerCase().split(/\W+/).filter(Boolean);
+  if (allWords.length >= 6) {
+    const proseHits = allWords.filter((w) => PROSE_STOP_WORDS.has(w)).length;
+    if (proseHits / allWords.length > 0.15) {
+      throw new SanitizationError(
+        "Ingredient list reads like a sentence. Please paste only the comma-separated INCI list from the product label.",
+      );
+    }
+  }
+
   return cleaned;
 }
