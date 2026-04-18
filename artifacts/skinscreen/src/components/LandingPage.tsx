@@ -301,12 +301,12 @@ export function LandingPage({ config }: LandingPageProps) {
 
           <FadeIn delay={0.2} className="max-w-4xl">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] font-serif text-white leading-[1.08] tracking-tight mb-4">
-              Your skincare routine<br className="hidden sm:block" />{" "}
-              might be{" "}
-              <span className="italic text-white/50">damaging your skin.</span>
+              Scan ingredients.<br className="hidden sm:block" />{" "}
+              Build your shelf.{" "}
+              <span className="italic text-white/50">Catch conflicts.</span>
             </h1>
-            <p className="text-xl sm:text-2xl font-light italic mt-3" style={{ color: "#C94538" }}>
-              Most people have no idea.
+            <p className="text-lg sm:text-xl font-light text-white/80 mt-5 max-w-2xl mx-auto leading-relaxed">
+              Sign in, save the products you use, and let our AI flag dangerous skincare combinations <em>before</em> they damage your skin.
             </p>
           </FadeIn>
 
