@@ -151,11 +151,16 @@ export function ContributeModal({
       setError("Please add at least one photo or paste the ingredient list.");
       return;
     }
-    // Reject obvious non-ingredient input (no commas + very short, or looks like code/HTML).
-    if (hasText && !hasImages) {
+    // Reject obvious non-ingredient input whenever the user has typed text — independent
+    // of whether they also uploaded an ingredients photo. This catches HTML/script payloads
+    // and prose pastes before they ever hit the backend.
+    if (hasText) {
       const looksLikeCode = /<[a-z!\/][^>]*>|javascript:|on\w+\s*=|;\s*--|\bdrop\s+table\b|\bselect\s+.+\bfrom\b/i.test(trimmedText);
-      const tooShortOrNoCommas = trimmedText.length < 15 || (!trimmedText.includes(",") && trimmedText.length < 60);
-      if (looksLikeCode || tooShortOrNoCommas) {
+      const tooShortOrNoCommas =
+        trimmedText.length < 15 || (!trimmedText.includes(",") && !trimmedText.includes("\n"));
+      const tokens = trimmedText.split(/[,\n;]+/).map((t) => t.trim()).filter(Boolean);
+      const tooFewTokens = tokens.length < 3;
+      if (looksLikeCode || tooShortOrNoCommas || tooFewTokens) {
         setError(
           "That doesn't look like an ingredient list. Paste the comma-separated INCI list from the product label (e.g. 'Aqua, Glycerin, Niacinamide…').",
         );

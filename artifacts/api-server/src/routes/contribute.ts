@@ -438,11 +438,24 @@ router.post("/contribute/photos", async (req, res) => {
     let premiumUntil: Date | null = null;
 
     if (status === "approved" && updated) {
+      // Re-check newness BEFORE approveSubmission upserts the cache row. Closes the race
+      // window between /contribute/start (where we first checked) and now: if the barcode
+      // was added to cached_products by anyone in the meantime, this submission is no
+      // longer a "new" product and must not count toward the milestone.
+      let isStillNewProduct = true;
+      if (existing.barcode && existing.barcode !== "unknown") {
+        const [preexisting] = await db
+          .select({ barcode: cachedProductsTable.barcode })
+          .from(cachedProductsTable)
+          .where(eq(cachedProductsTable.barcode, existing.barcode));
+        if (preexisting) isStillNewProduct = false;
+      }
+
       const approved = await approveSubmission(updated, (msg, data) =>
         req.log.info(data ?? {}, msg),
       );
       const effectiveUserId = userId ?? existing.submittedBy;
-      if (approved && effectiveUserId) {
+      if (approved && effectiveUserId && isStillNewProduct) {
         const reward = await rewardContributorIdempotent(
           submissionId,
           effectiveUserId,
