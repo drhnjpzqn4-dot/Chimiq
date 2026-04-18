@@ -216,7 +216,7 @@ router.post("/contribute/start", async (req, res) => {
   let safeName: string;
   let safeBrand: string;
   try {
-    safeName = sanitizeProductName(productName, true);
+    safeName = sanitizeProductName(productName, false);
     safeBrand = sanitizeBrand(brand, true);
   } catch (err) {
     if (err instanceof SanitizationError) {

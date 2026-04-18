@@ -330,7 +330,7 @@ export function ContributeModal({
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  placeholder="Barcode (8–14 digits) *"
+                  placeholder="Barcode (6–14 digits) *"
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value.replace(/\D/g, ""))}
                   disabled={!!barcode}
