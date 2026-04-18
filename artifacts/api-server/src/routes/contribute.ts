@@ -357,8 +357,25 @@ router.post("/contribute/photos", async (req, res) => {
       : Promise.resolve(null),
   ]);
 
-  const finalProductName = existing.productName ?? extractedProductName;
-  const finalBrand = existing.brand ?? extractedBrand;
+  // Sanitize AI-extracted product name / brand (defence in depth: AI output is untrusted user content)
+  let safeExtractedProductName: string | null = extractedProductName ?? null;
+  let safeExtractedBrand: string | null = extractedBrand ?? null;
+  if (safeExtractedProductName) {
+    try {
+      safeExtractedProductName = sanitizeProductName(safeExtractedProductName);
+    } catch {
+      safeExtractedProductName = null;
+    }
+  }
+  if (safeExtractedBrand) {
+    try {
+      safeExtractedBrand = sanitizeBrand(safeExtractedBrand);
+    } catch {
+      safeExtractedBrand = null;
+    }
+  }
+  const finalProductName = existing.productName ?? safeExtractedProductName;
+  const finalBrand = existing.brand ?? safeExtractedBrand;
   let finalIngredients: string | null =
     safeIngredientsText || extractedIngredients || null;
 

@@ -515,8 +515,8 @@ export function MyShelf({ displayName }: MyShelfProps) {
     return true;
   });
   const isFree = plan === "free";
-  // Locked-slot placeholders for free users beyond their 2-product limit
-  const lockedSlotsCount = isFree ? Math.max(0, FREE_TIER_LIMIT - allProducts.length) + 2 : 0;
+  // Locked-slot placeholders only after free user has reached their limit
+  const lockedSlotsCount = isFree && allProducts.length >= FREE_TIER_LIMIT ? 2 : 0;
   const handleUpgrade = useCallback(() => navigate("/pricing"), [navigate]);
 
   const resetAnalysis = useCallback(() => {

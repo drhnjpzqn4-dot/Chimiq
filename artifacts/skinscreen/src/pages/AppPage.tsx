@@ -3,6 +3,9 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { MyShelf } from "@/components/MyShelf";
 import { ScanLine, LogOut, Star, Gift, Sparkles } from "lucide-react";
 
+const PREMIUM_CONTRIBUTION_MILESTONE = 30;
+const STARS_DISPLAYED = 5;
+
 interface ContributeStats {
   acceptedContributions: number;
   premiumUntil: string | null;
@@ -21,10 +24,10 @@ function PremiumUnlockedBanner({ premiumUntil }: { premiumUntil: string }) {
         <div>
           <p className="font-bold text-white text-lg leading-tight">Premium unlocked!</p>
           <p className="text-white/90 text-sm mt-1">
-            You've contributed 5 products to our database. Enjoy Premium access until {expiryStr}.
+            You've contributed {PREMIUM_CONTRIBUTION_MILESTONE} products to our database. Enjoy Premium access until {expiryStr}.
           </p>
           <div className="flex items-center gap-1 mt-2">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(STARS_DISPLAYED)].map((_, i) => (
               <Star key={i} className="w-4 h-4 fill-white text-white" />
             ))}
           </div>
@@ -36,23 +39,24 @@ function PremiumUnlockedBanner({ premiumUntil }: { premiumUntil: string }) {
 
 function ContributionBadge({ count }: { count: number }) {
   if (count === 0) return null;
-  const nextMilestone = Math.ceil(count / 5) * 5;
+  const nextMilestone = Math.ceil(count / PREMIUM_CONTRIBUTION_MILESTONE) * PREMIUM_CONTRIBUTION_MILESTONE;
   const remaining = nextMilestone - count;
-  const starsToShow = Math.min(count % 5 || 5, 5);
-  const emptyStars = 5 - starsToShow;
+  const progress = count % PREMIUM_CONTRIBUTION_MILESTONE === 0 && count > 0 ? PREMIUM_CONTRIBUTION_MILESTONE : count % PREMIUM_CONTRIBUTION_MILESTONE;
+  const filledStars = Math.round((progress / PREMIUM_CONTRIBUTION_MILESTONE) * STARS_DISPLAYED);
+  const emptyStars = STARS_DISPLAYED - filledStars;
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 mb-6">
       <Gift className="w-4 h-4 text-amber-600 shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold text-amber-700">
           {count} product{count !== 1 ? "s" : ""} contributed
-          {remaining > 0 && remaining <= 4 && (
-            <span className="font-normal text-amber-600"> · {remaining} more to earn free Premium</span>
+          {remaining > 0 && (
+            <span className="font-normal text-amber-600"> · {remaining} more to earn 1 month free Premium</span>
           )}
         </p>
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
-        {[...Array(starsToShow)].map((_, i) => (
+        {[...Array(filledStars)].map((_, i) => (
           <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
         ))}
         {[...Array(emptyStars)].map((_, i) => (
