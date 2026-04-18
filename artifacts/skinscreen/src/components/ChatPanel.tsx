@@ -100,8 +100,9 @@ export function ChatPanel() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Ask SkinScreen AI"
+        style={{ bottom: "calc(var(--tab-bar-height, 64px) + var(--safe-bottom, 0px) + 18px)" }}
         className={cn(
-          "fixed bottom-24 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200",
+          "fixed right-5 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200",
           "bg-primary text-white hover:bg-primary/90 hover:scale-105 active:scale-95",
           open && "rotate-90 opacity-0 pointer-events-none",
         )}
@@ -111,10 +112,13 @@ export function ChatPanel() {
 
       <div
         className={cn(
-          "fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] rounded-3xl shadow-2xl border border-border/40 overflow-hidden flex flex-col bg-white transition-all duration-300 origin-bottom-right",
+          "fixed right-5 z-50 w-[380px] max-w-[calc(100vw-2.5rem)] rounded-3xl shadow-2xl border border-border/40 overflow-hidden flex flex-col bg-white transition-all duration-300 origin-bottom-right",
           open ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none",
         )}
-        style={{ maxHeight: "min(600px, calc(100vh - 6rem))" }}
+        style={{
+          bottom: "calc(var(--tab-bar-height, 64px) + var(--safe-bottom, 0px) + 18px)",
+          maxHeight: "min(600px, calc(100vh - 7rem))",
+        }}
       >
         <div className="bg-primary px-5 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">

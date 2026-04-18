@@ -27,6 +27,7 @@ function Router() {
       <Route path="/b" component={HomeB} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/app" component={AppPage} />
+      <Route path="/app/:rest*" component={AppPage} />
       <Route path="/admin/submissions" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
