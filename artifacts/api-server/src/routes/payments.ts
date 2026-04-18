@@ -20,6 +20,10 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
     return;
   }
 
+  const rawPlan = (req.body?.plan ?? "monthly") as unknown;
+  const plan: "monthly" | "yearly" =
+    rawPlan === "yearly" ? "yearly" : "monthly";
+
   try {
     const stripe = await getUncachableStripeClient();
     const [user] = await db
@@ -46,9 +50,15 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
         .where(eq(usersTable.id, user.id));
     }
 
-    const priceId = process.env.STRIPE_PREMIUM_PRICE_ID;
+    const envKey =
+      plan === "yearly"
+        ? "STRIPE_PREMIUM_PRICE_ID_YEARLY"
+        : "STRIPE_PREMIUM_PRICE_ID_MONTHLY";
+    const priceId = process.env[envKey];
     if (!priceId) {
-      res.status(500).json({ error: "Payment not configured — STRIPE_PREMIUM_PRICE_ID missing" });
+      res
+        .status(500)
+        .json({ error: `Payment not configured — ${envKey} missing` });
       return;
     }
 
@@ -66,7 +76,7 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
       mode: "subscription",
       success_url: `${baseUrl}/?upgraded=true`,
       cancel_url: `${baseUrl}/pricing`,
-      metadata: { userId: user.id },
+      metadata: { userId: user.id, plan },
     });
 
     res.json({ url: session.url });

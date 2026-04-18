@@ -480,7 +480,8 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
         Unlock your whole shelf
       </p>
       <p className="text-sm text-muted-foreground mb-4">
-        From <span className="font-bold text-foreground">$4.99/mo</span> — cancel anytime.
+        From <span className="font-bold text-foreground">49 SEK/mo</span> · save with{" "}
+        <span className="font-bold text-foreground">490 SEK/yr</span> — cancel anytime.
       </p>
       <ul className="space-y-1.5 mb-4">
         {benefits.map((b) => (

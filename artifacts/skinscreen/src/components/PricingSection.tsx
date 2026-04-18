@@ -31,6 +31,7 @@ export function PricingSection() {
   const { plan, isLoading } = useUserPlan();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -40,6 +41,7 @@ export function PricingSection() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({ plan: billing }),
       });
       if (res.status === 401) {
         navigate("/");
@@ -114,17 +116,60 @@ export function PricingSection() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative mb-5">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-3">
                 <p className="text-xs font-semibold uppercase tracking-widest text-primary">Premium</p>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
                   <Zap className="w-2.5 h-2.5" /> Most popular
                 </span>
               </div>
-              <div className="flex items-end gap-1">
-                <span className="text-3xl font-bold text-white">$4.99</span>
-                <span className="text-white/50 mb-0.5">/month</span>
+
+              <div className="inline-flex items-center bg-white/5 border border-white/10 rounded-full p-0.5 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setBilling("monthly")}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-[11px] font-semibold transition-colors",
+                    billing === "monthly"
+                      ? "bg-white text-[#1A1A2E]"
+                      : "text-white/60 hover:text-white",
+                  )}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBilling("yearly")}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-[11px] font-semibold transition-colors flex items-center gap-1.5",
+                    billing === "yearly"
+                      ? "bg-white text-[#1A1A2E]"
+                      : "text-white/60 hover:text-white",
+                  )}
+                >
+                  Yearly
+                  <span className={cn(
+                    "px-1.5 py-0.5 rounded-full text-[9px] font-bold",
+                    billing === "yearly"
+                      ? "bg-primary text-white"
+                      : "bg-primary/30 text-primary",
+                  )}>
+                    Save 98 SEK
+                  </span>
+                </button>
               </div>
-              <p className="text-xs text-white/40 mt-1">Cancel anytime</p>
+
+              <div className="flex items-end gap-1">
+                <span className="text-3xl font-bold text-white">
+                  {billing === "yearly" ? "490" : "49"}
+                </span>
+                <span className="text-base font-semibold text-white/70 mb-0.5">SEK</span>
+                <span className="text-white/50 mb-0.5">
+                  /{billing === "yearly" ? "year" : "month"}
+                </span>
+              </div>
+              <p className="text-xs text-white/40 mt-1">
+                {billing === "yearly" ? "≈ 41 SEK/mo · cancel anytime" : "Cancel anytime"}
+              </p>
             </div>
 
             <div className="space-y-2.5 flex-1 relative">
