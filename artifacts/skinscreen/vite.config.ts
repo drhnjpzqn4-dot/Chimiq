@@ -60,14 +60,24 @@ export default defineConfig({
         ],
       },
       workbox: {
-        additionalManifestEntries: [{ url: "/offline.html", revision: "1" }],
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff,woff2}"],
+        additionalManifestEntries: [{ url: "offline.html", revision: "1" }],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         runtimeCaching: [
           {
-            urlPattern: ({ request }) => request.mode === "navigate",
-            handler: "NetworkOnly",
+            urlPattern: ({ request, url }) =>
+              request.mode === "navigate" && !url.pathname.startsWith("/api/"),
+            handler: "NetworkFirst",
             options: {
+              cacheName: "pages",
+              networkTimeoutSeconds: 5,
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
               precacheFallback: {
-                fallbackURL: "/offline.html",
+                fallbackURL: "offline.html",
               },
             },
           },
@@ -83,13 +93,32 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /\.(js|css|png|jpg|svg|woff2?)$/,
+            urlPattern: ({ url }) =>
+              url.origin === "https://fonts.googleapis.com" ||
+              url.origin === "https://fonts.gstatic.com",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "google-fonts",
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /\.(?:js|css|png|jpg|jpeg|gif|svg|webp|woff2?)$/,
             handler: "CacheFirst",
             options: {
               cacheName: "static-assets",
               expiration: {
-                maxEntries: 100,
+                maxEntries: 200,
                 maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
               },
             },
           },
