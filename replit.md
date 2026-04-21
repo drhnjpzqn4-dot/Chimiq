@@ -47,6 +47,19 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+- `pnpm run build:mobile` — builds the SkinScreen web bundle for the Capacitor wrapper. Follow with `cd mobile/capacitor && npm run sync`. See `MOBILE.md`.
+
+## Mobile (iOS + Android)
+
+SkinScreen is shipped to the App Store and Play Store as a **reader-app Capacitor wrapper**:
+
+- `mobile/capacitor/` — Capacitor 6 wrapper (NOT in pnpm workspace; bootstrap with `npm install` on a dev machine).
+- `artifacts/skinscreen/src/lib/native.ts` — runtime `isNative()` adapter; dynamically imports `@capacitor/*` only when running inside the native shell. The web build is unaffected.
+- `artifacts/skinscreen/src/hooks/useNativeAuthDeepLink.ts` — listens for `appUrlOpen` and routes the `skinscreen://auth/callback` deep link back into wouter.
+- `artifacts/skinscreen/store/` — store-submission kit: 1024 icon master, 2732 splash master (light + dark), English + Swedish listings, App Privacy / Data Safety doc, App Review notes with reviewer demo account.
+- `MOBILE.md` — top-level mobile build guide.
+
+All Premium subscriptions remain web-only (Stripe). The native shell reads entitlement via `/api/payments/status` and contains no IAP.
 
 ## Packages
 

@@ -1,0 +1,30 @@
+{
+  "name": "skinscreen-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Capacitor wrapper for SkinScreen — wraps the deployed web app as iOS + Android native shells (reader pattern, web-only payments).",
+  "scripts": {
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "add:ios": "cap add ios",
+    "add:android": "cap add android",
+    "copy": "cap copy",
+    "build:android": "cd android && ./gradlew bundleRelease",
+    "doctor": "cap doctor"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/browser": "^6.0.4",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/ios": "^6.2.0",
+    "@capacitor/preferences": "^6.0.3",
+    "@capacitor/splash-screen": "^6.0.3",
+    "@capacitor/status-bar": "^6.0.2",
+    "@capacitor-mlkit/barcode-scanning": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}

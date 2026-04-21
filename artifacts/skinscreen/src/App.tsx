@@ -15,6 +15,7 @@ import RecipeDetailPage from "@/pages/RecipeDetail";
 import Discover from "@/pages/Discover";
 import { MistakeDetail, WorryDetail } from "@/pages/DiscoverDetail";
 import NotFound from "@/pages/not-found";
+import { useNativeAuthDeepLink } from "@/hooks/useNativeAuthDeepLink";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,11 +47,17 @@ function Router() {
   );
 }
 
+function NativeBootstrap() {
+  useNativeAuthDeepLink();
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <NativeBootstrap />
           <Router />
         </WouterRouter>
         <Toaster />

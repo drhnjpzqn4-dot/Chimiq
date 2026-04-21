@@ -15,6 +15,7 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { getBaseUrl } from "@/lib/base-url";
+import { isNative, openExternal, MANAGE_SUBSCRIPTION_WEB_URL } from "@/lib/native";
 
 interface ContributeStats {
   acceptedContributions: number;
@@ -40,6 +41,8 @@ export default function ProfileScreen() {
       .catch(() => {});
   }, []);
 
+  const runningNative = isNative();
+
   const handleManageBilling = async () => {
     setPortalLoading(true);
     try {
@@ -48,7 +51,15 @@ export default function ProfileScreen() {
         credentials: "include",
       });
       const data = (await res.json()) as { url?: string };
-      if (data.url) window.location.href = data.url;
+      // On native we route through the system browser so Stripe's billing
+      // portal renders in Safari / Chrome (App Store reader-app compliance).
+      if (data.url) {
+        if (runningNative) {
+          await openExternal(data.url);
+        } else {
+          window.location.href = data.url;
+        }
+      }
     } catch {
       // noop
     } finally {
@@ -144,6 +155,15 @@ export default function ProfileScreen() {
                 )}
                 Manage billing
               </button>
+            ) : runningNative ? (
+              // Reader-app compliance: native shells must not display
+              // call-to-action buttons that direct to a non-IAP purchase
+              // flow. We show a neutral status message instead and let
+              // already-subscribed users sign in.
+              <div className="flex-1 rounded-2xl border border-border/60 bg-muted/40 px-4 py-3 text-center text-xs text-muted-foreground">
+                Premium is available to existing subscribers — sign in with the
+                account you upgraded on the web.
+              </div>
             ) : (
               <button
                 type="button"
@@ -204,17 +224,19 @@ export default function ProfileScreen() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </button>
           </li>
-          <li>
-            <button
-              type="button"
-              onClick={() => navigate("/pricing")}
-              data-touch-target
-              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
-            >
-              <span className="text-sm font-medium text-foreground">Pricing & plans</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </button>
-          </li>
+          {!runningNative && (
+            <li>
+              <button
+                type="button"
+                onClick={() => navigate("/pricing")}
+                data-touch-target
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+              >
+                <span className="text-sm font-medium text-foreground">Pricing & plans</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+              </button>
+            </li>
+          )}
           <li>
             <button
               type="button"
@@ -274,6 +296,25 @@ export default function ProfileScreen() {
                 </button>
               </li>
             </>
+          )}
+          {runningNative && isPremium && (
+            // Reader-app compliance: only shown to users who already have an
+            // entitlement; routes to the same Stripe Billing Portal used on
+            // web for cancel/upgrade. Not a purchase CTA.
+            <li>
+              <button
+                type="button"
+                onClick={() => openExternal(MANAGE_SUBSCRIPTION_WEB_URL)}
+                data-touch-target
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+              >
+                <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  Manage subscription on the web
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+              </button>
+            </li>
           )}
           <li>
             <a
