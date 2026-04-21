@@ -794,8 +794,18 @@ export function IngredientScanner({
   const [quickStartResetKey, setQuickStartResetKey] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  const analyzeSingle = useAnalyzeSingle({ mutation: {} });
-  const analyzeCompare = useAnalyzeIngredients({ mutation: {} });
+  const emitScanCompleted = (kind: "single" | "compare") => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("skinscreen:scan-completed", { detail: { kind } }),
+    );
+  };
+  const analyzeSingle = useAnalyzeSingle({
+    mutation: { onSuccess: () => emitScanCompleted("single") },
+  });
+  const analyzeCompare = useAnalyzeIngredients({
+    mutation: { onSuccess: () => emitScanCompleted("compare") },
+  });
 
   const flagOutdated = async (hash: string | undefined) => {
     if (!hash) return;

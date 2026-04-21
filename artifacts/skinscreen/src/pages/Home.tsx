@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
+import { ScanLine, Sparkles } from "lucide-react";
 import { LandingPage } from "@/components/LandingPage";
 import { generalConfig } from "@/lib/landing-config";
 
@@ -9,6 +10,53 @@ function isStandaloneDisplay(): boolean {
   if (window.matchMedia?.("(display-mode: standalone)").matches) return true;
   // iOS Safari home-screen flag
   return Boolean((window.navigator as { standalone?: boolean }).standalone);
+}
+
+/**
+ * One-screen welcome shown ONLY to signed-out users who have launched the
+ * app from a home-screen icon (PWA standalone mode) or the future native
+ * shell. The full marketing landing page is reserved for browser tabs.
+ */
+function StandaloneWelcome() {
+  const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+  return (
+    <main
+      className="flex min-h-[100dvh] flex-col bg-gradient-to-br from-rose-50 via-white to-amber-50 px-6"
+      style={{
+        paddingTop: "max(env(safe-area-inset-top, 0px), 1.5rem)",
+        paddingBottom: "max(env(safe-area-inset-bottom, 0px), 1.5rem)",
+      }}
+    >
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-primary text-white shadow-lg shadow-primary/30">
+          <ScanLine className="h-10 w-10" />
+        </div>
+        <h1 className="font-serif text-3xl font-bold leading-tight text-foreground">
+          SkinScreen
+        </h1>
+        <p className="mt-2 text-sm font-medium uppercase tracking-widest text-primary">
+          AI ingredient scanner
+        </p>
+        <p className="mt-6 max-w-sm text-base text-muted-foreground">
+          Snap any skincare label. We'll flag conflicts and suggest safer
+          alternatives in seconds.
+        </p>
+      </div>
+      <div className="space-y-3 pb-2">
+        <a
+          href={`/api/login?returnTo=${encodeURIComponent(base + "/app/scan")}`}
+          data-touch-target
+          className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-base font-semibold text-white shadow-lg shadow-primary/25 transition-transform active:scale-[0.98]"
+        >
+          <Sparkles className="h-4 w-4" />
+          Sign in & start scanning
+        </a>
+        <p className="text-center text-xs text-muted-foreground">
+          Free to start · Premium 49 SEK/mo
+        </p>
+      </div>
+    </main>
+  );
 }
 
 export default function Home() {
@@ -21,6 +69,15 @@ export default function Home() {
       navigate("/app/scan", { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  if (isLoading) return null;
+
+  // Standalone PWA / native shell: never show the marketing landing page.
+  // Signed-in users get redirected above; signed-out users get the
+  // one-screen welcome.
+  if (!isAuthenticated && isStandaloneDisplay()) {
+    return <StandaloneWelcome />;
+  }
 
   return <LandingPage config={generalConfig} />;
 }

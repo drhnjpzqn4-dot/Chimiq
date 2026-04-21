@@ -4,9 +4,10 @@ import {
   Search,
   PackageSearch,
   Loader2,
-  ScanLine,
   PackagePlus,
   Sparkles,
+  ShieldCheck,
+  ChevronRight,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ContributeModal } from "@/components/ContributeModal";
@@ -17,6 +18,8 @@ interface BrowseProduct {
   brand: string;
   imageUrl: string | null;
   cachedAt: string;
+  category: string;
+  verifiedSafe: boolean;
   ingredientsPreview: string;
 }
 
@@ -26,6 +29,17 @@ interface BrowseResponse {
 }
 
 const PAGE_SIZE = 30;
+
+const CATEGORY_CHIPS: Array<{ key: string; label: string }> = [
+  { key: "", label: "All" },
+  { key: "cleanser", label: "Cleanser" },
+  { key: "toner", label: "Toner" },
+  { key: "serum", label: "Serum" },
+  { key: "moisturizer", label: "Moisturiser" },
+  { key: "sunscreen", label: "SPF" },
+  { key: "exfoliant", label: "Exfoliant" },
+  { key: "mask", label: "Mask" },
+];
 
 function timeAgo(iso: string): string {
   const d = Date.now() - new Date(iso).getTime();
@@ -41,6 +55,7 @@ export default function BrowseScreen() {
   const [, navigate] = useLocation();
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [category, setCategory] = useState<string>("");
   const [products, setProducts] = useState<BrowseProduct[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -61,6 +76,7 @@ export default function BrowseScreen() {
       offset: "0",
     });
     if (debounced) params.set("q", debounced);
+    if (category) params.set("category", category);
 
     fetch(`/api/products?${params.toString()}`, { credentials: "include" })
       .then(async (r) => {
@@ -85,35 +101,21 @@ export default function BrowseScreen() {
     return () => {
       cancelled = true;
     };
-  }, [debounced]);
-
-  const scanProduct = (p: BrowseProduct) => {
-    try {
-      sessionStorage.setItem(
-        "skinscreen.pendingScan",
-        JSON.stringify({
-          barcode: p.barcode,
-          productName: [p.brand, p.productName].filter(Boolean).join(" "),
-        }),
-      );
-    } catch {
-      // ignore quota errors
-    }
-    navigate("/app/scan");
-  };
+  }, [debounced, category]);
 
   const heading = useMemo(() => {
     if (loading && products.length === 0) return "Loading the database…";
     if (debounced) return `${total} match${total === 1 ? "" : "es"} for "${debounced}"`;
+    if (category) return `${total.toLocaleString()} ${category} products`;
     return `${total.toLocaleString()} products in the database`;
-  }, [loading, products.length, debounced, total]);
+  }, [loading, products.length, debounced, total, category]);
 
   return (
     <AppShell
       title="Browse products"
-      subtitle="Crowd-sourced ingredient database — search, scan, contribute."
+      subtitle="Crowd-sourced ingredient database — search, filter, contribute."
     >
-      <section className="mb-4">
+      <section className="mb-3">
         <label className="relative block">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -130,6 +132,30 @@ export default function BrowseScreen() {
         </label>
       </section>
 
+      <section className="mb-4 -mx-1 overflow-x-auto px-1 pb-1">
+        <div className="flex min-w-max gap-2">
+          {CATEGORY_CHIPS.map((c) => {
+            const active = c.key === category;
+            return (
+              <button
+                key={c.key || "all"}
+                type="button"
+                onClick={() => setCategory(c.key)}
+                data-touch-target
+                aria-pressed={active}
+                className={`min-h-[44px] whitespace-nowrap rounded-full border px-4 py-2 text-xs font-semibold transition-all ${
+                  active
+                    ? "border-primary bg-primary text-white shadow-sm"
+                    : "border-border/60 bg-white text-foreground hover:border-primary/40"
+                }`}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="mb-3 flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
           {heading}
@@ -138,7 +164,7 @@ export default function BrowseScreen() {
           type="button"
           onClick={() => setShowContribute(true)}
           data-touch-target
-          className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
         >
           <PackagePlus className="h-3.5 w-3.5" />
           Add product
@@ -164,7 +190,7 @@ export default function BrowseScreen() {
         <div className="rounded-3xl border border-border/40 bg-white p-8 text-center shadow-sm">
           <PackageSearch className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <p className="mt-3 font-serif text-lg font-semibold text-foreground">
-            {debounced ? "No products found" : "Database is empty"}
+            {debounced || category ? "No products found" : "Database is empty"}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Be the first to add this one — earn credit toward 1 month of free Premium.
@@ -172,7 +198,7 @@ export default function BrowseScreen() {
           <button
             type="button"
             onClick={() => setShowContribute(true)}
-            className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20"
+            className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20"
           >
             <PackagePlus className="h-4 w-4" />
             Add a product
@@ -187,14 +213,13 @@ export default function BrowseScreen() {
             >
               <button
                 type="button"
-                onClick={() => scanProduct(p)}
+                onClick={() => navigate(`/app/browse/${encodeURIComponent(p.barcode)}`)}
                 data-touch-target
-                className="flex w-full items-stretch gap-3 p-3 text-left"
-                aria-label={`Scan ${p.brand} ${p.productName}`}
+                className="flex min-h-[44px] w-full items-stretch gap-3 p-3 text-left"
+                aria-label={`Open ${p.brand} ${p.productName}`}
               >
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-white to-amber-50">
                   {p.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={p.imageUrl}
                       alt=""
@@ -217,14 +242,19 @@ export default function BrowseScreen() {
                   <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                     {p.ingredientsPreview}
                   </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground/70">
-                    Added {timeAgo(p.cachedAt)}
-                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    {p.verifiedSafe && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                        <ShieldCheck className="h-3 w-3" />
+                        Verified safe
+                      </span>
+                    )}
+                    <span className="text-[11px] text-muted-foreground/70">
+                      Added {timeAgo(p.cachedAt)}
+                    </span>
+                  </div>
                 </div>
-                <span className="flex shrink-0 items-center self-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
-                  <ScanLine className="mr-1 h-3.5 w-3.5" />
-                  Scan
-                </span>
+                <ChevronRight className="h-5 w-5 shrink-0 self-center text-muted-foreground/60" />
               </button>
             </li>
           ))}

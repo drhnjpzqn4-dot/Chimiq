@@ -7,10 +7,12 @@ import {
   AlertTriangle,
   Loader2,
   Gift,
+  Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { IngredientScanner } from "@/components/IngredientScanner";
 import { ContributeModal } from "@/components/ContributeModal";
+import { useUserPlan } from "@/hooks/useUserPlan";
 
 interface PendingScan {
   barcode: string;
@@ -24,6 +26,30 @@ interface ContributeStats {
 
 const PENDING_KEY = "skinscreen.pendingScan";
 const MILESTONE = 30;
+const FREE_DAILY_LIMIT = 12;
+const SCAN_COUNT_KEY_PREFIX = "skinscreen.scans.";
+
+function todayKey(): string {
+  return SCAN_COUNT_KEY_PREFIX + new Date().toISOString().slice(0, 10);
+}
+
+function readScanCount(): number {
+  try {
+    const v = localStorage.getItem(todayKey());
+    const n = v ? Number.parseInt(v, 10) : 0;
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeScanCount(n: number) {
+  try {
+    localStorage.setItem(todayKey(), String(n));
+  } catch {
+    // ignore quota / private mode
+  }
+}
 
 export default function ScanScreen() {
   const [, navigate] = useLocation();
@@ -36,6 +62,22 @@ export default function ScanScreen() {
   const [seedError, setSeedError] = useState<string | null>(null);
   const [seedProductName, setSeedProductName] = useState<string | null>(null);
   const [stats, setStats] = useState<ContributeStats | null>(null);
+  const [scansToday, setScansToday] = useState<number>(() => readScanCount());
+  const { isPremium } = useUserPlan();
+
+  // Listen for scan completions emitted by IngredientScanner and bump the
+  // local daily counter. Stored in localStorage with a date-stamped key so it
+  // resets at midnight (user-local). Backend per-user enforcement is tracked
+  // separately as follow-up #65.
+  useEffect(() => {
+    const onScan = () => {
+      const next = readScanCount() + 1;
+      writeScanCount(next);
+      setScansToday(next);
+    };
+    window.addEventListener("skinscreen:scan-completed", onScan);
+    return () => window.removeEventListener("skinscreen:scan-completed", onScan);
+  }, []);
 
   useEffect(() => {
     fetch("/api/contribute/stats", { credentials: "include" })
@@ -128,7 +170,7 @@ export default function ScanScreen() {
     {
       label: "Common problems",
       icon: AlertTriangle,
-      onClick: () => navigate("/discover"),
+      onClick: () => navigate("/app/problems"),
     },
     {
       label: "Browse products",
@@ -142,6 +184,9 @@ export default function ScanScreen() {
     },
   ];
 
+  const remaining = Math.max(0, FREE_DAILY_LIMIT - scansToday);
+  const overLimit = !isPremium && scansToday >= FREE_DAILY_LIMIT;
+
   return (
     <AppShell
       title="Scan a product"
@@ -154,6 +199,32 @@ export default function ScanScreen() {
             className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/15 blur-3xl"
             aria-hidden
           />
+          {/* Plan / scans-today pill — visible above the fold */}
+          <div className="relative mb-3 flex justify-end">
+            {isPremium ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-primary to-amber-400 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
+                <Sparkles className="h-3 w-3" />
+                Premium
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate("/app/profile")}
+                data-touch-target
+                className={`inline-flex min-h-[28px] items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
+                  overLimit
+                    ? "bg-amber-100 text-amber-900 hover:bg-amber-200"
+                    : "bg-white/80 text-foreground hover:bg-white"
+                }`}
+                aria-label={`${scansToday} of ${FREE_DAILY_LIMIT} free scans used today`}
+              >
+                {overLimit
+                  ? `Daily free limit reached · Go Premium`
+                  : `${scansToday} / ${FREE_DAILY_LIMIT} free scans today · ${remaining} left`}
+              </button>
+            )}
+          </div>
+
           <div className="relative flex items-start gap-4">
             <button
               type="button"
