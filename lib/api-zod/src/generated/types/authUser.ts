@@ -16,4 +16,6 @@ export interface AuthUser {
   lastName: string | null;
   /** @nullable */
   profileImageUrl: string | null;
+  /** True when the OIDC identity provider returned a verified email claim. */
+  emailVerified: boolean;
 }

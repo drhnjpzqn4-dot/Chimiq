@@ -14,6 +14,7 @@ import paymentsRouter from "./payments";
 import analysisCacheRouter from "./analysis-cache";
 import contributeRouter from "./contribute";
 import storageRouter from "./storage";
+import recipesRouter from "./recipes";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(paymentsRouter);
 router.use(analysisCacheRouter);
 router.use(contributeRouter);
 router.use(storageRouter);
+router.use(recipesRouter);
 
 export default router;

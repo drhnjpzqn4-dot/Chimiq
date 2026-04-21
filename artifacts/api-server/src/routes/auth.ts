@@ -58,6 +58,12 @@ function getSafeReturnTo(value: unknown): string {
 }
 
 async function upsertUser(claims: Record<string, unknown>) {
+  // Trust the OIDC `email_verified` claim. Major IdPs (Google, GitHub,
+  // Microsoft, etc.) set this to `true` only when the user has actually
+  // proven control of the address. If the claim is absent we fall back to
+  // `false` so we never grant verified status by accident.
+  const emailVerified = claims.email_verified === true;
+
   const userData = {
     id: claims.sub as string,
     email: (claims.email as string) || null,
@@ -66,6 +72,7 @@ async function upsertUser(claims: Record<string, unknown>) {
     profileImageUrl: (claims.profile_image_url || claims.picture) as
       | string
       | null,
+    emailVerified,
   };
 
   const [user] = await db
@@ -91,11 +98,13 @@ router.get("/me", (req: Request, res: Response) => {
 });
 
 router.get("/auth/user", (req: Request, res: Response) => {
-  res.json(
-    GetCurrentAuthUserResponse.parse({
-      user: req.isAuthenticated() ? req.user : null,
-    }),
-  );
+  // Defensive default: a session created before `emailVerified` was added
+  // to AuthUser may still be in flight. Always coerce to boolean so the
+  // response schema parser never throws a 500 on a stale session.
+  const user = req.isAuthenticated()
+    ? { ...req.user, emailVerified: req.user.emailVerified === true }
+    : null;
+  res.json(GetCurrentAuthUserResponse.parse({ user }));
 });
 
 router.get("/login", async (req: Request, res: Response) => {
@@ -184,6 +193,7 @@ router.get("/callback", async (req: Request, res: Response) => {
       firstName: dbUser.firstName,
       lastName: dbUser.lastName,
       profileImageUrl: dbUser.profileImageUrl,
+      emailVerified: dbUser.emailVerified,
     },
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
@@ -254,6 +264,7 @@ router.post(
           firstName: dbUser.firstName,
           lastName: dbUser.lastName,
           profileImageUrl: dbUser.profileImageUrl,
+          emailVerified: dbUser.emailVerified,
         },
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,

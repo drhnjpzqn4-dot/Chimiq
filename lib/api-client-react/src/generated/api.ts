@@ -33,6 +33,7 @@ import type {
   MobileTokenExchangeSuccess,
   ProductLookupParams,
   ProductLookupResponse,
+  RecipeEligibility,
   RemoveFromShelfResponse,
   RoutineConflictResponse,
   ScanLabelRequest,
@@ -615,6 +616,81 @@ export function useGetCurrentAuthUser<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetCurrentAuthUserQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Whether the current user may submit a DIY recipe
+ */
+export const getGetRecipeEligibilityUrl = () => {
+  return `/api/recipes/eligibility`;
+};
+
+export const getRecipeEligibility = async (
+  options?: RequestInit,
+): Promise<RecipeEligibility> => {
+  return customFetch<RecipeEligibility>(getGetRecipeEligibilityUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRecipeEligibilityQueryKey = () => {
+  return [`/api/recipes/eligibility`] as const;
+};
+
+export const getGetRecipeEligibilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRecipeEligibility>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getRecipeEligibility>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRecipeEligibilityQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRecipeEligibility>>
+  > = ({ signal }) => getRecipeEligibility({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRecipeEligibility>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRecipeEligibilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRecipeEligibility>>
+>;
+export type GetRecipeEligibilityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Whether the current user may submit a DIY recipe
+ */
+
+export function useGetRecipeEligibility<
+  TData = Awaited<ReturnType<typeof getRecipeEligibility>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getRecipeEligibility>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRecipeEligibilityQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

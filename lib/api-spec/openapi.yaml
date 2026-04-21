@@ -187,6 +187,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthUserEnvelope'
+  /recipes/eligibility:
+    get:
+      tags: [Recipes]
+      operationId: getRecipeEligibility
+      summary: Whether the current user may submit a DIY recipe
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Eligibility resolved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeEligibility'
   /login:
     get:
       tags: [Auth]
@@ -682,7 +697,7 @@ components:
         - inferredProductType
     AuthUser:
       type: object
-      required: [id, email, firstName, lastName, profileImageUrl]
+      required: [id, email, firstName, lastName, profileImageUrl, emailVerified]
       properties:
         id:
           type: string
@@ -695,6 +710,21 @@ components:
           type: [string, 'null']
         profileImageUrl:
           type: [string, 'null']
+        emailVerified:
+          type: boolean
+          description: True when the OIDC identity provider returned a verified email claim.
+    RecipeEligibility:
+      type: object
+      required: [canSubmit, emailVerified, reason]
+      properties:
+        canSubmit:
+          type: boolean
+        emailVerified:
+          type: boolean
+        reason:
+          type: [string, 'null']
+          enum: [null, auth_required, email_unverified]
+          description: Why submission is disallowed; null when allowed.
     AuthUserEnvelope:
       type: object
       required: [user]

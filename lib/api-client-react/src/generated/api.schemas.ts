@@ -199,6 +199,31 @@ export interface AuthUser {
   lastName: string | null;
   /** @nullable */
   profileImageUrl: string | null;
+  /** True when the OIDC identity provider returned a verified email claim. */
+  emailVerified: boolean;
+}
+
+/**
+ * Why submission is disallowed; null when allowed.
+ * @nullable
+ */
+export type RecipeEligibilityReason =
+  | (typeof RecipeEligibilityReason)[keyof typeof RecipeEligibilityReason]
+  | null;
+
+export const RecipeEligibilityReason = {
+  auth_required: "auth_required",
+  email_unverified: "email_unverified",
+} as const;
+
+export interface RecipeEligibility {
+  canSubmit: boolean;
+  emailVerified: boolean;
+  /**
+   * Why submission is disallowed; null when allowed.
+   * @nullable
+   */
+  reason: RecipeEligibilityReason;
 }
 
 export interface AuthUserEnvelope {

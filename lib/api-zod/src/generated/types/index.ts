@@ -29,6 +29,8 @@ export * from "./mobileTokenExchangeRequest";
 export * from "./mobileTokenExchangeSuccess";
 export * from "./productLookupParams";
 export * from "./productLookupResponse";
+export * from "./recipeEligibility";
+export * from "./recipeEligibilityReason";
 export * from "./removeFromShelfResponse";
 export * from "./routineConflict";
 export * from "./routineConflictResponse";

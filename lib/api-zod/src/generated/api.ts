@@ -188,6 +188,11 @@ export const GetMeResponse = zod.object({
   firstName: zod.string().nullable(),
   lastName: zod.string().nullable(),
   profileImageUrl: zod.string().nullable(),
+  emailVerified: zod
+    .boolean()
+    .describe(
+      "True when the OIDC identity provider returned a verified email claim.",
+    ),
 });
 
 /**
@@ -208,9 +213,37 @@ export const GetCurrentAuthUserResponse = zod.object({
       firstName: zod.string().nullable(),
       lastName: zod.string().nullable(),
       profileImageUrl: zod.string().nullable(),
+      emailVerified: zod
+        .boolean()
+        .describe(
+          "True when the OIDC identity provider returned a verified email claim.",
+        ),
     }),
     zod.null(),
   ]),
+});
+
+/**
+ * @summary Whether the current user may submit a DIY recipe
+ */
+export const GetRecipeEligibilityHeader = zod.object({
+  Authorization: zod
+    .string()
+    .optional()
+    .describe("Opaque session token — `Bearer <sid>`."),
+});
+
+export const GetRecipeEligibilityResponse = zod.object({
+  canSubmit: zod.boolean(),
+  emailVerified: zod.boolean(),
+  reason: zod
+    .union([
+      zod.literal(null),
+      zod.literal("auth_required"),
+      zod.literal("email_unverified"),
+    ])
+    .nullable()
+    .describe("Why submission is disallowed; null when allowed."),
 });
 
 /**
