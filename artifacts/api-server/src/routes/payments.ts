@@ -86,4 +86,49 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
   }
 });
 
+router.post("/payments/portal", async (req: Request, res: Response) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.id));
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (!user.stripeCustomerId) {
+      res
+        .status(400)
+        .json({ error: "No subscription on file — upgrade first to manage billing." });
+      return;
+    }
+
+    const stripe = await getUncachableStripeClient();
+
+    const forwardedProto = req.headers["x-forwarded-proto"];
+    const protocol = Array.isArray(forwardedProto)
+      ? forwardedProto[0]
+      : (forwardedProto ?? req.protocol);
+    const host = req.headers.host ?? "";
+    const baseUrl = `${protocol}://${host}`;
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: `${baseUrl}/app/profile`,
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    req.log.error({ err }, "Billing portal session creation failed");
+    res.status(500).json({ error: "Failed to open billing portal" });
+  }
+});
+
 export default router;
