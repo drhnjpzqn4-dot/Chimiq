@@ -9,6 +9,7 @@ import HomeB from "@/pages/HomeB";
 import Pricing from "@/pages/Pricing";
 import AppPage from "@/pages/AppPage";
 import AdminPage from "@/pages/AdminPage";
+import AdminRecipesPage from "@/pages/AdminRecipesPage";
 import Discover from "@/pages/Discover";
 import { MistakeDetail, WorryDetail } from "@/pages/DiscoverDetail";
 import NotFound from "@/pages/not-found";
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/discover/mistakes/:slug" component={MistakeDetail} />
       <Route path="/discover/worries/:slug" component={WorryDetail} />
       <Route path="/admin/submissions" component={AdminPage} />
+      <Route path="/admin/recipes" component={AdminRecipesPage} />
       <Route component={NotFound} />
     </Switch>
   );

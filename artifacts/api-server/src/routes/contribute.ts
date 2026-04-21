@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { db, userSubmittedProductsTable, cachedProductsTable, usersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { uploadBufferToGcs } from "../lib/objectStorage";
+import { getAdminEmails, getRequestEmail, isRequestAdmin } from "../lib/admin";
 import { randomUUID } from "crypto";
 import {
   sanitizeProductName,
@@ -555,22 +556,7 @@ router.get("/contribute/stats", async (req, res) => {
   }
 });
 
-function getAdminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function getRequestEmail(req: { user?: { email?: string } }): string | null {
-  const e = req.user?.email;
-  return e ? e.trim().toLowerCase() : null;
-}
-
-function isRequestAdmin(req: { user?: { email?: string } }): boolean {
-  const email = getRequestEmail(req);
-  return !!email && getAdminEmails().includes(email);
-}
+// Admin helpers centralized in lib/admin.ts (#46b).
 
 router.get("/admin/check", async (req, res) => {
   const email = getRequestEmail(req as { user?: { email?: string } });

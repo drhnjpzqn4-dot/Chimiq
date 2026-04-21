@@ -6,6 +6,7 @@ import ScanScreen from "@/pages/app/Scan";
 import ShelfScreen from "@/pages/app/Shelf";
 import DiscoverScreen from "@/pages/app/Discover";
 import ProfileScreen from "@/pages/app/Profile";
+import RecipeSubmitScreen from "@/pages/app/RecipeSubmit";
 
 export default function AppPage() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -38,6 +39,7 @@ export default function AppPage() {
         <Route path="/app/shelf" component={ShelfScreen} />
         <Route path="/app/discover" component={DiscoverScreen} />
         <Route path="/app/profile" component={ProfileScreen} />
+        <Route path="/app/recipes/new" component={RecipeSubmitScreen} />
         <Route component={() => <Redirect to="/app/scan" />} />
       </Switch>
       <ChatPanel />

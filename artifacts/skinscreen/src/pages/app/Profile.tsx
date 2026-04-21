@@ -200,24 +200,54 @@ export default function ProfileScreen() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </button>
           </li>
+          <li>
+            <button
+              type="button"
+              onClick={() => navigate("/app/recipes/new")}
+              data-touch-target
+              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+            >
+              <span className="text-sm font-medium text-foreground">Share a DIY recipe</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </button>
+          </li>
           {isAdmin && (
-            <li>
-              <button
-                type="button"
-                onClick={() => {
-                  const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
-                  window.location.href = `${base}/admin/submissions`;
-                }}
-                data-touch-target
-                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
-              >
-                <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <ShieldCheck className="h-4 w-4 text-primary" />
-                  Submission queue
-                </span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-              </button>
-            </li>
+            <>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+                    window.location.href = `${base}/admin/submissions`;
+                  }}
+                  data-touch-target
+                  className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    Submission queue
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+                    window.location.href = `${base}/admin/recipes`;
+                  }}
+                  data-touch-target
+                  className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    Recipe queue
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+                </button>
+              </li>
+            </>
           )}
           <li>
             <a
