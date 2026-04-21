@@ -6,6 +6,8 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
 import { WebhookHandlers } from "./webhookHandlers";
+import { applyStripeEventToUser } from "./stripeUserSync";
+import type Stripe from "stripe";
 
 const app: Express = express();
 
@@ -44,6 +46,21 @@ app.post(
     try {
       const sig = Array.isArray(signature) ? signature[0] : signature;
       await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+      // Sync verified the signature; safe to parse and apply our own
+      // user-state updates (plan upgrade/downgrade on subscription lifecycle
+      // and refunds). Do not let this throw fail the 2xx ack to Stripe — the
+      // event is already mirrored in Postgres and can be reconciled later.
+      try {
+        const event = JSON.parse(
+          (req.body as Buffer).toString("utf8"),
+        ) as Stripe.Event;
+        await applyStripeEventToUser(event, logger);
+      } catch (innerErr) {
+        logger.error(
+          { err: innerErr },
+          "Failed to apply Stripe event to user state",
+        );
+      }
       res.status(200).json({ received: true });
     } catch (err) {
       logger.error({ err }, "Webhook processing error");
