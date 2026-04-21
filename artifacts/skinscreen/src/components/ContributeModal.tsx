@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { PackagePlus, Camera, Loader2, CheckCircle2, Gift, Star, X, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +72,12 @@ export function ContributeModal({
   const frontInputRef = useRef<HTMLInputElement>(null);
   const ingredientsInputRef = useRef<HTMLInputElement>(null);
 
+  // When the modal is launched from a barcode scan (barcode + product name already
+  // identified by Open Beauty Facts), the contributor's only meaningful Step-1
+  // action is taking the front photo. Auto-advance to the ingredients step as
+  // soon as the photo is captured, trimming one explicit "Next" tap.
+  const isPrefilledFromScan = !!barcode && !!initialProductName.trim();
+
   const handleFrontPhoto = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -81,7 +87,8 @@ export function ContributeModal({
     try {
       const dataUrl = URL.createObjectURL(file);
       setFrontPreviewUrl(dataUrl);
-      setFrontImageBase64(await resizeImageBase64(file));
+      const b64 = await resizeImageBase64(file);
+      setFrontImageBase64(b64);
     } catch {
       setError("Could not read the photo. Please try again.");
     }
@@ -118,6 +125,11 @@ export function ContributeModal({
       setError("Please enter or scan the product barcode.");
       return;
     }
+    if (submissionId) {
+      // Already started (auto-advance path) — just move to the ingredients step.
+      setStep("ingredients");
+      return;
+    }
     try {
       const res = await fetch("/api/contribute/start", {
         method: "POST",
@@ -140,7 +152,30 @@ export function ContributeModal({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error. Please try again.");
     }
-  }, [barcodeInput, productName, brand, frontImageBase64]);
+  }, [barcodeInput, productName, brand, frontImageBase64, submissionId]);
+
+  // Auto-advance: when launched from a barcode scan with name + barcode already
+  // prefilled, jump straight to the ingredients step the moment the front photo
+  // is captured. This removes one tap on the "Next" button for the most common
+  // contribution path.
+  useEffect(() => {
+    if (
+      step === "front-photo" &&
+      isPrefilledFromScan &&
+      frontImageBase64 &&
+      !submissionId &&
+      !processingFront
+    ) {
+      void handleFrontPhotoNext();
+    }
+  }, [
+    step,
+    isPrefilledFromScan,
+    frontImageBase64,
+    submissionId,
+    processingFront,
+    handleFrontPhotoNext,
+  ]);
 
   const handleSubmit = useCallback(async () => {
     if (!submissionId) return;

@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Mail,
   Loader2,
+  Layers,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useUserPlan } from "@/hooks/useUserPlan";
@@ -189,6 +190,20 @@ export default function ProfileScreen() {
       {/* Settings list */}
       <section className="mb-6">
         <ul className="divide-y divide-border/40 overflow-hidden rounded-3xl border border-border/40 bg-white shadow-sm">
+          <li>
+            <button
+              type="button"
+              onClick={() => navigate("/app/shelf")}
+              data-touch-target
+              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Layers className="h-4 w-4 text-primary" />
+                My shelf & routine check
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </button>
+          </li>
           <li>
             <button
               type="button"

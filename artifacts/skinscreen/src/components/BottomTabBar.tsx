@@ -1,10 +1,10 @@
 import { useLocation, Link } from "wouter";
-import { ScanLine, Layers, Compass, User } from "lucide-react";
+import { ScanLine, PackageSearch, Compass, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { id: "scan", label: "Scan", icon: ScanLine, href: "/app/scan" },
-  { id: "shelf", label: "Shelf", icon: Layers, href: "/app/shelf" },
+  { id: "browse", label: "Browse", icon: PackageSearch, href: "/app/browse" },
   { id: "discover", label: "Discover", icon: Compass, href: "/app/discover" },
   { id: "profile", label: "Profile", icon: User, href: "/app/profile" },
 ] as const;
