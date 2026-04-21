@@ -251,6 +251,17 @@ export default function ScanScreen() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Get safety flags + safer alternatives in seconds.
               </p>
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById("scanner-input")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="mt-1.5 inline-flex items-center text-xs font-semibold text-primary underline-offset-2 hover:underline"
+              >
+                Or paste ingredients →
+              </button>
             </div>
           </div>
 
