@@ -74,6 +74,15 @@ export const tipVotesTable = pgTable(
   ],
 );
 
+export const monthlyTopTenResolutionsTable = pgTable(
+  "monthly_top_ten_resolutions",
+  {
+    monthKey: varchar("month_key").primaryKey(),
+    awardCount: integer("award_count").notNull().default(0),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
 export const tipWinnersTable = pgTable("tip_winners", {
   weekKey: varchar("week_key").primaryKey(),
   tipId: uuid("tip_id")

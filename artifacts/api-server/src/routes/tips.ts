@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db, tipsTable, tipVotesTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import {
-  countTipsByAuthorSince,
+  createTipWithRateLimit,
   listTopTipsLast30Days,
 } from "../lib/gamification.js";
 import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
@@ -55,22 +55,22 @@ router.post("/tips", async (req, res) => {
     throw err;
   }
 
-  // Rate-limit: 5 per 24h per user.
-  const since = new Date(Date.now() - 24 * 3600 * 1000);
-  const recent = await countTipsByAuthorSince(userId, since);
-  if (recent >= TIPS_PER_DAY_LIMIT) {
-    res.status(429).json({
-      error: `You can share up to ${TIPS_PER_DAY_LIMIT} tips per day. Come back tomorrow!`,
-    });
-    return;
-  }
-
+  // Atomic rate-limit + insert in a single transaction with a per-user
+  // advisory lock — closes the read-then-insert race window.
   try {
-    const [created] = await db
-      .insert(tipsTable)
-      .values({ authorId: userId, body: safeBody })
-      .returning({ id: tipsTable.id });
-    res.json({ id: created?.id });
+    const result = await createTipWithRateLimit(
+      userId,
+      safeBody,
+      TIPS_PER_DAY_LIMIT,
+      24 * 3600 * 1000,
+    );
+    if (!result.ok) {
+      res.status(429).json({
+        error: `You can share up to ${TIPS_PER_DAY_LIMIT} tips per day. Come back tomorrow!`,
+      });
+      return;
+    }
+    res.json({ id: result.id });
   } catch (err) {
     req.log.error({ err }, "Tip create failed");
     res.status(500).json({ error: "Could not save your tip. Please try again." });

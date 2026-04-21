@@ -4,12 +4,20 @@ import {
   getMonthlyLeaderboard,
   getUserBadges,
   resolveBestTipOfWeek,
+  resolveTopTenMonth,
 } from "../lib/gamification.js";
 
 const router: IRouter = Router();
 
 router.get("/leaderboard", async (req, res) => {
   try {
+    // Resolve month-end badges before reading. Idempotent — only one
+    // worker per month does the actual award work; everyone else no-ops.
+    try {
+      await resolveTopTenMonth();
+    } catch (err) {
+      req.log.warn({ err }, "Top-10-month resolution failed (non-fatal)");
+    }
     const [allTime, monthly, bestTip] = await Promise.all([
       getAllTimeLeaderboard(25),
       getMonthlyLeaderboard(25),

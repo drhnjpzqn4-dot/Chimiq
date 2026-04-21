@@ -6,10 +6,11 @@ import {
   tipWinnersTable,
   tipsTable,
   tipVotesTable,
+  monthlyTopTenResolutionsTable,
   BADGE_CATALOG_SEED,
   type BadgeCatalogId,
 } from "@workspace/db";
-import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 
 const PREMIUM_DURATION_DAYS = 30;
 
@@ -22,7 +23,7 @@ export async function seedBadgeCatalog(): Promise<void> {
   try {
     await db
       .insert(badgesTable)
-      .values(BADGE_CATALOG_SEED.map((b) => ({ ...b })))
+      .values(BADGE_CATALOG_SEED.map((b: (typeof BADGE_CATALOG_SEED)[number]) => ({ ...b })))
       .onConflictDoNothing({ target: badgesTable.id });
     seeded = true;
   } catch {
@@ -211,10 +212,15 @@ export async function resolveBestTipOfWeek(now: Date = new Date()): Promise<{
   }
 
   // Find top tip from last week (most votes, ties broken by oldest).
+  // CRITICAL: only count votes cast WITHIN the target week so late votes
+  // never change a finalized previous-week winner. Computed-on-read
+  // semantics demand vote_count be deterministic at any future read time.
   const candidates = await db.execute(sql`
     SELECT t.id, t.author_id, t.body, COUNT(v.id)::int AS vote_count
     FROM tips t
-    LEFT JOIN tip_votes v ON v.tip_id = t.id
+    LEFT JOIN tip_votes v
+      ON v.tip_id = t.id
+     AND v.created_at <  ${endLastWeek.toISOString()}
     WHERE t.created_at >= ${startLastWeek.toISOString()}
       AND t.created_at <  ${endLastWeek.toISOString()}
       AND t.hidden = 0
@@ -244,7 +250,17 @@ export async function resolveBestTipOfWeek(now: Date = new Date()): Promise<{
     .returning({ weekKey: tipWinnersTable.weekKey });
 
   if (inserted.length === 0) {
-    const summary = await loadTipWinnerSummary(top.id, lastWeekKey, Number(top.vote_count));
+    // Another worker won the race. Re-read the persisted winner row so we
+    // never return a locally-computed (and possibly stale) `top` instead.
+    const [persisted] = await db
+      .select({
+        tipId: tipWinnersTable.tipId,
+        voteCount: tipWinnersTable.voteCount,
+      })
+      .from(tipWinnersTable)
+      .where(eq(tipWinnersTable.weekKey, lastWeekKey));
+    if (!persisted) return { weekKey: lastWeekKey, winner: null, newlyResolved: false };
+    const summary = await loadTipWinnerSummary(persisted.tipId, lastWeekKey, persisted.voteCount);
     return { weekKey: lastWeekKey, winner: summary, newlyResolved: false };
   }
 
@@ -382,6 +398,105 @@ export async function countTipsByAuthorSince(
     .from(tipsTable)
     .where(and(eq(tipsTable.authorId, authorId), gte(tipsTable.createdAt, since)));
   return Number(row?.c ?? 0);
+}
+
+/**
+ * Atomically post a tip respecting a per-user 24h rate limit. Uses a
+ * Postgres advisory lock keyed on the author so concurrent posts from
+ * the same user are serialized (no read-then-insert race window). The
+ * lock auto-releases at transaction end.
+ *
+ * Returns:
+ *  - { ok: true, id }  on success
+ *  - { ok: false, reason: "rate_limited", recent } when the cap is hit
+ */
+export async function createTipWithRateLimit(
+  authorId: string,
+  body: string,
+  limit: number,
+  windowMs: number,
+): Promise<{ ok: true; id: string } | { ok: false; reason: "rate_limited"; recent: number }> {
+  const since = new Date(Date.now() - windowMs);
+  // Stable 64-bit key derived from the author id; pg_advisory_xact_lock
+  // accepts a bigint (or two ints). hashtextextended ensures uniform
+  // distribution and no cross-user lock collisions for typical UUIDs.
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${"tips_rl:" + authorId}, 0))`);
+    const [row] = await tx
+      .select({ c: sql<number>`count(*)::int` })
+      .from(tipsTable)
+      .where(and(eq(tipsTable.authorId, authorId), gte(tipsTable.createdAt, since)));
+    const recent = Number(row?.c ?? 0);
+    if (recent >= limit) {
+      return { ok: false as const, reason: "rate_limited" as const, recent };
+    }
+    const [created] = await tx
+      .insert(tipsTable)
+      .values({ authorId, body })
+      .returning({ id: tipsTable.id });
+    return { ok: true as const, id: created!.id };
+  });
+}
+
+// ===== Monthly Top 10 badge =====
+
+/**
+ * Idempotently award the `top_ten_month` badge to the top-10 contributors
+ * of the PREVIOUS calendar month. Computed-on-read with a row-level lock
+ * via `monthly_top_ten_resolutions.month_key`. Safe to call on every
+ * leaderboard read — the lock makes subsequent calls no-ops.
+ *
+ * Returns the month key that was just resolved (or null if already resolved
+ * by an earlier call).
+ */
+export async function resolveTopTenMonth(now: Date = new Date()): Promise<string | null> {
+  await seedBadgeCatalog();
+
+  const startThisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const endLastMonth = startThisMonth;
+  const startLastMonth = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+  );
+  const monthKey = `${startLastMonth.getUTCFullYear()}-${String(
+    startLastMonth.getUTCMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  // Try to claim the lock. If another worker already resolved this month,
+  // the insert is a no-op and we return null.
+  const claimed = await db
+    .insert(monthlyTopTenResolutionsTable)
+    .values({ monthKey, awardCount: 0 })
+    .onConflictDoNothing({ target: monthlyTopTenResolutionsTable.monthKey })
+    .returning({ monthKey: monthlyTopTenResolutionsTable.monthKey });
+
+  if (claimed.length === 0) return null;
+
+  // Compute top 10 contributors for the previous calendar month.
+  const winners = await db.execute(sql`
+    SELECT u.id AS user_id, COUNT(*)::int AS contributions
+    FROM user_submitted_products p
+    JOIN users u ON u.id = p.submitted_by
+    WHERE p.status = 'approved'
+      AND p.reward_granted = true
+      AND p.submitted_at >= ${startLastMonth.toISOString()}
+      AND p.submitted_at <  ${endLastMonth.toISOString()}
+    GROUP BY u.id
+    ORDER BY contributions DESC
+    LIMIT 10
+  `);
+
+  let awarded = 0;
+  for (const row of winners.rows as Array<{ user_id: string; contributions: number }>) {
+    const won = await awardBadgeOnce(row.user_id, "top_ten_month", monthKey);
+    if (won) awarded += 1;
+  }
+
+  await db
+    .update(monthlyTopTenResolutionsTable)
+    .set({ awardCount: awarded })
+    .where(eq(monthlyTopTenResolutionsTable.monthKey, monthKey));
+
+  return monthKey;
 }
 
 // ===== User badges =====
