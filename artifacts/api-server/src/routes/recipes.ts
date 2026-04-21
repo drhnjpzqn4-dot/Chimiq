@@ -8,6 +8,7 @@ import {
   type RecipeIngredient,
 } from "@workspace/db";
 import { isRequestAdmin } from "../lib/admin";
+import { ipRateLimit } from "../lib/rateLimit";
 import { sanitizeText, SanitizationError } from "../lib/sanitize";
 import {
   scanRecipeSafety,
@@ -52,6 +53,104 @@ const AdminReviewBody = z.object({
 });
 
 const UUID_RE = /^[0-9a-f-]{36}$/i;
+
+const ListQuerySchema = z.object({
+  category: z.enum(RECIPE_CATEGORIES).optional(),
+  skinType: z.enum(SKIN_TYPES).optional(),
+  riskLevel: z.enum(RECIPE_RISK_LEVELS).optional(),
+  limit: z.coerce.number().int().min(1).max(60).optional(),
+});
+
+// Public read endpoints — rate-limited per-IP to blunt scraping & DB abuse.
+const publicReadLimit = ipRateLimit({
+  windowMs: 60_000,
+  max: 60,
+  key: "recipes-public",
+});
+
+/**
+ * Public list of approved recipes. Filters: category, skinType, riskLevel.
+ * Returns trimmed cards (no method body) for the browse grid.
+ */
+router.get("/recipes", publicReadLimit, async (req, res) => {
+  const parsed = ListQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid filter values." });
+    return;
+  }
+  const { category, skinType, riskLevel, limit } = parsed.data;
+  const conds = [eq(recipesTable.status, "approved")];
+  if (category) conds.push(eq(recipesTable.category, category));
+  if (riskLevel) conds.push(eq(recipesTable.riskLevel, riskLevel));
+  if (skinType) {
+    // skinTypes is a jsonb array; match if it contains the requested type
+    // OR contains "all".
+    conds.push(
+      sql`(${recipesTable.skinTypes} @> ${JSON.stringify([skinType])}::jsonb
+        OR ${recipesTable.skinTypes} @> '["all"]'::jsonb)`,
+    );
+  }
+  try {
+    const rows = await db
+      .select({
+        id: recipesTable.id,
+        title: recipesTable.title,
+        category: recipesTable.category,
+        skinTypes: recipesTable.skinTypes,
+        ingredients: recipesTable.ingredients,
+        riskLevel: recipesTable.riskLevel,
+        photoUrl: recipesTable.photoUrl,
+        aiVerdict: recipesTable.aiVerdict,
+        createdAt: recipesTable.createdAt,
+      })
+      .from(recipesTable)
+      .where(and(...conds))
+      .orderBy(desc(recipesTable.createdAt))
+      .limit(limit ?? 30);
+    res.json({ recipes: rows });
+  } catch (err) {
+    req.log.error({ err }, "public recipes list failed");
+    res.status(500).json({ error: "Failed to load recipes." });
+  }
+});
+
+/**
+ * Public detail for a single approved recipe.
+ */
+router.get("/recipes/:id", publicReadLimit, async (req, res) => {
+  const { id } = req.params;
+  if (!UUID_RE.test(id)) {
+    res.status(400).json({ error: "Invalid recipe ID." });
+    return;
+  }
+  try {
+    const [row] = await db
+      .select({
+        id: recipesTable.id,
+        title: recipesTable.title,
+        category: recipesTable.category,
+        skinTypes: recipesTable.skinTypes,
+        ingredients: recipesTable.ingredients,
+        method: recipesTable.method,
+        photoUrl: recipesTable.photoUrl,
+        aiVerdict: recipesTable.aiVerdict,
+        riskLevel: recipesTable.riskLevel,
+        adminNote: recipesTable.adminNote,
+        createdAt: recipesTable.createdAt,
+        updatedAt: recipesTable.updatedAt,
+      })
+      .from(recipesTable)
+      .where(and(eq(recipesTable.id, id), eq(recipesTable.status, "approved")));
+    if (!row) {
+      res.status(404).json({ error: "Recipe not found." });
+      return;
+    }
+    res.json({ recipe: row });
+  } catch (err) {
+    req.log.error({ err }, "public recipe detail failed");
+    res.status(500).json({ error: "Failed to load recipe." });
+  }
+});
 
 /**
  * Eligibility — gates "Submit a recipe" entry point.

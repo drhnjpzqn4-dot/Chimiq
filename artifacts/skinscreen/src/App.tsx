@@ -10,6 +10,8 @@ import Pricing from "@/pages/Pricing";
 import AppPage from "@/pages/AppPage";
 import AdminPage from "@/pages/AdminPage";
 import AdminRecipesPage from "@/pages/AdminRecipesPage";
+import RecipesPage from "@/pages/Recipes";
+import RecipeDetailPage from "@/pages/RecipeDetail";
 import Discover from "@/pages/Discover";
 import { MistakeDetail, WorryDetail } from "@/pages/DiscoverDetail";
 import NotFound from "@/pages/not-found";
@@ -33,6 +35,8 @@ function Router() {
       <Route path="/app" component={AppPage} />
       <Route path="/app/:rest*" component={AppPage} />
       <Route path="/discover" component={Discover} />
+      <Route path="/recipes" component={RecipesPage} />
+      <Route path="/recipes/:id" component={RecipeDetailPage} />
       <Route path="/discover/mistakes/:slug" component={MistakeDetail} />
       <Route path="/discover/worries/:slug" component={WorryDetail} />
       <Route path="/admin/submissions" component={AdminPage} />

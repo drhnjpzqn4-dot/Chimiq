@@ -211,6 +211,17 @@ export default function ProfileScreen() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </button>
           </li>
+          <li>
+            <button
+              type="button"
+              onClick={() => navigate("/recipes")}
+              data-touch-target
+              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+            >
+              <span className="text-sm font-medium text-foreground">Browse DIY recipes</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </button>
+          </li>
           {isAdmin && (
             <>
               <li>
