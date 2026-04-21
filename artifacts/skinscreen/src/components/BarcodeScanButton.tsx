@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Barcode, X, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributeModal } from "@/components/ContributeModal";
+import { isNative } from "@/lib/native";
 
 interface BarcodeScanButtonProps {
   onResult: (ingredients: string, productName: string) => void;
@@ -27,7 +28,9 @@ declare const BarcodeDetector: {
 
 export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps) {
   const [state, setState] = useState<ScanState>(
-    typeof window !== "undefined" && "BarcodeDetector" in window ? "idle" : "unsupported",
+    typeof window !== "undefined" && (isNative() || "BarcodeDetector" in window)
+      ? "idle"
+      : "unsupported",
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [scannedProduct, setScannedProduct] = useState<string | null>(null);
@@ -114,6 +117,56 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
   );
 
   const startScan = useCallback(async () => {
+    setErrorMsg(null);
+    setShowContribute(false);
+    scannedRef.current = false;
+
+    // Native fast path: use Capacitor MLKit barcode scanner when running
+    // inside the iOS / Android shell. Falls through to the web flow on
+    // any failure (plugin missing, permission denied, etc.).
+    if (isNative()) {
+      setState("requesting");
+      setModalOpen(true);
+      try {
+        const spec = "@capacitor-mlkit/barcode-scanning";
+        const mod = (await import(/* @vite-ignore */ spec)) as unknown as {
+          BarcodeScanner: {
+            requestPermissions?: () => Promise<{ camera?: string }>;
+            scan: (opts?: {
+              formats?: string[];
+            }) => Promise<{ barcodes?: Array<{ rawValue?: string; displayValue?: string }> }>;
+          };
+        };
+        if (mod.BarcodeScanner.requestPermissions) {
+          await mod.BarcodeScanner.requestPermissions();
+        }
+        const result = await mod.BarcodeScanner.scan({
+          formats: ["EAN_13", "EAN_8", "UPC_A", "UPC_E", "CODE_128", "CODE_39", "QR_CODE"],
+        });
+        const code = result.barcodes?.[0]?.rawValue ?? result.barcodes?.[0]?.displayValue;
+        if (code) {
+          await handleBarcodeFound(code);
+        } else {
+          setState("idle");
+          setModalOpen(false);
+        }
+        return;
+      } catch (err) {
+        // Fall through to the web flow if the native plugin is missing or
+        // the user cancelled. Surface a useful message if nothing else works.
+        if (!("BarcodeDetector" in window)) {
+          setState("error");
+          setErrorMsg(
+            err instanceof Error
+              ? err.message
+              : "Native scanner unavailable. Please type the ingredients manually.",
+          );
+          return;
+        }
+        // else: drop into the web BarcodeDetector branch below.
+      }
+    }
+
     if (!("BarcodeDetector" in window)) {
       setState("unsupported");
       return;
@@ -121,9 +174,6 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
 
     setState("requesting");
     setModalOpen(true);
-    setErrorMsg(null);
-    setShowContribute(false);
-    scannedRef.current = false;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({

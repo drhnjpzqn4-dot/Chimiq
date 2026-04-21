@@ -7,7 +7,7 @@
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "build:mobile": "pnpm --filter @workspace/skinscreen run build && echo '\\nWeb build done. Now: cd mobile/capacitor && npm run sync\\n'"
+    "build:mobile": "pnpm --filter @workspace/skinscreen run build && cd mobile/capacitor && (test -d node_modules || npm install --silent --no-audit --no-fund) && npx cap sync"
   },
   "private": true,
   "devDependencies": {
