@@ -33,3 +33,4 @@ channel = "stable-25_05"
 
 [userenv.shared]
 STRIPE_PREMIUM_PRICE_ID = "price_1TK3WFB81cv4iWu0U6JahZOo"
+ADMIN_EMAILS = "pia@chimiq.com"

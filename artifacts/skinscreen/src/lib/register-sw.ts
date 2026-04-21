@@ -3,6 +3,7 @@
 type Listener = () => void;
 
 let updateAvailable = false;
+let updateToken: string | null = null;
 let triggerUpdate: ((reload: boolean) => Promise<void>) | null = null;
 const listeners = new Set<Listener>();
 
@@ -32,6 +33,15 @@ export function isUpdateAvailable(): boolean {
 }
 
 /**
+ * Opaque token that changes whenever a new "update available" event fires.
+ * Use it to scope dismissals so a previously-dismissed banner re-appears
+ * for the next deployment in the same session.
+ */
+export function getUpdateToken(): string | null {
+  return updateToken;
+}
+
+/**
  * Activate the waiting service worker (if any) and reload the page so the
  * new bundle takes effect. Safe to call when no update is pending — it just
  * resolves with no-op.
@@ -58,6 +68,7 @@ export function registerServiceWorker(): void {
       immediate: true,
       onNeedRefresh() {
         updateAvailable = true;
+        updateToken = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
         emit();
       },
       onRegisteredSW(_swUrl, registration) {

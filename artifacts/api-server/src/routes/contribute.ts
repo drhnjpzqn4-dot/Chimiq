@@ -555,21 +555,34 @@ router.get("/contribute/stats", async (req, res) => {
   }
 });
 
-router.get("/admin/check", async (req, res) => {
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+function getAdminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
-  const userEmail = (req as { user?: { email?: string } }).user?.email?.toLowerCase();
-  const isAdmin = !!userEmail && adminEmails.includes(userEmail);
-  res.json({ isAdmin });
+}
+
+function getRequestEmail(req: { user?: { email?: string } }): string | null {
+  const e = req.user?.email;
+  return e ? e.trim().toLowerCase() : null;
+}
+
+function isRequestAdmin(req: { user?: { email?: string } }): boolean {
+  const email = getRequestEmail(req);
+  return !!email && getAdminEmails().includes(email);
+}
+
+router.get("/admin/check", async (req, res) => {
+  const email = getRequestEmail(req as { user?: { email?: string } });
+  if (!email) {
+    res.status(401).json({ error: "Authentication required." });
+    return;
+  }
+  res.json({ isAdmin: getAdminEmails().includes(email) });
 });
 
 router.get("/admin/submissions", async (req, res) => {
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
-  const userEmail = (req as { user?: { email?: string } }).user?.email;
-
-  if (!userEmail || !adminEmails.includes(userEmail)) {
+  if (!isRequestAdmin(req as { user?: { email?: string } })) {
     res.status(403).json({ error: "Admin access required." });
     return;
   }
@@ -587,10 +600,7 @@ router.get("/admin/submissions", async (req, res) => {
 });
 
 router.post("/admin/submissions/:id/approve", async (req, res) => {
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
-  const userEmail = (req as { user?: { email?: string } }).user?.email;
-
-  if (!userEmail || !adminEmails.includes(userEmail)) {
+  if (!isRequestAdmin(req as { user?: { email?: string } })) {
     res.status(403).json({ error: "Admin access required." });
     return;
   }
@@ -671,10 +681,7 @@ router.post("/admin/submissions/:id/approve", async (req, res) => {
 });
 
 router.post("/admin/submissions/:id/reject", async (req, res) => {
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
-  const userEmail = (req as { user?: { email?: string } }).user?.email;
-
-  if (!userEmail || !adminEmails.includes(userEmail)) {
+  if (!isRequestAdmin(req as { user?: { email?: string } })) {
     res.status(403).json({ error: "Admin access required." });
     return;
   }

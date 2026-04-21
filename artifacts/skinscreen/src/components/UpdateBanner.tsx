@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
-import { applySwUpdate, isUpdateAvailable, onSwUpdate } from "@/lib/register-sw";
+import {
+  applySwUpdate,
+  getUpdateToken,
+  isUpdateAvailable,
+  onSwUpdate,
+} from "@/lib/register-sw";
 
-const DISMISS_KEY = "skinscreen:update-dismissed-build";
+const DISMISS_KEY = "skinscreen:update-dismissed-token";
 
 export function UpdateBanner() {
   const [visible, setVisible] = useState(false);
@@ -11,13 +16,13 @@ export function UpdateBanner() {
   useEffect(() => {
     const evaluate = () => {
       if (!isUpdateAvailable()) return;
-      // The dismiss key stores the build that was dismissed. Because the SW
-      // ships a new bundle on each release the storage value won't match the
-      // newly-active build, so the banner re-appears. We use a per-session
-      // dismiss flag to avoid annoying the user during a single session.
+      const token = getUpdateToken();
+      // Dismissals are scoped to the specific update token. When a *new*
+      // update arrives in the same session the token changes, so a previously
+      // dismissed banner re-appears for the new release.
       try {
         const dismissed = sessionStorage.getItem(DISMISS_KEY);
-        if (dismissed === "1") return;
+        if (token && dismissed === token) return;
       } catch {
         // sessionStorage unavailable (private mode, etc.) — show anyway
       }
@@ -41,7 +46,8 @@ export function UpdateBanner() {
   const handleDismiss = () => {
     setVisible(false);
     try {
-      sessionStorage.setItem(DISMISS_KEY, "1");
+      const token = getUpdateToken();
+      if (token) sessionStorage.setItem(DISMISS_KEY, token);
     } catch {
       // ignore
     }
