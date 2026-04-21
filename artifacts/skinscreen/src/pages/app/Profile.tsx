@@ -26,11 +26,16 @@ export default function ProfileScreen() {
   const [, navigate] = useLocation();
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetch("/api/contribute/stats", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setStats(d as ContributeStats))
+      .catch(() => {});
+    fetch("/api/admin/check", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : { isAdmin: false }))
+      .then((d) => setIsAdmin(!!(d as { isAdmin?: boolean }).isAdmin))
       .catch(() => {});
   }, []);
 
@@ -195,6 +200,25 @@ export default function ProfileScreen() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </button>
           </li>
+          {isAdmin && (
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+                  window.location.href = `${base}/admin/submissions`;
+                }}
+                data-touch-target
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+              >
+                <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Submission queue
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+              </button>
+            </li>
+          )}
           <li>
             <a
               href="mailto:hello@chimiq.com"

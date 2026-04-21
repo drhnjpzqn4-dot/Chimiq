@@ -555,6 +555,16 @@ router.get("/contribute/stats", async (req, res) => {
   }
 });
 
+router.get("/admin/check", async (req, res) => {
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  const userEmail = (req as { user?: { email?: string } }).user?.email?.toLowerCase();
+  const isAdmin = !!userEmail && adminEmails.includes(userEmail);
+  res.json({ isAdmin });
+});
+
 router.get("/admin/submissions", async (req, res) => {
   const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
   const userEmail = (req as { user?: { email?: string } }).user?.email;
