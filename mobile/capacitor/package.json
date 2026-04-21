@@ -4,7 +4,8 @@
   "private": true,
   "description": "Capacitor wrapper for SkinScreen — wraps the deployed web app as iOS + Android native shells (reader pattern, web-only payments).",
   "scripts": {
-    "sync": "cap sync",
+    "sync": "cap sync && bash scripts/configure-deeplinks.sh",
+    "configure:deeplinks": "bash scripts/configure-deeplinks.sh",
     "open:ios": "cap open ios",
     "open:android": "cap open android",
     "add:ios": "cap add ios",

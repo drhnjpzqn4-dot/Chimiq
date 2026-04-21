@@ -26,7 +26,10 @@ cd mobile/capacitor
 npm install
 npx cap add ios       # macOS only, requires Xcode 15+
 npx cap add android   # requires Android Studio Hedgehog+ / JDK 17
+npm run configure:deeplinks   # registers skinscreen:// in Info.plist + AndroidManifest
 ```
+
+The `configure:deeplinks` script (`scripts/configure-deeplinks.sh`) is **idempotent** — it adds the `CFBundleURLTypes` entry to `ios/App/App/Info.plist` and the matching `<intent-filter>` to `android/app/src/main/AndroidManifest.xml` so that the OS routes `skinscreen://auth/callback` back into the app. It is also chained automatically into `npm run sync` and the root `pnpm build:mobile`, so subsequent runs require no manual steps.
 
 These commands generate the `ios/` and `android/` folders containing the native projects. They are intentionally **not** committed to the repo because they are platform-specific and easy to regenerate.
 

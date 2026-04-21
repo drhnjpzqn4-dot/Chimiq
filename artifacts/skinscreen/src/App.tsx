@@ -16,6 +16,7 @@ import Discover from "@/pages/Discover";
 import { MistakeDetail, WorryDetail } from "@/pages/DiscoverDetail";
 import NotFound from "@/pages/not-found";
 import { useNativeAuthDeepLink } from "@/hooks/useNativeAuthDeepLink";
+import { AUTH_REFRESH_EVENT } from "@workspace/replit-auth-web";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,7 +49,14 @@ function Router() {
 }
 
 function NativeBootstrap() {
-  useNativeAuthDeepLink();
+  useNativeAuthDeepLink(() => {
+    // After the OS routes the OAuth callback back into the app, force every
+    // useAuth() consumer to re-fetch /api/auth/user so Premium-gated UI
+    // unlocks without a manual reload.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event(AUTH_REFRESH_EVENT));
+    }
+  });
   return null;
 }
 
