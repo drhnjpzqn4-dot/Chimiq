@@ -11,6 +11,8 @@ import {
   Mail,
   Loader2,
   Layers,
+  Trophy,
+  Info,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useUserPlan } from "@/hooks/useUserPlan";
@@ -22,6 +24,14 @@ interface ContributeStats {
   premiumUntil: string | null;
 }
 
+interface BadgeItem {
+  id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  awardedAt: string;
+}
+
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { plan, isPremium, isLoading } = useUserPlan();
@@ -29,6 +39,7 @@ export default function ProfileScreen() {
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [badges, setBadges] = useState<BadgeItem[]>([]);
 
   useEffect(() => {
     fetch("/api/contribute/stats", { credentials: "include" })
@@ -38,6 +49,10 @@ export default function ProfileScreen() {
     fetch("/api/admin/check", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { isAdmin: false }))
       .then((d) => setIsAdmin(!!(d as { isAdmin?: boolean }).isAdmin))
+      .catch(() => {});
+    fetch("/api/badges/me", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : { badges: [] }))
+      .then((d) => setBadges((d as { badges?: BadgeItem[] }).badges ?? []))
       .catch(() => {});
   }, []);
 
@@ -207,9 +222,66 @@ export default function ProfileScreen() {
         </div>
       </section>
 
+      {/* Badges */}
+      <section className="mb-5">
+        <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <Trophy className="h-3.5 w-3.5 text-amber-500" />
+              Badges
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate("/app/rewards")}
+              data-touch-target
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+            >
+              <Info className="h-3 w-3" />
+              How rewards work
+            </button>
+          </div>
+          {badges.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Earn your first badge by submitting a missing product to the database.
+            </p>
+          ) : (
+            <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {badges.map((b) => (
+                <li
+                  key={b.id}
+                  className="flex flex-col items-center text-center"
+                  title={b.description}
+                >
+                  <div className="text-2xl" aria-hidden>
+                    {b.emoji}
+                  </div>
+                  <p className="mt-1 text-[10px] font-semibold leading-tight text-foreground">
+                    {b.title}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
       {/* Settings list */}
       <section className="mb-6">
         <ul className="divide-y divide-border/40 overflow-hidden rounded-3xl border border-border/40 bg-white shadow-sm">
+          <li>
+            <button
+              type="button"
+              onClick={() => navigate("/app/leaderboard")}
+              data-touch-target
+              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Trophy className="h-4 w-4 text-amber-500" />
+                Leaderboard
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </button>
+          </li>
           <li>
             <button
               type="button"

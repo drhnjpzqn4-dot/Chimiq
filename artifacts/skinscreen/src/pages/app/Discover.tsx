@@ -1,26 +1,111 @@
-import { MessageCircle, Sparkles, ArrowUpRight, Compass } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "wouter";
+import {
+  MessageCircle,
+  Sparkles,
+  ArrowUpRight,
+  Compass,
+  Trophy,
+  Heart,
+  Send,
+  Loader2,
+  Info,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { FindDermatologist } from "@/components/FindDermatologist";
+import { useAuth } from "@workspace/replit-auth-web";
 
-const TIPS = [
-  {
-    title: "Don't mix retinol with AHAs",
-    body: "Layering acids on top of retinol can shred your barrier — alternate evenings instead.",
-    tag: "Routine",
-  },
-  {
-    title: "SPF every. single. day.",
-    body: "Even on cloudy days. Especially if you're using actives like vitamin C or BHA.",
-    tag: "Protect",
-  },
-  {
-    title: "Patch test new products",
-    body: "Apply a small amount behind your ear for 48h before going all-in on your face.",
-    tag: "Safety",
-  },
-];
+interface TipFeedItem {
+  id: string;
+  body: string;
+  createdAt: string;
+  authorId: string;
+  authorDisplayName: string;
+  voteCount: number;
+  viewerHasVoted: boolean;
+}
+
+const TIP_MAX = 280;
+const TIP_MIN = 8;
 
 export default function DiscoverScreen() {
+  const { isAuthenticated } = useAuth();
+  const [tips, setTips] = useState<TipFeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+
+  const loadTips = () => {
+    setLoading(true);
+    fetch("/api/tips", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => setTips((d as { tips?: TipFeedItem[] }).tips ?? []))
+      .catch(() => setTips([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadTips();
+  }, []);
+
+  const submitTip = async (e: FormEvent) => {
+    e.preventDefault();
+    if (draft.trim().length < TIP_MIN) {
+      setPostError(`Tips need at least ${TIP_MIN} characters.`);
+      return;
+    }
+    setPosting(true);
+    setPostError(null);
+    try {
+      const res = await fetch("/api/tips", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: draft.trim() }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setPostError(data.error ?? "Could not post tip.");
+      } else {
+        setDraft("");
+        loadTips();
+      }
+    } catch {
+      setPostError("Network error. Try again.");
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const toggleVote = async (tip: TipFeedItem) => {
+    // Optimistic
+    setTips((prev) =>
+      prev.map((t) =>
+        t.id === tip.id
+          ? {
+              ...t,
+              viewerHasVoted: !t.viewerHasVoted,
+              voteCount: t.voteCount + (t.viewerHasVoted ? -1 : 1),
+            }
+          : t,
+      ),
+    );
+    try {
+      const method = tip.viewerHasVoted ? "DELETE" : "POST";
+      const res = await fetch(`/api/tips/${tip.id}/vote`, {
+        method,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        // Revert
+        loadTips();
+      }
+    } catch {
+      loadTips();
+    }
+  };
+
   return (
     <AppShell
       title="Discover"
@@ -51,27 +136,135 @@ export default function DiscoverScreen() {
         </div>
       </section>
 
-      {/* Tips */}
+      {/* Leaderboard CTA */}
+      <section className="mb-6">
+        <Link href="/app/leaderboard">
+          <a
+            data-touch-target
+            className="flex items-center gap-3 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm transition-transform hover:-translate-y-0.5"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+              <Trophy className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-serif text-base font-semibold text-foreground">Leaderboard</p>
+              <p className="text-xs text-muted-foreground">
+                See top contributors and Best Tip of the Week.
+              </p>
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+          </a>
+        </Link>
+      </section>
+
+      {/* Tip composer */}
+      {isAuthenticated && (
+        <section className="mb-6">
+          <div className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="font-serif text-base font-semibold text-foreground">Share a tip</h2>
+              <Link href="/app/rewards">
+                <a className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
+                  <Info className="h-3 w-3" /> Rewards
+                </a>
+              </Link>
+            </div>
+            <form onSubmit={submitTip}>
+              <textarea
+                value={draft}
+                onChange={(e) => {
+                  setDraft(e.target.value.slice(0, TIP_MAX));
+                  if (postError) setPostError(null);
+                }}
+                placeholder="What's one routine tip you'd recommend?"
+                rows={3}
+                aria-label="Your tip"
+                className="w-full resize-none rounded-2xl border border-border/40 bg-[#FAFAF8] p-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p
+                  className={`text-[11px] ${
+                    draft.length > TIP_MAX - 20 ? "text-amber-600" : "text-muted-foreground"
+                  }`}
+                >
+                  {draft.length}/{TIP_MAX}
+                </p>
+                <button
+                  type="submit"
+                  disabled={posting || draft.trim().length < TIP_MIN}
+                  data-touch-target
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white shadow-md shadow-primary/20 transition-transform active:scale-[0.98] disabled:opacity-40 disabled:shadow-none"
+                >
+                  {posting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  Post
+                </button>
+              </div>
+              {postError && (
+                <p role="alert" className="mt-2 text-xs text-destructive">
+                  {postError}
+                </p>
+              )}
+            </form>
+          </div>
+        </section>
+      )}
+
+      {/* Tips feed */}
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-serif text-lg font-semibold text-foreground">Quick tips</h2>
-          <span className="text-xs text-muted-foreground/70">Curated weekly</span>
+          <h2 className="font-serif text-lg font-semibold text-foreground">Top tips</h2>
+          <span className="text-xs text-muted-foreground/70">Last 30 days</span>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {TIPS.map((tip, i) => (
+
+        {loading && (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-24 rounded-3xl skeleton" />
+            ))}
+          </div>
+        )}
+
+        {!loading && tips.length === 0 && (
+          <div className="rounded-3xl border border-dashed border-border/60 bg-white p-8 text-center">
+            <Sparkles className="mx-auto mb-2 h-6 w-6 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">
+              No tips yet. Be the first to share one — the most upvoted tip each week wins a free month of Premium.
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {tips.map((tip, i) => (
             <article
-              key={tip.title}
-              className="group rounded-3xl border border-border/40 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-              style={{ animation: "fade-up 0.45s cubic-bezier(0.22,1,0.36,1) both", animationDelay: `${i * 60}ms` }}
+              key={tip.id}
+              className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm transition-all"
+              style={{ animation: "fade-up 0.4s cubic-bezier(0.22,1,0.36,1) both", animationDelay: `${i * 40}ms` }}
             >
-              <div className="mb-2 flex items-center justify-between">
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                  {tip.tag}
+              <p className="font-serif text-sm leading-relaxed text-foreground">{tip.body}</p>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  by <span className="font-semibold text-foreground">{tip.authorDisplayName}</span>
                 </span>
-                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/50 transition-colors group-hover:text-primary" />
+                <button
+                  type="button"
+                  onClick={() => isAuthenticated && toggleVote(tip)}
+                  disabled={!isAuthenticated}
+                  data-touch-target
+                  aria-label={tip.viewerHasVoted ? "Remove vote" : "Upvote tip"}
+                  aria-pressed={tip.viewerHasVoted}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                    tip.viewerHasVoted
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground hover:bg-primary/5 hover:text-primary"
+                  }`}
+                >
+                  <Heart
+                    className={`h-3.5 w-3.5 ${tip.viewerHasVoted ? "fill-current" : ""}`}
+                    aria-hidden
+                  />
+                  {tip.voteCount}
+                </button>
               </div>
-              <h3 className="font-serif text-base font-semibold leading-snug text-foreground">{tip.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{tip.body}</p>
             </article>
           ))}
         </div>
@@ -86,7 +279,7 @@ export default function DiscoverScreen() {
 
       <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground/60">
         <Compass className="h-3 w-3" />
-        More content coming soon — DIY recipes, top mistakes, leaderboard.
+        DIY recipes, top mistakes, and more inside the app.
       </p>
     </AppShell>
   );

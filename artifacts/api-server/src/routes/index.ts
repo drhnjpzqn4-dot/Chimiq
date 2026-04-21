@@ -16,6 +16,8 @@ import contributeRouter from "./contribute";
 import storageRouter from "./storage";
 import recipesRouter from "./recipes";
 import productsRouter from "./products";
+import leaderboardRouter from "./leaderboard";
+import tipsRouter from "./tips";
 
 const router: IRouter = Router();
 
@@ -36,5 +38,7 @@ router.use(contributeRouter);
 router.use(storageRouter);
 router.use(recipesRouter);
 router.use(productsRouter);
+router.use(leaderboardRouter);
+router.use(tipsRouter);
 
 export default router;

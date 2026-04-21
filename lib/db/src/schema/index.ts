@@ -25,3 +25,4 @@ export * from "./pubchem-cache";
 export * from "./user-submitted-products";
 export * from "./analysis-cache";
 export * from "./recipes";
+export * from "./gamification";

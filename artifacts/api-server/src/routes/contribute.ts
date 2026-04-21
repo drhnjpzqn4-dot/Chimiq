@@ -12,6 +12,7 @@ import {
   sanitizeIngredients,
   SanitizationError,
 } from "../lib/sanitize.js";
+import { evaluateContributionBadges } from "../lib/gamification.js";
 
 const StartBody = z.object({
   barcode: z.string().regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required."),
@@ -151,6 +152,14 @@ async function rewardContributorIdempotent(
       .returning({ acceptedContributions: usersTable.acceptedContributions });
 
     const newCount = updated?.acceptedContributions ?? 0;
+
+    // Idempotently award count-based badges. Errors here must NOT block
+    // the contribution reward path — badges are a nice-to-have layer.
+    try {
+      await evaluateContributionBadges(userId, newCount);
+    } catch (err) {
+      log("Badge evaluation failed (non-fatal)", { err });
+    }
 
     if (newCount > 0 && newCount % PREMIUM_CONTRIBUTION_MILESTONE === 0) {
       const premiumUntil = new Date();

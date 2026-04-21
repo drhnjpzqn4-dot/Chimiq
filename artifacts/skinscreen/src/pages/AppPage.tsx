@@ -10,6 +10,8 @@ import DiscoverScreen from "@/pages/app/Discover";
 import ProfileScreen from "@/pages/app/Profile";
 import RecipeSubmitScreen from "@/pages/app/RecipeSubmit";
 import ProblemsScreen from "@/pages/app/Problems";
+import LeaderboardScreen from "@/pages/app/Leaderboard";
+import RewardsScreen from "@/pages/app/Rewards";
 
 export default function AppPage() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -46,6 +48,8 @@ export default function AppPage() {
         <Route path="/app/discover" component={DiscoverScreen} />
         <Route path="/app/profile" component={ProfileScreen} />
         <Route path="/app/recipes/new" component={RecipeSubmitScreen} />
+        <Route path="/app/leaderboard" component={LeaderboardScreen} />
+        <Route path="/app/rewards" component={RewardsScreen} />
         <Route component={() => <Redirect to="/app/scan" />} />
       </Switch>
       <ChatPanel />
