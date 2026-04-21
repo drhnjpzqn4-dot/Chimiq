@@ -118,7 +118,7 @@ router.get("/recipes", publicReadLimit, async (req, res) => {
  * Public detail for a single approved recipe.
  */
 router.get("/recipes/:id", publicReadLimit, async (req, res) => {
-  const { id } = req.params;
+  const id = String(req.params.id ?? "");
   if (!UUID_RE.test(id)) {
     res.status(400).json({ error: "Invalid recipe ID." });
     return;
@@ -355,7 +355,7 @@ async function adminUpdateStatus(
     res.status(403).json({ error: "Admin access required." });
     return;
   }
-  const { id } = req.params;
+  const id = String(req.params.id ?? "");
   if (!UUID_RE.test(id)) {
     res.status(400).json({ error: "Invalid recipe ID." });
     return;

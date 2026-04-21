@@ -40,7 +40,9 @@ export function ChatPanel() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const { user, isAuthenticated } = useAuth();
-  const shelfQuery = useGetShelf({ query: { enabled: isAuthenticated } });
+  const shelfQuery = useGetShelf({
+    query: { queryKey: ["/api/shelf"], enabled: isAuthenticated },
+  });
 
   const shelfContext = shelfQuery.data?.products
     ?.map((p) => `${p.productName}: ${p.ingredients}`)

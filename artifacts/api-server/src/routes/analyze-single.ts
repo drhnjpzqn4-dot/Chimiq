@@ -280,7 +280,8 @@ router.post("/analyze-single", async (req, res) => {
         });
       }
 
-      return res.json({ ...validated.data, cacheHash: hash, fromCache: true });
+      res.json({ ...validated.data, cacheHash: hash, fromCache: true });
+      return;
     }
   }
 

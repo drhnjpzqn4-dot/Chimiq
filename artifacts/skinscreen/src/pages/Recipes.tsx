@@ -129,13 +129,23 @@ export default function RecipesPage() {
 
         {filtersOpen && (
           <div className="rounded-3xl border border-border/60 bg-white p-4 space-y-4">
-            <FilterRow label="Category" options={CATEGORIES} value={category} onChange={setCategory} />
-            <FilterRow label="Skin type" options={SKIN_TYPES} value={skinType} onChange={setSkinType} />
+            <FilterRow
+              label="Category"
+              options={CATEGORIES}
+              value={category}
+              onChange={(v) => setCategory(v)}
+            />
+            <FilterRow
+              label="Skin type"
+              options={SKIN_TYPES}
+              value={skinType}
+              onChange={(v) => setSkinType(v)}
+            />
             <FilterRow
               label="Risk level"
               options={RISK_LEVELS}
               value={risk}
-              onChange={setRisk}
+              onChange={(v) => setRisk(v)}
               displayLabel={(v) => (v === "high_risk" ? "high risk" : v)}
             />
           </div>
