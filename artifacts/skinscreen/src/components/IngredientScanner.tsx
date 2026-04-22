@@ -14,6 +14,7 @@ import { DangerCard } from "@/components/DangerCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/FadeIn";
+import { StepHeader, VerdictCard } from "@/components/scanner/ScannerStep";
 import {
   Loader2,
   FlaskConical,
@@ -157,11 +158,12 @@ function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
             onChange={(e) => setInputVal(e.target.value)}
             placeholder="Search product name to auto-fill ingredients..."
             disabled={disabled}
+            data-touch-target
             className={cn(
-              "w-full pl-8 pr-8 py-2 text-xs rounded-xl border border-border/50 bg-white/70",
+              "w-full pl-9 pr-9 py-2.5 text-sm rounded-2xl border border-border/60 bg-white",
               "placeholder:text-muted-foreground text-foreground",
               "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
-              "transition-all duration-150 disabled:opacity-50",
+              "transition-all duration-150 disabled:opacity-50 shadow-sm",
             )}
           />
           {isFetching && (
@@ -177,7 +179,7 @@ function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
             </button>
           )}
           {!isFetching && debouncedQ.length >= 3 && data && !data.found && (
-            <p className="mt-1.5 text-[10px] text-muted-foreground px-1">
+            <p className="mt-1.5 text-[11px] text-muted-foreground px-1 animate-fade-up">
               Not found — paste the ingredient list manually below
             </p>
           )}
@@ -263,7 +265,7 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
           rows={6}
           maxLength={3000}
           className={cn(
-            "w-full resize-none rounded-2xl border border-border/60 bg-white px-4 py-3 pr-12",
+            "w-full resize-none rounded-2xl border border-border/60 bg-white px-4 py-3.5 pr-14",
             "text-sm text-foreground placeholder:text-muted-foreground leading-relaxed",
             "focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60",
             "transition-all duration-200 shadow-sm",
@@ -274,10 +276,11 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
           onClick={() => fileInputRef.current?.click()}
           disabled={scanLabel.isPending}
           title="Scan label photo"
+          data-touch-target
           className={cn(
-            "absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-xl",
-            "bg-primary/8 text-primary hover:bg-primary/15 hover:text-primary",
-            "transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed",
+            "absolute top-2.5 right-2.5 w-10 h-10 flex items-center justify-center rounded-2xl",
+            "bg-primary/10 text-primary hover:bg-primary/20 active:animate-tap-bounce",
+            "transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed",
             "focus:outline-none focus:ring-2 focus:ring-primary/40",
           )}
         >
@@ -473,7 +476,7 @@ function AlternativesSection({
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-40 rounded-2xl bg-muted/40 animate-pulse"
+                    className="h-40 rounded-3xl skeleton"
                     style={{ animationDelay: `${i * 0.15}s` }}
                   />
                 ))}
@@ -651,10 +654,11 @@ function QuickStartDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
+        data-touch-target
         className={cn(
-          "w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-border/60 bg-white text-sm",
+          "w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-border/60 bg-white text-sm shadow-sm",
           "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
-          "transition-all duration-150 disabled:opacity-50 cursor-pointer",
+          "transition-all duration-150 disabled:opacity-50 cursor-pointer hover:border-primary/40",
         )}
       >
         {selected ? (
@@ -683,7 +687,8 @@ function QuickStartDropdown({
               key={p.name}
               type="button"
               onClick={() => handleSelect(p)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#F3F8F3] transition-colors text-left"
+              data-touch-target
+              className="w-full flex items-center gap-3 px-3 py-3 hover:bg-[#F3F8F3] transition-colors text-left"
             >
               <ProductImageThumb src={p.imageUrl} size={40} radius={50} />
               <span className="text-sm text-foreground leading-snug truncate">{p.name}</span>
@@ -924,39 +929,29 @@ export function IngredientScanner({
     <div className="w-full max-w-4xl mx-auto">
 
       {/* ── STEP 1: Skin type ── */}
-      <div className="flex gap-4 mb-2">
-        <div className="shrink-0 flex flex-col items-center">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 bg-primary">
-            1
-          </div>
-          <div className="w-px flex-1 mt-2 bg-primary/25" style={{ minHeight: 24 }} />
-        </div>
-        <div className="flex-1 min-w-0 pb-8">
-          <h3 className="font-bold text-[17px] text-foreground mb-0.5 mt-1.5">Select your skin type</h3>
-          <p className="text-xs text-muted-foreground mb-4">Optional — personalises flagging and risk levels.</p>
-          <SkinProfileSelector value={skinProfile} onChange={setSkinProfile} />
-        </div>
-      </div>
+      <StepHeader
+        index={1}
+        title="Select your skin type"
+        description="Optional — personalises flagging and risk levels."
+      >
+        <SkinProfileSelector value={skinProfile} onChange={setSkinProfile} />
+      </StepHeader>
 
       {/* ── STEP 2: Select products ── */}
-      <div className="flex gap-4 mb-2">
-        <div className="shrink-0 flex flex-col items-center">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 bg-primary">
-            2
-          </div>
-          <div className="w-px flex-1 mt-2 bg-primary/25" style={{ minHeight: 24 }} />
-        </div>
-        <div className="flex-1 min-w-0 pb-8">
-          <h3 className="font-bold text-[17px] text-foreground mb-0.5 mt-1.5">Select products to scan</h3>
-          <p className="text-xs text-muted-foreground mb-4">Scan one product for flags, or compare two for conflicts.</p>
+      <StepHeader
+        index={2}
+        title="Select products to scan"
+        description="Scan one product for flags, or compare two for conflicts."
+      >
 
           {/* 1 or 2 products toggle */}
           <div className="flex gap-2 mb-6 p-1 bg-white rounded-2xl border border-border/50 shadow-sm w-fit">
             <button
               type="button"
               onClick={() => { setMode("single"); resetResults(); }}
+              data-touch-target
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150",
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-150",
                 mode === "single"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -968,8 +963,9 @@ export function IngredientScanner({
             <button
               type="button"
               onClick={() => { setMode("compare"); resetResults(); }}
+              data-touch-target
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150",
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-150",
                 mode === "compare"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -1099,8 +1095,8 @@ export function IngredientScanner({
                       />
                     </div>
                     {productName && (
-                      <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl bg-primary/5 border border-primary/20">
-                        <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
+                      <div className="flex items-center gap-3 mb-3 p-3 rounded-3xl bg-primary/5 border border-primary/20 shadow-sm animate-fade-up">
+                        <ProductImageThumb src={productImage || undefined} size={96} radius={16} />
                         <span className="text-[18px] font-bold leading-tight text-foreground">{productName}</span>
                       </div>
                     )}
@@ -1128,8 +1124,8 @@ export function IngredientScanner({
                         />
                       </div>
                       {product1Name && (
-                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl bg-primary/5 border border-primary/20">
-                          <ProductImageThumb src={product1Image || undefined} size={64} radius={10} />
+                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-3xl bg-primary/5 border border-primary/20 shadow-sm animate-fade-up">
+                          <ProductImageThumb src={product1Image || undefined} size={64} radius={14} />
                           <span className="text-base font-bold leading-tight text-foreground">{product1Name}</span>
                         </div>
                       )}
@@ -1155,8 +1151,8 @@ export function IngredientScanner({
                         />
                       </div>
                       {product2Name && (
-                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl bg-amber-50 border border-amber-200">
-                          <ProductImageThumb src={product2Image || undefined} size={64} radius={10} />
+                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-3xl bg-amber-50 border border-amber-200 shadow-sm animate-fade-up">
+                          <ProductImageThumb src={product2Image || undefined} size={64} radius={14} />
                           <span className="text-base font-bold leading-tight text-foreground">{product2Name}</span>
                         </div>
                       )}
@@ -1174,57 +1170,53 @@ export function IngredientScanner({
             </div>
 
           </div>
-        </div>
-      </div>
+      </StepHeader>
 
       {/* ── STEP 3: Analyze ── */}
-      <div className="flex gap-4 mb-10">
-        <div className="shrink-0">
-          <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 transition-colors", canSubmit ? "bg-primary" : "bg-muted-foreground/40")}>
-            3
-          </div>
+      <StepHeader
+        index={3}
+        title="Analyze"
+        description={
+          mode === "single"
+            ? "Paste or load your ingredient list above, then scan."
+            : "Load or paste both products above, then check compatibility."
+        }
+        active={canSubmit}
+        hasConnector={false}
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <Button
+            size="lg"
+            onClick={handleScan}
+            disabled={!canSubmit || isPending}
+            data-touch-target
+            className="w-full sm:w-auto min-w-[200px] gap-2 text-base py-3 px-8 rounded-2xl active:animate-tap-bounce"
+          >
+            {isPending ? (
+              <><Loader2 className="w-4 h-4 animate-spin" />Analysing…</>
+            ) : (
+              <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? "Scan Ingredients") : (ctaLabel?.compare ?? "Check Compatibility")}</>
+            )}
+          </Button>
+          <button
+            type="button"
+            onClick={handleStartOver}
+            data-touch-target
+            className="text-sm text-muted-foreground hover:text-foreground border border-border/40 hover:border-border/70 px-5 py-2.5 rounded-2xl transition-colors"
+          >
+            Start over
+          </button>
         </div>
-        <div className="flex-1 min-w-0 mt-1">
-          <h3 className="font-bold text-[17px] text-foreground mb-0.5">Analyze</h3>
-          <p className="text-xs text-muted-foreground mb-5">
-            {mode === "single"
-              ? "Paste or load your ingredient list above, then scan."
-              : "Load or paste both products above, then check compatibility."}
-          </p>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <Button
-              size="lg"
-              onClick={handleScan}
-              disabled={!canSubmit || isPending}
-              className="w-full sm:w-auto min-w-[200px] gap-2 text-base py-3 px-8"
-            >
-              {isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />Analysing…</>
-              ) : (
-                <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? "Scan Ingredients") : (ctaLabel?.compare ?? "Check Compatibility")}</>
-              )}
-            </Button>
-            <button
-              type="button"
-              onClick={handleStartOver}
-              className="text-sm text-muted-foreground hover:text-foreground border border-border/40 hover:border-border/70 px-5 py-2.5 rounded-xl transition-colors"
-            >
-              Start over
-            </button>
-          </div>
-        </div>
-      </div>
+      </StepHeader>
 
       {/* Error */}
       {isError && (
-        <FadeIn>
-          <div className="rounded-2xl bg-destructive/5 border border-destructive/20 p-6 text-center mb-8">
-            <p className="text-sm font-medium text-destructive">
-              {(error as Error & { response?: { data?: { error?: string } } })?.response?.data?.error
-                ?? "Something went wrong. Please try again."}
-            </p>
-          </div>
-        </FadeIn>
+        <div className="rounded-3xl bg-destructive/5 border border-destructive/20 p-6 text-center mb-8 animate-fade-up shadow-sm">
+          <p className="text-sm font-medium text-destructive">
+            {(error as Error & { response?: { data?: { error?: string } } })?.response?.data?.error
+              ?? "Something went wrong. Please try again."}
+          </p>
+        </div>
       )}
 
       {/* Single-product results */}
@@ -1241,42 +1233,33 @@ export function IngredientScanner({
           </FadeIn>
 
           {/* Verdict headline */}
-          <FadeIn>
-            <div className={cn(
-              "rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4",
+          <VerdictCard
+            tone={
               singleResult.overallSafe
-                ? "bg-green-50 border border-green-200"
+                ? "safe"
                 : singleHighRisk.length > 0
-                  ? "bg-red-50/60 border border-red-200"
-                  : "bg-amber-50/40 border border-amber-200/70",
-            )}>
-              <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0",
-                singleResult.overallSafe ? "bg-green-100" : singleHighRisk.length > 0 ? "bg-red-100" : "bg-amber-100",
-              )}>
-                {singleResult.overallSafe
-                  ? <ShieldCheck className="w-6 h-6 text-green-600" />
-                  : <AlertTriangle className={cn("w-6 h-6", singleHighRisk.length > 0 ? "text-red-600" : "text-amber-600")} />
-                }
-              </div>
-              <div>
-                <h3 className={cn(
-                  "text-xl sm:text-2xl font-serif font-semibold leading-tight",
-                  singleResult.overallSafe ? "text-green-800" : singleHighRisk.length > 0 ? "text-red-800" : "text-amber-800",
-                )}>
-                  {singleResult.overallSafe ? "No major concerns found" : singleResult.verdictTitle}
-                </h3>
-                {singleResult.verdictSummary && (
-                  <p className={cn(
-                    "text-sm mt-1 leading-relaxed",
-                    singleResult.overallSafe ? "text-green-700" : singleHighRisk.length > 0 ? "text-red-700" : "text-amber-700",
-                  )}>
-                    {singleResult.verdictSummary}
-                  </p>
-                )}
-              </div>
-            </div>
-          </FadeIn>
+                  ? "high"
+                  : "caution"
+            }
+            icon={
+              singleResult.overallSafe ? (
+                <ShieldCheck className="w-6 h-6 text-green-600" />
+              ) : (
+                <AlertTriangle
+                  className={cn(
+                    "w-6 h-6",
+                    singleHighRisk.length > 0 ? "text-red-600" : "text-amber-600",
+                  )}
+                />
+              )
+            }
+            title={
+              singleResult.overallSafe
+                ? "No major concerns found"
+                : singleResult.verdictTitle
+            }
+            summary={singleResult.verdictSummary ?? undefined}
+          />
 
           {singleHighRisk.length > 0 && (
             <div>
@@ -1400,7 +1383,8 @@ export function IngredientScanner({
                     setIngredients(""); setProductName(""); setProductImage(""); resetResults(); analyzeSingle.reset();
                     setTimeout(() => document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }), 100);
                   }}
-                  className="text-sm text-muted-foreground hover:text-foreground border border-border/50 hover:border-border transition-colors px-6 py-2 rounded-xl"
+                  data-touch-target
+                  className="text-sm text-muted-foreground hover:text-foreground border border-border/50 hover:border-border transition-colors px-6 py-2.5 rounded-2xl"
                 >
                   New scan
                 </button>
@@ -1436,7 +1420,7 @@ export function IngredientScanner({
             <FadeIn>
               <div className="flex flex-col sm:flex-row gap-3">
                 {product1Name && (
-                  <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl bg-primary/5 border border-primary/20">
+                  <div className="flex items-center gap-3 flex-1 p-3 rounded-3xl bg-primary/5 border border-primary/20 shadow-sm">
                     <ProductImageThumb src={product1Image || undefined} size={96} radius={12} />
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5 text-primary">Product 1</p>
@@ -1445,7 +1429,7 @@ export function IngredientScanner({
                   </div>
                 )}
                 {product2Name && (
-                  <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl bg-amber-50 border border-amber-200">
+                  <div className="flex items-center gap-3 flex-1 p-3 rounded-3xl bg-amber-50 border border-amber-200 shadow-sm">
                     <ProductImageThumb src={product2Image || undefined} size={96} radius={12} />
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5 text-amber-700">Product 2</p>
@@ -1458,42 +1442,41 @@ export function IngredientScanner({
           )}
 
           {/* Verdict headline */}
-          <FadeIn>
-            <div className={cn(
-              "rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4",
+          <VerdictCard
+            tone={
               compareResult.overallSafe && compareConflicts.length === 0
-                ? "bg-green-50 border border-green-200"
+                ? "safe"
                 : highRiskConflicts.length > 0
-                  ? "bg-red-50/60 border border-red-200"
-                  : "bg-amber-50/40 border border-amber-200/70",
-            )}>
-              <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0",
-                compareResult.overallSafe && compareConflicts.length === 0 ? "bg-green-100" : highRiskConflicts.length > 0 ? "bg-red-100" : "bg-amber-100",
-              )}>
-                {compareResult.overallSafe && compareConflicts.length === 0
-                  ? <ShieldCheck className="w-6 h-6 text-green-600" />
-                  : <AlertTriangle className={cn("w-6 h-6", highRiskConflicts.length > 0 ? "text-red-600" : "text-amber-600")} />
-                }
-              </div>
-              <div>
-                <h3 className={cn(
-                  "text-xl sm:text-2xl font-serif font-semibold leading-tight",
-                  compareResult.overallSafe && compareConflicts.length === 0 ? "text-green-800" : highRiskConflicts.length > 0 ? "text-red-800" : "text-amber-800",
-                )}>
-                  {compareResult.overallSafe && compareConflicts.length === 0
-                    ? "These products are compatible"
-                    : highRiskConflicts.length > 0
-                      ? `${highRiskConflicts.length} high-risk conflict${highRiskConflicts.length > 1 ? "s" : ""} found`
-                      : `${cautionConflicts.length} caution-level conflict${cautionConflicts.length > 1 ? "s" : ""} found`
-                  }
-                </h3>
-                {compareResult.overallSafe && compareConflicts.length === 0 && (
-                  <p className="text-sm text-green-700 mt-1">No clinically-documented conflicts found between these two products.</p>
-                )}
-              </div>
-            </div>
-          </FadeIn>
+                  ? "high"
+                  : "caution"
+            }
+            icon={
+              compareResult.overallSafe && compareConflicts.length === 0 ? (
+                <ShieldCheck className="w-6 h-6 text-green-600" />
+              ) : (
+                <AlertTriangle
+                  className={cn(
+                    "w-6 h-6",
+                    highRiskConflicts.length > 0
+                      ? "text-red-600"
+                      : "text-amber-600",
+                  )}
+                />
+              )
+            }
+            title={
+              compareResult.overallSafe && compareConflicts.length === 0
+                ? "These products are compatible"
+                : highRiskConflicts.length > 0
+                  ? `${highRiskConflicts.length} high-risk conflict${highRiskConflicts.length > 1 ? "s" : ""} found`
+                  : `${cautionConflicts.length} caution-level conflict${cautionConflicts.length > 1 ? "s" : ""} found`
+            }
+            summary={
+              compareResult.overallSafe && compareConflicts.length === 0
+                ? "No clinically-documented conflicts found between these two products."
+                : undefined
+            }
+          />
 
           {highRiskConflicts.length > 0 && (
             <div>
@@ -1578,7 +1561,8 @@ export function IngredientScanner({
                     resetResults(); analyzeCompare.reset();
                     setTimeout(() => document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }), 100);
                   }}
-                  className="text-sm text-muted-foreground hover:text-foreground border border-border/50 hover:border-border transition-colors px-6 py-2 rounded-xl"
+                  data-touch-target
+                  className="text-sm text-muted-foreground hover:text-foreground border border-border/50 hover:border-border transition-colors px-6 py-2.5 rounded-2xl"
                 >
                   New comparison
                 </button>
