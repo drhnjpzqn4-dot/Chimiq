@@ -22,6 +22,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editMap, setEditMap] = useState<Record<string, { productName: string; brand: string; ingredients: string }>>({});
+  const [rejectMap, setRejectMap] = useState<Record<string, { open: boolean; reason: string; error: string | null }>>({});
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
@@ -87,15 +88,48 @@ export default function AdminPage() {
     }
   };
 
+  const openReject = (id: string) => {
+    setRejectMap((prev) => ({ ...prev, [id]: { open: true, reason: prev[id]?.reason ?? "", error: null } }));
+  };
+
+  const cancelReject = (id: string) => {
+    setRejectMap((prev) => ({ ...prev, [id]: { open: false, reason: "", error: null } }));
+  };
+
+  const updateRejectReason = (id: string, value: string) => {
+    setRejectMap((prev) => ({ ...prev, [id]: { open: true, reason: value, error: null } }));
+  };
+
   const handleReject = async (id: string) => {
+    const reason = rejectMap[id]?.reason.trim() ?? "";
+    if (!reason) {
+      setRejectMap((prev) => ({
+        ...prev,
+        [id]: { open: true, reason: prev[id]?.reason ?? "", error: "Please add a short reason." },
+      }));
+      return;
+    }
     setActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
       const res = await fetch(`/api/admin/submissions/${id}/reject`, {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
       });
       if (res.ok) {
         setSubmissions((prev) => prev.filter((s) => s.id !== id));
+        setRejectMap((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      } else {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setRejectMap((prev) => ({
+          ...prev,
+          [id]: { open: true, reason, error: data.error ?? "Failed to reject." },
+        }));
       }
     } finally {
       setActionLoading((prev) => ({ ...prev, [id]: false }));
@@ -273,15 +307,57 @@ export default function AdminPage() {
                         )}
                         Approve & publish
                       </button>
-                      <button
-                        onClick={() => handleReject(s.id)}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-destructive/40 text-destructive text-sm font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Reject
-                      </button>
+                      {!rejectMap[s.id]?.open && (
+                        <button
+                          onClick={() => openReject(s.id)}
+                          disabled={isProcessing}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-destructive/40 text-destructive text-sm font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Reject
+                        </button>
+                      )}
                     </div>
+                    {rejectMap[s.id]?.open && (
+                      <div className="mt-3 rounded-xl border border-destructive/30 bg-red-50/40 p-3 space-y-2">
+                        <label className="text-[11px] font-semibold text-destructive uppercase tracking-wide block">
+                          Reason for rejection
+                        </label>
+                        <input
+                          type="text"
+                          value={rejectMap[s.id]?.reason ?? ""}
+                          onChange={(e) => updateRejectReason(s.id, e.target.value)}
+                          maxLength={500}
+                          autoFocus
+                          placeholder="e.g. photos blurry, ingredients unreadable…"
+                          className="w-full px-3 py-2 rounded-lg border border-destructive/30 text-sm focus:outline-none focus:ring-2 focus:ring-destructive/30 bg-white"
+                        />
+                        {rejectMap[s.id]?.error && (
+                          <p className="text-xs text-destructive">{rejectMap[s.id]?.error}</p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleReject(s.id)}
+                            disabled={isProcessing || !rejectMap[s.id]?.reason.trim()}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-destructive text-white text-xs font-semibold hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isProcessing ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <XCircle className="w-3.5 h-3.5" />
+                            )}
+                            Confirm reject
+                          </button>
+                          <button
+                            onClick={() => cancelReject(s.id)}
+                            disabled={isProcessing}
+                            className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-border/20 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

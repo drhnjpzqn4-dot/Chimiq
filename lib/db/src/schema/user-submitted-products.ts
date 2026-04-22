@@ -22,6 +22,7 @@ export const userSubmittedProductsTable = pgTable(
     status: submissionStatusEnum("status").notNull().default("pending"),
     aiReviewNote: text("ai_review_note"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewNote: text("review_note"),
     frontImageUrl: text("front_image_url"),
     ingredientsImageUrl: text("ingredients_image_url"),
     rewardGranted: boolean("reward_granted").notNull().default(false),

@@ -33,6 +33,10 @@ const AdminReviewBody = z.object({
   ingredients: z.string().trim().max(10000).optional(),
 });
 
+const AdminRejectBody = z.object({
+  reason: z.string().trim().min(1, "Reason is required.").max(500),
+});
+
 const PREMIUM_CONTRIBUTION_MILESTONE = 30;
 const PREMIUM_DURATION_DAYS = 30;
 
@@ -687,11 +691,41 @@ router.post("/admin/submissions/:id/reject", async (req, res) => {
     return;
   }
 
+  const parseResult = AdminRejectBody.safeParse(req.body);
+  if (!parseResult.success) {
+    res.status(400).json({ error: parseResult.error.issues[0]?.message ?? "Invalid data." });
+    return;
+  }
+
   try {
-    await db
+    const updated = await db
       .update(userSubmittedProductsTable)
-      .set({ status: "rejected", reviewedAt: new Date() })
-      .where(eq(userSubmittedProductsTable.id, id));
+      .set({
+        status: "rejected",
+        reviewedAt: new Date(),
+        reviewNote: parseResult.data.reason,
+      })
+      .where(
+        sql`${userSubmittedProductsTable.id} = ${id}
+          AND ${userSubmittedProductsTable.status} = 'needs_admin'`,
+      )
+      .returning({ id: userSubmittedProductsTable.id });
+
+    if (updated.length === 0) {
+      const [existing] = await db
+        .select({ status: userSubmittedProductsTable.status })
+        .from(userSubmittedProductsTable)
+        .where(eq(userSubmittedProductsTable.id, id));
+      if (!existing) {
+        res.status(404).json({ error: "Submission not found." });
+      } else {
+        res.status(409).json({
+          error: `Submission is no longer pending review (current status: ${existing.status}).`,
+        });
+      }
+      return;
+    }
+
     res.json({ ok: true });
   } catch (err) {
     req.log.error({ err }, "Admin reject failed");
