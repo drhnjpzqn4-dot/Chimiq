@@ -6,6 +6,7 @@ import { DangerVisual } from "@/components/DangerVisual";
 import { SpiralSection } from "@/components/SpiralSection";
 import { IngredientScanner } from "@/components/IngredientScanner";
 import type { ScannerSeed } from "@/components/IngredientScanner";
+import { SCANNER_SEED_STORAGE_KEY } from "@/lib/discover-content";
 import { SocialProof } from "@/components/SocialProof";
 import { MyShelf, MyShelfSection } from "@/components/MyShelf";
 import { ChatPanel } from "@/components/ChatPanel";
@@ -212,6 +213,35 @@ export function LandingPage({ config }: LandingPageProps) {
       window.history.replaceState({}, "", url.toString());
     }
   }, [toast, queryClient]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let raw: string | null = null;
+    try {
+      raw = window.sessionStorage.getItem(SCANNER_SEED_STORAGE_KEY);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+    try {
+      window.sessionStorage.removeItem(SCANNER_SEED_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+    try {
+      const parsed = JSON.parse(raw) as ScannerSeed;
+      if (parsed && (parsed.mode === "single" || parsed.mode === "compare")) {
+        setScannerSeed(parsed);
+        requestAnimationFrame(() => {
+          document
+            .getElementById("scanner")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    } catch {
+      // malformed seed — ignore
+    }
+  }, []);
 
   useEffect(() => {
     const el = heroRef.current;

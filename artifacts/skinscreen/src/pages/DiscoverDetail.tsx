@@ -5,9 +5,11 @@ import { DiscoverRating } from "@/components/DiscoverRating";
 import {
   getMistake,
   getWorry,
+  SCANNER_SEED_STORAGE_KEY,
   SEVERITY_LABEL,
   FREQUENCY_LABEL,
   type DiscoverItem,
+  type DiscoverCta,
   type MistakeItem,
   type WorryItem,
   type CtaType,
@@ -43,6 +45,26 @@ function ctaHref(type: CtaType): string {
 function ctaIcon(type: CtaType) {
   if (type === "shelf") return <Sparkles className="w-4 h-4" />;
   return <ScanLine className="w-4 h-4" />;
+}
+
+function handleCtaClick(cta: DiscoverCta) {
+  if (typeof window === "undefined") return;
+  if (cta.seed) {
+    try {
+      window.sessionStorage.setItem(
+        SCANNER_SEED_STORAGE_KEY,
+        JSON.stringify(cta.seed),
+      );
+    } catch {
+      // ignore — seed is best-effort
+    }
+  } else {
+    try {
+      window.sessionStorage.removeItem(SCANNER_SEED_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 function ShareButton({ title }: { title: string }) {
@@ -204,6 +226,7 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
           <section className="mb-12">
             <a
               href={ctaHref(item.cta.type)}
+              onClick={() => handleCtaClick(item.cta)}
               className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-7 py-3.5 rounded-full text-base font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 w-full sm:w-auto"
             >
               {ctaIcon(item.cta.type)}

@@ -2,10 +2,38 @@ export type Severity = "HIGH" | "MEDIUM" | "LOW";
 export type Frequency = "VERY_COMMON" | "COMMON" | "EMERGING";
 export type CtaType = "scan" | "shelf" | "alternatives" | "compare";
 
+export interface DiscoverScannerSeed {
+  mode: "single" | "compare";
+  product1?: string;
+  product1Name?: string;
+  product2?: string;
+  product2Name?: string;
+  ingredients?: string;
+  autoRun?: boolean;
+}
+
 export interface DiscoverCta {
   label: string;
   type: CtaType;
+  seed?: DiscoverScannerSeed;
 }
+
+export const SCANNER_SEED_STORAGE_KEY = "skinscreen:scanner-seed";
+
+const ROC_RETINOL =
+  "Water, Dimethicone, Glycerin, Isopropyl Isostearate, Caprylic/Capric Triglyceride, PEG-100 Stearate, Propylene Glycol, Glyceryl Stearate, Cetyl Alcohol, Niacinamide, Retinol, Sodium Hyaluronate, Tocopherol, Phenoxyethanol, Ethylhexylglycerin, Disodium EDTA, Carbomer, Triethanolamine";
+
+const PAULAS_AHA =
+  "Water, Glycolic Acid 8%, Butylene Glycol, Sodium Hydroxide, Phenyl Trimethicone, Aloe Barbadensis Leaf Extract, Allantoin, Chamomilla Recutita Flower Extract, Polysorbate 20, Tetrasodium EDTA, Methylparaben";
+
+const NEUTROGENA_BP =
+  "Water, Sodium C14-16 Olefin Sulfonate, PEG-80 Sorbitan Laurate, Cocamidopropyl Betaine, Glycerin, Sodium Lauroamphoacetate, Sodium Hydroxide, Hydroxyethylcellulose, Benzoyl Peroxide 10%, Glycol Distearate, Cocamide MEA, Laureth-4, Citric Acid, Tetrasodium EDTA";
+
+const ORDINARY_VITAMIN_C =
+  "Ascorbic Acid, Squalane, Isodecyl Neopentanoate, Isononyl Isononanoate, Silica, Hydroxypropyl Cyclodextrin, Sodium Hyaluronate Crosspolymer, Triethoxycaprylylsilane";
+
+const ORDINARY_NIACINAMIDE =
+  "Aqua, Niacinamide, Pentylene Glycol, Zinc PCA, Dimethyl Isosorbide, Tamarindus Indica Seed Gum, Xanthan Gum, Isoceteth-20, Ethoxydiglycol, Phenoxyethanol, Chlorphenesin";
 
 export interface DiscoverItem {
   slug: string;
@@ -60,7 +88,18 @@ export const TOP_MISTAKES: MistakeItem[] = [
       "Always follow with a simple moisturiser to support recovery.",
       "If your skin is stinging the next morning, skip the next active night.",
     ],
-    cta: { label: "Scan your routine for clashes", type: "compare" },
+    cta: {
+      label: "Scan your routine for clashes",
+      type: "compare",
+      seed: {
+        mode: "compare",
+        product1: ROC_RETINOL,
+        product1Name: "RoC Retinol Correxion Serum",
+        product2: PAULAS_AHA,
+        product2Name: "Paula's Choice 8% AHA Gel",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "retinol-plus-benzoyl-peroxide",
@@ -82,7 +121,18 @@ export const TOP_MISTAKES: MistakeItem[] = [
       "Or alternate days — BP on Monday, retinol on Tuesday, and so on.",
       "Look for a stabilised retinaldehyde if you really need both daily.",
     ],
-    cta: { label: "Check your shelf for this combo", type: "shelf" },
+    cta: {
+      label: "Check your shelf for this combo",
+      type: "compare",
+      seed: {
+        mode: "compare",
+        product1: NEUTROGENA_BP,
+        product1Name: "Neutrogena Rapid Clear BP Wash",
+        product2: ROC_RETINOL,
+        product2Name: "RoC Retinol Correxion Serum",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "skipping-spf-after-actives",
@@ -234,7 +284,18 @@ export const TOP_MISTAKES: MistakeItem[] = [
       "Store both away from heat and direct light.",
       "Stop if you see any flushing or irritation.",
     ],
-    cta: { label: "Check your routine timing", type: "shelf" },
+    cta: {
+      label: "Check your routine timing",
+      type: "compare",
+      seed: {
+        mode: "compare",
+        product1: ORDINARY_VITAMIN_C,
+        product1Name: "The Ordinary Vitamin C 23%",
+        product2: ORDINARY_NIACINAMIDE,
+        product2Name: "The Ordinary Niacinamide 10% + Zinc 1%",
+        autoRun: true,
+      },
+    },
   },
 ];
 

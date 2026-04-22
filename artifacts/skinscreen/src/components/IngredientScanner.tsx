@@ -864,8 +864,10 @@ export function IngredientScanner({
     }
   }, [analyzeSingle, analyzeCompare]);
 
+  const lastAppliedSeedRef = useRef<ScannerSeed | null>(null);
   useEffect(() => {
-    if (externalSeed) {
+    if (externalSeed && lastAppliedSeedRef.current !== externalSeed) {
+      lastAppliedSeedRef.current = externalSeed;
       applySeed(externalSeed);
     }
   }, [externalSeed, applySeed]);
