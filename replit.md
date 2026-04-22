@@ -88,6 +88,8 @@ Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client insta
 
 Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
 
+Explicit SQL migrations (e.g. destructive drops that drizzle-kit would otherwise prompt about) live in `lib/db/migrations/*.sql` and are applied in filename order by `pnpm --filter @workspace/db run migrate`. Applied filenames are tracked in the `__migrations` table. The post-merge script runs `migrate` before `push`.
+
 ### `lib/api-spec` (`@workspace/api-spec`)
 
 Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
