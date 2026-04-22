@@ -15,6 +15,9 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
 
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
+      <a href="#main-content" className="skip-to-content">
+        Skip to main content
+      </a>
       <header
         className="sticky top-0 z-40 border-b border-border/30 bg-white/85 backdrop-blur-md"
         style={{ paddingTop: "var(--safe-top)" }}
@@ -54,7 +57,7 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
         )}
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 pt-4 pb-tab-bar animate-fade-up">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl px-4 pt-4 pb-tab-bar animate-fade-up focus:outline-none">
         {children}
       </main>
 

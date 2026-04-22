@@ -55,6 +55,15 @@ export function ChatPanel() {
   }, [open, messages.length]);
 
   useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
@@ -100,8 +109,11 @@ export function ChatPanel() {
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Ask SkinScreen AI"
+        aria-label="Open SkinScreen AI assistant"
+        aria-expanded={open}
+        aria-controls="chat-panel-dialog"
         style={{ bottom: "calc(var(--tab-bar-height, 64px) + var(--safe-bottom, 0px) + 18px)" }}
         className={cn(
           "fixed right-5 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200",
@@ -109,10 +121,15 @@ export function ChatPanel() {
           open && "rotate-90 opacity-0 pointer-events-none",
         )}
       >
-        <MessageCircle className="w-6 h-6" />
+        <MessageCircle className="w-6 h-6" aria-hidden="true" />
       </button>
 
       <div
+        id="chat-panel-dialog"
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="chat-panel-title"
+        aria-hidden={!open}
         className={cn(
           "fixed right-5 z-50 w-[380px] max-w-[calc(100vw-2.5rem)] rounded-3xl shadow-2xl border border-border/40 overflow-hidden flex flex-col bg-white transition-all duration-300 origin-bottom-right",
           open ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none",
@@ -124,19 +141,21 @@ export function ChatPanel() {
       >
         <div className="bg-primary px-5 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center" aria-hidden="true">
               <Bot className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-white font-semibold text-sm leading-tight">Ask SkinScreen</p>
-              <p className="text-white/60 text-xs">AI skincare safety assistant</p>
+              <p id="chat-panel-title" className="text-white font-semibold text-sm leading-tight">Ask SkinScreen</p>
+              <p className="text-white/80 text-xs">AI skincare safety assistant</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={() => setOpen(false)}
-            className="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+            aria-label="Close chat"
+            className="text-white hover:text-white transition-colors p-2 rounded-lg hover:bg-white/15"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -152,14 +171,14 @@ export function ChatPanel() {
                     Hi{user?.firstName ? `, ${user.firstName}` : ""}! I'm here to help you understand ingredient safety, combination risks, and skincare science.
                     {shelfContext ? " I can see your current shelf products." : ""}
                   </p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     I don't diagnose conditions or recommend specific products.
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Try asking
                 </p>
                 {STARTER_QUESTIONS.map((q) => (
@@ -226,7 +245,11 @@ export function ChatPanel() {
 
         <div className="shrink-0 px-3 pb-3 pt-2 border-t border-border/30">
           <div className="flex items-end gap-2 bg-[#F5F5F7] rounded-2xl px-3 py-2">
+            <label htmlFor="chat-message-input" className="sr-only">
+              Type your skincare question
+            </label>
             <textarea
+              id="chat-message-input"
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -234,7 +257,7 @@ export function ChatPanel() {
               placeholder="Ask about ingredient safety..."
               rows={1}
               disabled={loading}
-              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none min-h-[24px] max-h-[96px] py-0.5"
+              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none min-h-[24px] max-h-[96px] py-0.5"
               style={{ height: "auto" }}
               onInput={(e) => {
                 const el = e.currentTarget;
@@ -246,21 +269,22 @@ export function ChatPanel() {
               type="button"
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || loading}
+              aria-label={loading ? "Sending message" : "Send message"}
               className={cn(
                 "w-8 h-8 rounded-xl flex items-center justify-center transition-all shrink-0",
                 input.trim() && !loading
                   ? "bg-primary text-white hover:bg-primary/90"
-                  : "bg-muted/50 text-muted-foreground cursor-not-allowed",
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
               )}
             >
               {loading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
               ) : (
-                <Send className="w-3.5 h-3.5" />
+                <Send className="w-3.5 h-3.5" aria-hidden="true" />
               )}
             </button>
           </div>
-          <p className="text-[10px] text-muted-foreground/40 text-center mt-1.5">
+          <p className="text-[11px] text-muted-foreground text-center mt-1.5">
             Not medical advice · Consult a dermatologist for diagnosis
           </p>
         </div>

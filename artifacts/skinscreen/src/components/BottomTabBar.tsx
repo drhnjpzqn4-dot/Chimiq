@@ -31,9 +31,11 @@ export function BottomTabBar() {
                 <a
                   data-touch-target
                   aria-current={active ? "page" : undefined}
+                  aria-label={`${tab.label}${active ? " (current page)" : ""}`}
                   className={cn(
                     "group relative flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium transition-colors",
-                    active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                    active ? "text-primary" : "text-foreground/70 hover:text-foreground",
                   )}
                 >
                   <span
@@ -45,6 +47,7 @@ export function BottomTabBar() {
                     )}
                   >
                     <Icon
+                      aria-hidden="true"
                       className={cn(
                         "h-5 w-5 transition-transform",
                         active ? "scale-110" : "scale-100",

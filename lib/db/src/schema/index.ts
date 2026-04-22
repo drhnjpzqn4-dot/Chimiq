@@ -26,3 +26,4 @@ export * from "./user-submitted-products";
 export * from "./analysis-cache";
 export * from "./recipes";
 export * from "./gamification";
+export * from "./discover-ratings";

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Loader2, CheckCircle2, XCircle, LogOut, ShieldCheck } from "lucide-react";
+import { DiscoverRatingsAdmin } from "@/components/admin/DiscoverRatingsAdmin";
 
 interface Submission {
   id: string;
@@ -177,7 +178,10 @@ export default function AdminPage() {
         </div>
       </nav>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-12">
+        <DiscoverRatingsAdmin />
+
+        <div>
         <div className="mb-8">
           <h1 className="text-3xl font-serif font-semibold text-foreground mb-1">Submission Queue</h1>
           <p className="text-muted-foreground text-base">
@@ -364,6 +368,7 @@ export default function AdminPage() {
             })}
           </div>
         )}
+        </div>
       </main>
     </div>
   );

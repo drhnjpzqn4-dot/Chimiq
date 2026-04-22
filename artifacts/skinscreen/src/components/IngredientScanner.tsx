@@ -64,7 +64,7 @@ function SkinProfileSelector({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <p style={{ fontSize: 14, fontWeight: 600, color: "#333", marginBottom: 8 }}>Your skin type</p>
+      <p className="text-sm font-semibold text-foreground mb-2">Your skin type</p>
       <div className="flex flex-wrap gap-2">
         {SKIN_PROFILES.map((p) => (
           <button
@@ -78,7 +78,8 @@ function SkinProfileSelector({
                 ? "border-transparent shadow-sm"
                 : "bg-white border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground",
             )}
-            style={value === p.value ? { background: "#7BAF7A", color: "#fff", borderColor: "#7BAF7A" } : {}}
+            data-touch-target
+            style={value === p.value ? { backgroundColor: "hsl(var(--primary))", color: "#fff", borderColor: "hsl(var(--primary))" } : {}}
           >
             {p.label}
           </button>
@@ -142,14 +143,14 @@ function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
           <button
             type="button"
             onClick={clear}
-            className="shrink-0 text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors"
+            className="shrink-0 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
           >
             Clear
           </button>
         </div>
       ) : (
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             value={inputVal}
@@ -158,25 +159,25 @@ function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
             disabled={disabled}
             className={cn(
               "w-full pl-8 pr-8 py-2 text-xs rounded-xl border border-border/50 bg-white/70",
-              "placeholder:text-muted-foreground/40 text-foreground",
+              "placeholder:text-muted-foreground text-foreground",
               "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
               "transition-all duration-150 disabled:opacity-50",
             )}
           />
           {isFetching && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 animate-spin" />
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground animate-spin" />
           )}
           {inputVal && !isFetching && (
             <button
               type="button"
               onClick={clear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
           {!isFetching && debouncedQ.length >= 3 && data && !data.found && (
-            <p className="mt-1.5 text-[10px] text-muted-foreground/50 px-1">
+            <p className="mt-1.5 text-[10px] text-muted-foreground px-1">
               Not found — paste the ingredient list manually below
             </p>
           )}
@@ -263,7 +264,7 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
           maxLength={3000}
           className={cn(
             "w-full resize-none rounded-2xl border border-border/60 bg-white px-4 py-3 pr-12",
-            "text-sm text-foreground placeholder:text-muted-foreground/50 leading-relaxed",
+            "text-sm text-foreground placeholder:text-muted-foreground leading-relaxed",
             "focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60",
             "transition-all duration-200 shadow-sm",
           )}
@@ -275,7 +276,7 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
           title="Scan label photo"
           className={cn(
             "absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-xl",
-            "bg-primary/8 text-primary/70 hover:bg-primary/15 hover:text-primary",
+            "bg-primary/8 text-primary hover:bg-primary/15 hover:text-primary",
             "transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed",
             "focus:outline-none focus:ring-2 focus:ring-primary/40",
           )}
@@ -296,14 +297,14 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={scanLabel.isPending}
-          className="text-[11px] text-primary/60 hover:text-primary transition-colors flex items-center gap-1 disabled:opacity-50"
+          className="text-[11px] text-primary hover:text-primary transition-colors flex items-center gap-1 disabled:opacity-50"
         >
           <Camera className="w-3 h-3" />
           Snap a photo of the label
         </button>
         <div className="flex items-center gap-2 shrink-0">
           {scanError && <p className="text-[11px] text-destructive leading-snug">{scanError}</p>}
-          <p className="text-[11px] text-muted-foreground/60">{value.length}/3000</p>
+          <p className="text-[11px] text-muted-foreground">{value.length}/3000</p>
         </div>
       </div>
     </div>
@@ -347,11 +348,11 @@ function FlagCard({ flag, delay }: { flag: IngredientFlag; delay?: number }) {
             href={flag.citationUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-muted-foreground/60 flex items-start gap-2 hover:text-primary transition-colors group"
+            className="text-xs text-muted-foreground flex items-start gap-2 hover:text-primary transition-colors group"
           >
             <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
             <span className="italic leading-snug">
-              <span className="font-semibold not-italic text-muted-foreground/80">Source: </span>
+              <span className="font-semibold not-italic text-muted-foreground">Source: </span>
               {flag.citation}
             </span>
           </a>
@@ -382,11 +383,11 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
             href={result.citationUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-muted-foreground/70 flex items-start gap-2 hover:text-primary transition-colors group"
+            className="text-xs text-muted-foreground flex items-start gap-2 hover:text-primary transition-colors group"
           >
             <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
             <span className="italic leading-snug">
-              <span className="font-semibold not-italic text-muted-foreground/90">Source: </span>
+              <span className="font-semibold not-italic text-muted-foreground">Source: </span>
               {result.citation}
             </span>
           </a>
@@ -402,7 +403,7 @@ function AlternativeCard({ alt, delay }: { alt: AlternativeSuggestion; delay?: n
       <div className="flex flex-col h-full p-5 rounded-3xl border border-primary/20 bg-primary/[0.03] shadow-sm">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary/60 mb-0.5">{alt.brand}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-0.5">{alt.brand}</p>
             <h4 className="text-base font-serif font-semibold text-foreground leading-tight">{alt.name}</h4>
           </div>
           <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
@@ -412,7 +413,7 @@ function AlternativeCard({ alt, delay }: { alt: AlternativeSuggestion; delay?: n
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed mb-3 flex-1">{alt.whySafer}</p>
         <div className="pt-2.5 border-t border-border/40">
-          <p className="text-[11px] text-primary/70 font-medium">{alt.keyImprovement}</p>
+          <p className="text-[11px] text-primary font-medium">{alt.keyImprovement}</p>
         </div>
       </div>
     </FadeIn>
@@ -456,12 +457,12 @@ function AlternativesSection({
               What to use instead
               {inferredType && <span className="font-normal text-muted-foreground ml-1">· {inferredType}</span>}
             </span>
-            {isLoading && <Loader2 className="w-3.5 h-3.5 text-primary/60 animate-spin" />}
+            {isLoading && <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />}
           </div>
           {open ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
           )}
         </button>
 
@@ -480,13 +481,13 @@ function AlternativesSection({
             )}
 
             {isError && (
-              <p className="text-sm text-muted-foreground/60 text-center py-4">
+              <p className="text-sm text-muted-foreground text-center py-4">
                 Could not load suggestions right now.
               </p>
             )}
 
             {!isLoading && !isError && alternatives.length === 0 && (
-              <p className="text-sm text-muted-foreground/60 text-center py-4">
+              <p className="text-sm text-muted-foreground text-center py-4">
                 No suggestions available.
               </p>
             )}
@@ -499,7 +500,7 @@ function AlternativesSection({
               </div>
             )}
 
-            <p className="text-[10px] text-muted-foreground/40 text-center mt-4">
+            <p className="text-[10px] text-muted-foreground text-center mt-4">
               Suggestions are for informational purposes only · No affiliate links · SkinScreen has no brand partnerships
             </p>
           </div>
@@ -698,7 +699,7 @@ function ScanDivider() {
   return (
     <div className="flex items-center gap-3 my-3">
       <div className="flex-1 border-t border-border/40" />
-      <span className="text-[13px] text-muted-foreground/60 whitespace-nowrap shrink-0">
+      <span className="text-[13px] text-muted-foreground whitespace-nowrap shrink-0">
         — or scan your own product —
       </span>
       <div className="flex-1 border-t border-border/40" />
@@ -925,13 +926,10 @@ export function IngredientScanner({
       {/* ── STEP 1: Skin type ── */}
       <div className="flex gap-4 mb-2">
         <div className="shrink-0 flex flex-col items-center">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
-            style={{ background: "#7BAF7A" }}
-          >
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 bg-primary">
             1
           </div>
-          <div className="w-px flex-1 mt-2" style={{ background: "#D8EAD8", minHeight: 24 }} />
+          <div className="w-px flex-1 mt-2 bg-primary/25" style={{ minHeight: 24 }} />
         </div>
         <div className="flex-1 min-w-0 pb-8">
           <h3 className="font-bold text-[17px] text-foreground mb-0.5 mt-1.5">Select your skin type</h3>
@@ -943,13 +941,10 @@ export function IngredientScanner({
       {/* ── STEP 2: Select products ── */}
       <div className="flex gap-4 mb-2">
         <div className="shrink-0 flex flex-col items-center">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
-            style={{ background: "#7BAF7A" }}
-          >
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 bg-primary">
             2
           </div>
-          <div className="w-px flex-1 mt-2" style={{ background: "#D8EAD8", minHeight: 24 }} />
+          <div className="w-px flex-1 mt-2 bg-primary/25" style={{ minHeight: 24 }} />
         </div>
         <div className="flex-1 min-w-0 pb-8">
           <h3 className="font-bold text-[17px] text-foreground mb-0.5 mt-1.5">Select products to scan</h3>
@@ -991,8 +986,7 @@ export function IngredientScanner({
             {/* A — Preloaded sample */}
             <div className="flex gap-3">
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-                style={{ background: "#EEF6EE", color: "#7BAF7A", border: "1.5px solid #C9E4C9" }}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 bg-primary/10 text-primary border border-primary/30"
               >
                 A
               </div>
@@ -1031,15 +1025,14 @@ export function IngredientScanner({
             {/* divider */}
             <div className="flex items-center gap-3 pl-10">
               <div className="flex-1 border-t border-border/40" />
-              <span className="text-[11px] text-muted-foreground/50 shrink-0">or</span>
+              <span className="text-[11px] text-muted-foreground shrink-0">or</span>
               <div className="flex-1 border-t border-border/40" />
             </div>
 
             {/* B — Popular product */}
             <div className="flex gap-3">
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-                style={{ background: "#EEF6EE", color: "#7BAF7A", border: "1.5px solid #C9E4C9" }}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 bg-primary/10 text-primary border border-primary/30"
               >
                 B
               </div>
@@ -1055,7 +1048,7 @@ export function IngredientScanner({
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#7BAF7A" }}>Product 1</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-primary">Product 1</p>
                       <QuickStartDropdown
                         key={`p1-${quickStartResetKey}`}
                         onSelect={(ings, name, img) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(img); resetResults(); }}
@@ -1063,7 +1056,7 @@ export function IngredientScanner({
                       />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#C09070" }}>Product 2</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-amber-700">Product 2</p>
                       <QuickStartDropdown
                         key={`p2-${quickStartResetKey}`}
                         onSelect={(ings, name, img) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(img); resetResults(); }}
@@ -1078,15 +1071,14 @@ export function IngredientScanner({
             {/* divider */}
             <div className="flex items-center gap-3 pl-10">
               <div className="flex-1 border-t border-border/40" />
-              <span className="text-[11px] text-muted-foreground/50 shrink-0">or</span>
+              <span className="text-[11px] text-muted-foreground shrink-0">or</span>
               <div className="flex-1 border-t border-border/40" />
             </div>
 
             {/* C — Scan your own */}
             <div className="flex gap-3">
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-                style={{ background: "#EEF6EE", color: "#7BAF7A", border: "1.5px solid #C9E4C9" }}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 bg-primary/10 text-primary border border-primary/30"
               >
                 C
               </div>
@@ -1107,9 +1099,9 @@ export function IngredientScanner({
                       />
                     </div>
                     {productName && (
-                      <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                      <div className="flex items-center gap-3 mb-3 p-3 rounded-2xl bg-primary/5 border border-primary/20">
                         <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
-                        <span style={{ fontWeight: 700, fontSize: 18, color: "#1A1A1A", lineHeight: 1.3 }}>{productName}</span>
+                        <span className="text-[18px] font-bold leading-tight text-foreground">{productName}</span>
                       </div>
                     )}
                     <ProductTextArea
@@ -1123,7 +1115,7 @@ export function IngredientScanner({
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#7BAF7A" }}>Product 1</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-primary">Product 1</p>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex-1 min-w-0">
                           <ProductSearch
@@ -1136,9 +1128,9 @@ export function IngredientScanner({
                         />
                       </div>
                       {product1Name && (
-                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl bg-primary/5 border border-primary/20">
                           <ProductImageThumb src={product1Image || undefined} size={64} radius={10} />
-                          <span style={{ fontWeight: 700, fontSize: 16, color: "#1A1A1A", lineHeight: 1.3 }}>{product1Name}</span>
+                          <span className="text-base font-bold leading-tight text-foreground">{product1Name}</span>
                         </div>
                       )}
                       <ProductTextArea
@@ -1150,7 +1142,7 @@ export function IngredientScanner({
                       />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#C09070" }}>Product 2</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-amber-700">Product 2</p>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex-1 min-w-0">
                           <ProductSearch
@@ -1163,9 +1155,9 @@ export function IngredientScanner({
                         />
                       </div>
                       {product2Name && (
-                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl" style={{ background: "#FFF9F0", border: "1px solid #F0E0C0" }}>
+                        <div className="flex items-center gap-3 mb-2 p-2.5 rounded-2xl bg-amber-50 border border-amber-200">
                           <ProductImageThumb src={product2Image || undefined} size={64} radius={10} />
-                          <span style={{ fontWeight: 700, fontSize: 16, color: "#1A1A1A", lineHeight: 1.3 }}>{product2Name}</span>
+                          <span className="text-base font-bold leading-tight text-foreground">{product2Name}</span>
                         </div>
                       )}
                       <ProductTextArea
@@ -1188,12 +1180,7 @@ export function IngredientScanner({
       {/* ── STEP 3: Analyze ── */}
       <div className="flex gap-4 mb-10">
         <div className="shrink-0">
-          <div
-            className={cn(
-              "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0",
-            )}
-            style={{ background: canSubmit ? "#7BAF7A" : "#BBBBBB" }}
-          >
+          <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 transition-colors", canSubmit ? "bg-primary" : "bg-muted-foreground/40")}>
             3
           </div>
         </div>
@@ -1247,15 +1234,7 @@ export function IngredientScanner({
           <FadeIn>
             <div className="flex items-center gap-4">
               <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
-              <h2
-                style={{
-                  fontFamily: "'Playfair Display', Georgia, serif",
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: "#1A1A1A",
-                  lineHeight: 1.3,
-                }}
-              >
+              <h2 className="font-serif text-[22px] font-bold leading-tight text-foreground">
                 Results for:<br />{productName || "Scanned product"}
               </h2>
             </div>
@@ -1351,10 +1330,8 @@ export function IngredientScanner({
                   resetResults();
                   setTimeout(() => document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }), 100);
                 }}
-                className="w-full flex items-center justify-center gap-2 text-white font-semibold text-sm transition-colors"
-                style={{ background: "#7BAF7A", borderRadius: 12, height: 52 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#6a9e69")}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#7BAF7A")}
+                data-touch-target
+                className="w-full h-[52px] flex items-center justify-center gap-2 text-white font-semibold text-sm rounded-xl bg-primary hover:bg-primary/90 transition-colors animate-fade-up"
               >
                 Compare against another product →
               </button>
@@ -1400,8 +1377,8 @@ export function IngredientScanner({
                     }
                   }, "image/png");
                 }}
-                className="w-full flex items-center justify-center gap-2 text-sm font-semibold border transition-colors"
-                style={{ background: "#fff", borderColor: "#7BAF7A", color: "#7BAF7A", borderRadius: 12, height: 52 }}
+                data-touch-target
+                className="w-full h-[52px] flex items-center justify-center gap-2 text-sm font-semibold border-2 rounded-xl bg-white border-primary text-primary hover:bg-primary/5 transition-colors"
               >
                 Share your result
               </button>
@@ -1410,8 +1387,7 @@ export function IngredientScanner({
                 <a
                   href="#earn-premium"
                   onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="text-sm hover:underline"
-                  style={{ color: "#7BAF7A" }}
+                  className="text-sm font-medium text-primary hover:underline"
                 >
                   Sign in to save &amp; check your full routine
                 </a>
@@ -1437,7 +1413,7 @@ export function IngredientScanner({
               <button
                 type="button"
                 onClick={() => flagOutdated((analyzeSingle.data as { cacheHash?: string })?.cacheHash)}
-                className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+                className="text-[11px] text-muted-foreground hover:text-muted-foreground transition-colors"
               >
                 Flag as outdated
               </button>
@@ -1445,7 +1421,7 @@ export function IngredientScanner({
           </FadeIn>
 
           <FadeIn>
-            <p className="text-[11px] text-muted-foreground/50 text-center pb-2">
+            <p className="text-[11px] text-muted-foreground text-center pb-2">
               Powered by dermatology research · Results are for informational purposes only · Always consult a board-certified dermatologist for personal advice
             </p>
           </FadeIn>
@@ -1460,20 +1436,20 @@ export function IngredientScanner({
             <FadeIn>
               <div className="flex flex-col sm:flex-row gap-3">
                 {product1Name && (
-                  <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl" style={{ background: "#F7FAF7", border: "1px solid #E0EDE0" }}>
+                  <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl bg-primary/5 border border-primary/20">
                     <ProductImageThumb src={product1Image || undefined} size={96} radius={12} />
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#7BAF7A" }}>Product 1</p>
-                      <p style={{ fontWeight: 800, fontSize: 18, color: "#1A1A1A", lineHeight: 1.25, letterSpacing: "-0.01em" }}>{product1Name}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5 text-primary">Product 1</p>
+                      <p className="text-[18px] font-extrabold leading-tight tracking-tight text-foreground">{product1Name}</p>
                     </div>
                   </div>
                 )}
                 {product2Name && (
-                  <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl" style={{ background: "#FFF9F0", border: "1px solid #F0E0C0" }}>
+                  <div className="flex items-center gap-3 flex-1 p-3 rounded-2xl bg-amber-50 border border-amber-200">
                     <ProductImageThumb src={product2Image || undefined} size={96} radius={12} />
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#C09070" }}>Product 2</p>
-                      <p style={{ fontWeight: 800, fontSize: 18, color: "#1A1A1A", lineHeight: 1.25, letterSpacing: "-0.01em" }}>{product2Name}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5 text-amber-700">Product 2</p>
+                      <p className="text-[18px] font-extrabold leading-tight tracking-tight text-foreground">{product2Name}</p>
                     </div>
                   </div>
                 )}
@@ -1577,10 +1553,8 @@ export function IngredientScanner({
                   resetResults(); analyzeCompare.reset();
                   setTimeout(() => document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }), 100);
                 }}
-                className="w-full flex items-center justify-center gap-2 text-white font-semibold text-sm transition-colors"
-                style={{ background: "#7BAF7A", borderRadius: 12, height: 52 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#6a9e69")}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#7BAF7A")}
+                data-touch-target
+                className="w-full h-[52px] flex items-center justify-center gap-2 text-white font-semibold text-sm rounded-xl bg-primary hover:bg-primary/90 transition-colors animate-fade-up"
               >
                 Scan a single product →
               </button>
@@ -1589,8 +1563,7 @@ export function IngredientScanner({
                 <a
                   href="#earn-premium"
                   onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="text-sm hover:underline"
-                  style={{ color: "#7BAF7A" }}
+                  className="text-sm font-medium text-primary hover:underline"
                 >
                   Sign in to scan your full routine
                 </a>
@@ -1618,7 +1591,7 @@ export function IngredientScanner({
               <button
                 type="button"
                 onClick={() => flagOutdated((analyzeCompare.data as { cacheHash?: string })?.cacheHash)}
-                className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+                className="text-[11px] text-muted-foreground hover:text-muted-foreground transition-colors"
               >
                 Flag as outdated
               </button>
@@ -1626,7 +1599,7 @@ export function IngredientScanner({
           </FadeIn>
 
           <FadeIn>
-            <p className="text-[11px] text-muted-foreground/50 text-center pb-2">
+            <p className="text-[11px] text-muted-foreground text-center pb-2">
               Powered by dermatology research · Results are for informational purposes only · Always consult a board-certified dermatologist for personal advice
             </p>
           </FadeIn>

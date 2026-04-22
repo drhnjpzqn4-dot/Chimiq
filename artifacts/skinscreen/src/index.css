@@ -169,6 +169,45 @@
   button:focus-visible,
   a:focus-visible,
   [role="button"]:focus-visible {
-    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+  /* Skip-to-content link, hidden until focused */
+  .skip-to-content {
+    position: absolute;
+    left: 0.75rem;
+    top: 0.75rem;
+    z-index: 100;
+    padding: 0.5rem 1rem;
+    background: hsl(var(--primary));
+    color: white;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    transform: translateY(-200%);
+    transition: transform 0.2s;
+  }
+  .skip-to-content:focus,
+  .skip-to-content:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+}
+
+/* Honor prefers-reduced-motion: disable non-essential animation/transition */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-fade-up,
+  .animate-pop-in,
+  .animate-tap-bounce,
+  .animate-ring-pulse,
+  .skeleton {
+    animation: none !important;
   }
 }

@@ -18,6 +18,7 @@ import recipesRouter from "./recipes";
 import productsRouter from "./products";
 import leaderboardRouter from "./leaderboard";
 import tipsRouter from "./tips";
+import discoverRatingsRouter from "./discover-ratings";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(recipesRouter);
 router.use(productsRouter);
 router.use(leaderboardRouter);
 router.use(tipsRouter);
+router.use(discoverRatingsRouter);
 
 export default router;

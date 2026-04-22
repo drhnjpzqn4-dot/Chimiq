@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useRoute } from "wouter";
 import { FadeIn } from "@/components/FadeIn";
+import { DiscoverRating } from "@/components/DiscoverRating";
 import {
   getMistake,
   getWorry,
@@ -210,6 +211,10 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
               <ArrowRight className="w-4 h-4" />
             </a>
           </section>
+        </FadeIn>
+
+        <FadeIn delay={0.25}>
+          <DiscoverRating kind={kind} slug={item.slug} />
         </FadeIn>
 
         <div className="border-t border-border/40 pt-8">
