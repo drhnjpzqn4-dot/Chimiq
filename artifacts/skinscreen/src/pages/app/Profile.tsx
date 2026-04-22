@@ -142,8 +142,8 @@ export default function ProfileScreen() {
                   </>
                 ) : (
                   <>
-                    <ShieldCheck className="h-5 w-5 text-primary" />
-                    Free
+                    <ShieldCheck className="h-5 w-5 text-primary-strong" />
+                    <span className="text-primary-strong">Free</span>
                   </>
                 )}
               </p>

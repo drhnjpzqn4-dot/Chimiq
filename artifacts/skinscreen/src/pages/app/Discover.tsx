@@ -166,7 +166,7 @@ export default function DiscoverScreen() {
             <div className="mb-2 flex items-center justify-between">
               <h2 className="font-serif text-base font-semibold text-foreground">{t("discover.shareTip")}</h2>
               <Link href="/app/rewards">
-                <a className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
+                <a className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-strong hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded">
                   <Info className="h-3 w-3" /> {t("discover.rewards")}
                 </a>
               </Link>
@@ -254,10 +254,10 @@ export default function DiscoverScreen() {
                   data-touch-target
                   aria-label={tip.viewerHasVoted ? t("discover.removeVote") : t("discover.upvoteTip")}
                   aria-pressed={tip.viewerHasVoted}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                     tip.viewerHasVoted
-                      ? "bg-primary/10 text-primary"
-                      : "bg-muted text-muted-foreground hover:bg-primary/5 hover:text-primary"
+                      ? "bg-primary/15 text-primary-strong"
+                      : "bg-muted text-foreground/80 hover:bg-primary/10 hover:text-primary-strong"
                   }`}
                 >
                   <Heart

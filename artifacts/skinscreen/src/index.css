@@ -10,6 +10,7 @@
 
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-strong: hsl(var(--primary-strong));
 
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
@@ -47,6 +48,8 @@
   /* Sage Green: #7BAF7A */
   --primary: 119 26% 58%;
   --primary-foreground: 0 0% 100%;
+  /* Darker sage for AA-compliant text/icons on white (≥ 4.5:1) */
+  --primary-strong: 119 32% 30%;
 
   --muted: 240 5% 96%;
   --muted-foreground: 240 4% 46%;
@@ -165,11 +168,12 @@
     min-height: 44px;
     min-width: 44px;
   }
-  /* Make focus rings consistent on interactive elements */
+  /* Make focus rings consistent on interactive elements.
+     Uses --primary-strong so the ring contrasts ≥ 3:1 against white per WCAG 2.1 (1.4.11). */
   button:focus-visible,
   a:focus-visible,
   [role="button"]:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+    @apply outline-none ring-2 ring-primary-strong ring-offset-2 ring-offset-background;
   }
   /* Skip-to-content link, hidden until focused */
   .skip-to-content {

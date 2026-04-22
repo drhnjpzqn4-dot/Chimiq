@@ -36,8 +36,8 @@ export function BottomTabBar() {
                   aria-label={`${t(tab.labelKey)}${active ? " (current page)" : ""}`}
                   className={cn(
                     "group relative flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                    active ? "text-primary" : "text-foreground/70 hover:text-foreground",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                    active ? "text-primary-strong" : "text-foreground/80 hover:text-foreground",
                   )}
                 >
                   <span
@@ -68,7 +68,7 @@ export function BottomTabBar() {
                   {active && (
                     <span
                       aria-hidden
-                      className="absolute -top-px h-[3px] w-8 rounded-full bg-primary"
+                      className="absolute -top-px h-[3px] w-8 rounded-full bg-primary-strong"
                     />
                   )}
                 </a>
