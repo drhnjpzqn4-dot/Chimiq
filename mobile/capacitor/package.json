@@ -12,6 +12,8 @@
     "add:android": "cap add android",
     "copy": "cap copy",
     "build:android": "cd android && ./gradlew bundleRelease",
+    "keystore:create": "bash scripts/create-android-keystore.sh",
+    "signing:configure": "bash scripts/configure-android-signing.sh",
     "doctor": "cap doctor"
   },
   "dependencies": {

@@ -1,0 +1,17 @@
+# Copy this file to mobile/capacitor/android/gradle.properties AFTER you have
+# run `npx cap add android` and `bash scripts/create-android-keystore.sh`.
+#
+# DO NOT commit the real gradle.properties — it is gitignored. The passwords
+# below should match what you typed when keytool prompted you.
+#
+# These four properties are read by the signing block that
+# scripts/configure-android-signing.sh injects into app/build.gradle.
+
+SKINSCREEN_KEYSTORE_PATH=keystores/skinscreen-upload.jks
+SKINSCREEN_KEYSTORE_PASSWORD=replace-me
+SKINSCREEN_KEY_ALIAS=skinscreen-upload
+SKINSCREEN_KEY_PASSWORD=replace-me
+
+# Capacitor defaults — keep these.
+android.useAndroidX=true
+android.enableJetifier=true
