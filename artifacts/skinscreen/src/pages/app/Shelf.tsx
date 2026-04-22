@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Star, Gift, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MyShelf } from "@/components/MyShelf";
+import { useTranslation } from "@/lib/i18n";
 
 const PREMIUM_CONTRIBUTION_MILESTONE = 30;
 const STARS_DISPLAYED = 5;
@@ -78,6 +79,7 @@ function ContributionBadge({ count }: { count: number }) {
 export default function ShelfScreen() {
   const { user, isAuthenticated } = useAuth();
   const [stats, setStats] = useState<ContributeStats | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -92,8 +94,8 @@ export default function ShelfScreen() {
 
   return (
     <AppShell
-      title={`Hi, ${displayName}`}
-      subtitle="Your shelf — track your routine and check it for conflicts."
+      title={t("shelf.titleGreeting", { name: displayName })}
+      subtitle={t("shelf.subtitle")}
     >
       {stats?.premiumJustUnlocked && stats.premiumUntil && (
         <PremiumUnlockedBanner premiumUntil={stats.premiumUntil} />

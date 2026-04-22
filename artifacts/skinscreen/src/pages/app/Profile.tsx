@@ -18,6 +18,7 @@ import { AppShell } from "@/components/AppShell";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { getBaseUrl } from "@/lib/base-url";
 import { isNative, openExternal, MANAGE_SUBSCRIPTION_WEB_URL } from "@/lib/native";
+import { useTranslation, LOCALES, type Locale } from "@/lib/i18n";
 
 interface ContributeStats {
   acceptedContributions: number;
@@ -36,6 +37,7 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { plan, isPremium, isLoading } = useUserPlan();
   const [, navigate] = useLocation();
+  const { t, locale, setLocale } = useTranslation();
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -97,7 +99,7 @@ export default function ProfileScreen() {
   const progressPct = Math.min(100, Math.round((progressInCycle / milestone) * 100));
 
   return (
-    <AppShell title="Profile" subtitle="Your account, plan, and contributions.">
+    <AppShell title={t("profile.title")} subtitle={t("profile.subtitle")}>
       {/* Identity card */}
       <section className="mb-5 animate-pop-in">
         <div className="rounded-3xl bg-white border border-border/40 shadow-sm p-5 flex items-center gap-4">
@@ -388,6 +390,31 @@ export default function ProfileScreen() {
               </button>
             </li>
           )}
+          <li className="flex items-center justify-between gap-3 px-5 py-4">
+            <span className="text-sm font-medium text-foreground">{t("profile.language")}</span>
+            <div role="radiogroup" aria-label={t("profile.language")} className="flex items-center gap-1 rounded-full bg-muted p-1">
+              {LOCALES.map((l) => {
+                const active = locale === l.code;
+                return (
+                  <button
+                    key={l.code}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setLocale(l.code as Locale)}
+                    data-touch-target
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      active
+                        ? "bg-white text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {l.label}
+                  </button>
+                );
+              })}
+            </div>
+          </li>
           <li>
             <a
               href="mailto:hello@chimiq.com"

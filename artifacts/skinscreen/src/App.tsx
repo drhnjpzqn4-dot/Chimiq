@@ -17,6 +17,7 @@ import { MistakeDetail, WorryDetail } from "@/pages/DiscoverDetail";
 import NotFound from "@/pages/not-found";
 import { useNativeAuthDeepLink } from "@/hooks/useNativeAuthDeepLink";
 import { AUTH_REFRESH_EVENT } from "@workspace/replit-auth-web";
+import { I18nProvider } from "@/lib/i18n";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,14 +64,16 @@ function NativeBootstrap() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <NativeBootstrap />
-          <Router />
-        </WouterRouter>
-        <Toaster />
-        <UpdateBanner />
-      </TooltipProvider>
+      <I18nProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <NativeBootstrap />
+            <Router />
+          </WouterRouter>
+          <Toaster />
+          <UpdateBanner />
+        </TooltipProvider>
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

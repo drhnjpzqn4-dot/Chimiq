@@ -1,16 +1,18 @@
 import { useLocation, Link } from "wouter";
 import { ScanLine, PackageSearch, Compass, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 const TABS = [
-  { id: "scan", label: "Scan", icon: ScanLine, href: "/app/scan" },
-  { id: "browse", label: "Browse", icon: PackageSearch, href: "/app/browse" },
-  { id: "discover", label: "Discover", icon: Compass, href: "/app/discover" },
-  { id: "profile", label: "Profile", icon: User, href: "/app/profile" },
+  { id: "scan", labelKey: "tabs.scan", icon: ScanLine, href: "/app/scan" },
+  { id: "browse", labelKey: "tabs.browse", icon: PackageSearch, href: "/app/browse" },
+  { id: "discover", labelKey: "tabs.discover", icon: Compass, href: "/app/discover" },
+  { id: "profile", labelKey: "tabs.profile", icon: User, href: "/app/profile" },
 ] as const;
 
 export function BottomTabBar() {
   const [location] = useLocation();
+  const { t } = useTranslation();
 
   return (
     <nav
@@ -61,7 +63,7 @@ export function BottomTabBar() {
                       active ? "font-semibold" : "font-medium",
                     )}
                   >
-                    {tab.label}
+                    {t(tab.labelKey)}
                   </span>
                   {active && (
                     <span

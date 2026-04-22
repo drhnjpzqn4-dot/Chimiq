@@ -14,6 +14,7 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { FindDermatologist } from "@/components/FindDermatologist";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useTranslation } from "@/lib/i18n";
 
 interface TipFeedItem {
   id: string;
@@ -30,6 +31,7 @@ const TIP_MIN = 8;
 
 export default function DiscoverScreen() {
   const { isAuthenticated } = useAuth();
+  const { t } = useTranslation();
   const [tips, setTips] = useState<TipFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
@@ -52,7 +54,7 @@ export default function DiscoverScreen() {
   const submitTip = async (e: FormEvent) => {
     e.preventDefault();
     if (draft.trim().length < TIP_MIN) {
-      setPostError(`Tips need at least ${TIP_MIN} characters.`);
+      setPostError(t("discover.tipMinError", { min: TIP_MIN }));
       return;
     }
     setPosting(true);
@@ -66,13 +68,13 @@ export default function DiscoverScreen() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setPostError(data.error ?? "Could not post tip.");
+        setPostError(data.error ?? t("discover.tipPostError"));
       } else {
         setDraft("");
         loadTips();
       }
     } catch {
-      setPostError("Network error. Try again.");
+      setPostError(t("discover.tipNetworkError"));
     } finally {
       setPosting(false);
     }
@@ -108,8 +110,8 @@ export default function DiscoverScreen() {
 
   return (
     <AppShell
-      title="Discover"
-      subtitle="Tips, expert care, and ways to learn safer skincare."
+      title={t("discover.title")}
+      subtitle={t("discover.subtitle")}
     >
       {/* AI chat hero */}
       <section className="mb-6 animate-pop-in">
@@ -120,16 +122,16 @@ export default function DiscoverScreen() {
               <MessageCircle className="h-6 w-6 text-primary" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary/80">Ask anything</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-primary/80">{t("discover.aiAskAnything")}</p>
               <p className="mt-0.5 font-serif text-xl font-semibold leading-tight">
-                Chat with the SkinScreen AI
+                {t("discover.aiTitle")}
               </p>
               <p className="mt-1 text-sm text-white/70">
-                Get evidence-based answers about your shelf, ingredient interactions, and routine timing.
+                {t("discover.aiSubtitle")}
               </p>
               <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary">
                 <Sparkles className="h-3.5 w-3.5" />
-                Tap the chat bubble to start
+                {t("discover.aiHint")}
               </p>
             </div>
           </div>
@@ -147,9 +149,9 @@ export default function DiscoverScreen() {
               <Trophy className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-serif text-base font-semibold text-foreground">Leaderboard</p>
+              <p className="font-serif text-base font-semibold text-foreground">{t("discover.leaderboardTitle")}</p>
               <p className="text-xs text-muted-foreground">
-                See top contributors and Best Tip of the Week.
+                {t("discover.leaderboardSubtitle")}
               </p>
             </div>
             <ArrowUpRight className="h-4 w-4 text-muted-foreground" aria-hidden />
@@ -162,10 +164,10 @@ export default function DiscoverScreen() {
         <section className="mb-6">
           <div className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-serif text-base font-semibold text-foreground">Share a tip</h2>
+              <h2 className="font-serif text-base font-semibold text-foreground">{t("discover.shareTip")}</h2>
               <Link href="/app/rewards">
                 <a className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
-                  <Info className="h-3 w-3" /> Rewards
+                  <Info className="h-3 w-3" /> {t("discover.rewards")}
                 </a>
               </Link>
             </div>
@@ -176,9 +178,9 @@ export default function DiscoverScreen() {
                   setDraft(e.target.value.slice(0, TIP_MAX));
                   if (postError) setPostError(null);
                 }}
-                placeholder="What's one routine tip you'd recommend?"
+                placeholder={t("discover.tipPlaceholder")}
                 rows={3}
-                aria-label="Your tip"
+                aria-label={t("discover.tipAriaLabel")}
                 className="w-full resize-none rounded-2xl border border-border/40 bg-[#FAFAF8] p-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
               <div className="mt-2 flex items-center justify-between gap-2">
@@ -196,7 +198,7 @@ export default function DiscoverScreen() {
                   className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white shadow-md shadow-primary/20 transition-transform active:scale-[0.98] disabled:opacity-40 disabled:shadow-none"
                 >
                   {posting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                  Post
+                  {t("discover.post")}
                 </button>
               </div>
               {postError && (
@@ -212,8 +214,8 @@ export default function DiscoverScreen() {
       {/* Tips feed */}
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-serif text-lg font-semibold text-foreground">Top tips</h2>
-          <span className="text-xs text-muted-foreground/70">Last 30 days</span>
+          <h2 className="font-serif text-lg font-semibold text-foreground">{t("discover.topTips")}</h2>
+          <span className="text-xs text-muted-foreground/70">{t("discover.last30Days")}</span>
         </div>
 
         {loading && (
@@ -228,7 +230,7 @@ export default function DiscoverScreen() {
           <div className="rounded-3xl border border-dashed border-border/60 bg-white p-8 text-center">
             <Sparkles className="mx-auto mb-2 h-6 w-6 text-muted-foreground/50" />
             <p className="text-sm text-muted-foreground">
-              No tips yet. Be the first to share one — the most upvoted tip each week wins a free month of Premium.
+              {t("discover.emptyTips")}
             </p>
           </div>
         )}
@@ -243,14 +245,14 @@ export default function DiscoverScreen() {
               <p className="font-serif text-sm leading-relaxed text-foreground">{tip.body}</p>
               <div className="mt-3 flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">
-                  by <span className="font-semibold text-foreground">{tip.authorDisplayName}</span>
+                  {t("discover.tipBy")} <span className="font-semibold text-foreground">{tip.authorDisplayName}</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => isAuthenticated && toggleVote(tip)}
                   disabled={!isAuthenticated}
                   data-touch-target
-                  aria-label={tip.viewerHasVoted ? "Remove vote" : "Upvote tip"}
+                  aria-label={tip.viewerHasVoted ? t("discover.removeVote") : t("discover.upvoteTip")}
                   aria-pressed={tip.viewerHasVoted}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
                     tip.viewerHasVoted
@@ -279,7 +281,7 @@ export default function DiscoverScreen() {
 
       <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground/60">
         <Compass className="h-3 w-3" />
-        DIY recipes, top mistakes, and more inside the app.
+        {t("discover.footnote")}
       </p>
     </AppShell>
   );

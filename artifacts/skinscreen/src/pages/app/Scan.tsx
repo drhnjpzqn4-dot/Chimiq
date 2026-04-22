@@ -13,6 +13,7 @@ import { AppShell } from "@/components/AppShell";
 import { IngredientScanner } from "@/components/IngredientScanner";
 import { ContributeModal } from "@/components/ContributeModal";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { useTranslation } from "@/lib/i18n";
 
 interface PendingScan {
   barcode: string;
@@ -64,6 +65,7 @@ export default function ScanScreen() {
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [scansToday, setScansToday] = useState<number>(() => readScanCount());
   const { isPremium } = useUserPlan();
+  const { t } = useTranslation();
 
   // Listen for scan completions emitted by IngredientScanner and bump the
   // local daily counter. Stored in localStorage with a date-stamped key so it
@@ -189,8 +191,8 @@ export default function ScanScreen() {
 
   return (
     <AppShell
-      title="Scan a product"
-      subtitle="Snap a label, paste ingredients, or compare two products."
+      title={t("scan.title")}
+      subtitle={t("scan.subtitle")}
     >
       {/* Hero scan card */}
       <section className="mb-4 animate-pop-in">
