@@ -8,10 +8,11 @@ import {
   type ReactNode,
 } from "react";
 
-export type Locale = "en" | "fr";
+export type Locale = "en" | "sv" | "fr";
 
 export const LOCALES: { code: Locale; label: string }[] = [
   { code: "en", label: "English" },
+  { code: "sv", label: "Svenska" },
   { code: "fr", label: "Français" },
 ];
 
@@ -64,6 +65,54 @@ const en: Dict = {
   "profile.language": "Language",
 };
 
+const sv: Dict = {
+  "tabs.scan": "Skanna",
+  "tabs.browse": "Bläddra",
+  "tabs.discover": "Upptäck",
+  "tabs.profile": "Profil",
+
+  "scan.title": "Skanna en produkt",
+  "scan.subtitle":
+    "Fota en etikett, klistra in ingredienser eller jämför två produkter.",
+
+  "shelf.titleGreeting": "Hej, {name}",
+  "shelf.subtitle":
+    "Din hylla — håll koll på din rutin och kolla efter konflikter.",
+
+  "discover.title": "Upptäck",
+  "discover.subtitle":
+    "Tips, expertråd och sätt att lära dig säkrare hudvård.",
+  "discover.shareTip": "Dela ett tips",
+  "discover.tipPlaceholder": "Vilket rutintips skulle du rekommendera?",
+  "discover.tipAriaLabel": "Ditt tips",
+  "discover.post": "Publicera",
+  "discover.rewards": "Belöningar",
+  "discover.topTips": "Toppentips",
+  "discover.last30Days": "Senaste 30 dagarna",
+  "discover.emptyTips":
+    "Inga tips ännu. Bli först med att dela ett — veckans mest uppröstade tips vinner en gratis månad med Premium.",
+  "discover.aiAskAnything": "Fråga vad som helst",
+  "discover.aiTitle": "Chatta med SkinScreens AI",
+  "discover.aiSubtitle":
+    "Få evidensbaserade svar om din hylla, ingrediensinteraktioner och rutintider.",
+  "discover.aiHint": "Tryck på chattbubblan för att börja",
+  "discover.leaderboardTitle": "Topplista",
+  "discover.leaderboardSubtitle":
+    "Se de bästa bidragsgivarna och Veckans bästa tips.",
+  "discover.tipBy": "av",
+  "discover.upvoteTip": "Rösta upp tipset",
+  "discover.removeVote": "Ta bort röst",
+  "discover.tipMinError": "Tips måste vara minst {min} tecken.",
+  "discover.tipPostError": "Kunde inte publicera tipset.",
+  "discover.tipNetworkError": "Nätverksfel. Försök igen.",
+  "discover.footnote":
+    "DIY-recept, vanliga misstag och mer i appen.",
+
+  "profile.title": "Profil",
+  "profile.subtitle": "Ditt konto, ditt abonnemang och dina bidrag.",
+  "profile.language": "Språk",
+};
+
 const fr: Dict = {
   "tabs.scan": "Scanner",
   "tabs.browse": "Parcourir",
@@ -112,7 +161,7 @@ const fr: Dict = {
   "profile.language": "Langue",
 };
 
-const DICTS: Record<Locale, Dict> = { en, fr };
+const DICTS: Record<Locale, Dict> = { en, sv, fr };
 
 interface I18nContextValue {
   locale: Locale;
@@ -122,15 +171,20 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
+function isLocale(v: string | null | undefined): v is Locale {
+  return v === "en" || v === "sv" || v === "fr";
+}
+
 function detectInitialLocale(): Locale {
   if (typeof window === "undefined") return "en";
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "en" || stored === "fr") return stored;
+    if (isLocale(stored)) return stored;
   } catch {
     // ignore
   }
   const nav = window.navigator?.language?.toLowerCase() ?? "";
+  if (nav.startsWith("sv")) return "sv";
   if (nav.startsWith("fr")) return "fr";
   return "en";
 }

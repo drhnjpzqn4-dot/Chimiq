@@ -33,7 +33,7 @@ export function BottomTabBar() {
                 <a
                   data-touch-target
                   aria-current={active ? "page" : undefined}
-                  aria-label={`${tab.label}${active ? " (current page)" : ""}`}
+                  aria-label={`${t(tab.labelKey)}${active ? " (current page)" : ""}`}
                   className={cn(
                     "group relative flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white",
