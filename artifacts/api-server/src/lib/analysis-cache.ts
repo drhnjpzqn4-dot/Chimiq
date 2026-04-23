@@ -26,7 +26,7 @@ const INGREDIENT_SYNONYMS: Record<string, string> = {
   "aloe vera": "aloe barbadensis leaf juice",
 };
 
-function normalizeOneIngredient(raw: string): string | null {
+export function normalizeIngredientName(raw: string): string | null {
   // Strip percentages first ("5%", "10 %", "0.5%") so they don't survive into
   // the token stream. We keep all other digits because CI colour-index numbers
   // ("CI 77491") and PEG/Polysorbate grades ("PEG-100", "Polysorbate 80") are
@@ -48,7 +48,7 @@ function normalizeOneIngredient(raw: string): string | null {
 function normalizeIngredients(raw: string): string {
   return raw
     .split(/[,;\n]+/)
-    .map(normalizeOneIngredient)
+    .map(normalizeIngredientName)
     .filter((s): s is string => Boolean(s))
     .sort()
     .join(",");

@@ -11,6 +11,7 @@ import {
   isStale,
 } from "../lib/analysis-cache.js";
 import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
+import { partitionIngredients } from "../lib/safe-ingredients.js";
 
 const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).optional();
 
@@ -136,6 +137,16 @@ Flag these categories:
 - NANOPARTICLE: Nano zinc oxide, nano titanium dioxide (in sunscreens) — may penetrate beyond surface; research ongoing
 - CAUTION: Any other documented concern not fitting the above categories
 
+Common ingredients you must NOT flag (these are widely safe and well-tolerated for all skin types and life stages — flagging them is a false positive that erodes user trust):
+- Solvents and humectants: Water, Aqua, Glycerin, Butylene Glycol, Pentylene Glycol, Propanediol, Hexylene Glycol, Caprylyl Glycol
+- Hydrators: Sodium Hyaluronate, Hyaluronic Acid, Sodium PCA, Betaine, Trehalose, Allantoin, Panthenol (Pro-Vitamin B5), Niacinamide (Vitamin B3) at any normal concentration
+- Skin-identical lipids: Ceramide NP/AP/EOP/NS, Cholesterol, Phytosphingosine, Squalane, Caprylic/Capric Triglyceride
+- Fatty alcohols (these are emollient thickeners — NOT drying alcohols): Cetearyl Alcohol, Cetyl Alcohol, Stearyl Alcohol, Behenyl Alcohol
+- Emulsifiers and thickeners at typical use levels: Glyceryl Stearate, Polysorbate 20/60/80, Sorbitan Stearate, Carbomer, Acrylates Copolymer, Xanthan Gum, Hydroxyethylcellulose
+- Chelators at trace amounts: Disodium EDTA, Tetrasodium EDTA, Etidronic Acid, Sodium Phytate
+- pH adjusters at trace amounts ONLY: Sodium Hydroxide, Potassium Hydroxide, Sodium Citrate, Disodium Phosphate
+- Soothing botanicals with strong safety records: Centella Asiatica, Camellia Sinensis (Green Tea), Aloe Barbadensis, Beta-Glucan, Colloidal Oatmeal, Bisabolol, Madecassoside
+
 Rules:
 - Only flag ingredients with documented safety concerns — do not flag safe, widely-used ingredients
 - Severity HIGH_RISK for serious documented harms (carcinogens, confirmed endocrine disruptors, strong sensitisers)
@@ -164,6 +175,35 @@ Required response format:
   "overallSafe": false,
   "verdictTitle": "2 concerns found",
   "verdictSummary": "This product contains a formaldehyde-releasing preservative and a known contact allergen."
+}
+
+## Worked examples
+
+Example 1 — clean product (no concerns):
+Input ingredients: "Aqua, Glycerin, Niacinamide, Sodium Hyaluronate, Panthenol, Tocopherol, Caprylic/Capric Triglyceride, Cetearyl Alcohol, Glyceryl Stearate, Phenoxyethanol (0.8%), Disodium EDTA"
+Reasoning: All ingredients are on the universally-safe list except phenoxyethanol at 0.8%, which is well below the EU 1% restriction and not flagged at this concentration. No fragrance, no preservatives of concern, no actives requiring photoprotection.
+Output:
+{
+  "flags": [],
+  "overallSafe": true,
+  "verdictTitle": "No major concerns",
+  "verdictSummary": "This is a gentle, well-formulated moisturiser. All ingredients are widely tolerated and the preservative is used at a safe concentration."
+}
+
+Example 2 — multiple concerns, mixed severity:
+Input ingredients: "Aqua, Glycerin, Methylparaben, Propylparaben, DMDM Hydantoin, Parfum, Limonene, Linalool, Glycolic Acid, Phenoxyethanol"
+Reasoning: Methylparaben and propylparaben are documented endocrine disruptors (HIGH_RISK). DMDM Hydantoin is a formaldehyde-releaser (HIGH_RISK). Parfum plus declared fragrance allergens (limonene, linalool) are top causes of contact dermatitis (CAUTION — together with parfum count as one fragrance flag, not three separate ones). Glycolic acid is a photosensitiser requiring SPF (CAUTION). Phenoxyethanol at unspecified concentration is borderline — not flagged here without a percentage.
+Output:
+{
+  "flags": [
+    { "ingredient": "Methylparaben", "category": "ENDOCRINE_DISRUPTOR", "severity": "HIGH_RISK", "explanation": "...", "citation": "Darbre PD, 2004. Journal of Applied Toxicology.", "citationUrl": "https://pubmed.ncbi.nlm.nih.gov/14745841/" },
+    { "ingredient": "DMDM Hydantoin", "category": "FORMALDEHYDE_RELEASER", "severity": "HIGH_RISK", "explanation": "...", "citation": "...", "citationUrl": "..." },
+    { "ingredient": "Parfum", "category": "FRAGRANCE", "severity": "CAUTION", "explanation": "...", "citation": "...", "citationUrl": "..." },
+    { "ingredient": "Glycolic Acid", "category": "PHOTOSENSITISER", "severity": "CAUTION", "explanation": "...", "citation": "...", "citationUrl": "..." }
+  ],
+  "overallSafe": false,
+  "verdictTitle": "4 concerns found",
+  "verdictSummary": "This product contains two endocrine-disrupting parabens and a formaldehyde-releasing preservative, plus fragrance and an exfoliating acid that requires sun protection."
 }`;
 
 function buildDynamicContext(skinProfile?: string, regulatoryContext?: string): string {
@@ -193,11 +233,20 @@ function buildSystemBlocks(
 
 async function runAIAnalysis(
   anthropic: Anthropic,
-  ingredients: string,
+  ingredientsForLLM: string,
+  preFilteredCount: number,
   skinProfile: string | undefined,
   regulatoryContext: string | undefined,
   log: (msg: string, data?: unknown) => void,
 ): Promise<z.infer<typeof AnalyzeSingleResponseSchema> | null> {
+  // If we pre-filtered some ingredients on the safe list, mention this to the
+  // model so it knows the input is intentionally a subset and doesn't try to
+  // flag missing ingredients.
+  const preFilterNote =
+    preFilteredCount > 0
+      ? `\n\nNote: ${preFilteredCount} ingredient(s) from this product have already been pre-classified as universally safe (water, glycerin, hyaluronic acid, ceramides, fatty alcohols, common emulsifiers, soothing botanicals, etc.) and are not shown below. Focus your analysis only on the ingredients listed.`
+      : "";
+
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
@@ -206,7 +255,7 @@ async function runAIAnalysis(
       messages: [
         {
           role: "user",
-          content: `Analyze this product's ingredient list:\n\n${ingredients}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
+          content: `Analyze this product's ingredient list:\n\n${ingredientsForLLM}${preFilterNote}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
         },
       ],
     });
@@ -287,16 +336,19 @@ router.post("/analyze-single", async (req, res) => {
 
       if (stale) {
         const parsedIngredients = parseIngredients(ingredients);
+        const { needsAnalysis, safe } = partitionIngredients(parsedIngredients);
         const anthropic = new Anthropic({ apiKey, baseURL });
         setImmediate(async () => {
           try {
             let regulatoryContext: string | undefined;
-            const ctx = await buildRegulatoryContext(parsedIngredients, () => {});
+            const ctx = await buildRegulatoryContext(needsAnalysis, () => {});
             const lines: string[] = [];
             if (ctx.cosing.length > 0) { lines.push("### EU CosIng Regulatory Data"); lines.push(...ctx.cosing); }
             if (ctx.pubchem.length > 0) { lines.push("### PubChem GHS Hazard Data"); lines.push(...ctx.pubchem); }
             if (lines.length > 0) regulatoryContext = lines.join("\n");
-            const fresh = await runAIAnalysis(anthropic, ingredients, skinProfile, regulatoryContext, () => {});
+            const fresh = needsAnalysis.length > 0
+              ? await runAIAnalysis(anthropic, needsAnalysis.join(", "), safe.length, skinProfile, regulatoryContext, () => {})
+              : { flags: [], overallSafe: true, verdictTitle: "No major concerns", verdictSummary: "All ingredients in this product are widely tolerated and well-formulated." };
             if (fresh) await saveCacheEntry(hash, "single", skinProfile, JSON.stringify(fresh));
           } catch {}
         });
@@ -308,10 +360,28 @@ router.post("/analyze-single", async (req, res) => {
   }
 
   const parsedIngredients = parseIngredients(ingredients);
+  const { safe, needsAnalysis } = partitionIngredients(parsedIngredients);
+
+  // Short-circuit: if every ingredient is on the universally-safe list, skip
+  // the LLM call entirely. Saves ~100% of input tokens on common boring lists
+  // like simple cleansers / hyaluronic-acid serums.
+  if (needsAnalysis.length === 0) {
+    const result = {
+      flags: [],
+      overallSafe: true,
+      verdictTitle: "No major concerns",
+      verdictSummary: "All ingredients in this product are widely tolerated and well-formulated.",
+    };
+    saveCacheEntry(hash, "single", skinProfile, JSON.stringify(result)).catch((err) =>
+      req.log.warn({ err }, "Failed to save analysis cache"),
+    );
+    res.json({ ...result, cacheHash: hash, fromCache: false });
+    return;
+  }
 
   let regulatoryContext: string | undefined;
   try {
-    const ctx = await buildRegulatoryContext(parsedIngredients, (msg) => req.log.warn(msg));
+    const ctx = await buildRegulatoryContext(needsAnalysis, (msg) => req.log.warn(msg));
     const lines: string[] = [];
     if (ctx.cosing.length > 0) {
       lines.push("### EU CosIng Regulatory Data");
@@ -331,7 +401,8 @@ router.post("/analyze-single", async (req, res) => {
   const anthropic = new Anthropic({ apiKey, baseURL });
   const result = await runAIAnalysis(
     anthropic,
-    ingredients,
+    needsAnalysis.join(", "),
+    safe.length,
     skinProfile,
     regulatoryContext,
     (msg, data) => req.log.error(data ?? {}, msg),

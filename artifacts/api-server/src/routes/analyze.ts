@@ -11,6 +11,7 @@ import {
   isStale,
 } from "../lib/analysis-cache.js";
 import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
+import { partitionIngredients } from "../lib/safe-ingredients.js";
 
 const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).optional();
 
@@ -119,6 +120,19 @@ Red flags to prioritise:
 - Multiple exfoliants used together (AHA + BHA + physical = over-exfoliation spiral)
 - Retinoids without SPF use (dramatically increases UV damage risk)
 - Kojic acid + Vitamin C (compete for same pathway, reduce efficacy, increase sensitisation)
+- Copper peptides + Vitamin C (Vitamin C oxidises and deactivates copper peptides — wastes both)
+- Copper peptides + AHA/BHA (acidic pH disrupts copper peptide structure)
+
+Common NON-conflicts you must NOT flag as concerning (these are widely-believed myths or pairs that are genuinely fine in modern formulations):
+- Niacinamide + Vitamin C — modern formulations are fine; the "niacin flush" issue requires very specific lab conditions
+- Hyaluronic acid + anything — HA is inert, layers freely with all actives
+- Retinol + Peptides — work via different pathways, no documented conflict
+- Vitamin C + SPF — Vitamin C actually enhances SPF protection
+- Ceramides + anything — ceramides are skin-identical lipids, no conflicts
+- Niacinamide + Retinol — well-documented as a beneficial pairing (niacinamide buffers retinol irritation)
+- Bakuchiol + anything (bakuchiol is gentle and pH-stable)
+- Most humectants together (glycerin, HA, panthenol, urea) — fine to layer
+- AHAs/BHAs in two products IF used at different times of day (only flag if same routine)
 
 Rules:
 - ONLY flag conflicts with real, documented research backing
@@ -141,6 +155,58 @@ Required response format:
     }
   ],
   "overallSafe": false
+}
+
+## Worked examples
+
+Example 1 — two safe products, no real conflicts:
+Product 1: "Aqua, Glycerin, Niacinamide, Sodium Hyaluronate, Panthenol, Phenoxyethanol"
+Product 2: "Aqua, Squalane, Ceramide NP, Cholesterol, Tocopherol, Caprylyl Glycol"
+Reasoning: Product 1 is a hydrating serum with niacinamide at unspecified concentration. Product 2 is a barrier-repair moisturiser with skin-identical lipids. No actives that conflict. Niacinamide + ceramides is a beneficial pairing.
+Output:
+{ "conflicts": [], "overallSafe": true }
+
+Example 2 — classic exfoliant-over-retinoid conflict:
+Product 1: "Aqua, Glycolic Acid (10%), Witch Hazel, Glycerin"
+Product 2: "Aqua, Retinol (0.5%), Squalane, Tocopherol"
+Reasoning: Glycolic acid (AHA) and retinol used in the same routine cause severe barrier disruption — the AHA strips the stratum corneum and the retinoid drives deeper irritation. Both also independently increase photosensitivity, compounding the SPF requirement.
+Output:
+{
+  "conflicts": [
+    {
+      "pair": "Glycolic Acid + Retinol",
+      "severity": "HIGH_RISK",
+      "explanation": "Layering an AHA exfoliant with a retinoid in the same routine causes acute barrier disruption: the AHA strips the stratum corneum at low pH while the retinoid drives accelerated turnover, producing erythema, peeling, and prolonged sensitivity. Use on alternating nights at most, or move one to morning use with strict SPF.",
+      "citation": "Mukherjee S et al., 2006. Clinical Interventions in Aging.",
+      "citationUrl": "https://pubmed.ncbi.nlm.nih.gov/18046911/"
+    },
+    {
+      "pair": "Glycolic Acid + Retinol (UV sensitivity)",
+      "severity": "CAUTION",
+      "explanation": "Both ingredients independently increase UV sensitivity. Daily broad-spectrum SPF 30+ is non-negotiable when using either, let alone both.",
+      "citation": "Kornhauser A et al., 2010. Clinical, Cosmetic and Investigational Dermatology.",
+      "citationUrl": "https://pubmed.ncbi.nlm.nih.gov/21437068/"
+    }
+  ],
+  "overallSafe": false
+}
+
+Example 3 — common myth that should be reassured, not flagged as concerning:
+Product 1: "Aqua, Niacinamide (10%), Glycerin, Phenoxyethanol"
+Product 2: "Aqua, Ascorbic Acid (15%), Ferulic Acid, Tocopherol"
+Reasoning: This is the classic "niacinamide + Vitamin C" myth. The interaction requires very specific lab conditions that don't occur in modern formulations. Worth including as a SAFE conflict to reassure users who've heard this myth.
+Output:
+{
+  "conflicts": [
+    {
+      "pair": "Niacinamide + Ascorbic Acid (Vitamin C)",
+      "severity": "SAFE",
+      "explanation": "This pairing is widely-believed to be problematic but the interaction requires high heat and specific conditions that don't occur on the skin. Modern formulations layer freely; some products even combine them. No SPF concern with niacinamide; standard SPF still required for Vitamin C exposure.",
+      "citation": "Kawada A et al., 2008. Journal of Cosmetic Dermatology.",
+      "citationUrl": "https://pubmed.ncbi.nlm.nih.gov/19146599/"
+    }
+  ],
+  "overallSafe": true
 }`;
 
 function buildDynamicContext(skinProfile?: string, regulatoryContext?: string): string {
@@ -169,12 +235,20 @@ function buildSystemBlocks(
 
 async function runAIAnalysis(
   anthropic: Anthropic,
-  product1: string,
-  product2: string,
+  product1ForLLM: string,
+  product2ForLLM: string,
+  preFilteredCount: number,
   skinProfile: string | undefined,
   regulatoryContext: string | undefined,
   log: (msg: string, data?: unknown) => void,
 ): Promise<z.infer<typeof AnalyzeResponseSchema> | null> {
+  // Tell the model when we've stripped universally-safe ingredients from the
+  // input so it doesn't try to flag missing entries.
+  const preFilterNote =
+    preFilteredCount > 0
+      ? `\n\nNote: ${preFilteredCount} universally-safe ingredient(s) (water, glycerin, hyaluronic acid, ceramides, fatty alcohols, common emulsifiers, soothing botanicals, etc.) have been pre-filtered out and are not shown. They cannot conflict with anything — focus only on the active ingredients listed above.`
+      : "";
+
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
@@ -183,7 +257,7 @@ async function runAIAnalysis(
       messages: [
         {
           role: "user",
-          content: `Product 1 ingredients:\n${product1}\n\nProduct 2 ingredients:\n${product2}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
+          content: `Product 1 ingredients:\n${product1ForLLM}\n\nProduct 2 ingredients:\n${product2ForLLM}${preFilterNote}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
         },
       ],
     });
@@ -269,17 +343,22 @@ router.post("/analyze", async (req, res) => {
       if (stale) {
         const ingredients1 = parseIngredients(product1);
         const ingredients2 = parseIngredients(product2);
-        const allIngredients = [...new Set([...ingredients1, ...ingredients2])];
+        const p1 = partitionIngredients(ingredients1);
+        const p2 = partitionIngredients(ingredients2);
+        const safeCount = p1.safe.length + p2.safe.length;
+        const allActive = [...new Set([...p1.needsAnalysis, ...p2.needsAnalysis])];
         const anthropic = new Anthropic({ apiKey, baseURL });
         setImmediate(async () => {
           try {
             let regulatoryContext: string | undefined;
-            const ctx = await buildRegulatoryContext(allIngredients, () => {});
+            const ctx = await buildRegulatoryContext(allActive, () => {});
             const lines: string[] = [];
             if (ctx.cosing.length > 0) { lines.push("### EU CosIng Regulatory Data"); lines.push(...ctx.cosing); }
             if (ctx.pubchem.length > 0) { lines.push("### PubChem GHS Hazard Data"); lines.push(...ctx.pubchem); }
             if (lines.length > 0) regulatoryContext = lines.join("\n");
-            const fresh = await runAIAnalysis(anthropic, product1, product2, skinProfile, regulatoryContext, () => {});
+            const fresh = (p1.needsAnalysis.length === 0 && p2.needsAnalysis.length === 0)
+              ? { conflicts: [], overallSafe: true }
+              : await runAIAnalysis(anthropic, p1.needsAnalysis.join(", ") || "(no active ingredients)", p2.needsAnalysis.join(", ") || "(no active ingredients)", safeCount, skinProfile, regulatoryContext, () => {});
             if (fresh) await saveCacheEntry(hash, "compare", skinProfile, JSON.stringify(fresh));
           } catch {}
         });
@@ -292,11 +371,26 @@ router.post("/analyze", async (req, res) => {
 
   const ingredients1 = parseIngredients(product1);
   const ingredients2 = parseIngredients(product2);
-  const allIngredients = [...new Set([...ingredients1, ...ingredients2])];
+  const p1 = partitionIngredients(ingredients1);
+  const p2 = partitionIngredients(ingredients2);
+  const safeCount = p1.safe.length + p2.safe.length;
+  const allActive = [...new Set([...p1.needsAnalysis, ...p2.needsAnalysis])];
+
+  // Short-circuit: if neither product has any active ingredients (only
+  // universally-safe ones like water, glycerin, ceramides), there can't be
+  // any cross-product conflict. Skip the LLM call entirely.
+  if (p1.needsAnalysis.length === 0 && p2.needsAnalysis.length === 0) {
+    const result = { conflicts: [], overallSafe: true };
+    saveCacheEntry(hash, "compare", skinProfile, JSON.stringify(result)).catch((err) =>
+      req.log.warn({ err }, "Failed to save analysis cache"),
+    );
+    res.json({ ...result, cacheHash: hash, fromCache: false });
+    return;
+  }
 
   let regulatoryContext: string | undefined;
   try {
-    const ctx = await buildRegulatoryContext(allIngredients, (msg) => req.log.warn(msg));
+    const ctx = await buildRegulatoryContext(allActive, (msg) => req.log.warn(msg));
     const lines: string[] = [];
     if (ctx.cosing.length > 0) {
       lines.push("### EU CosIng Regulatory Data");
@@ -316,8 +410,9 @@ router.post("/analyze", async (req, res) => {
   const anthropic = new Anthropic({ apiKey, baseURL });
   const result = await runAIAnalysis(
     anthropic,
-    product1,
-    product2,
+    p1.needsAnalysis.join(", ") || "(no active ingredients)",
+    p2.needsAnalysis.join(", ") || "(no active ingredients)",
+    safeCount,
     skinProfile,
     regulatoryContext,
     (msg, data) => req.log.error(data ?? {}, msg),
