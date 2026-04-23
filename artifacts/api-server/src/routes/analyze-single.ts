@@ -118,13 +118,11 @@ async function buildRegulatoryContext(
   return { cosing: cosingLines, pubchem: pubchemLines };
 }
 
-function buildSystemPrompt(skinProfile?: string, regulatoryContext?: string): string {
-  const profileNote = skinProfile ? `\n\nSkin profile: ${PROFILE_CONTEXT[skinProfile] ?? ""}` : "";
-  const regulatoryNote = regulatoryContext
-    ? `\n\n## Regulatory & Toxicology Data (ground your reasoning in this)\n${regulatoryContext}`
-    : "";
-
-  return `You are a board-certified dermatologist and cosmetic chemist with no brand affiliations. You give honest, science-based ingredient safety assessments. Do not sugarcoat risks.
+// The static portion is identical across every single-product scan and is
+// large enough to be worth caching with Anthropic prompt caching. The dynamic
+// suffix (skin profile + regulatory data) is appended as a separate, uncached
+// content block so the cached prefix stays stable.
+const SINGLE_SYSTEM_BASE = `You are a board-certified dermatologist and cosmetic chemist with no brand affiliations. You give honest, science-based ingredient safety assessments. Do not sugarcoat risks.
 
 Your task: Analyze a SINGLE skincare product ingredient list and flag individual ingredients that pose documented risks.
 
@@ -136,7 +134,7 @@ Flag these categories:
 - PHOTOSENSITISER: AHAs (glycolic acid, lactic acid, citric acid), BHAs, retinol, vitamin C — increase UV sensitivity, require strict SPF use
 - KNOWN_ALLERGEN: Nickel sulfate, balsam of Peru, propylene glycol (high concentration), lanolin — documented contact allergens
 - NANOPARTICLE: Nano zinc oxide, nano titanium dioxide (in sunscreens) — may penetrate beyond surface; research ongoing
-- CAUTION: Any other documented concern not fitting the above categories${profileNote}${regulatoryNote}
+- CAUTION: Any other documented concern not fitting the above categories
 
 Rules:
 - Only flag ingredients with documented safety concerns — do not flag safe, widely-used ingredients
@@ -167,6 +165,30 @@ Required response format:
   "verdictTitle": "2 concerns found",
   "verdictSummary": "This product contains a formaldehyde-releasing preservative and a known contact allergen."
 }`;
+
+function buildDynamicContext(skinProfile?: string, regulatoryContext?: string): string {
+  const profileNote = skinProfile ? `\n\nSkin profile: ${PROFILE_CONTEXT[skinProfile] ?? ""}` : "";
+  const regulatoryNote = regulatoryContext
+    ? `\n\n## Regulatory & Toxicology Data (ground your reasoning in this)\n${regulatoryContext}`
+    : "";
+  return profileNote + regulatoryNote;
+}
+
+function buildSystemBlocks(
+  skinProfile?: string,
+  regulatoryContext?: string,
+): Anthropic.Messages.TextBlockParam[] {
+  // First block is the static template — Anthropic prompt caching will store
+  // and reuse this prefix across calls for ~90% discount on subsequent
+  // requests within the cache TTL (default 5 min).
+  const blocks: Anthropic.Messages.TextBlockParam[] = [
+    { type: "text", text: SINGLE_SYSTEM_BASE, cache_control: { type: "ephemeral" } },
+  ];
+  const dynamic = buildDynamicContext(skinProfile, regulatoryContext);
+  if (dynamic) {
+    blocks.push({ type: "text", text: dynamic });
+  }
+  return blocks;
 }
 
 async function runAIAnalysis(
@@ -180,7 +202,7 @@ async function runAIAnalysis(
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 8192,
-      system: buildSystemPrompt(skinProfile, regulatoryContext),
+      system: buildSystemBlocks(skinProfile, regulatoryContext),
       messages: [
         {
           role: "user",

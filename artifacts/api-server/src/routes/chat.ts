@@ -56,15 +56,24 @@ router.post("/chat", async (req: Request, res: Response) => {
 
   const { messages, shelfContext } = parsed.data;
 
-  const systemContent = shelfContext
-    ? `${SYSTEM_PROMPT}\n\n---\nUser's current shelf products:\n${shelfContext}`
-    : SYSTEM_PROMPT;
+  // Static SYSTEM_PROMPT goes in its own block flagged for Anthropic prompt
+  // caching (~90% input-token discount on repeat calls within the cache TTL).
+  // The per-user shelfContext goes in a second uncached block.
+  const systemBlocks: Anthropic.Messages.TextBlockParam[] = [
+    { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+  ];
+  if (shelfContext) {
+    systemBlocks.push({
+      type: "text",
+      text: `\n\n---\nUser's current shelf products:\n${shelfContext}`,
+    });
+  }
 
   try {
     const response = await client.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 1000,
-      system: systemContent,
+      system: systemBlocks,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     });
 

@@ -105,13 +105,10 @@ async function buildRegulatoryContext(
   return { cosing: cosingLines, pubchem: pubchemLines };
 }
 
-function buildSystemPrompt(skinProfile?: string, regulatoryContext?: string): string {
-  const profileNote = skinProfile ? `\n\nSkin profile: ${PROFILE_CONTEXT[skinProfile] ?? ""}` : "";
-  const regulatoryNote = regulatoryContext
-    ? `\n\n## Regulatory & Toxicology Data (ground your reasoning in this)\n${regulatoryContext}`
-    : "";
-
-  return `You are a board-certified dermatologist and cosmetic chemist. You are completely independent — no brand affiliations, no sponsored opinions. Be honest. Do not sugarcoat risks.
+// The static portion is identical across every compare scan and is large
+// enough to benefit from Anthropic prompt caching. The dynamic suffix
+// (skin profile + regulatory data) is sent as a separate, uncached block.
+const COMPARE_SYSTEM_BASE = `You are a board-certified dermatologist and cosmetic chemist. You are completely independent — no brand affiliations, no sponsored opinions. Be honest. Do not sugarcoat risks.
 
 Your task: Analyze two skincare product ingredient lists and identify clinically-relevant conflict pairs between ingredients from the two different products.
 
@@ -121,7 +118,7 @@ Red flags to prioritise:
 - Vitamin C (L-ascorbic acid) + Niacinamide at high concentrations (can form niacin, cause flushing)
 - Multiple exfoliants used together (AHA + BHA + physical = over-exfoliation spiral)
 - Retinoids without SPF use (dramatically increases UV damage risk)
-- Kojic acid + Vitamin C (compete for same pathway, reduce efficacy, increase sensitisation)${profileNote}${regulatoryNote}
+- Kojic acid + Vitamin C (compete for same pathway, reduce efficacy, increase sensitisation)
 
 Rules:
 - ONLY flag conflicts with real, documented research backing
@@ -145,6 +142,29 @@ Required response format:
   ],
   "overallSafe": false
 }`;
+
+function buildDynamicContext(skinProfile?: string, regulatoryContext?: string): string {
+  const profileNote = skinProfile ? `\n\nSkin profile: ${PROFILE_CONTEXT[skinProfile] ?? ""}` : "";
+  const regulatoryNote = regulatoryContext
+    ? `\n\n## Regulatory & Toxicology Data (ground your reasoning in this)\n${regulatoryContext}`
+    : "";
+  return profileNote + regulatoryNote;
+}
+
+function buildSystemBlocks(
+  skinProfile?: string,
+  regulatoryContext?: string,
+): Anthropic.Messages.TextBlockParam[] {
+  // Static template marked for Anthropic prompt caching — ~90% input-token
+  // discount on the cached prefix for repeat calls within the cache TTL.
+  const blocks: Anthropic.Messages.TextBlockParam[] = [
+    { type: "text", text: COMPARE_SYSTEM_BASE, cache_control: { type: "ephemeral" } },
+  ];
+  const dynamic = buildDynamicContext(skinProfile, regulatoryContext);
+  if (dynamic) {
+    blocks.push({ type: "text", text: dynamic });
+  }
+  return blocks;
 }
 
 async function runAIAnalysis(
@@ -159,7 +179,7 @@ async function runAIAnalysis(
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 8192,
-      system: buildSystemPrompt(skinProfile, regulatoryContext),
+      system: buildSystemBlocks(skinProfile, regulatoryContext),
       messages: [
         {
           role: "user",

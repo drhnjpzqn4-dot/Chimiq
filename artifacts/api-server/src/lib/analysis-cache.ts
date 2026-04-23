@@ -5,12 +5,51 @@ import type { AnalysisCache } from "@workspace/db";
 
 const STALE_DAYS = 180;
 
+// Synonym map: collapses common INCI / colloquial spellings to a single canonical
+// form so cache lookups hit regardless of how the user labelled an ingredient.
+// Keep the keys lowercase and pre-normalised (no parens / digits / punctuation).
+const INGREDIENT_SYNONYMS: Record<string, string> = {
+  "aqua": "water",
+  "eau": "water",
+  "parfum": "fragrance",
+  "perfume": "fragrance",
+  "vitamin a": "retinol",
+  "vitamin b3": "niacinamide",
+  "vitamin b5": "panthenol",
+  "pro vitamin b5": "panthenol",
+  "provitamin b5": "panthenol",
+  "vitamin c": "ascorbic acid",
+  "l ascorbic acid": "ascorbic acid",
+  "vitamin e": "tocopherol",
+  "vitamin f": "linoleic acid",
+  "shea butter": "butyrospermum parkii butter",
+  "aloe vera": "aloe barbadensis leaf juice",
+};
+
+function normalizeOneIngredient(raw: string): string | null {
+  // Strip percentages first ("5%", "10 %", "0.5%") so they don't survive into
+  // the token stream. We keep all other digits because CI colour-index numbers
+  // ("CI 77491") and PEG/Polysorbate grades ("PEG-100", "Polysorbate 80") are
+  // semantically meaningful and must remain distinct in the cache key.
+  let s = raw.replace(/\d+(?:[.,]\d+)?\s*%/g, " ");
+  // Drop anything in parentheses ("Niacinamide (5%)" → "Niacinamide ").
+  s = s.replace(/\([^)]*\)/g, " ");
+  // Lowercase + strip punctuation other than spaces / hyphens.
+  s = s.toLowerCase().replace(/[^a-z0-9 -]/g, " ");
+  // Collapse hyphens to spaces so "l-ascorbic" matches "l ascorbic".
+  s = s.replace(/-/g, " ");
+  // Collapse whitespace.
+  s = s.split(/\s+/).filter(Boolean).join(" ").trim();
+  if (!s) return null;
+  if (s.length < 2) return null;
+  return INGREDIENT_SYNONYMS[s] ?? s;
+}
+
 function normalizeIngredients(raw: string): string {
   return raw
-    .toLowerCase()
     .split(/[,;\n]+/)
-    .map((s) => s.trim().replace(/[^a-z0-9 -]/g, "").trim())
-    .filter(Boolean)
+    .map(normalizeOneIngredient)
+    .filter((s): s is string => Boolean(s))
     .sort()
     .join(",");
 }
