@@ -12,6 +12,7 @@ import {
 } from "../lib/analysis-cache.js";
 import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
 import { partitionIngredients } from "../lib/safe-ingredients.js";
+import { getRisksInList, buildMandatoryFlagsBlock } from "../lib/risky-ingredients.js";
 
 const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).optional();
 
@@ -235,6 +236,7 @@ async function runAIAnalysis(
   anthropic: Anthropic,
   ingredientsForLLM: string,
   preFilteredCount: number,
+  mandatoryFlagsBlock: string,
   skinProfile: string | undefined,
   regulatoryContext: string | undefined,
   log: (msg: string, data?: unknown) => void,
@@ -255,7 +257,7 @@ async function runAIAnalysis(
       messages: [
         {
           role: "user",
-          content: `Analyze this product's ingredient list:\n\n${ingredientsForLLM}${preFilterNote}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
+          content: `Analyze this product's ingredient list:\n\n${ingredientsForLLM}${preFilterNote}${mandatoryFlagsBlock}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
         },
       ],
     });
@@ -337,6 +339,8 @@ router.post("/analyze-single", async (req, res) => {
       if (stale) {
         const parsedIngredients = parseIngredients(ingredients);
         const { needsAnalysis, safe } = partitionIngredients(parsedIngredients);
+        const risks = getRisksInList(parsedIngredients);
+        const mandatory = buildMandatoryFlagsBlock(risks, skinProfile);
         const anthropic = new Anthropic({ apiKey, baseURL });
         setImmediate(async () => {
           try {
@@ -347,7 +351,7 @@ router.post("/analyze-single", async (req, res) => {
             if (ctx.pubchem.length > 0) { lines.push("### PubChem GHS Hazard Data"); lines.push(...ctx.pubchem); }
             if (lines.length > 0) regulatoryContext = lines.join("\n");
             const fresh = needsAnalysis.length > 0
-              ? await runAIAnalysis(anthropic, needsAnalysis.join(", "), safe.length, skinProfile, regulatoryContext, () => {})
+              ? await runAIAnalysis(anthropic, needsAnalysis.join(", "), safe.length, mandatory, skinProfile, regulatoryContext, () => {})
               : { flags: [], overallSafe: true, verdictTitle: "No major concerns", verdictSummary: "All ingredients in this product are widely tolerated and well-formulated." };
             if (fresh) await saveCacheEntry(hash, "single", skinProfile, JSON.stringify(fresh));
           } catch {}
@@ -361,6 +365,12 @@ router.post("/analyze-single", async (req, res) => {
 
   const parsedIngredients = parseIngredients(ingredients);
   const { safe, needsAnalysis } = partitionIngredients(parsedIngredients);
+  // Match the full original list against our curated risk database. Risky
+  // ingredients are deliberately NOT on the safe list, so the partition above
+  // never strips them; this is just a safety net + lookup for the mandatory-
+  // flags block we send to Claude.
+  const risks = getRisksInList(parsedIngredients);
+  const mandatoryFlagsBlock = buildMandatoryFlagsBlock(risks, skinProfile);
 
   // Short-circuit: if every ingredient is on the universally-safe list, skip
   // the LLM call entirely. Saves ~100% of input tokens on common boring lists
@@ -403,6 +413,7 @@ router.post("/analyze-single", async (req, res) => {
     anthropic,
     needsAnalysis.join(", "),
     safe.length,
+    mandatoryFlagsBlock,
     skinProfile,
     regulatoryContext,
     (msg, data) => req.log.error(data ?? {}, msg),

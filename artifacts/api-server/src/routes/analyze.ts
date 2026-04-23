@@ -12,6 +12,7 @@ import {
 } from "../lib/analysis-cache.js";
 import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
 import { partitionIngredients } from "../lib/safe-ingredients.js";
+import { getRisksInList, buildMandatoryFlagsBlock } from "../lib/risky-ingredients.js";
 
 const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).optional();
 
@@ -238,6 +239,7 @@ async function runAIAnalysis(
   product1ForLLM: string,
   product2ForLLM: string,
   preFilteredCount: number,
+  mandatoryFlagsBlock: string,
   skinProfile: string | undefined,
   regulatoryContext: string | undefined,
   log: (msg: string, data?: unknown) => void,
@@ -257,7 +259,7 @@ async function runAIAnalysis(
       messages: [
         {
           role: "user",
-          content: `Product 1 ingredients:\n${product1ForLLM}\n\nProduct 2 ingredients:\n${product2ForLLM}${preFilterNote}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
+          content: `Product 1 ingredients:\n${product1ForLLM}\n\nProduct 2 ingredients:\n${product2ForLLM}${preFilterNote}${mandatoryFlagsBlock}\n\nReturn ONLY valid JSON matching the required format. No markdown, no preamble.`,
         },
       ],
     });
@@ -347,6 +349,8 @@ router.post("/analyze", async (req, res) => {
         const p2 = partitionIngredients(ingredients2);
         const safeCount = p1.safe.length + p2.safe.length;
         const allActive = [...new Set([...p1.needsAnalysis, ...p2.needsAnalysis])];
+        const allRisks = [...getRisksInList(ingredients1), ...getRisksInList(ingredients2)];
+        const mandatory = buildMandatoryFlagsBlock(allRisks, skinProfile);
         const anthropic = new Anthropic({ apiKey, baseURL });
         setImmediate(async () => {
           try {
@@ -358,7 +362,7 @@ router.post("/analyze", async (req, res) => {
             if (lines.length > 0) regulatoryContext = lines.join("\n");
             const fresh = (p1.needsAnalysis.length === 0 && p2.needsAnalysis.length === 0)
               ? { conflicts: [], overallSafe: true }
-              : await runAIAnalysis(anthropic, p1.needsAnalysis.join(", ") || "(no active ingredients)", p2.needsAnalysis.join(", ") || "(no active ingredients)", safeCount, skinProfile, regulatoryContext, () => {});
+              : await runAIAnalysis(anthropic, p1.needsAnalysis.join(", ") || "(no active ingredients)", p2.needsAnalysis.join(", ") || "(no active ingredients)", safeCount, mandatory, skinProfile, regulatoryContext, () => {});
             if (fresh) await saveCacheEntry(hash, "compare", skinProfile, JSON.stringify(fresh));
           } catch {}
         });
@@ -375,6 +379,11 @@ router.post("/analyze", async (req, res) => {
   const p2 = partitionIngredients(ingredients2);
   const safeCount = p1.safe.length + p2.safe.length;
   const allActive = [...new Set([...p1.needsAnalysis, ...p2.needsAnalysis])];
+  // Look up curated risks across both products. Risky ingredients are not on
+  // the safe list, so they're already in needsAnalysis — this just gives the
+  // model definitive metadata it must use.
+  const allRisks = [...getRisksInList(ingredients1), ...getRisksInList(ingredients2)];
+  const mandatoryFlagsBlock = buildMandatoryFlagsBlock(allRisks, skinProfile);
 
   // Short-circuit: if neither product has any active ingredients (only
   // universally-safe ones like water, glycerin, ceramides), there can't be
@@ -413,6 +422,7 @@ router.post("/analyze", async (req, res) => {
     p1.needsAnalysis.join(", ") || "(no active ingredients)",
     p2.needsAnalysis.join(", ") || "(no active ingredients)",
     safeCount,
+    mandatoryFlagsBlock,
     skinProfile,
     regulatoryContext,
     (msg, data) => req.log.error(data ?? {}, msg),
