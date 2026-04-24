@@ -6,5 +6,8 @@ export const modules: ModuleMap = {
   "./components/mockups/BrandDirectionB.tsx": () => import("../components/mockups/BrandDirectionB.tsx"),
   "./components/mockups/BrandDirectionC.tsx": () => import("../components/mockups/BrandDirectionC.tsx"),
   "./components/mockups/BrandDirections.tsx": () => import("../components/mockups/BrandDirections.tsx"),
-  "./components/mockups/LeanCanvas.tsx": () => import("../components/mockups/LeanCanvas.tsx")
+  "./components/mockups/LeanCanvas.tsx": () => import("../components/mockups/LeanCanvas.tsx"),
+  "./components/mockups/skinscreen-app/BottomSheet.tsx": () => import("../components/mockups/skinscreen-app/BottomSheet.tsx"),
+  "./components/mockups/skinscreen-app/InlineChecklist.tsx": () => import("../components/mockups/skinscreen-app/InlineChecklist.tsx"),
+  "./components/mockups/skinscreen-app/QuietUtility.tsx": () => import("../components/mockups/skinscreen-app/QuietUtility.tsx")
 };
