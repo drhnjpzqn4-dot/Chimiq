@@ -376,8 +376,8 @@ export default function BottomSheetVariant() {
                  / 30 to Premium
                </div>
                
-               <button style={{ background: SKIN.primaryStrong, color: "#fff", border: "none", padding: "14px 28px", borderRadius: 24, fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                 Confirm
+               <button style={{ background: SKIN.primaryStrong, color: "#fff", border: "none", padding: "14px 24px", borderRadius: 24, fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+                 Confirm — this is correct
                </button>
             </div>
           </div>
@@ -414,11 +414,28 @@ export default function BottomSheetVariant() {
                 <div style={{ fontSize: 16, fontFamily: "monospace" }}>{DEMO.productMissing.barcode}</div>
               </div>
               
-              <div style={{ background: SKIN.bg, border: `1px solid ${SKIN.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+              <div style={{ background: SKIN.bg, border: `1px solid ${SKIN.border}`, borderRadius: 16, padding: 16, marginBottom: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: SKIN.inkMute, marginBottom: 8 }}>PRODUCT NAME</div>
                 <input type="text" defaultValue={DEMO.productMissing.queryName} style={{ width: "100%", background: "transparent", border: "none", fontSize: 16, outline: "none", color: SKIN.ink, fontWeight: 500 }} />
               </div>
-              
+
+              <div style={{ background: SKIN.bg, border: `1px solid ${SKIN.border}`, borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: SKIN.inkMute, marginBottom: 8 }}>BRAND</div>
+                <input type="text" placeholder="Lumene" style={{ width: "100%", background: "transparent", border: "none", fontSize: 16, outline: "none", color: SKIN.ink, fontWeight: 500 }} />
+              </div>
+
+              <div style={{ background: SKIN.bg, border: `1px solid ${SKIN.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: SKIN.inkMute, marginBottom: 10 }}>YOUR RATING</div>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 22, border: `1px solid ${SKIN.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center", color: SKIN.inkSoft }}>
+                    <ThumbsDown size={18} />
+                  </div>
+                  <div style={{ width: 44, height: 44, borderRadius: 22, border: `1px solid ${SKIN.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center", color: SKIN.inkSoft }}>
+                    <ThumbsUp size={18} />
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
                  <div style={{ flex: 1, height: 100, borderRadius: 16, border: `2px dashed ${SKIN.borderStrong}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: SKIN.inkMute, gap: 8, background: SKIN.bg }}>
                    <CameraIcon size={24} />

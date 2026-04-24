@@ -17,6 +17,7 @@ import {
   Check,
   Clock,
   XCircle,
+  X,
   Menu,
 } from "lucide-react";
 import { SKIN } from "./_shared/tokens";
@@ -332,12 +333,18 @@ function Screen3GapFill() {
 
         {/* Expanded Gap Fill inline above tabs */}
         <div style={{ marginTop: "auto", background: SKIN.surface, borderTop: `1px solid ${SKIN.border}`, padding: "16px 20px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: SKIN.ink }}>
               Help complete this product
             </div>
-            <div style={{ fontSize: 12, color: SKIN.inkMute }}>Photo, rating · 30 sec</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ fontSize: 11, color: SKIN.primaryStrong, fontWeight: 600 }}>+1 / 30 Premium</div>
+              <button aria-label="Dismiss" style={{ width: 22, height: 22, borderRadius: 4, background: "transparent", border: "none", color: SKIN.inkMute, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <X size={14} />
+              </button>
+            </div>
           </div>
+          <div style={{ fontSize: 11, color: SKIN.inkMute, marginBottom: 14 }}>Missing: photo, rating · ~30 sec</div>
           
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
             <div style={{ width: 64, height: 64, borderRadius: 6, border: `1px dashed ${SKIN.borderStrong}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, color: SKIN.inkMute, background: SKIN.bg }}>
@@ -357,7 +364,7 @@ function Screen3GapFill() {
           </div>
           
           <button style={{ width: "100%", padding: "12px", background: SKIN.ink, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
-            Submit details
+            Confirm — this is correct
           </button>
         </div>
       </div>
@@ -406,6 +413,17 @@ function Screen4NoMatch() {
               <div style={{ flex: 1, height: 80, border: `1px dashed ${SKIN.borderStrong}`, borderRadius: 6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, color: SKIN.inkMute, background: SKIN.surface }}>
                 <Camera size={20} />
                 <span style={{ fontSize: 11, fontWeight: 500 }}>Ingredients</span>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: SKIN.ink, marginBottom: 8 }}>Your rating</div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {["Hate", "Meh", "OK", "Love", "Grail"].map((lbl) => (
+                  <div key={lbl} style={{ flex: 1, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, background: SKIN.bg, color: SKIN.inkSoft, borderRadius: 4, border: `1px solid ${SKIN.border}` }}>
+                    {lbl}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

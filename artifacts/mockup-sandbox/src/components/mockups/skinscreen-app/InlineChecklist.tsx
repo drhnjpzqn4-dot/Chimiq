@@ -401,11 +401,24 @@ function ScreenResultsPartial() {
             marginBottom: 32,
             boxShadow: SKIN.shadowSm
           }}>
-            <div style={{ fontFamily: SKIN.fontSans, fontSize: 15, fontWeight: 600, color: SKIN.ink, marginBottom: 4 }}>
-              Help us complete this product.
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
+              <div style={{ fontFamily: SKIN.fontSans, fontSize: 15, fontWeight: 600, color: SKIN.ink }}>
+                Help us complete this product.
+              </div>
+              <button
+                aria-label="Dismiss"
+                style={{
+                  width: 28, height: 28, borderRadius: 14,
+                  background: SKIN.surfaceMuted, border: "none",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: SKIN.inkMute, cursor: "pointer", marginTop: -4, marginRight: -4,
+                }}
+              >
+                <X size={14} />
+              </button>
             </div>
             <div style={{ fontFamily: SKIN.fontSans, fontSize: 14, color: SKIN.inkSoft, marginBottom: 20 }}>
-              Two fields missing.
+              Two fields missing · earns +1 toward your free Premium month.
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
@@ -453,7 +466,7 @@ function ScreenResultsPartial() {
               border: "none",
               outline: "none"
             }}>
-              Confirm Details
+              Confirm — this is correct
             </button>
           </div>
 
@@ -533,8 +546,8 @@ function ScreenNoMatch() {
 
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: "block", fontFamily: SKIN.fontSans, fontSize: 13, fontWeight: 600, color: SKIN.ink, marginBottom: 8 }}>Product Name</label>
-            <input 
-              value={missing.queryName}
+            <input
+              defaultValue={missing.queryName}
               style={{
                 width: "100%", height: 48, borderRadius: 12,
                 border: `1px solid ${SKIN.borderStrong}`,
@@ -544,6 +557,30 @@ function ScreenNoMatch() {
                 outline: "none"
               }}
             />
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", fontFamily: SKIN.fontSans, fontSize: 13, fontWeight: 600, color: SKIN.ink, marginBottom: 8 }}>Brand</label>
+            <input
+              placeholder="e.g. Lumene"
+              style={{
+                width: "100%", height: 48, borderRadius: 12,
+                border: `1px solid ${SKIN.borderStrong}`,
+                background: SKIN.surface,
+                padding: "0 16px",
+                fontFamily: SKIN.fontSans, fontSize: 15, color: SKIN.ink,
+                outline: "none"
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", fontFamily: SKIN.fontSans, fontSize: 13, fontWeight: 600, color: SKIN.ink, marginBottom: 8 }}>Your rating (optional)</label>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[1,2,3,4,5].map(i => (
+                <Star key={i} size={28} fill="transparent" color={SKIN.borderStrong} />
+              ))}
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 32 }}>
