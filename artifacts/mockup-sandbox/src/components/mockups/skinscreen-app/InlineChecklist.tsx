@@ -503,30 +503,33 @@ function ScreenNoMatch() {
       <TopNav back title="Not Found" />
       <div style={{ flex: 1, overflowY: "auto", background: SKIN.bg, padding: 20 }}>
         
-        <div style={{ textAlign: "center", marginBottom: 32, marginTop: 20 }}>
-          <div style={{ 
-            width: 64, height: 64, borderRadius: "50%", 
-            background: SKIN.surface, border: `1px solid ${SKIN.border}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px"
-          }}>
-            <Search size={28} color={SKIN.inkMute} />
-          </div>
-          <div style={{ fontFamily: SKIN.fontSerif, fontSize: 24, fontWeight: 600, color: SKIN.ink, marginBottom: 8 }}>
-            Product not in database
-          </div>
-          <div style={{ fontFamily: SKIN.fontSans, fontSize: 15, color: SKIN.inkSoft, lineHeight: 1.5, padding: "0 20px" }}>
-            Add it once, and we'll instantly analyze it for you and everyone else.
-          </div>
-        </div>
-
         <div style={{
           background: SKIN.surface,
           borderRadius: 16,
           border: `1px solid ${SKIN.border}`,
-          padding: "24px 20px",
-          boxShadow: SKIN.shadowSm
+          padding: "20px 20px 24px",
+          boxShadow: SKIN.shadowSm,
+          marginTop: 12,
         }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
+            <div style={{ fontFamily: SKIN.fontSans, fontSize: 15, fontWeight: 600, color: SKIN.ink }}>
+              Help us add this product.
+            </div>
+            <button
+              aria-label="Dismiss"
+              style={{
+                width: 28, height: 28, borderRadius: 14,
+                background: SKIN.surfaceMuted, border: "none",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: SKIN.inkMute, cursor: "pointer", marginTop: -4, marginRight: -4,
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <div style={{ fontFamily: SKIN.fontSans, fontSize: 14, color: SKIN.inkSoft, marginBottom: 20 }}>
+            All fields needed · earns +1 toward your free Premium month.
+          </div>
           
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: "block", fontFamily: SKIN.fontSans, fontSize: 13, fontWeight: 600, color: SKIN.ink, marginBottom: 8 }}>Barcode</label>
@@ -620,7 +623,7 @@ function ScreenNoMatch() {
             border: "none",
             outline: "none"
           }}>
-            Analyze Product
+            Confirm — this is correct
           </button>
 
         </div>

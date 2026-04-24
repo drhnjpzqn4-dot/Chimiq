@@ -378,55 +378,56 @@ function Screen4NoMatch() {
   return (
     <PhoneFrame bg={SKIN.bg}>
       <TopChrome title="Not found" />
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
-        
-        <div style={{ background: SKIN.surface, border: `1px solid ${SKIN.border}`, borderRadius: 8, padding: "24px 20px", textAlign: "center", marginBottom: 24, boxShadow: SKIN.shadowSm }}>
-          <div style={{ width: 48, height: 48, background: SKIN.bg, borderRadius: 24, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <AlertCircle size={24} color={SKIN.inkMute} />
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 24px" }}>
+
+        {/* Same gap-fill card pattern, expanded for full contribution */}
+        <div style={{ background: SKIN.surface, border: `1px solid ${SKIN.border}`, borderRadius: 8, padding: "16px 16px 20px", boxShadow: SKIN.shadowSm }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: SKIN.ink }}>
+              Help add this product
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ fontSize: 11, color: SKIN.primaryStrong, fontWeight: 600 }}>+5 / 30 Premium</div>
+              <button aria-label="Dismiss" style={{ width: 22, height: 22, borderRadius: 4, background: "transparent", border: "none", color: SKIN.inkMute, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <X size={14} />
+              </button>
+            </div>
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: SKIN.ink, marginBottom: 8 }}>
-            Not in our database yet
+          <div style={{ fontSize: 11, color: SKIN.inkMute, marginBottom: 16 }}>
+            Scanned <span style={{ fontFamily: "monospace", color: SKIN.ink }}>{p.barcode}</span> · all fields needed
           </div>
-          <div style={{ fontSize: 13, color: SKIN.inkSoft, lineHeight: 1.5, marginBottom: 20 }}>
-            You scanned <span style={{ fontWeight: 600, color: SKIN.ink }}>{p.barcode}</span>. Add it to help others and unlock premium.
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+            <input type="text" defaultValue={p.barcode} readOnly style={{ width: "100%", padding: "10px 12px", background: SKIN.bg, border: `1px solid ${SKIN.border}`, borderRadius: 6, fontSize: 13, color: SKIN.inkSoft, fontFamily: "monospace" }} />
+            <input type="text" placeholder="Brand" style={{ width: "100%", padding: "10px 12px", background: SKIN.bg, border: `1px solid ${SKIN.border}`, borderRadius: 6, fontSize: 13, color: SKIN.ink }} />
+            <input type="text" placeholder="Product name" defaultValue={p.queryName} style={{ width: "100%", padding: "10px 12px", background: SKIN.bg, border: `1px solid ${SKIN.border}`, borderRadius: 6, fontSize: 13, color: SKIN.ink }} />
           </div>
-          <button style={{ background: SKIN.ink, color: "#fff", border: "none", borderRadius: 6, padding: "12px 24px", fontSize: 14, fontWeight: 600, width: "100%" }}>
-            Add this product
+
+          <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+            <div style={{ flex: 1, height: 72, border: `1px dashed ${SKIN.borderStrong}`, borderRadius: 6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, color: SKIN.inkMute, background: SKIN.bg }}>
+              <Camera size={18} />
+              <span style={{ fontSize: 10, fontWeight: 500 }}>Front photo</span>
+            </div>
+            <div style={{ flex: 1, height: 72, border: `1px dashed ${SKIN.borderStrong}`, borderRadius: 6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, color: SKIN.inkMute, background: SKIN.bg }}>
+              <Camera size={18} />
+              <span style={{ fontSize: 10, fontWeight: 500 }}>Ingredients</span>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: SKIN.ink, marginBottom: 8 }}>Your rating</div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {["Hate", "Meh", "OK", "Love", "Grail"].map((lbl) => (
+                <div key={lbl} style={{ flex: 1, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, background: SKIN.bg, color: SKIN.inkSoft, borderRadius: 4, border: `1px solid ${SKIN.border}` }}>
+                  {lbl}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button style={{ width: "100%", padding: "12px", background: SKIN.ink, color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
+            Confirm — this is correct
           </button>
-        </div>
-
-        {/* Inline form */}
-        <div style={{ opacity: 0.5, pointerEvents: "none" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: SKIN.ink, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>
-            Product details
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <input type="text" value={p.barcode} readOnly style={{ width: "100%", padding: "12px", background: SKIN.surface, border: `1px solid ${SKIN.border}`, borderRadius: 6, fontSize: 14, color: SKIN.ink }} />
-            <input type="text" placeholder="Brand name" style={{ width: "100%", padding: "12px", background: SKIN.surface, border: `1px solid ${SKIN.border}`, borderRadius: 6, fontSize: 14 }} />
-            <input type="text" placeholder="Product name" style={{ width: "100%", padding: "12px", background: SKIN.surface, border: `1px solid ${SKIN.border}`, borderRadius: 6, fontSize: 14 }} />
-            
-            <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
-              <div style={{ flex: 1, height: 80, border: `1px dashed ${SKIN.borderStrong}`, borderRadius: 6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, color: SKIN.inkMute, background: SKIN.surface }}>
-                <Camera size={20} />
-                <span style={{ fontSize: 11, fontWeight: 500 }}>Front photo</span>
-              </div>
-              <div style={{ flex: 1, height: 80, border: `1px dashed ${SKIN.borderStrong}`, borderRadius: 6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, color: SKIN.inkMute, background: SKIN.surface }}>
-                <Camera size={20} />
-                <span style={{ fontSize: 11, fontWeight: 500 }}>Ingredients</span>
-              </div>
-            </div>
-
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: SKIN.ink, marginBottom: 8 }}>Your rating</div>
-              <div style={{ display: "flex", gap: 4 }}>
-                {["Hate", "Meh", "OK", "Love", "Grail"].map((lbl) => (
-                  <div key={lbl} style={{ flex: 1, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, background: SKIN.bg, color: SKIN.inkSoft, borderRadius: 4, border: `1px solid ${SKIN.border}` }}>
-                    {lbl}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
 
       </div>

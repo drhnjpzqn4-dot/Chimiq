@@ -398,15 +398,26 @@ export default function BottomSheetVariant() {
           }}>
             <div style={{ width: 40, height: 4, background: SKIN.borderStrong, borderRadius: 2, margin: "0 auto 24px" }} />
             
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-               <div style={{ width: 40, height: 40, borderRadius: 20, background: SKIN.roseSoft, color: SKIN.rose, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                 <Compass size={20} />
-               </div>
-               <div style={{ fontFamily: SKIN.fontSerif, fontSize: 22, fontWeight: 700 }}>New discovery!</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 20, background: SKIN.roseSoft, color: SKIN.rose, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Compass size={20} />
+                </div>
+                <div style={{ fontFamily: SKIN.fontSerif, fontSize: 22, fontWeight: 700 }}>New discovery!</div>
+              </div>
+              <button aria-label="Dismiss" style={{ width: 32, height: 32, borderRadius: 16, background: SKIN.bg, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <X size={18} color={SKIN.inkSoft} />
+              </button>
             </div>
-            <p style={{ fontSize: 14, color: SKIN.inkSoft, marginBottom: 24, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 14, color: SKIN.inkSoft, marginBottom: 16, lineHeight: 1.5 }}>
               We don't have this one yet. Be the first to add it and help the community.
             </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: SKIN.primaryStrong, fontWeight: 600, marginBottom: 20 }}>
+              <div style={{ width: 22, height: 22, borderRadius: 11, background: SKIN.primarySoft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 }}>
+                +5
+              </div>
+              earns 5 of 30 toward your free Premium month
+            </div>
             
             <div style={{ flex: 1, overflowY: "auto" }}>
               <div style={{ background: SKIN.bg, border: `1px solid ${SKIN.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
@@ -450,7 +461,7 @@ export default function BottomSheetVariant() {
             
             <div style={{ paddingTop: 16 }}>
                <button style={{ width: "100%", background: SKIN.primaryStrong, color: "#fff", border: "none", padding: "16px", borderRadius: 24, fontSize: 16, fontWeight: 600 }}>
-                 Add to Database
+                 Confirm — this is correct
                </button>
             </div>
           </div>
