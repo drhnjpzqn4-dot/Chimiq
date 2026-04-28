@@ -4,6 +4,7 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { ScanLine, Sparkles } from "lucide-react";
 import { LandingPage } from "@/components/LandingPage";
 import { generalConfig } from "@/lib/landing-config";
+import { useTranslation } from "@/lib/i18n";
 
 function isStandaloneDisplay(): boolean {
   if (typeof window === "undefined") return false;
@@ -18,6 +19,7 @@ function isStandaloneDisplay(): boolean {
  * shell. The full marketing landing page is reserved for browser tabs.
  */
 function StandaloneWelcome() {
+  const { t } = useTranslation();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
   return (
     <main
@@ -35,11 +37,10 @@ function StandaloneWelcome() {
           SkinScreen
         </h1>
         <p className="mt-2 text-sm font-medium uppercase tracking-widest text-primary">
-          AI ingredient scanner
+          {t("homeStandalone.kicker")}
         </p>
         <p className="mt-6 max-w-sm text-base text-muted-foreground">
-          Snap any skincare label. We'll flag conflicts and suggest safer
-          alternatives in seconds.
+          {t("homeStandalone.body")}
         </p>
       </div>
       <div className="space-y-3 pb-2">
@@ -49,10 +50,10 @@ function StandaloneWelcome() {
           className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-base font-semibold text-white shadow-lg shadow-primary/25 transition-transform active:scale-[0.98]"
         >
           <Sparkles className="h-4 w-4" />
-          Sign in & start scanning
+          {t("homeStandalone.cta")}
         </a>
         <p className="text-center text-xs text-muted-foreground">
-          Free to start · Premium 49 SEK/mo
+          {t("homeStandalone.priceNote")}
         </p>
       </div>
     </main>

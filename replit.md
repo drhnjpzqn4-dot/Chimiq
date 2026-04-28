@@ -174,3 +174,19 @@ Utility scripts package. Each script is a `.ts` file in `src/` with a correspond
   least one reliably-flagged ingredient token (fragrance / paraben /
   hydroquinone / dye / etc.) so the alternatives panel never renders
   empty. Removing or malforming a seed in the future fails CI.
+- **Full Swedish coverage (Apr 2026)** — every marketing surface
+  (`LandingPage`, `Home`/`StandaloneWelcome`, `Pricing`/`PricingSection`,
+  `Discover`/`DiscoverDetail`, `Recipes`/`RecipeDetail`, not-found) and
+  every in-app page (`Browse`, `BrowseDetail`, `Leaderboard`, `Problems`,
+  `Rewards`, `RecipeSubmit`) is now driven from `src/lib/i18n.tsx` with
+  EN / SV / FR dictionaries kept at strict key parity (~360 keys per
+  locale). Admin pages (`AdminPage`, `AdminRecipesPage`) intentionally
+  remain English-only. Variant-aware hero + scanner copy is now keyed
+  via `landing-config.ts` (`headlineKey`, `subheadKey`,
+  `scannerSubheadKey`, `scannerCtaLabelKey.{single,compare}`) so the
+  three landing variants stay translatable without duplicating React
+  components. `DangerCard` translates the `HIGH RISK` / `CAUTION` badge
+  and the `Source:` label internally so existing call sites stay
+  unchanged. Locale resolution priority is `?lang=` URL param →
+  `localStorage["skinscreen.locale"]` → browser `navigator.language` →
+  `en`; the URL-param hop makes spot-checks (e.g. `/?lang=sv`) trivial.

@@ -1,37 +1,45 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Check, X, Zap, Loader2, ShieldCheck } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { cn } from "@/lib/utils";
 import { getBaseUrl } from "@/lib/base-url";
-
-const FREE_FEATURES: Array<{ label: string; included: boolean }> = [
-  { label: "Ingredient safety analysis", included: true },
-  { label: "Compare 2 products (side-by-side)", included: true },
-  { label: "Barcode scanner", included: true },
-  { label: "Find a Dermatologist", included: true },
-  { label: "My Shelf (up to 2 products)", included: true },
-  { label: "Unlimited shelf products", included: false },
-  { label: "Full routine cross-check", included: false },
-  { label: "AI Chat", included: false },
-  { label: "PDF Safety Report", included: false },
-];
-
-const PREMIUM_FEATURES: Array<{ label: string }> = [
-  { label: "Everything in Free" },
-  { label: "Unlimited shelf products" },
-  { label: "Full routine cross-check" },
-  { label: "AI Chat with SkinScreen" },
-  { label: "PDF Safety Report" },
-];
+import { useTranslation } from "@/lib/i18n";
 
 export function PricingSection() {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   const { plan, isLoading } = useUserPlan();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
+
+  const FREE_FEATURES = useMemo(
+    () => [
+      { label: t("pricing.feat.safetyAnalysis"), included: true },
+      { label: t("pricing.feat.compare2SideBySide"), included: true },
+      { label: t("pricing.feat.barcode"), included: true },
+      { label: t("pricing.feat.findDerm"), included: true },
+      { label: t("pricing.feat.shelfLimited"), included: true },
+      { label: t("pricing.feat.shelfUnlimited"), included: false },
+      { label: t("pricing.feat.routineCheck"), included: false },
+      { label: t("pricing.feat.aiChat"), included: false },
+      { label: t("pricing.feat.pdf"), included: false },
+    ],
+    [t],
+  );
+
+  const PREMIUM_FEATURES = useMemo(
+    () => [
+      { label: t("pricing.feat.everythingFree") },
+      { label: t("pricing.feat.shelfUnlimited") },
+      { label: t("pricing.feat.routineCheck") },
+      { label: t("pricing.feat.aiChatWith") },
+      { label: t("pricing.feat.pdf") },
+    ],
+    [t],
+  );
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -51,10 +59,10 @@ export function PricingSection() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError(data.error ?? "Something went wrong.");
+        setError(data.error ?? t("pricing.errorGenericShort"));
       }
     } catch {
-      setError("Failed to connect to payment service.");
+      setError(t("pricing.errorConnectShort"));
     } finally {
       setLoading(false);
     }
@@ -64,12 +72,14 @@ export function PricingSection() {
     <section id="pricing" className="w-full max-w-5xl mx-auto px-4">
       <FadeIn>
         <div className="text-center mb-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">Pricing</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
+            {t("pricing.kicker")}
+          </p>
           <h2 className="text-3xl sm:text-4xl font-serif font-semibold text-foreground mb-3">
-            Free to start. Upgrade when ready.
+            {t("pricing.sectionHeadline")}
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Most people never need more than the free tier. But if your shelf keeps growing, Premium has you covered.
+            {t("pricing.sectionSub")}
           </p>
         </div>
       </FadeIn>
@@ -78,10 +88,12 @@ export function PricingSection() {
         <FadeIn delay={0.05}>
           <div className="bg-white rounded-3xl border border-border/60 shadow-sm p-7 flex flex-col h-full">
             <div className="mb-5">
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Free</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                {t("pricing.free")}
+              </p>
               <div className="flex items-end gap-1">
-                <span className="text-3xl font-bold text-foreground">$0</span>
-                <span className="text-muted-foreground mb-0.5">/month</span>
+                <span className="text-3xl font-bold text-foreground">{t("pricing.zeroPrice")}</span>
+                <span className="text-muted-foreground mb-0.5">{t("pricing.perMonth")}</span>
               </div>
             </div>
 
@@ -105,7 +117,7 @@ export function PricingSection() {
 
             <div className="mt-6">
               <div className="w-full py-2.5 rounded-xl bg-[#F5F5F7] text-center text-sm font-medium text-muted-foreground">
-                {plan === "free" ? "Your current plan" : "Included"}
+                {plan === "free" ? t("pricing.currentPlan") : t("pricing.included")}
               </div>
             </div>
           </div>
@@ -117,9 +129,9 @@ export function PricingSection() {
 
             <div className="relative mb-5">
               <div className="flex items-center gap-2 mb-3">
-                <p className="text-xs font-semibold uppercase tracking-widest text-primary">Premium</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary">{t("pricing.premium")}</p>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
-                  <Zap className="w-2.5 h-2.5" /> Most popular
+                  <Zap className="w-2.5 h-2.5" /> {t("pricing.mostPopular")}
                 </span>
               </div>
 
@@ -134,7 +146,7 @@ export function PricingSection() {
                       : "text-white/60 hover:text-white",
                   )}
                 >
-                  Monthly
+                  {t("pricing.monthly")}
                 </button>
                 <button
                   type="button"
@@ -146,14 +158,14 @@ export function PricingSection() {
                       : "text-white/60 hover:text-white",
                   )}
                 >
-                  Yearly
+                  {t("pricing.yearly")}
                   <span className={cn(
                     "px-1.5 py-0.5 rounded-full text-[9px] font-bold",
                     billing === "yearly"
                       ? "bg-primary text-white"
                       : "bg-primary/30 text-primary",
                   )}>
-                    Save 98 SEK
+                    {t("pricing.save98")}
                   </span>
                 </button>
               </div>
@@ -164,11 +176,11 @@ export function PricingSection() {
                 </span>
                 <span className="text-base font-semibold text-white/70 mb-0.5">SEK</span>
                 <span className="text-white/50 mb-0.5">
-                  /{billing === "yearly" ? "year" : "month"}
+                  /{billing === "yearly" ? t("pricing.year") : t("pricing.month")}
                 </span>
               </div>
               <p className="text-xs text-white/40 mt-1">
-                {billing === "yearly" ? "≈ 41 SEK/mo · cancel anytime" : "Cancel anytime"}
+                {billing === "yearly" ? t("pricing.yearlyHintShort") : t("pricing.cancelAnytime")}
               </p>
             </div>
 
@@ -188,7 +200,7 @@ export function PricingSection() {
               {plan === "premium" ? (
                 <div className="w-full py-2.5 rounded-xl bg-primary/20 text-center text-sm font-medium text-primary border border-primary/30">
                   <ShieldCheck className="w-4 h-4 inline mr-1" />
-                  You&apos;re on Premium
+                  {t("pricing.youreOnPremium")}
                 </div>
               ) : (
                 <button
@@ -197,9 +209,9 @@ export function PricingSection() {
                   className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" />Redirecting…</>
+                    <><Loader2 className="w-4 h-4 animate-spin" />{t("pricing.redirecting")}</>
                   ) : (
-                    <>Get Premium — {billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo"}</>
+                    <>{billing === "yearly" ? t("pricing.getPremiumYr") : t("pricing.getPremiumMo")}</>
                   )}
                 </button>
               )}
@@ -210,7 +222,7 @@ export function PricingSection() {
 
       <FadeIn delay={0.15}>
         <p className="text-center text-xs text-muted-foreground/50 mt-6">
-          Secure payments via Stripe · No subscription lock-in · Cancel in one click
+          {t("pricing.secureFooter")}
         </p>
       </FadeIn>
     </section>

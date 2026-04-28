@@ -15,6 +15,7 @@ import type { LandingConfig } from "@/lib/landing-config";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "@/lib/i18n";
 import {
   ScanLine, ShieldCheck,
   AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
@@ -37,49 +38,12 @@ const DISASTER_MIX_SEED: ScannerSeed = {
   autoRun: true,
 };
 
-const dangerCombinations = [
-  {
-    pair: "Retinol + AHA/BHA",
-    risk: "Both are chemical exfoliants. Together they cause severe skin irritation, redness, and can damage the skin barrier — especially at night when skin is most vulnerable.",
-    citation: "Kligman, A.M. (1988). The compatibility of combinations of glycolic acid and tretinoin. J Dermatol Treat.",
-    citationUrl: "https://doi.org/10.3109/09546639409086912",
-    severity: "HIGH RISK" as const,
-  },
-  {
-    pair: "Retinol + Benzoyl Peroxide",
-    risk: "Benzoyl peroxide oxidises retinol, rendering it inactive. You're paying for two products that cancel each other out — and drying out your skin in the process.",
-    citation: "Nighswonger, B.D. et al. (1993). Retinoid interactions with benzoyl peroxide. J Pharm Sci. PMID: 8450449",
-    citationUrl: "https://pubmed.ncbi.nlm.nih.gov/8450449/",
-    severity: "HIGH RISK" as const,
-  },
-  {
-    pair: "AHAs + No Sunscreen",
-    risk: "Glycolic acid and lactic acid increase UV sensitivity by up to 50%. Using them without SPF dramatically raises your risk of sun damage, hyperpigmentation, and skin cancer.",
-    citation: "Kornhauser, A. et al. (2010). Applications of hydroxy acids. Clin Cosmet Investig Dermatol.",
-    citationUrl: "https://doi.org/10.2147/CCID.S9042",
-    severity: "HIGH RISK" as const,
-  },
-  {
-    pair: "Vitamin C + Niacinamide",
-    risk: "Widely debated. Some studies show they can form niacin when combined at high temperatures, potentially causing flushing. Safest to use at separate times of day.",
-    citation: "Wohlrab, J. & Kreft, D. (2014). Niacinamide — mechanisms of action. Skin Pharmacol Physiol.",
-    citationUrl: "https://doi.org/10.1159/000354888",
-    severity: "CAUTION" as const,
-  },
-  {
-    pair: "Kojic Acid + Vitamin C",
-    risk: "Both compete for the same oxidation pathway, reducing each other's brightening effect. Combined, they can also increase skin sensitivity and cause unexpected irritation.",
-    citation: "Parvez, S. et al. (2006). Naturally occurring tyrosinase inhibitors. Phytother Res.",
-    citationUrl: "https://doi.org/10.1002/ptr.1954",
-    severity: "HIGH RISK" as const,
-  },
-];
-
 interface LandingPageProps {
   config: LandingConfig;
 }
 
 function StickySubNav({ visible }: { visible: boolean }) {
+  const { t } = useTranslation();
   return (
     <div
       className={cn(
@@ -94,27 +58,27 @@ function StickySubNav({ visible }: { visible: boolean }) {
           onClick={(e) => { e.preventDefault(); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}
           className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
         >
-          How it works
+          {t("nav.howItWorks")}
         </a>
         <a
           href="#scanner"
           onClick={(e) => { e.preventDefault(); document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }); }}
           className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
         >
-          Try it now
+          {t("nav.tryItNow")}
         </a>
         <a
           href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/discover`}
           className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
         >
-          Discover
+          {t("nav.discover")}
         </a>
         <a
           href="#earn-premium"
           onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
           className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors hidden sm:inline"
         >
-          Earn free premium
+          {t("nav.earnFreePremium")}
         </a>
       </div>
     </div>
@@ -122,6 +86,7 @@ function StickySubNav({ visible }: { visible: boolean }) {
 }
 
 function ContactFooterForm() {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -129,7 +94,7 @@ function ContactFooterForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const subject = encodeURIComponent("SkinScreen enquiry");
+    const subject = encodeURIComponent(t("footer.contactSubject"));
     const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`);
     window.location.href = `mailto:pia@seafari.se?subject=${subject}&body=${body}`;
     setSubmitted(true);
@@ -139,19 +104,19 @@ function ContactFooterForm() {
   if (submitted) {
     return (
       <div className="flex items-center justify-center h-full min-h-[200px]">
-        <p className="text-sm font-medium text-[#7BAF7A]">Thanks — we'll be in touch.</p>
+        <p className="text-sm font-medium text-[#7BAF7A]">{t("footer.thanks")}</p>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h3 className="text-lg font-serif font-semibold text-foreground mb-1">Get in touch</h3>
+      <h3 className="text-lg font-serif font-semibold text-foreground mb-1">{t("footer.getInTouch")}</h3>
       <input
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Your name"
+        placeholder={t("footer.namePlaceholder")}
         required
         className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/30 focus:border-[#7BAF7A]/50"
       />
@@ -159,14 +124,14 @@ function ContactFooterForm() {
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="your@email.com"
+        placeholder={t("footer.emailPlaceholder")}
         required
         className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/30 focus:border-[#7BAF7A]/50"
       />
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="What's on your mind?"
+        placeholder={t("footer.messagePlaceholder")}
         rows={4}
         required
         className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/30 focus:border-[#7BAF7A]/50 resize-none"
@@ -175,13 +140,14 @@ function ContactFooterForm() {
         type="submit"
         className="w-full bg-[#7BAF7A] hover:bg-[#6a9e69] text-white py-3 rounded-xl text-sm font-semibold transition-colors"
       >
-        Send message
+        {t("footer.send")}
       </button>
     </form>
   );
 }
 
 export function LandingPage({ config }: LandingPageProps) {
+  const { t } = useTranslation();
   const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
   const [scannerSeed, setScannerSeed] = useState<ScannerSeed | null>(null);
   const [stats, setStats] = useState<SiteStats | null>(null);
@@ -190,6 +156,44 @@ export function LandingPage({ config }: LandingPageProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const upgradedToastShown = useRef(false);
+
+  const dangerCombinations = [
+    {
+      pair: t("dangerZone.combo1Pair"),
+      risk: t("dangerZone.combo1Risk"),
+      citation: "Kligman, A.M. (1988). The compatibility of combinations of glycolic acid and tretinoin. J Dermatol Treat.",
+      citationUrl: "https://doi.org/10.3109/09546639409086912",
+      severity: "HIGH RISK" as const,
+    },
+    {
+      pair: t("dangerZone.combo2Pair"),
+      risk: t("dangerZone.combo2Risk"),
+      citation: "Nighswonger, B.D. et al. (1993). Retinoid interactions with benzoyl peroxide. J Pharm Sci. PMID: 8450449",
+      citationUrl: "https://pubmed.ncbi.nlm.nih.gov/8450449/",
+      severity: "HIGH RISK" as const,
+    },
+    {
+      pair: t("dangerZone.combo3Pair"),
+      risk: t("dangerZone.combo3Risk"),
+      citation: "Kornhauser, A. et al. (2010). Applications of hydroxy acids. Clin Cosmet Investig Dermatol.",
+      citationUrl: "https://doi.org/10.2147/CCID.S9042",
+      severity: "HIGH RISK" as const,
+    },
+    {
+      pair: t("dangerZone.combo4Pair"),
+      risk: t("dangerZone.combo4Risk"),
+      citation: "Wohlrab, J. & Kreft, D. (2014). Niacinamide — mechanisms of action. Skin Pharmacol Physiol.",
+      citationUrl: "https://doi.org/10.1159/000354888",
+      severity: "CAUTION" as const,
+    },
+    {
+      pair: t("dangerZone.combo5Pair"),
+      risk: t("dangerZone.combo5Risk"),
+      citation: "Parvez, S. et al. (2006). Naturally occurring tyrosinase inhibitors. Phytother Res.",
+      citationUrl: "https://doi.org/10.1002/ptr.1954",
+      severity: "HIGH RISK" as const,
+    },
+  ];
 
   useEffect(() => {
     fetch("/api/stats", { credentials: "include" })
@@ -204,15 +208,15 @@ export function LandingPage({ config }: LandingPageProps) {
     if (params.get("upgraded") === "true") {
       upgradedToastShown.current = true;
       toast({
-        title: "Welcome to Premium!",
-        description: "Your plan has been upgraded. Enjoy unlimited shelf products, AI Chat, and more.",
+        title: t("toast.welcomePremium"),
+        description: t("toast.welcomePremiumDesc"),
       });
       queryClient.invalidateQueries({ queryKey: ["user-plan"] });
       const url = new URL(window.location.href);
       url.searchParams.delete("upgraded");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [toast, queryClient]);
+  }, [toast, queryClient, t]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -264,6 +268,11 @@ export function LandingPage({ config }: LandingPageProps) {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const scannerCtaLabel = {
+    single: t(config.scannerCtaLabelKey.single as never),
+    compare: t(config.scannerCtaLabelKey.compare as never),
+  };
+
   return (
     <main className="min-h-screen bg-background overflow-hidden">
       <PWAInstallBanner />
@@ -289,15 +298,15 @@ export function LandingPage({ config }: LandingPageProps) {
                 >
                   <User className="w-4 h-4" />
                   <span className="hidden sm:inline">{displayName}</span>
-                  <span className="sm:hidden">My Shelf</span>
+                  <span className="sm:hidden">{t("nav.myShelf")}</span>
                 </a>
                 <button
                   onClick={logout}
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-border/20"
-                  aria-label="Log out"
+                  aria-label={t("auth.logOut")}
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Log out</span>
+                  <span className="hidden sm:inline">{t("auth.logOut")}</span>
                 </button>
               </div>
             ) : (
@@ -306,7 +315,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 onClick={() => login()}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 px-4 py-2 rounded-full transition-colors"
               >
-                Sign in
+                {t("auth.signIn")}
               </button>
             )}
           </div>
@@ -331,18 +340,18 @@ export function LandingPage({ config }: LandingPageProps) {
           <FadeIn direction="down" delay={0.1}>
             <span className="inline-flex items-center gap-1.5 py-1.5 px-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white/70 text-xs font-medium tracking-widest uppercase mb-8">
               <ShieldCheck className="w-3 h-3 text-primary" />
-              AI Ingredient Safety Scanner
+              {t("hero.badge")}
             </span>
           </FadeIn>
 
           <FadeIn delay={0.2} className="max-w-4xl">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] font-serif text-white leading-[1.08] tracking-tight mb-4">
-              Scan ingredients.<br className="hidden sm:block" />{" "}
-              Build your shelf.{" "}
-              <span className="italic text-white/50">Catch conflicts.</span>
+              {t("landing.heroLine1")}<br className="hidden sm:block" />{" "}
+              {t("landing.heroLine2")}{" "}
+              <span className="italic text-white/50">{t("landing.heroItalic")}</span>
             </h1>
             <p className="text-lg sm:text-xl font-light text-white/80 mt-5 max-w-2xl mx-auto leading-relaxed">
-              Sign in, save the products you use, and let our AI flag dangerous skincare combinations <em>before</em> they damage your skin.
+              {t("landing.heroBody")}
             </p>
           </FadeIn>
 
@@ -368,7 +377,7 @@ export function LandingPage({ config }: LandingPageProps) {
                           opacity: 0,
                         }}
                       >
-                        ⚠ Conflict
+                        {t("hero.conflict")}
                       </span>
                     )}
                   </>
@@ -406,7 +415,7 @@ export function LandingPage({ config }: LandingPageProps) {
                   onClick={(e) => { e.preventDefault(); document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }); }}
                   className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
                 >
-                  Try it now →
+                  {t("nav.tryItNowArrow")}
                 </a>
               ) : (
                 <button
@@ -414,7 +423,7 @@ export function LandingPage({ config }: LandingPageProps) {
                   onClick={() => login()}
                   className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
                 >
-                  Sign in / Get started free
+                  {t("nav.signInGetStarted")}
                 </button>
               )}
               <a
@@ -422,7 +431,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 onClick={(e) => { e.preventDefault(); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}
                 className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/18 backdrop-blur-sm text-white border border-white/25 px-8 py-4 rounded-full text-base font-medium transition-all duration-200 hover:-translate-y-0.5 w-full sm:w-auto"
               >
-                See how it works
+                {t("nav.seeHowItWorks")}
               </a>
             </div>
           </FadeIn>
@@ -435,9 +444,9 @@ export function LandingPage({ config }: LandingPageProps) {
         <div className="max-w-5xl mx-auto">
           <FadeIn>
             <div className="text-center mb-14">
-              <h2 className="text-3xl md:text-5xl font-serif mb-4">How SkinScreen works</h2>
+              <h2 className="text-3xl md:text-5xl font-serif mb-4">{t("howItWorks.title")}</h2>
               <p className="text-muted-foreground max-w-xl mx-auto text-lg">
-                Three steps. Seconds. No guesswork.
+                {t("howItWorks.subtitle")}
               </p>
             </div>
           </FadeIn>
@@ -473,8 +482,8 @@ export function LandingPage({ config }: LandingPageProps) {
                     <rect x="55.5" y="70" width="2" height="3" rx="0.5" fill="#2A2A2A"/>
                   </svg>
                 </div>
-                <h3 className="text-xl font-serif font-semibold mb-3">Scan or paste</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">Photograph your ingredient list, scan the barcode, or choose from popular products.</p>
+                <h3 className="text-xl font-serif font-semibold mb-3">{t("howItWorks.scanTitle")}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{t("howItWorks.scanBody")}</p>
               </div>
             </FadeIn>
 
@@ -503,8 +512,8 @@ export function LandingPage({ config }: LandingPageProps) {
                     <rect x="58" y="46" width="8" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
                   </svg>
                 </div>
-                <h3 className="text-xl font-serif font-semibold mb-3">Build your routine</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">Add multiple products to check how they interact — not just what's in them.</p>
+                <h3 className="text-xl font-serif font-semibold mb-3">{t("howItWorks.routineTitle")}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{t("howItWorks.routineBody")}</p>
               </div>
             </FadeIn>
 
@@ -514,14 +523,14 @@ export function LandingPage({ config }: LandingPageProps) {
                 <div className="mb-5 flex items-center justify-center" style={{ height: 80 }}>
                   <div style={{ background: "#FEF2F2", border: "1.5px solid #FECACA", borderRadius: 12, padding: "10px 14px", minWidth: 150 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <span style={{ background: "#EF4444", color: "#fff", borderRadius: 5, padding: "2px 7px", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>HIGH RISK</span>
+                      <span style={{ background: "#EF4444", color: "#fff", borderRadius: 5, padding: "2px 7px", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>{t("dangerZone.severityHigh")}</span>
                     </div>
-                    <p style={{ fontWeight: 700, color: "#991B1B", fontSize: 11, lineHeight: 1.3, margin: 0 }}>Retinol + Glycolic Acid</p>
-                    <p style={{ color: "#B91C1C", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4, opacity: 0.8 }}>Degrades retinol efficacy</p>
+                    <p style={{ fontWeight: 700, color: "#991B1B", fontSize: 11, lineHeight: 1.3, margin: 0 }}>{t("howItWorks.demoPair")}</p>
+                    <p style={{ color: "#B91C1C", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4, opacity: 0.8 }}>{t("howItWorks.demoSubtitle")}</p>
                   </div>
                 </div>
-                <h3 className="text-xl font-serif font-semibold mb-3">See the risks</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">Get instant conflict detection with clear red, yellow, and green ratings — and what to do instead.</p>
+                <h3 className="text-xl font-serif font-semibold mb-3">{t("howItWorks.risksTitle")}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{t("howItWorks.risksBody")}</p>
               </div>
             </FadeIn>
           </div>
@@ -543,7 +552,7 @@ export function LandingPage({ config }: LandingPageProps) {
                   marginBottom: 12,
                 }}
               >
-                Try It Now
+                {t("scannerSection.kicker")}
               </p>
               <h2
                 style={{
@@ -556,9 +565,9 @@ export function LandingPage({ config }: LandingPageProps) {
                   lineHeight: 1.1,
                 }}
               >
-                CHIMIQ SCANNER
+                {t("scannerSection.brand")}
               </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">{config.scannerSubhead}</p>
+              <p className="text-muted-foreground max-w-xl mx-auto">{t(config.scannerSubheadKey as never)}</p>
             </div>
           </FadeIn>
 
@@ -574,7 +583,7 @@ export function LandingPage({ config }: LandingPageProps) {
               boxShadow: "0 4px 32px rgba(0,0,0,0.05)",
             }}
           >
-            <IngredientScanner ctaLabel={config.scannerCtaLabel} seed={scannerSeed} />
+            <IngredientScanner ctaLabel={scannerCtaLabel} seed={scannerSeed} />
           </div>
         </div>
       </section>
@@ -584,10 +593,10 @@ export function LandingPage({ config }: LandingPageProps) {
         <div className="max-w-7xl mx-auto">
           <FadeIn>
             <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
-              What you don't know can hurt your skin.
+              {t("dangerZone.title")}
             </h2>
             <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
-              These are real, documented ingredient conflicts — the kind your dermatologist knows, but the beauty industry doesn't advertise.
+              {t("dangerZone.subtitle")}
             </p>
           </FadeIn>
 
@@ -616,14 +625,14 @@ export function LandingPage({ config }: LandingPageProps) {
             <div className="text-center mb-12">
               <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full bg-red-100 text-red-600 text-sm font-semibold tracking-wide mb-6">
                 <Skull className="w-3.5 h-3.5" />
-                Disaster Mix
+                {t("disasterMix.badge")}
               </span>
               <h2 className="text-3xl md:text-5xl font-serif mb-4">
-                The routine that sells millions —<br className="hidden sm:block" />
-                <span className="italic text-red-500">and quietly damages skin.</span>
+                {t("disasterMix.titleLine1")}<br className="hidden sm:block" />
+                <span className="italic text-red-500">{t("disasterMix.titleItalic")}</span>
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-                These three products are consistently bought together. They're sold in the same store, recommended in the same "beginner skincare" guides. They are also a clinically documented disaster combination.
+                {t("disasterMix.subtitle")}
               </p>
             </div>
           </FadeIn>
@@ -631,14 +640,14 @@ export function LandingPage({ config }: LandingPageProps) {
           <FadeIn delay={0.15}>
             <div className="rounded-3xl border border-red-200 bg-red-50/40 overflow-hidden">
               <div className="px-6 sm:px-10 pt-8 pb-6">
-                <p className="text-xs font-bold uppercase tracking-widest text-red-400 mb-5 text-center">The routine</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-red-400 mb-5 text-center">{t("disasterMix.theRoutine")}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                   {[
                     {
                       brand: "The Ordinary",
                       name: "Retinol 1% in Squalane",
                       activeIngredient: "Retinol 1%",
-                      role: "PM serum",
+                      role: t("disasterMix.rolePmSerum"),
                       image: `${import.meta.env.BASE_URL}images/the-ordinary-retinol.webp`,
                       imageAlt: "The Ordinary Retinol 1% in Squalane bottle",
                     },
@@ -646,7 +655,7 @@ export function LandingPage({ config }: LandingPageProps) {
                       brand: "The Ordinary",
                       name: "Salicylic Acid 2% Anhydrous Solution",
                       activeIngredient: "Salicylic Acid 2%",
-                      role: "AM/PM treatment",
+                      role: t("disasterMix.roleAmPm"),
                       image: `${import.meta.env.BASE_URL}images/the-ordinary-salicylic-acid.webp`,
                       imageAlt: "The Ordinary Salicylic Acid 2% Anhydrous Solution bottle",
                     },
@@ -654,7 +663,7 @@ export function LandingPage({ config }: LandingPageProps) {
                       brand: "The Ordinary",
                       name: "AHA 30% + BHA 2% Peeling Solution",
                       activeIngredient: "AHA 30% + BHA 2%",
-                      role: "PM exfoliant",
+                      role: t("disasterMix.rolePmExfoliant"),
                       image: `${import.meta.env.BASE_URL}images/the-ordinary-aha-bha.webp`,
                       imageAlt: "The Ordinary AHA 30% + BHA 2% Peeling Solution bottle",
                     },
@@ -681,7 +690,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 </div>
 
                 <div className="space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-red-400 text-center mb-2">What happens when you use them together</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-red-400 text-center mb-2">{t("disasterMix.whatHappens")}</p>
 
                   <div className="p-4 rounded-2xl bg-red-100/60 border border-red-200">
                     <div className="flex items-start gap-3">
@@ -689,9 +698,9 @@ export function LandingPage({ config }: LandingPageProps) {
                         <XCircle className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-red-700 mb-1">Benzoyl Peroxide oxidises Retinol — instantly</p>
+                        <p className="text-sm font-semibold text-red-700 mb-1">{t("disasterMix.bp1Title")}</p>
                         <p className="text-sm text-red-700/80 leading-relaxed">
-                          These two actives deactivate each other on contact. The retinol becomes useless — but both products continue stripping and drying your skin. You get the damage without the benefits.
+                          {t("disasterMix.bp1Body")}
                         </p>
                       </div>
                     </div>
@@ -703,9 +712,9 @@ export function LandingPage({ config }: LandingPageProps) {
                         <AlertTriangle className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-red-700 mb-1">Retinol + Salicylic Acid + AHA = triple exfoliation</p>
+                        <p className="text-sm font-semibold text-red-700 mb-1">{t("disasterMix.bp2Title")}</p>
                         <p className="text-sm text-red-700/80 leading-relaxed">
-                          Three exfoliants in one routine causes severe barrier disruption. The result: redness, peeling, increased UV sensitivity, and a cycle of buying more products to fix the damage these caused.
+                          {t("disasterMix.bp2Body")}
                         </p>
                       </div>
                     </div>
@@ -715,14 +724,14 @@ export function LandingPage({ config }: LandingPageProps) {
 
               <div className="px-6 sm:px-10 py-6 bg-red-50 border-t border-red-200">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm font-medium text-red-700">Is your routine doing this to your skin?</p>
+                  <p className="text-sm font-medium text-red-700">{t("disasterMix.cta")}</p>
                   <button
                     type="button"
                     onClick={handleDisasterMixScan}
                     className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm shrink-0"
                   >
                     <FlaskConical className="w-3.5 h-3.5" />
-                    Scan your routine
+                    {t("disasterMix.ctaButton")}
                   </button>
                 </div>
               </div>
@@ -749,22 +758,22 @@ export function LandingPage({ config }: LandingPageProps) {
             <FadeIn direction="right">
               <div>
                 <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary text-sm font-medium tracking-wide mb-6">
-                  {isAuthenticated ? "Your routine" : "Coming soon"}
+                  {isAuthenticated ? t("myShelfMkt.kickerYour") : t("myShelfMkt.kickerSoon")}
                 </span>
                 <h2 className="text-3xl md:text-5xl font-serif mb-6 leading-tight">
-                  Your personal<br />
-                  <span className="italic text-muted-foreground">skincare shelf.</span>
+                  {t("myShelfMkt.titleLine1")}<br />
+                  <span className="italic text-muted-foreground">{t("myShelfMkt.titleItalic")}</span>
                 </h2>
                 <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-                  Stop testing combinations on your face. My Shelf lets you build your full routine digitally — and checks any new product against everything you already use, <em>before you buy it</em>.
+                  {t("myShelfMkt.body")}
                 </p>
                 <ul className="space-y-4 mb-10">
                   {[
-                    { icon: Sun, text: "Organise your morning & evening routines in one place" },
-                    { icon: ShoppingBag, text: "Scan a new product or scan its barcode in-store — instantly see if it conflicts with your shelf" },
-                    { icon: Bell, text: "Get safety alerts when a new conflict is discovered in your routine" },
-                    { icon: FileText, text: "Download a personalised PDF safety report to share with your dermatologist" },
-                    { icon: MessageCircle, text: "Ask our AI dermatologist anything about your ingredients — backed by peer-reviewed research" },
+                    { icon: Sun, text: t("myShelfMkt.feature1") },
+                    { icon: ShoppingBag, text: t("myShelfMkt.feature2") },
+                    { icon: Bell, text: t("myShelfMkt.feature3") },
+                    { icon: FileText, text: t("myShelfMkt.feature4") },
+                    { icon: MessageCircle, text: t("myShelfMkt.feature5") },
                   ].map(({ icon: Icon, text }) => (
                     <li key={text} className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -780,13 +789,13 @@ export function LandingPage({ config }: LandingPageProps) {
                     onClick={() => login()}
                     className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                   >
-                    Sign in to start your shelf
+                    {t("myShelfMkt.signInToStart")}
                   </button>
                 )}
                 {isAuthenticated && (
                   <p className="flex items-center gap-2 text-primary font-medium text-sm">
                     <CheckCircle2 className="w-4 h-4" />
-                    Signed in as {displayName}
+                    {t("myShelfMkt.signedInAs", { name: displayName ?? "" })}
                   </p>
                 )}
               </div>
@@ -806,16 +815,16 @@ export function LandingPage({ config }: LandingPageProps) {
                         <User className="w-6 h-6 text-primary" />
                       </div>
                       <p className="font-serif text-lg font-semibold text-foreground mb-2">
-                        Your shelf is waiting
+                        {t("myShelfMkt.shelfWaitingTitle")}
                       </p>
                       <p className="text-sm text-muted-foreground mb-5">
-                        Sign in to start building your personal skincare routine.
+                        {t("myShelfMkt.shelfWaitingBody")}
                       </p>
                       <button
                         onClick={() => login()}
                         className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-5 py-2.5 rounded-full font-medium text-sm transition-colors"
                       >
-                        Sign in to get started
+                        {t("myShelfMkt.signInToGetStarted")}
                       </button>
                     </div>
                   </div>
@@ -837,13 +846,13 @@ export function LandingPage({ config }: LandingPageProps) {
         <FadeIn>
           <div className="text-center mb-14">
             <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary text-sm font-medium tracking-wide mb-5">
-              Help the community · Earn free premium
+              {t("earnPremium.kicker")}
             </span>
             <h2 className="text-4xl md:text-5xl font-serif text-foreground mb-4 tracking-tight">
-              Build the database. <span className="italic text-muted-foreground">Earn free premium.</span>
+              {t("earnPremium.titleLine1")} <span className="italic text-muted-foreground">{t("earnPremium.titleItalic")}</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Every product you contribute helps thousands of people avoid skin-damaging combinations.
+              {t("earnPremium.subtitle")}
             </p>
           </div>
         </FadeIn>
@@ -855,15 +864,15 @@ export function LandingPage({ config }: LandingPageProps) {
                 <ShieldCheck className="w-5 h-5 text-primary" />
               </div>
               <h3 className="text-2xl font-serif text-foreground mb-3 leading-tight">
-                Your private skincare shelf
+                {t("earnPremium.privateTitle")}
               </h3>
               <p className="text-muted-foreground mb-5 leading-relaxed">
-                Save every product you use. SkinScreen checks your full routine for conflicts and flags risks before they damage your skin.
+                {t("earnPremium.privateBody")}
               </p>
               <ul className="space-y-2.5 text-sm text-foreground/85">
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>Private to you — never shared</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>AI-powered conflict analysis backed by peer-reviewed research</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>Scan any new product before you buy it</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>{t("earnPremium.privateBullet1")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>{t("earnPremium.privateBullet2")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>{t("earnPremium.privateBullet3")}</span></li>
               </ul>
             </div>
           </FadeIn>
@@ -874,16 +883,16 @@ export function LandingPage({ config }: LandingPageProps) {
                 <Plus className="w-5 h-5 text-primary" />
               </div>
               <h3 className="text-2xl font-serif text-foreground mb-3 leading-tight">
-                Add 30 new products = <span className="text-primary">1 month premium free</span>
+                {t("earnPremium.contribTitlePart1")} <span className="text-primary">{t("earnPremium.contribTitlePart2")}</span>
               </h3>
               <p className="text-muted-foreground mb-5 leading-relaxed">
-                Help us crowdsource the world's largest skincare ingredient database. Each new product needs:
+                {t("earnPremium.contribBody")}
               </p>
               <ul className="space-y-2.5 text-sm text-foreground/85 mb-6">
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>Product name</strong> &amp; brand</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>Barcode</strong> (so others can find it)</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>Photo</strong> of the packaging</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>Full ingredient list</strong></span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet1Bold")}</strong> {t("earnPremium.contribBullet1Rest")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet2Bold")}</strong> {t("earnPremium.contribBullet2Rest")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet3Bold")}</strong> {t("earnPremium.contribBullet3Rest")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet4Bold")}</strong> {t("earnPremium.contribBullet4Rest")}</span></li>
               </ul>
               {!isAuthenticated ? (
                 <button
@@ -891,14 +900,14 @@ export function LandingPage({ config }: LandingPageProps) {
                   onClick={() => login()}
                   className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                 >
-                  Sign in to contribute
+                  {t("earnPremium.signInToContribute")}
                 </button>
               ) : (
                 <a
                   href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/app`}
                   className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                 >
-                  Start contributing
+                  {t("earnPremium.startContributing")}
                 </a>
               )}
             </div>
@@ -925,23 +934,23 @@ export function LandingPage({ config }: LandingPageProps) {
                 style={{ height: 52, width: "auto", objectFit: "contain", objectPosition: "left" }}
               />
               <p className="text-sm text-muted-foreground leading-relaxed">
-                © {new Date().getFullYear()} ChimIQ. Smarter skincare starts here.
+                {t("footer.copyright", { year: String(new Date().getFullYear()) })}
               </p>
               <div className="text-sm text-muted-foreground">
-                <span className="text-foreground font-medium">Skincare</span>
+                <span className="text-foreground font-medium">{t("footer.skincare")}</span>
                 {" · "}
                 <span>
-                  Hair{" "}
-                  <span className="text-muted-foreground/50 text-xs">(coming soon)</span>
+                  {t("footer.hair")}{" "}
+                  <span className="text-muted-foreground/50 text-xs">{t("footer.comingSoon")}</span>
                 </span>
                 {" · "}
                 <span>
-                  Household{" "}
-                  <span className="text-muted-foreground/50 text-xs">(coming soon)</span>
+                  {t("footer.household")}{" "}
+                  <span className="text-muted-foreground/50 text-xs">{t("footer.comingSoon")}</span>
                 </span>
               </div>
               <p className="text-xs text-muted-foreground/60 leading-relaxed max-w-xs">
-                SkinScreen is the first ChimIQ product. We scan ingredient lists across categories — because what you put on your skin, hair, and home matters.
+                {t("footer.aboutChimIQ")}
               </p>
             </div>
 

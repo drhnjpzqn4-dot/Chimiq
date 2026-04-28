@@ -6,8 +6,6 @@ import {
   getMistake,
   getWorry,
   SCANNER_SEED_STORAGE_KEY,
-  SEVERITY_LABEL,
-  FREQUENCY_LABEL,
   type DiscoverItem,
   type DiscoverCta,
   type MistakeItem,
@@ -26,6 +24,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
@@ -68,6 +67,7 @@ function handleCtaClick(cta: DiscoverCta) {
 }
 
 function ShareButton({ title }: { title: string }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -103,12 +103,12 @@ function ShareButton({ title }: { title: string }) {
       {copied ? (
         <>
           <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-          Link copied
+          {t("discoverDetail.linkCopied")}
         </>
       ) : (
         <>
           <Share2 className="w-3.5 h-3.5" />
-          Share
+          {t("discoverDetail.share")}
         </>
       )}
     </button>
@@ -124,7 +124,11 @@ interface DetailViewProps {
 }
 
 function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps) {
-  const sectionLabel = kind === "mistakes" ? "Top 10 mistakes" : "Top 10 worries";
+  const { t } = useTranslation();
+  const sectionLabel =
+    kind === "mistakes"
+      ? t("discoverDetail.topMistakes")
+      : t("discoverDetail.topWorries");
 
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
@@ -135,7 +139,7 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            Discover
+            {t("discoverPage.kicker")}
           </Link>
           <ShareButton title={item.title} />
         </div>
@@ -170,7 +174,7 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
         <FadeIn delay={0.05}>
           <section className="mb-8">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/70 mb-3">
-              The problem
+              {t("discoverDetail.theProblem")}
             </h2>
             <p className="text-base text-foreground leading-relaxed">{item.problem}</p>
           </section>
@@ -179,7 +183,7 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
         <FadeIn delay={0.1}>
           <section className="mb-8 p-5 sm:p-6 rounded-2xl bg-white border border-border/60">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/70 mb-3">
-              Why it matters
+              {t("discoverDetail.whyItMatters")}
             </h2>
             <p className="text-base text-foreground leading-relaxed mb-3">
               {item.whyItMatters}
@@ -193,7 +197,7 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
               >
                 <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
                 <span className="italic leading-snug">
-                  <span className="font-semibold not-italic">Source: </span>
+                  <span className="font-semibold not-italic">{t("discoverDetail.source")} </span>
                   {item.citation.text}
                 </span>
               </a>
@@ -204,7 +208,7 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
         <FadeIn delay={0.15}>
           <section className="mb-10">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/70 mb-4">
-              The fix — in {item.solution.length} steps
+              {t("discoverDetail.theFixSteps", { n: item.solution.length })}
             </h2>
             <ol className="space-y-3">
               {item.solution.map((step, idx) => (
@@ -246,7 +250,9 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
             className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            Back to {sectionLabel.toLowerCase()}
+            {kind === "mistakes"
+              ? t("discoverDetail.backToTopMistakes")
+              : t("discoverDetail.backToTopWorries")}
           </Link>
         </div>
       </main>
@@ -255,6 +261,7 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
 }
 
 export function MistakeDetail() {
+  const { t } = useTranslation();
   const [, params] = useRoute("/discover/mistakes/:slug");
   const slug = params?.slug;
   const item = slug ? getMistake(slug) : undefined;
@@ -272,7 +279,7 @@ export function MistakeDetail() {
     <DetailView
       kind="mistakes"
       item={item as MistakeItem}
-      tagLabel={SEVERITY_LABEL[item.severity]}
+      tagLabel={t(`severity.${item.severity}`)}
       tagClass={severityClass}
       TagIcon={AlertTriangle}
     />
@@ -280,6 +287,7 @@ export function MistakeDetail() {
 }
 
 export function WorryDetail() {
+  const { t } = useTranslation();
   const [, params] = useRoute("/discover/worries/:slug");
   const slug = params?.slug;
   const item = slug ? getWorry(slug) : undefined;
@@ -297,7 +305,7 @@ export function WorryDetail() {
     <DetailView
       kind="worries"
       item={item as WorryItem}
-      tagLabel={FREQUENCY_LABEL[item.frequency]}
+      tagLabel={t(`frequency.${item.frequency}`)}
       tagClass={freqClass}
       TagIcon={HeartPulse}
     />
@@ -305,19 +313,22 @@ export function WorryDetail() {
 }
 
 function NotFoundDetail({ kind }: { kind: "mistakes" | "worries" }) {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] px-4">
       <div className="text-center max-w-md">
-        <h1 className="text-2xl font-serif text-foreground mb-3">We couldn't find that.</h1>
+        <h1 className="text-2xl font-serif text-foreground mb-3">{t("discoverDetail.notFoundTitle")}</h1>
         <p className="text-muted-foreground mb-6">
-          The page you're looking for might have moved.
+          {t("discoverDetail.notFoundBody")}
         </p>
         <Link
           href="/discover"
           className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full text-sm font-semibold transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
-          Back to {kind === "mistakes" ? "top mistakes" : "top worries"}
+          {kind === "mistakes"
+            ? t("discoverDetail.backToTopMistakes")
+            : t("discoverDetail.backToTopWorries")}
         </Link>
       </div>
     </div>

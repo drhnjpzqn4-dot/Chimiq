@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useTranslation } from "@/lib/i18n";
 
 const CATEGORIES = [
   "all",
@@ -43,19 +44,23 @@ interface RecipeCard {
   aiVerdict: { summary: string } | null;
 }
 
-const RISK_BADGE: Record<RiskLevel, { bg: string; text: string; label: string; Icon: typeof CheckCircle2 }> = {
-  safe: { bg: "bg-green-100", text: "text-green-700", label: "Safe", Icon: CheckCircle2 },
-  caution: { bg: "bg-amber-100", text: "text-amber-700", label: "Caution", Icon: AlertTriangle },
-  high_risk: { bg: "bg-red-100", text: "text-red-700", label: "High risk", Icon: ShieldAlert },
-};
-
 export default function RecipesPage() {
+  const { t } = useTranslation();
   const [recipes, setRecipes] = useState<RecipeCard[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("all");
   const [skinType, setSkinType] = useState<(typeof SKIN_TYPES)[number]>("all");
   const [risk, setRisk] = useState<(typeof RISK_LEVELS)[number]>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const RISK_BADGE: Record<RiskLevel, { bg: string; text: string; label: string; Icon: typeof CheckCircle2 }> = useMemo(
+    () => ({
+      safe: { bg: "bg-green-100", text: "text-green-700", label: t("recipes.badgeSafe"), Icon: CheckCircle2 },
+      caution: { bg: "bg-amber-100", text: "text-amber-700", label: t("recipes.badgeCaution"), Icon: AlertTriangle },
+      high_risk: { bg: "bg-red-100", text: "text-red-700", label: t("recipes.badgeHighRisk"), Icon: ShieldAlert },
+    }),
+    [t],
+  );
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -73,8 +78,8 @@ export default function RecipesPage() {
           setRecipes(d.recipes ?? []);
         }
       })
-      .catch(() => setError("Could not load recipes."));
-  }, [category, skinType, risk]);
+      .catch(() => setError(t("recipes.errorLoad")));
+  }, [category, skinType, risk, t]);
 
   const activeFilterCount = useMemo(
     () => (category !== "all" ? 1 : 0) + (skinType !== "all" ? 1 : 0) + (risk !== "all" ? 1 : 0),
@@ -83,8 +88,8 @@ export default function RecipesPage() {
 
   return (
     <AppShell
-      title="DIY recipes"
-      subtitle="Community-shared at-home formulas, scanned by our AI and reviewed by SkinScreen admins."
+      title={t("recipes.title")}
+      subtitle={t("recipes.subtitle")}
       rightSlot={
         <Link
           href="/app/recipes/new"
@@ -92,7 +97,7 @@ export default function RecipesPage() {
           className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          Share
+          {t("recipes.share")}
         </Link>
       }
     >
@@ -104,7 +109,7 @@ export default function RecipesPage() {
             className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
           >
             <Filter className="h-3.5 w-3.5" />
-            Filters
+            {t("recipes.filters")}
             {activeFilterCount > 0 && (
               <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
                 {activeFilterCount}
@@ -122,7 +127,7 @@ export default function RecipesPage() {
               className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
               <X className="h-3 w-3" />
-              Clear filters
+              {t("recipes.clearFilters")}
             </button>
           )}
         </div>
@@ -130,23 +135,25 @@ export default function RecipesPage() {
         {filtersOpen && (
           <div className="rounded-3xl border border-border/60 bg-white p-4 space-y-4">
             <FilterRow
-              label="Category"
+              label={t("recipes.category")}
               options={CATEGORIES}
               value={category}
               onChange={(v) => setCategory(v)}
+              displayLabel={(v) => t(`recipes.cat.${v}`)}
             />
             <FilterRow
-              label="Skin type"
+              label={t("recipes.skinType")}
               options={SKIN_TYPES}
               value={skinType}
               onChange={(v) => setSkinType(v)}
+              displayLabel={(v) => t(`recipes.skin.${v}`)}
             />
             <FilterRow
-              label="Risk level"
+              label={t("recipes.riskLevel")}
               options={RISK_LEVELS}
               value={risk}
               onChange={(v) => setRisk(v)}
-              displayLabel={(v) => (v === "high_risk" ? "high risk" : v)}
+              displayLabel={(v) => t(`recipes.risk.${v}`)}
             />
           </div>
         )}
@@ -165,7 +172,7 @@ export default function RecipesPage() {
 
         {recipes && recipes.length === 0 && (
           <div className="rounded-3xl border border-border/60 bg-muted/30 p-8 text-center text-sm text-muted-foreground">
-            No recipes match these filters yet. Try clearing them or be the first to share one.
+            {t("recipes.empty")}
           </div>
         )}
 
@@ -193,7 +200,7 @@ export default function RecipesPage() {
                       )}
                     </div>
                     <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-                      {r.category} · {r.skinTypes.join(", ")}
+                      {t(`recipes.cat.${r.category}`, {})} · {r.skinTypes.map((s) => t(`recipes.skin.${s}`, {})).join(", ")}
                     </p>
                     {r.aiVerdict?.summary && (
                       <p className="mt-2 line-clamp-2 text-sm text-foreground/80">
@@ -201,7 +208,10 @@ export default function RecipesPage() {
                       </p>
                     )}
                     <p className="mt-3 text-xs text-muted-foreground">
-                      {r.ingredients.length} ingredient{r.ingredients.length === 1 ? "" : "s"}
+                      {t(
+                        r.ingredients.length === 1 ? "recipes.ingredient_one" : "recipes.ingredient_other",
+                        { n: r.ingredients.length },
+                      )}
                     </p>
                   </Link>
                 </li>

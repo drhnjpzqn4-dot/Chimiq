@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import {
   Check, X, Zap, ShieldCheck, MessageCircle, FileText, Layers,
@@ -8,55 +8,66 @@ import { FadeIn } from "@/components/FadeIn";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { cn } from "@/lib/utils";
 import { getBaseUrl } from "@/lib/base-url";
-
-const FREE_FEATURES: Array<{ label: string; included: boolean }> = [
-  { label: "Ingredient safety analysis", included: true },
-  { label: "Compare 2 products at once", included: true },
-  { label: "Find a Dermatologist", included: true },
-  { label: "Barcode scanner", included: true },
-  { label: "My Shelf (up to 2 products)", included: true },
-  { label: "Unlimited shelf products", included: false },
-  { label: "Full routine cross-check", included: false },
-  { label: "AI Chat with SkinScreen", included: false },
-  { label: "PDF Safety Report", included: false },
-];
-
-const PREMIUM_FEATURES: Array<{ label: string }> = [
-  { label: "Ingredient safety analysis" },
-  { label: "Compare 2 products at once" },
-  { label: "Find a Dermatologist" },
-  { label: "Barcode scanner" },
-  { label: "Unlimited shelf products" },
-  { label: "Full routine cross-check" },
-  { label: "AI Chat with SkinScreen" },
-  { label: "PDF Safety Report" },
-];
-
-const HIGHLIGHTS = [
-  {
-    icon: Layers,
-    title: "Unlimited Shelf",
-    desc: "Track your entire skincare routine — no limits.",
-  },
-  {
-    icon: MessageCircle,
-    title: "AI Chat",
-    desc: "Ask anything about your routine. Get expert-backed answers.",
-  },
-  {
-    icon: FileText,
-    title: "PDF Reports",
-    desc: "Download and share your full routine analysis with your dermatologist.",
-  },
-];
+import { useTranslation } from "@/lib/i18n";
 
 export default function Pricing() {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   const { plan, isLoading: planLoading } = useUserPlan();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
+
+  const FREE_FEATURES = useMemo(
+    () => [
+      { label: t("pricing.feat.safetyAnalysis"), included: true },
+      { label: t("pricing.feat.compare2"), included: true },
+      { label: t("pricing.feat.findDerm"), included: true },
+      { label: t("pricing.feat.barcode"), included: true },
+      { label: t("pricing.feat.shelfLimited"), included: true },
+      { label: t("pricing.feat.shelfUnlimited"), included: false },
+      { label: t("pricing.feat.routineCheck"), included: false },
+      { label: t("pricing.feat.aiChatWith"), included: false },
+      { label: t("pricing.feat.pdf"), included: false },
+    ],
+    [t],
+  );
+
+  const PREMIUM_FEATURES = useMemo(
+    () => [
+      { label: t("pricing.feat.safetyAnalysis") },
+      { label: t("pricing.feat.compare2") },
+      { label: t("pricing.feat.findDerm") },
+      { label: t("pricing.feat.barcode") },
+      { label: t("pricing.feat.shelfUnlimited") },
+      { label: t("pricing.feat.routineCheck") },
+      { label: t("pricing.feat.aiChatWith") },
+      { label: t("pricing.feat.pdf") },
+    ],
+    [t],
+  );
+
+  const HIGHLIGHTS = useMemo(
+    () => [
+      {
+        icon: Layers,
+        title: t("pricing.highlight1Title"),
+        desc: t("pricing.highlight1Desc"),
+      },
+      {
+        icon: MessageCircle,
+        title: t("pricing.highlight2Title"),
+        desc: t("pricing.highlight2Desc"),
+      },
+      {
+        icon: FileText,
+        title: t("pricing.highlight3Title"),
+        desc: t("pricing.highlight3Desc"),
+      },
+    ],
+    [t],
+  );
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -76,10 +87,10 @@ export default function Pricing() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError(data.error ?? "Something went wrong. Please try again.");
+        setError(data.error ?? t("pricing.errorGeneric"));
       }
     } catch {
-      setError("Failed to connect to payment service. Please try again.");
+      setError(t("pricing.errorConnect"));
     } finally {
       setLoading(false);
     }
@@ -93,16 +104,16 @@ export default function Pricing() {
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-10"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to SkinScreen
+          {t("pricing.backToSkinScreen")}
         </button>
 
         <FadeIn>
           <div className="text-center mb-14">
             <h1 className="text-4xl sm:text-5xl font-serif font-semibold text-foreground mb-4">
-              Simple, honest pricing
+              {t("pricing.headline")}
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Start free. Upgrade when you need the full power of your personal dermatology assistant.
+              {t("pricing.subhead")}
             </p>
           </div>
         </FadeIn>
@@ -111,12 +122,12 @@ export default function Pricing() {
           <FadeIn delay={0.05}>
             <div className="bg-white rounded-3xl border border-border/60 shadow-sm p-8 flex flex-col h-full">
               <div className="mb-6">
-                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Free</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">{t("pricing.free")}</p>
                 <div className="flex items-end gap-1 mb-1">
-                  <span className="text-4xl font-bold text-foreground">$0</span>
-                  <span className="text-muted-foreground mb-1">/month</span>
+                  <span className="text-4xl font-bold text-foreground">{t("pricing.zeroPrice")}</span>
+                  <span className="text-muted-foreground mb-1">{t("pricing.perMonth")}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">No card required. Always free.</p>
+                <p className="text-sm text-muted-foreground">{t("pricing.noCard")}</p>
               </div>
 
               <div className="space-y-3 flex-1">
@@ -139,7 +150,7 @@ export default function Pricing() {
 
               <div className="mt-8">
                 <div className="w-full py-3 rounded-xl bg-[#F5F5F7] text-center text-sm font-medium text-muted-foreground">
-                  {plan === "free" ? "Your current plan" : "Included with Premium"}
+                  {plan === "free" ? t("pricing.currentPlan") : t("pricing.includedWithPremium")}
                 </div>
               </div>
             </div>
@@ -152,9 +163,9 @@ export default function Pricing() {
 
               <div className="relative mb-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-primary">Premium</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-primary">{t("pricing.premium")}</p>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
-                    <Zap className="w-2.5 h-2.5" /> Best value
+                    <Zap className="w-2.5 h-2.5" /> {t("pricing.bestValue")}
                   </span>
                 </div>
 
@@ -169,7 +180,7 @@ export default function Pricing() {
                         : "text-white/60 hover:text-white",
                     )}
                   >
-                    Monthly
+                    {t("pricing.monthly")}
                   </button>
                   <button
                     type="button"
@@ -181,14 +192,14 @@ export default function Pricing() {
                         : "text-white/60 hover:text-white",
                     )}
                   >
-                    Yearly
+                    {t("pricing.yearly")}
                     <span className={cn(
                       "px-1.5 py-0.5 rounded-full text-[9px] font-bold",
                       billing === "yearly"
                         ? "bg-primary text-white"
                         : "bg-primary/30 text-primary",
                     )}>
-                      Save 98 SEK
+                      {t("pricing.save98")}
                     </span>
                   </button>
                 </div>
@@ -199,13 +210,11 @@ export default function Pricing() {
                   </span>
                   <span className="text-lg font-semibold text-white/70 mb-1">SEK</span>
                   <span className="text-white/50 mb-1">
-                    /{billing === "yearly" ? "year" : "month"}
+                    /{billing === "yearly" ? t("pricing.year") : t("pricing.month")}
                   </span>
                 </div>
                 <p className="text-sm text-white/50">
-                  {billing === "yearly"
-                    ? "≈ 41 SEK/mo, billed yearly. Cancel anytime."
-                    : "Billed monthly. Cancel anytime."}
+                  {billing === "yearly" ? t("pricing.yearlyHint") : t("pricing.monthlyHint")}
                 </p>
               </div>
 
@@ -225,7 +234,7 @@ export default function Pricing() {
                 {plan === "premium" ? (
                   <div className="w-full py-3 rounded-xl bg-primary/20 text-center text-sm font-medium text-primary border border-primary/30">
                     <ShieldCheck className="w-4 h-4 inline mr-1.5" />
-                    You&apos;re on Premium
+                    {t("pricing.youreOnPremium")}
                   </div>
                 ) : (
                   <button
@@ -234,14 +243,14 @@ export default function Pricing() {
                     className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {loading ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" />Redirecting…</>
+                      <><Loader2 className="w-4 h-4 animate-spin" />{t("pricing.redirecting")}</>
                     ) : (
-                      <>Get Premium — {billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo"}</>
+                      <>{billing === "yearly" ? t("pricing.getPremiumYr") : t("pricing.getPremiumMo")}</>
                     )}
                   </button>
                 )}
                 <p className="text-[11px] text-white/30 text-center mt-3">
-                  Secure payment via Stripe · Cancel anytime
+                  {t("pricing.securePayment")}
                 </p>
               </div>
             </div>

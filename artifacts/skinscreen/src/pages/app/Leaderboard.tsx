@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Trophy, Crown, Sparkles, ChevronLeft, Info } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useTranslation } from "@/lib/i18n";
 
 interface LeaderboardRow {
   userId: string;
@@ -28,6 +29,7 @@ interface LeaderboardResponse {
 type Tab = "monthly" | "allTime";
 
 export default function LeaderboardScreen() {
+  const { t } = useTranslation();
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [tab, setTab] = useState<Tab>("monthly");
   const [loading, setLoading] = useState(true);
@@ -44,8 +46,8 @@ export default function LeaderboardScreen() {
 
   return (
     <AppShell
-      title="Leaderboard"
-      subtitle="Top contributors to the SkinScreen ingredient database."
+      title={t("leaderboard.title")}
+      subtitle={t("leaderboard.subtitle")}
     >
       <div className="mb-4 flex items-center justify-between">
         <Link href="/app/discover">
@@ -54,7 +56,7 @@ export default function LeaderboardScreen() {
             className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft className="h-4 w-4" />
-            Back to Discover
+            {t("leaderboard.backToDiscover")}
           </a>
         </Link>
         <Link href="/app/rewards">
@@ -63,7 +65,7 @@ export default function LeaderboardScreen() {
             className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/15"
           >
             <Info className="h-3.5 w-3.5" />
-            How rewards work
+            {t("leaderboard.howRewardsWork")}
           </a>
         </Link>
       </div>
@@ -73,7 +75,7 @@ export default function LeaderboardScreen() {
         <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
           <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-amber-700">
             <Sparkles className="h-3.5 w-3.5" />
-            Best Tip of the Week
+            {t("leaderboard.bestTipBadge")}
           </div>
           {data?.bestTipOfWeek ? (
             <>
@@ -81,41 +83,47 @@ export default function LeaderboardScreen() {
                 "{data.bestTipOfWeek.body}"
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                by <span className="font-semibold text-foreground">{data.bestTipOfWeek.authorDisplayName}</span>{" "}
-                · {data.bestTipOfWeek.voteCount} {data.bestTipOfWeek.voteCount === 1 ? "vote" : "votes"} ·
-                won 30 days of Premium
+                {t(
+                  data.bestTipOfWeek.voteCount === 1
+                    ? "leaderboard.bestTipMeta_one"
+                    : "leaderboard.bestTipMeta_other",
+                  {
+                    name: data.bestTipOfWeek.authorDisplayName,
+                    count: data.bestTipOfWeek.voteCount,
+                  },
+                )}
               </p>
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Last week's winner will be revealed Monday — keep voting on your favourite tips!
+              {t("leaderboard.bestTipEmpty")}
             </p>
           )}
         </div>
       </section>
 
       {/* Tab switch */}
-      <div role="tablist" aria-label="Leaderboard period" className="mb-4 flex gap-2">
+      <div role="tablist" aria-label={t("leaderboard.periodAria")} className="mb-4 flex gap-2">
         {(
           [
-            { id: "monthly" as const, label: "This month" },
-            { id: "allTime" as const, label: "All time" },
+            { id: "monthly" as const, label: t("leaderboard.thisMonth") },
+            { id: "allTime" as const, label: t("leaderboard.allTime") },
           ]
-        ).map((t) => (
+        ).map((tt) => (
           <button
-            key={t.id}
+            key={tt.id}
             role="tab"
             type="button"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
+            aria-selected={tab === tt.id}
+            onClick={() => setTab(tt.id)}
             data-touch-target
             className={`flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-colors ${
-              tab === t.id
+              tab === tt.id
                 ? "bg-primary text-white shadow-md shadow-primary/20"
                 : "bg-white text-muted-foreground border border-border/40 hover:bg-muted"
             }`}
           >
-            {t.label}
+            {tt.label}
           </button>
         ))}
       </div>
@@ -133,8 +141,7 @@ export default function LeaderboardScreen() {
           <div className="rounded-3xl border border-dashed border-border/60 bg-white p-8 text-center">
             <Trophy className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
             <p className="text-sm text-muted-foreground">
-              No contributions yet {tab === "monthly" ? "this month" : ""}.
-              Be the first to scan a missing product!
+              {tab === "monthly" ? t("leaderboard.emptyMonth") : t("leaderboard.emptyAllTime")}
             </p>
           </div>
         )}
@@ -165,7 +172,7 @@ export default function LeaderboardScreen() {
                   <div className="shrink-0 text-right">
                     <p className="text-base font-bold text-foreground">{row.contributions}</p>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      products
+                      {t("leaderboard.products")}
                     </p>
                   </div>
                   {row.rank === 1 && <Crown className="h-4 w-4 text-amber-500" aria-hidden />}
@@ -177,7 +184,7 @@ export default function LeaderboardScreen() {
       </section>
 
       <p className="mt-6 text-center text-xs text-muted-foreground/70">
-        Each accepted contribution counts. 30 = one free month of Premium.
+        {t("leaderboard.footnote")}
       </p>
     </AppShell>
   );

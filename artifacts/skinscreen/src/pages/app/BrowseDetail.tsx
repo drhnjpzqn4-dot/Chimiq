@@ -9,6 +9,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useTranslation } from "@/lib/i18n";
 
 interface ProductDetail {
   barcode: string;
@@ -21,17 +22,6 @@ interface ProductDetail {
   verifiedSafe: boolean;
 }
 
-const CATEGORY_LABEL: Record<string, string> = {
-  cleanser: "Cleanser",
-  toner: "Toner",
-  serum: "Serum",
-  moisturizer: "Moisturiser",
-  sunscreen: "SPF",
-  exfoliant: "Exfoliant",
-  mask: "Mask",
-  other: "Skincare",
-};
-
 function splitIngredients(raw: string): string[] {
   return raw
     .split(/[,;\n]+/)
@@ -42,6 +32,7 @@ function splitIngredients(raw: string): string[] {
 export default function BrowseDetailScreen() {
   const [, params] = useRoute<{ barcode: string }>("/app/browse/:barcode");
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +59,8 @@ export default function BrowseDetailScreen() {
         if (cancelled) return;
         setError(
           e.message === "not-found"
-            ? "We couldn't find that product."
-            : "Could not load product. Check your connection and try again.",
+            ? t("browseDetail.errorNotFound")
+            : t("browseDetail.errorLoad"),
         );
       })
       .finally(() => {
@@ -78,7 +69,7 @@ export default function BrowseDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [barcode]);
+  }, [barcode, t]);
 
   const scanThis = () => {
     if (!product) return;
@@ -97,16 +88,16 @@ export default function BrowseDetailScreen() {
   };
 
   return (
-    <AppShell title="Product details">
+    <AppShell title={t("browseDetail.headerTitle")}>
       <button
         type="button"
         onClick={() => navigate("/app/browse")}
         data-touch-target
         className="mb-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-white/60 px-3 py-1.5 text-sm font-medium text-foreground hover:bg-white"
-        aria-label="Back to browse"
+        aria-label={t("browseDetail.backToBrowse")}
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to browse
+        {t("browseDetail.backToBrowse")}
       </button>
 
       {loading && (
@@ -147,12 +138,12 @@ export default function BrowseDetailScreen() {
                   {product.productName}
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {CATEGORY_LABEL[product.category] ?? "Skincare"} · Barcode {product.barcode}
+                  {t(`browse.cat.${product.category}`)} · {t("browseDetail.barcodeLabel", { code: product.barcode })}
                 </p>
                 {product.verifiedSafe && (
                   <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700">
                     <ShieldCheck className="h-3 w-3" />
-                    Verified safe
+                    {t("browse.verifiedSafe")}
                   </span>
                 )}
               </div>
@@ -165,17 +156,17 @@ export default function BrowseDetailScreen() {
                 className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-transform active:scale-95"
               >
                 <ScanLine className="h-4 w-4" />
-                Scan this product for my skin
+                {t("browseDetail.scanCta")}
               </button>
               <p className="mt-2 text-center text-[11px] text-muted-foreground">
-                We'll re-run the analysis with your skin profile.
+                {t("browseDetail.scanHint")}
               </p>
             </div>
           </section>
 
           <section className="mt-4 rounded-3xl border border-border/40 bg-white p-4 shadow-sm">
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              Full ingredient list
+              {t("browseDetail.fullIngredients")}
             </h3>
             <ul className="mt-3 flex flex-wrap gap-1.5">
               {splitIngredients(product.ingredients).map((ing, i) => (

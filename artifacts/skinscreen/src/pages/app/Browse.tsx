@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ContributeModal } from "@/components/ContributeModal";
+import { useTranslation } from "@/lib/i18n";
 
 interface BrowseProduct {
   barcode: string;
@@ -30,29 +31,20 @@ interface BrowseResponse {
 
 const PAGE_SIZE = 30;
 
-const CATEGORY_CHIPS: Array<{ key: string; label: string }> = [
-  { key: "", label: "All" },
-  { key: "cleanser", label: "Cleanser" },
-  { key: "toner", label: "Toner" },
-  { key: "serum", label: "Serum" },
-  { key: "moisturizer", label: "Moisturiser" },
-  { key: "sunscreen", label: "SPF" },
-  { key: "exfoliant", label: "Exfoliant" },
-  { key: "mask", label: "Mask" },
+const CATEGORY_KEYS: Array<{ key: string; labelKey: string }> = [
+  { key: "", labelKey: "browse.cat.all" },
+  { key: "cleanser", labelKey: "browse.cat.cleanser" },
+  { key: "toner", labelKey: "browse.cat.toner" },
+  { key: "serum", labelKey: "browse.cat.serum" },
+  { key: "moisturizer", labelKey: "browse.cat.moisturizer" },
+  { key: "sunscreen", labelKey: "browse.cat.sunscreen" },
+  { key: "exfoliant", labelKey: "browse.cat.exfoliant" },
+  { key: "mask", labelKey: "browse.cat.mask" },
 ];
-
-function timeAgo(iso: string): string {
-  const d = Date.now() - new Date(iso).getTime();
-  const day = 1000 * 60 * 60 * 24;
-  if (d < 1000 * 60 * 60) return "just now";
-  if (d < day) return `${Math.floor(d / (1000 * 60 * 60))}h ago`;
-  if (d < day * 30) return `${Math.floor(d / day)}d ago`;
-  if (d < day * 365) return `${Math.floor(d / (day * 30))}mo ago`;
-  return `${Math.floor(d / (day * 365))}y ago`;
-}
 
 export default function BrowseScreen() {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [category, setCategory] = useState<string>("");
@@ -62,9 +54,22 @@ export default function BrowseScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showContribute, setShowContribute] = useState(false);
 
+  const timeAgo = useMemo(
+    () => (iso: string): string => {
+      const d = Date.now() - new Date(iso).getTime();
+      const day = 1000 * 60 * 60 * 24;
+      if (d < 1000 * 60 * 60) return t("browse.timeJustNow");
+      if (d < day) return t("browse.timeHoursAgo", { n: Math.floor(d / (1000 * 60 * 60)) });
+      if (d < day * 30) return t("browse.timeDaysAgo", { n: Math.floor(d / day) });
+      if (d < day * 365) return t("browse.timeMonthsAgo", { n: Math.floor(d / (day * 30)) });
+      return t("browse.timeYearsAgo", { n: Math.floor(d / (day * 365)) });
+    },
+    [t],
+  );
+
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(query.trim()), 250);
-    return () => clearTimeout(t);
+    const tt = setTimeout(() => setDebounced(query.trim()), 250);
+    return () => clearTimeout(tt);
   }, [query]);
 
   useEffect(() => {
@@ -91,7 +96,7 @@ export default function BrowseScreen() {
       .catch(() => {
         if (!cancelled) {
           setProducts([]);
-          setError("Could not load products. Check your connection and try again.");
+          setError(t("browse.errorLoad"));
         }
       })
       .finally(() => {
@@ -101,20 +106,25 @@ export default function BrowseScreen() {
     return () => {
       cancelled = true;
     };
-  }, [debounced, category]);
+  }, [debounced, category, t]);
 
   const heading = useMemo(() => {
-    if (loading && products.length === 0) return "Loading the database…";
-    if (debounced) return `${total} match${total === 1 ? "" : "es"} for "${debounced}"`;
-    if (category) return `${total.toLocaleString()} ${category} products`;
-    return `${total.toLocaleString()} products in the database`;
-  }, [loading, products.length, debounced, total, category]);
+    if (loading && products.length === 0) return t("browse.loadingDb");
+    if (debounced) {
+      const key = total === 1 ? "browse.matches_one" : "browse.matches_other";
+      return t(key, { count: total, q: debounced });
+    }
+    if (category) {
+      return t("browse.categoryProducts", {
+        count: total.toLocaleString(),
+        category: t(`browse.cat.${category}`),
+      });
+    }
+    return t("browse.totalProducts", { count: total.toLocaleString() });
+  }, [loading, products.length, debounced, total, category, t]);
 
   return (
-    <AppShell
-      title="Browse products"
-      subtitle="Crowd-sourced ingredient database — search, filter, contribute."
-    >
+    <AppShell title={t("browse.title")} subtitle={t("browse.subtitle")}>
       <section className="mb-3">
         <label className="relative block">
           <Search
@@ -124,7 +134,7 @@ export default function BrowseScreen() {
           <input
             type="search"
             inputMode="search"
-            placeholder="Search by product or brand…"
+            placeholder={t("browse.searchPlaceholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="h-12 w-full rounded-2xl border border-border/50 bg-white pl-10 pr-4 text-base shadow-sm focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -134,7 +144,7 @@ export default function BrowseScreen() {
 
       <section className="mb-4 -mx-1 overflow-x-auto px-1 pb-1">
         <div className="flex min-w-max gap-2">
-          {CATEGORY_CHIPS.map((c) => {
+          {CATEGORY_KEYS.map((c) => {
             const active = c.key === category;
             return (
               <button
@@ -149,7 +159,7 @@ export default function BrowseScreen() {
                     : "border-border/60 bg-white text-foreground hover:border-primary/40"
                 }`}
               >
-                {c.label}
+                {t(c.labelKey)}
               </button>
             );
           })}
@@ -167,7 +177,7 @@ export default function BrowseScreen() {
           className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
         >
           <PackagePlus className="h-3.5 w-3.5" />
-          Add product
+          {t("browse.addProduct")}
         </button>
       </section>
 
@@ -190,10 +200,10 @@ export default function BrowseScreen() {
         <div className="rounded-3xl border border-border/40 bg-white p-8 text-center shadow-sm">
           <PackageSearch className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <p className="mt-3 font-serif text-lg font-semibold text-foreground">
-            {debounced || category ? "No products found" : "Database is empty"}
+            {debounced || category ? t("browse.noProductsFound") : t("browse.dbEmpty")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Be the first to add this one — earn credit toward 1 month of free Premium.
+            {t("browse.beFirst")}
           </p>
           <button
             type="button"
@@ -201,7 +211,7 @@ export default function BrowseScreen() {
             className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20"
           >
             <PackagePlus className="h-4 w-4" />
-            Add a product
+            {t("browse.addAProduct")}
           </button>
         </div>
       ) : (
@@ -216,7 +226,7 @@ export default function BrowseScreen() {
                 onClick={() => navigate(`/app/browse/${encodeURIComponent(p.barcode)}`)}
                 data-touch-target
                 className="flex min-h-[44px] w-full items-stretch gap-3 p-3 text-left"
-                aria-label={`Open ${p.brand} ${p.productName}`}
+                aria-label={t("browse.openProduct", { brand: p.brand, name: p.productName })}
               >
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-white to-amber-50">
                   {p.imageUrl ? (
@@ -246,11 +256,11 @@ export default function BrowseScreen() {
                     {p.verifiedSafe && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
                         <ShieldCheck className="h-3 w-3" />
-                        Verified safe
+                        {t("browse.verifiedSafe")}
                       </span>
                     )}
                     <span className="text-[11px] text-muted-foreground/70">
-                      Added {timeAgo(p.cachedAt)}
+                      {t("browse.added", { time: timeAgo(p.cachedAt) })}
                     </span>
                   </div>
                 </div>

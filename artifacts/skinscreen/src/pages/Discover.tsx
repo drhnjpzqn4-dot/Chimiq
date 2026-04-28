@@ -3,17 +3,17 @@ import { FadeIn } from "@/components/FadeIn";
 import {
   TOP_MISTAKES,
   TOP_WORRIES,
-  SEVERITY_LABEL,
-  FREQUENCY_LABEL,
   type MistakeItem,
   type WorryItem,
 } from "@/lib/discover-content";
 import { AlertTriangle, HeartPulse, ArrowRight, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
 function MistakeCard({ item, index }: { item: MistakeItem; index: number }) {
+  const { t } = useTranslation();
   const severityClass =
     item.severity === "HIGH"
       ? "bg-red-100 text-red-700 border-red-200"
@@ -43,12 +43,12 @@ function MistakeCard({ item, index }: { item: MistakeItem; index: number }) {
                 )}
               >
                 <AlertTriangle className="w-2.5 h-2.5" />
-                {SEVERITY_LABEL[item.severity]}
+                {t(`severity.${item.severity}`)}
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">{item.hook}</p>
             <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:gap-2 transition-all">
-              Read more <ArrowRight className="w-3 h-3" />
+              {t("discoverPage.readMore")} <ArrowRight className="w-3 h-3" />
             </div>
           </div>
         </div>
@@ -58,6 +58,7 @@ function MistakeCard({ item, index }: { item: MistakeItem; index: number }) {
 }
 
 function WorryCard({ item, index }: { item: WorryItem; index: number }) {
+  const { t } = useTranslation();
   const freqClass =
     item.frequency === "VERY_COMMON"
       ? "bg-primary/10 text-primary border-primary/20"
@@ -87,12 +88,12 @@ function WorryCard({ item, index }: { item: WorryItem; index: number }) {
                 )}
               >
                 <HeartPulse className="w-2.5 h-2.5" />
-                {FREQUENCY_LABEL[item.frequency]}
+                {t(`frequency.${item.frequency}`)}
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">{item.hook}</p>
             <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:gap-2 transition-all">
-              Read more <ArrowRight className="w-3 h-3" />
+              {t("discoverPage.readMore")} <ArrowRight className="w-3 h-3" />
             </div>
           </div>
         </div>
@@ -102,13 +103,14 @@ function WorryCard({ item, index }: { item: WorryItem; index: number }) {
 }
 
 export default function Discover() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-border/30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <a href={base + "/"} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ChevronLeft className="w-4 h-4" />
-            Back home
+            {t("discoverPage.backHome")}
           </a>
           <a href={base + "/"}>
             <img
@@ -124,13 +126,13 @@ export default function Discover() {
         <FadeIn>
           <header className="text-center mb-12">
             <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary text-xs font-medium tracking-wider uppercase mb-4">
-              Discover
+              {t("discoverPage.kicker")}
             </span>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif text-foreground leading-tight mb-4">
-              The skincare truths nobody told you.
+              {t("discoverPage.title")}
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
-              Two evergreen guides — the mistakes that quietly damage skin, and the worries we hear most. Plain language, real solutions, no influencer fluff.
+              {t("discoverPage.subtitle")}
             </p>
           </header>
         </FadeIn>
@@ -140,10 +142,10 @@ export default function Discover() {
             <div className="flex items-end justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-serif text-foreground mb-1">
-                  Top 10 skincare mistakes
+                  {t("discoverPage.mistakesH2")}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  The most common — and most damaging — habits in modern routines.
+                  {t("discoverPage.mistakesSub")}
                 </p>
               </div>
             </div>
@@ -160,10 +162,10 @@ export default function Discover() {
             <div className="flex items-end justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-serif text-foreground mb-1">
-                  Top 10 skin worries
+                  {t("discoverPage.worriesH2")}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  The concerns we hear most — and what actually helps.
+                  {t("discoverPage.worriesSub")}
                 </p>
               </div>
             </div>

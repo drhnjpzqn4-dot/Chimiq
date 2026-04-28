@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useRoute } from "wouter";
 import {
   AlertTriangle,
@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useTranslation } from "@/lib/i18n";
 
 type RiskLevel = "safe" | "caution" | "high_risk";
 
@@ -36,17 +37,21 @@ interface Recipe {
   createdAt: string;
 }
 
-const RISK_STYLES: Record<RiskLevel, { bg: string; text: string; label: string; Icon: typeof CheckCircle2 }> = {
-  safe: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: "Looks safe", Icon: CheckCircle2 },
-  caution: { bg: "bg-amber-50 border-amber-200", text: "text-amber-700", label: "Use with caution", Icon: AlertTriangle },
-  high_risk: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: "High risk", Icon: ShieldAlert },
-};
-
 export default function RecipeDetailPage() {
+  const { t } = useTranslation();
   const [, params] = useRoute("/recipes/:id");
   const id = params?.id;
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const RISK_STYLES: Record<RiskLevel, { bg: string; text: string; label: string; Icon: typeof CheckCircle2 }> = useMemo(
+    () => ({
+      safe: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: t("recipeDetail.riskSafe"), Icon: CheckCircle2 },
+      caution: { bg: "bg-amber-50 border-amber-200", text: "text-amber-700", label: t("recipeDetail.riskCaution"), Icon: AlertTriangle },
+      high_risk: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: t("recipeDetail.riskHigh"), Icon: ShieldAlert },
+    }),
+    [t],
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -56,17 +61,17 @@ export default function RecipeDetailPage() {
       .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
       .then(({ ok, d }) => {
         if (!ok) {
-          setError(d.error ?? "Recipe not found.");
+          setError(d.error ?? t("recipeDetail.errorFallback"));
         } else {
           setRecipe(d.recipe);
         }
       })
-      .catch(() => setError("Could not load recipe."));
-  }, [id]);
+      .catch(() => setError(t("recipeDetail.errorLoad")));
+  }, [id, t]);
 
   if (error) {
     return (
-      <AppShell title="Recipe">
+      <AppShell title={t("recipeDetail.headerLoading")}>
         <BackLink />
         <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
           {error}
@@ -77,7 +82,7 @@ export default function RecipeDetailPage() {
 
   if (!recipe) {
     return (
-      <AppShell title="Recipe">
+      <AppShell title={t("recipeDetail.headerLoading")}>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-7 w-7 animate-spin text-primary" />
         </div>
@@ -95,14 +100,14 @@ export default function RecipeDetailPage() {
       <div className="mt-4 space-y-5">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-muted px-2.5 py-0.5 font-medium capitalize text-foreground">
-            {recipe.category}
+            {t(`recipes.cat.${recipe.category}`, {})}
           </span>
-          {recipe.skinTypes.map((t) => (
+          {recipe.skinTypes.map((s) => (
             <span
-              key={t}
+              key={s}
               className="rounded-full border border-border bg-white px-2.5 py-0.5 capitalize text-muted-foreground"
             >
-              {t}
+              {t(`recipes.skin.${s}`, {})}
             </span>
           ))}
         </div>
@@ -111,7 +116,7 @@ export default function RecipeDetailPage() {
           <div className={`rounded-3xl border ${style.bg} p-5`}>
             <div className={`flex items-center gap-2 ${style.text}`}>
               <style.Icon className="h-5 w-5" />
-              <p className="font-semibold">AI safety scan: {style.label}</p>
+              <p className="font-semibold">{t("recipeDetail.aiSafetyScan", { label: style.label })}</p>
             </div>
             <p className="mt-2 text-sm text-foreground/80">{verdict.summary}</p>
 
@@ -126,7 +131,7 @@ export default function RecipeDetailPage() {
             {verdict.flagged.length > 0 && (
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Flagged ingredients
+                  {t("recipeDetail.flagged")}
                 </p>
                 <ul className="mt-2 space-y-2">
                   {verdict.flagged.map((f, i) => (
@@ -142,13 +147,14 @@ export default function RecipeDetailPage() {
             {verdict.saferSwaps.length > 0 && (
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Safer swaps
+                  {t("recipeDetail.saferSwaps")}
                 </p>
                 <ul className="mt-2 space-y-2">
                   {verdict.saferSwaps.map((s, i) => (
                     <li key={i} className="rounded-xl bg-white/70 p-3 text-sm">
                       <p>
-                        Replace <span className="font-semibold">{s.from}</span> with{" "}
+                        {t("recipeDetail.replacePrefix")} <span className="font-semibold">{s.from}</span>{" "}
+                        {t("recipeDetail.replaceWith")}{" "}
                         <span className="font-semibold">{s.to}</span>
                       </p>
                       <p className="text-muted-foreground">{s.why}</p>
@@ -161,7 +167,7 @@ export default function RecipeDetailPage() {
         )}
 
         <section className="rounded-3xl border border-border/60 bg-white p-5">
-          <h2 className="font-serif text-lg font-semibold text-foreground">Ingredients</h2>
+          <h2 className="font-serif text-lg font-semibold text-foreground">{t("recipeDetail.ingredients")}</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {recipe.ingredients.map((ing, i) => (
               <li key={i} className="flex items-start justify-between gap-3 border-b border-border/40 pb-2 last:border-0 last:pb-0">
@@ -180,7 +186,7 @@ export default function RecipeDetailPage() {
         </section>
 
         <section className="rounded-3xl border border-border/60 bg-white p-5">
-          <h2 className="font-serif text-lg font-semibold text-foreground">Method</h2>
+          <h2 className="font-serif text-lg font-semibold text-foreground">{t("recipeDetail.method")}</h2>
           <p className="mt-3 whitespace-pre-line text-sm text-foreground/85">
             {recipe.method}
           </p>
@@ -190,7 +196,7 @@ export default function RecipeDetailPage() {
           <section className="rounded-3xl border border-primary/20 bg-primary/5 p-5">
             <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              Editor's note
+              {t("recipeDetail.editorsNote")}
             </p>
             <p className="mt-2 whitespace-pre-line text-sm text-foreground/85">
               {recipe.adminNote}
@@ -199,8 +205,7 @@ export default function RecipeDetailPage() {
         )}
 
         <div className="rounded-2xl border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-          DIY recipes are user contributions. Patch-test on a small area before applying to your face,
-          and stop use immediately if irritation occurs.
+          {t("recipeDetail.disclaimer")}
         </div>
       </div>
     </AppShell>
@@ -208,13 +213,14 @@ export default function RecipeDetailPage() {
 }
 
 function BackLink() {
+  const { t } = useTranslation();
   return (
     <Link
       href="/recipes"
       className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
     >
       <ArrowLeft className="h-3.5 w-3.5" />
-      All recipes
+      {t("recipeDetail.allRecipes")}
     </Link>
   );
 }

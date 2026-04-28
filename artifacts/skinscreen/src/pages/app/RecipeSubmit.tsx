@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
 import {
@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useTranslation } from "@/lib/i18n";
 
 const CATEGORIES = [
   "cleanser",
@@ -51,13 +52,8 @@ interface Eligibility {
   reason: "auth_required" | "email_unverified" | null;
 }
 
-const RISK_STYLES: Record<AiVerdict["riskLevel"], { bg: string; text: string; label: string; icon: typeof CheckCircle2 }> = {
-  safe: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: "Looks safe", icon: CheckCircle2 },
-  caution: { bg: "bg-amber-50 border-amber-200", text: "text-amber-700", label: "Use with caution", icon: AlertTriangle },
-  high_risk: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: "High risk", icon: ShieldAlert },
-};
-
 export default function RecipeSubmitScreen() {
+  const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
   const [eligibility, setEligibility] = useState<Eligibility | null>(null);
@@ -75,6 +71,15 @@ export default function RecipeSubmitScreen() {
   const [verdict, setVerdict] = useState<AiVerdict | null>(null);
   const [scannerUnavailable, setScannerUnavailable] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const RISK_STYLES: Record<AiVerdict["riskLevel"], { bg: string; text: string; label: string; icon: typeof CheckCircle2 }> = useMemo(
+    () => ({
+      safe: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: t("recipeDetail.riskSafe"), icon: CheckCircle2 },
+      caution: { bg: "bg-amber-50 border-amber-200", text: "text-amber-700", label: t("recipeDetail.riskCaution"), icon: AlertTriangle },
+      high_risk: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: t("recipeDetail.riskHigh"), icon: ShieldAlert },
+    }),
+    [t],
+  );
 
   useEffect(() => {
     if (isLoading) return;
@@ -103,11 +108,11 @@ export default function RecipeSubmitScreen() {
     setIngredients((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const toggleSkinType = (t: SkinType) => {
+  const toggleSkinType = (s: SkinType) => {
     setSkinTypes((prev) => {
-      if (t === "all") return ["all"];
+      if (s === "all") return ["all"];
       const next = prev.filter((x) => x !== "all");
-      return next.includes(t) ? next.filter((x) => x !== t) : [...next, t];
+      return next.includes(s) ? next.filter((x) => x !== s) : [...next, s];
     });
   };
 
@@ -125,19 +130,19 @@ export default function RecipeSubmitScreen() {
       .filter((r) => r.name.length > 0);
 
     if (title.trim().length < 3) {
-      setError("Please give your recipe a title (3+ characters).");
+      setError(t("recipeSubmit.errorTitleShort"));
       return;
     }
     if (cleaned.length < 2) {
-      setError("List at least 2 ingredients.");
+      setError(t("recipeSubmit.errorMin2"));
       return;
     }
     if (method.trim().length < 10) {
-      setError("Please describe how to make and apply this recipe (at least 10 characters).");
+      setError(t("recipeSubmit.errorMethodShort"));
       return;
     }
     if (skinTypes.length === 0) {
-      setError("Select at least one skin type.");
+      setError(t("recipeSubmit.errorSkinType"));
       return;
     }
 
@@ -161,7 +166,7 @@ export default function RecipeSubmitScreen() {
         scannerUnavailable?: boolean;
       };
       if (!res.ok) {
-        setError(data.error ?? "Failed to submit recipe.");
+        setError(data.error ?? t("recipeSubmit.errorSubmit"));
         setSubmitting(false);
         return;
       }
@@ -169,7 +174,7 @@ export default function RecipeSubmitScreen() {
       setScannerUnavailable(!!data.scannerUnavailable);
       setSuccess(true);
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("recipeSubmit.errorNetwork"));
     } finally {
       setSubmitting(false);
     }
@@ -177,7 +182,7 @@ export default function RecipeSubmitScreen() {
 
   if (isLoading || !eligibility) {
     return (
-      <AppShell title="Submit a recipe">
+      <AppShell title={t("recipeSubmit.headerLoading")}>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -187,22 +192,21 @@ export default function RecipeSubmitScreen() {
 
   if (!eligibility.canSubmit) {
     return (
-      <AppShell title="Submit a recipe">
+      <AppShell title={t("recipeSubmit.headerLoading")}>
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-center">
           <Mail className="mx-auto mb-3 h-8 w-8 text-amber-600" />
           <h2 className="font-serif text-lg font-semibold text-foreground">
-            Verify your email first
+            {t("recipeSubmit.verifyEmailTitle")}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            To keep our DIY recipe library safe, we ask contributors to verify their email
-            with their sign-in provider before submitting.
+            {t("recipeSubmit.verifyEmailBody")}
           </p>
           <button
             type="button"
             onClick={() => navigate("/app/profile")}
             className="mt-4 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
-            Back to profile
+            {t("recipeSubmit.backToProfile")}
           </button>
         </div>
       </AppShell>
@@ -213,16 +217,15 @@ export default function RecipeSubmitScreen() {
     const style = verdict ? RISK_STYLES[verdict.riskLevel] : null;
     const Icon = style?.icon;
     return (
-      <AppShell title="Recipe submitted">
+      <AppShell title={t("recipeSubmit.headerSuccess")}>
         <div className="space-y-4">
           <div className="rounded-3xl border border-green-200 bg-green-50 p-5">
             <div className="flex items-center gap-2 text-green-700">
               <CheckCircle2 className="h-5 w-5" />
-              <p className="font-semibold">Thanks — your recipe is in the review queue.</p>
+              <p className="font-semibold">{t("recipeSubmit.thanksHeadline")}</p>
             </div>
             <p className="mt-2 text-sm text-green-700/90">
-              An admin will review {verdict ? "the AI safety scan and" : ""} your recipe
-              before publishing it. You'll see it in your contributions once approved.
+              {verdict ? t("recipeSubmit.thanksBodyWithVerdict") : t("recipeSubmit.thanksBodyNoVerdict")}
             </p>
           </div>
 
@@ -230,14 +233,14 @@ export default function RecipeSubmitScreen() {
             <div className={`rounded-3xl border ${style.bg} p-5`}>
               <div className={`flex items-center gap-2 ${style.text}`}>
                 <Icon className="h-5 w-5" />
-                <p className="font-semibold">AI safety scan: {style.label}</p>
+                <p className="font-semibold">{t("recipeDetail.aiSafetyScan", { label: style.label })}</p>
               </div>
               <p className="mt-2 text-sm text-foreground/80">{verdict.summary}</p>
 
               {verdict.flagged.length > 0 && (
                 <div className="mt-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Flagged ingredients
+                    {t("recipeDetail.flagged")}
                   </p>
                   <ul className="mt-2 space-y-2">
                     {verdict.flagged.map((f, i) => (
@@ -253,13 +256,14 @@ export default function RecipeSubmitScreen() {
               {verdict.saferSwaps.length > 0 && (
                 <div className="mt-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Safer swaps
+                    {t("recipeDetail.saferSwaps")}
                   </p>
                   <ul className="mt-2 space-y-2">
                     {verdict.saferSwaps.map((s, i) => (
                       <li key={i} className="rounded-xl bg-white/70 p-3 text-sm">
                         <p>
-                          Replace <span className="font-semibold">{s.from}</span> with{" "}
+                          {t("recipeDetail.replacePrefix")} <span className="font-semibold">{s.from}</span>{" "}
+                          {t("recipeDetail.replaceWith")}{" "}
                           <span className="font-semibold">{s.to}</span>
                         </p>
                         <p className="text-muted-foreground">{s.why}</p>
@@ -274,8 +278,8 @@ export default function RecipeSubmitScreen() {
           {!verdict && (
             <div className="rounded-3xl border border-border/60 bg-muted/30 p-5 text-sm text-muted-foreground">
               {scannerUnavailable
-                ? "Our AI safety scanner is temporarily unavailable, but your recipe is saved. An admin will still review it manually."
-                : "Our AI safety scanner couldn't return a verdict this time, but your recipe is saved. An admin will review it manually."}
+                ? t("recipeSubmit.scannerOffline")
+                : t("recipeSubmit.scannerCouldnt")}
             </div>
           )}
 
@@ -295,14 +299,14 @@ export default function RecipeSubmitScreen() {
               }}
               className="flex-1 rounded-full border border-border bg-white px-5 py-2.5 text-sm font-semibold hover:bg-muted"
             >
-              Submit another
+              {t("recipeSubmit.submitAnother")}
             </button>
             <button
               type="button"
               onClick={() => navigate("/app/profile")}
               className="flex-1 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90"
             >
-              Back to profile
+              {t("recipeSubmit.backToProfile")}
             </button>
           </div>
         </div>
@@ -312,20 +316,20 @@ export default function RecipeSubmitScreen() {
 
   return (
     <AppShell
-      title="Share a DIY recipe"
-      subtitle="Help others discover safe, tried-and-true at-home formulas. Our AI will scan it for safety before an admin reviews."
+      title={t("recipeSubmit.shareTitle")}
+      subtitle={t("recipeSubmit.shareSubtitle")}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Recipe title
+            {t("recipeSubmit.recipeTitleLabel")}
           </label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={120}
-            placeholder="e.g. Soothing oat & honey mask"
+            placeholder={t("recipeSubmit.recipeTitlePlaceholder")}
             className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
@@ -333,7 +337,7 @@ export default function RecipeSubmitScreen() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Category
+              {t("recipeSubmit.categoryLabel")}
             </label>
             <select
               value={category}
@@ -342,7 +346,7 @@ export default function RecipeSubmitScreen() {
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c} className="capitalize">
-                  {c}
+                  {t(`recipes.cat.${c}`, {})}
                 </option>
               ))}
             </select>
@@ -350,23 +354,23 @@ export default function RecipeSubmitScreen() {
 
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Skin types
+              {t("recipeSubmit.skinTypesLabel")}
             </label>
             <div className="flex flex-wrap gap-2 pt-1">
-              {SKIN_TYPES.map((t) => {
-                const active = skinTypes.includes(t);
+              {SKIN_TYPES.map((s) => {
+                const active = skinTypes.includes(s);
                 return (
                   <button
-                    key={t}
+                    key={s}
                     type="button"
-                    onClick={() => toggleSkinType(t)}
+                    onClick={() => toggleSkinType(s)}
                     className={`rounded-full border px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
                       active
                         ? "border-primary bg-primary text-white"
                         : "border-border bg-white text-foreground hover:bg-muted"
                     }`}
                   >
-                    {t}
+                    {t(`recipes.skin.${s}`, {})}
                   </button>
                 );
               })}
@@ -377,7 +381,7 @@ export default function RecipeSubmitScreen() {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Ingredients ({ingredients.length})
+              {t("recipeSubmit.ingredientsLabel", { count: ingredients.length })}
             </label>
             <button
               type="button"
@@ -386,7 +390,7 @@ export default function RecipeSubmitScreen() {
               className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 disabled:opacity-40"
             >
               <Plus className="h-3.5 w-3.5" />
-              Add
+              {t("recipeSubmit.add")}
             </button>
           </div>
           <div className="space-y-2">
@@ -397,7 +401,7 @@ export default function RecipeSubmitScreen() {
                     type="text"
                     value={row.name}
                     onChange={(e) => updateIngredient(idx, "name", e.target.value)}
-                    placeholder="Ingredient"
+                    placeholder={t("recipeSubmit.ingredientPlaceholder")}
                     maxLength={120}
                     className="rounded-xl border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
@@ -405,7 +409,7 @@ export default function RecipeSubmitScreen() {
                     type="text"
                     value={row.amount}
                     onChange={(e) => updateIngredient(idx, "amount", e.target.value)}
-                    placeholder="Amount"
+                    placeholder={t("recipeSubmit.amountPlaceholder")}
                     maxLength={60}
                     className="rounded-xl border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
@@ -413,7 +417,7 @@ export default function RecipeSubmitScreen() {
                     type="text"
                     value={row.notes}
                     onChange={(e) => updateIngredient(idx, "notes", e.target.value)}
-                    placeholder="Notes (optional)"
+                    placeholder={t("recipeSubmit.notesPlaceholder")}
                     maxLength={200}
                     className="rounded-xl border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
@@ -423,7 +427,7 @@ export default function RecipeSubmitScreen() {
                   onClick={() => removeIngredient(idx)}
                   disabled={ingredients.length <= 2}
                   className="mt-1 rounded-lg p-2 text-muted-foreground hover:bg-muted disabled:opacity-30"
-                  aria-label="Remove ingredient"
+                  aria-label={t("recipeSubmit.removeIngredient")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -434,14 +438,14 @@ export default function RecipeSubmitScreen() {
 
         <div>
           <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Method (optional)
+            {t("recipeSubmit.methodLabel")}
           </label>
           <textarea
             value={method}
             onChange={(e) => setMethod(e.target.value)}
             rows={5}
             maxLength={4000}
-            placeholder="Describe how to mix and apply…"
+            placeholder={t("recipeSubmit.methodPlaceholder")}
             className="w-full resize-none rounded-2xl border border-border bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
@@ -455,11 +459,10 @@ export default function RecipeSubmitScreen() {
         <div className="rounded-2xl border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
           <p className="flex items-center gap-1.5 font-medium text-foreground">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            What happens next
+            {t("recipeSubmit.whatNext")}
           </p>
           <p className="mt-1">
-            Our AI will scan your recipe for safety concerns. Then a SkinScreen admin will
-            review and approve it before it appears in the public library.
+            {t("recipeSubmit.whatNextBody")}
           </p>
         </div>
 
@@ -471,10 +474,10 @@ export default function RecipeSubmitScreen() {
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Scanning & saving…
+              {t("recipeSubmit.scanAndSave")}
             </>
           ) : (
-            "Submit for review"
+            t("recipeSubmit.submitForReview")
           )}
         </button>
       </form>

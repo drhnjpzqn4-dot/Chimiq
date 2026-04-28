@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Info, ExternalLink } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { useTranslation } from "@/lib/i18n";
 
 export interface DangerCardProps {
   pair: string;
@@ -12,7 +13,12 @@ export interface DangerCardProps {
 }
 
 export function DangerCard({ pair, risk, citation, citationUrl, severity, delay = 0 }: DangerCardProps) {
+  const { t } = useTranslation();
   const isHighRisk = severity === "HIGH RISK";
+  const severityLabel = isHighRisk
+    ? t("dangerZone.severityHigh")
+    : t("dangerZone.severityCaution");
+  const sourceLabel = t("dangerCard.source");
 
   return (
     <FadeIn delay={delay} fullWidth>
@@ -24,7 +30,7 @@ export function DangerCard({ pair, risk, citation, citationUrl, severity, delay 
             </h3>
             <Badge variant={isHighRisk ? "destructive" : "warning"} className="shrink-0 font-sans tracking-wide uppercase text-[10px]">
               {isHighRisk ? <AlertTriangle className="w-3 h-3 mr-1" /> : <Info className="w-3 h-3 mr-1" />}
-              {severity}
+              {severityLabel}
             </Badge>
           </div>
 
@@ -42,7 +48,7 @@ export function DangerCard({ pair, risk, citation, citationUrl, severity, delay 
           >
             <ExternalLink className="w-3 h-3 mt-0.5 shrink-0 group-hover:text-primary transition-colors" />
             <span className="italic leading-snug">
-              <span className="font-semibold not-italic text-muted-foreground/90">Source: </span>
+              <span className="font-semibold not-italic text-muted-foreground/90">{sourceLabel} </span>
               {citation}
             </span>
           </a>

@@ -5,10 +5,9 @@ import { AppShell } from "@/components/AppShell";
 import {
   TOP_MISTAKES,
   TOP_WORRIES,
-  SEVERITY_LABEL,
-  FREQUENCY_LABEL,
   type DiscoverItem,
 } from "@/lib/discover-content";
+import { useTranslation } from "@/lib/i18n";
 
 type Tab = "mistakes" | "worries";
 
@@ -30,55 +29,55 @@ const TONE_CLASS: Record<CardData["badgeTone"], string> = {
   blue: "bg-sky-50 text-sky-700",
 };
 
-function toCard(item: DiscoverItem & { severity?: string; frequency?: string }): CardData {
-  const isMistake = "severity" in item && item.severity;
-  let badge = "";
-  let tone: CardData["badgeTone"] = "blue";
-  if (isMistake && item.severity) {
-    badge = SEVERITY_LABEL[item.severity as keyof typeof SEVERITY_LABEL];
-    tone = item.severity === "HIGH" ? "red" : item.severity === "MEDIUM" ? "amber" : "blue";
-  } else if (item.frequency) {
-    badge = FREQUENCY_LABEL[item.frequency as keyof typeof FREQUENCY_LABEL];
-    tone = item.frequency === "VERY_COMMON" ? "amber" : "blue";
-  }
-  return {
-    rank: item.rank,
-    slug: item.slug,
-    title: item.title,
-    hook: item.hook,
-    badge,
-    badgeTone: tone,
-    problem: item.problem,
-    whyItMatters: item.whyItMatters,
-    solution: item.solution,
-  };
-}
-
 export default function ProblemsScreen() {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("mistakes");
 
   const cards = useMemo<CardData[]>(() => {
     const source = tab === "mistakes" ? TOP_MISTAKES : TOP_WORRIES;
-    return source.map((it) => toCard(it as DiscoverItem & { severity?: string; frequency?: string }));
-  }, [tab]);
+    return source.map((it) => {
+      const item = it as DiscoverItem & { severity?: string; frequency?: string };
+      const isMistake = !!item.severity;
+      let badge = "";
+      let tone: CardData["badgeTone"] = "blue";
+      if (isMistake && item.severity) {
+        badge = t(`severity.${item.severity}`);
+        tone = item.severity === "HIGH" ? "red" : item.severity === "MEDIUM" ? "amber" : "blue";
+      } else if (item.frequency) {
+        badge = t(`frequency.${item.frequency}`);
+        tone = item.frequency === "VERY_COMMON" ? "amber" : "blue";
+      }
+      return {
+        rank: item.rank,
+        slug: item.slug,
+        title: item.title,
+        hook: item.hook,
+        badge,
+        badgeTone: tone,
+        problem: item.problem,
+        whyItMatters: item.whyItMatters,
+        solution: item.solution,
+      };
+    });
+  }, [tab, t]);
 
   return (
-    <AppShell title="Common problems" subtitle="Top 10 mistakes and worries — at a glance.">
+    <AppShell title={t("problems.title")} subtitle={t("problems.subtitle")}>
       <button
         type="button"
         onClick={() => navigate("/app/scan")}
         data-touch-target
         className="mb-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-white/60 px-3 py-1.5 text-sm font-medium text-foreground hover:bg-white"
-        aria-label="Back to scanner"
+        aria-label={t("problems.backToScanner")}
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to scanner
+        {t("problems.backToScanner")}
       </button>
 
       <div
         role="tablist"
-        aria-label="Common problems category"
+        aria-label={t("problems.categoryAria")}
         className="mb-4 grid grid-cols-2 gap-2 rounded-2xl bg-muted/40 p-1"
       >
         <button
@@ -91,7 +90,7 @@ export default function ProblemsScreen() {
           }`}
         >
           <AlertTriangle className="h-4 w-4" />
-          Top mistakes
+          {t("problems.tabMistakes")}
         </button>
         <button
           role="tab"
@@ -103,7 +102,7 @@ export default function ProblemsScreen() {
           }`}
         >
           <HelpCircle className="h-4 w-4" />
-          Top worries
+          {t("problems.tabWorries")}
         </button>
       </div>
 
@@ -137,7 +136,7 @@ export default function ProblemsScreen() {
             <p className="mt-2 text-xs italic text-muted-foreground">{c.whyItMatters}</p>
             <div className="mt-3 rounded-2xl border border-border/40 bg-muted/30 p-3">
               <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                What to do
+                {t("problems.whatToDo")}
               </p>
               <ul className="mt-1.5 list-inside list-disc space-y-1 text-sm text-foreground">
                 {c.solution.map((s, i) => (
@@ -152,14 +151,14 @@ export default function ProblemsScreen() {
               className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25"
             >
               <ScanLine className="h-4 w-4" />
-              Scan a product now
+              {t("problems.scanProductNow")}
             </button>
           </article>
         ))}
       </div>
 
       <p className="mt-2 text-center text-[11px] text-muted-foreground">
-        Swipe to see more →
+        {t("problems.swipeMore")}
       </p>
     </AppShell>
   );
