@@ -156,3 +156,21 @@ Utility scripts package. Each script is a `.ts` file in `src/` with a correspond
   renders when `singleResult.flags.length > 0`. Shelf-type CTAs (3 articles)
   intentionally have no seed because they navigate to `/app`, not the
   scanner.
+- **Marketing page OG previews (#87)** — `scripts/build-og.mjs` now also
+  generates per-page share previews for the SPA-only marketing routes:
+  `/pricing`, `/discover`, `/recipes`. Each gets a 1200×630 PNG under
+  `dist/public/og/marketing/<slug>.png` plus a static
+  `dist/public/<slug>/index.html` with per-page `og:*` and `twitter:*`
+  meta tags. Bots fetching these URLs see the right preview; the SPA
+  fallback handles real users. Home (`/`) is left on the site-wide OG in
+  the root `index.html` (the existing `/opengraph.jpg`).
+- **Discover→scanner pre-fill contract test (#89)** — added vitest to the
+  skinscreen artifact (`pnpm --filter @workspace/skinscreen test`) with a
+  standalone `vitest.config.ts` that bypasses the dev-server `PORT`
+  guard. `src/lib/discover-content.test.ts` locks down the data-shape
+  contract: every non-shelf CTA carries a seed, shelf CTAs do not, single
+  seeds have non-empty `ingredients` + `productName`, compare seeds have
+  both products + names, and every `alternatives`-type CTA seeds at
+  least one reliably-flagged ingredient token (fragrance / paraben /
+  hydroquinone / dye / etc.) so the alternatives panel never renders
+  empty. Removing or malforming a seed in the future fails CI.
