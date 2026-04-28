@@ -7,6 +7,15 @@ import { isNative } from "@/lib/native";
 interface BarcodeScanButtonProps {
   onResult: (ingredients: string, productName: string) => void;
   disabled?: boolean;
+  /**
+   * Optional override for the trigger element. When provided, renders a button
+   * that wraps the supplied content with the supplied classes instead of the
+   * default compact "Scan barcode" pill. Used by the Variant A lookup home to
+   * show the large camera viewfinder card while reusing all underlying scan
+   * logic.
+   */
+  triggerClassName?: string;
+  triggerContent?: React.ReactNode;
 }
 
 type ScanState =
@@ -26,7 +35,12 @@ declare const BarcodeDetector: {
   getSupportedFormats(): Promise<string[]>;
 };
 
-export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps) {
+export function BarcodeScanButton({
+  onResult,
+  disabled,
+  triggerClassName,
+  triggerContent,
+}: BarcodeScanButtonProps) {
   const [state, setState] = useState<ScanState>(
     typeof window !== "undefined" && (isNative() || "BarcodeDetector" in window)
       ? "idle"
@@ -226,20 +240,30 @@ export function BarcodeScanButton({ onResult, disabled }: BarcodeScanButtonProps
     return null;
   }
 
+  const defaultTrigger = (
+    <>
+      <Barcode className="w-3.5 h-3.5" />
+      Scan barcode
+    </>
+  );
+
   return (
     <>
       <button
         type="button"
         onClick={startScan}
         disabled={disabled}
-        className={cn(
-          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150",
-          "border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50",
-          "focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed",
-        )}
+        data-touch-target
+        className={
+          triggerClassName ??
+          cn(
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150",
+            "border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50",
+            "focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed",
+          )
+        }
       >
-        <Barcode className="w-3.5 h-3.5" />
-        Scan barcode
+        {triggerContent ?? defaultTrigger}
       </button>
 
       {modalOpen && !showContribute && (

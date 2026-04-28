@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { PackagePlus, Camera, Loader2, CheckCircle2, Gift, Star, X, ArrowLeft } from "lucide-react";
+import { Camera, Loader2, CheckCircle2, Gift, Star, X, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ContributeModalProps {
@@ -247,22 +247,37 @@ export function ContributeModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-        <div className="bg-primary px-5 py-4 flex items-center justify-between sticky top-0 z-10">
-          <div className="flex items-center gap-2.5">
+        {/* Variant A "paper-like" header — clean white surface with serif title
+            instead of the heavy dark-green bar. */}
+        <div className="bg-white px-5 pt-5 pb-3 flex items-start justify-between sticky top-0 z-10 border-b border-border/40">
+          <div className="flex items-center gap-2.5 min-w-0">
             {step === "ingredients" && (
               <button
                 onClick={() => setStep("front-photo")}
-                className="text-white/80 hover:text-white transition-colors mr-1"
+                aria-label="Back"
+                className="text-muted-foreground hover:text-foreground transition-colors -ml-1"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
             )}
-            <PackagePlus className="w-4 h-4 text-white" />
-            <p className="text-white font-semibold text-sm">{stepLabel[step]}</p>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                {step === "submitting" || step === "success"
+                  ? stepLabel[step]
+                  : "Help us add this product"}
+              </p>
+              <p className="font-serif text-lg font-semibold leading-tight text-foreground mt-0.5">
+                {step === "front-photo" && "Step 1 of 2 · Photo"}
+                {step === "ingredients" && "Step 2 of 2 · Ingredients"}
+                {step === "submitting" && "Submitting…"}
+                {step === "success" && "Thanks!"}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-white/70 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+            aria-label="Close"
+            className="shrink-0 rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

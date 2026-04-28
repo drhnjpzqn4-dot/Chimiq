@@ -520,6 +520,9 @@ export interface ScannerSeed {
   product2?: string;
   product2Name?: string;
   ingredients?: string;
+  /** Product name for single-mode seeds (used in result header + scan-completed
+      event so recents show the real product, not "Scanned product"). */
+  productName?: string;
   autoRun?: boolean;
 }
 
@@ -781,9 +784,14 @@ const SINGLE_PRESET: ScannerPreset = {
 export function IngredientScanner({
   ctaLabel,
   seed: externalSeed,
+  onSeedConsumed,
 }: {
   ctaLabel?: { single: string; compare: string };
   seed?: ScannerSeed | null;
+  /** Fires once after a non-null seed has been applied to internal state, so
+      the parent can clear its own seed prop and re-show lookup-home sections
+      (recents / get-started) for the next interaction. */
+  onSeedConsumed?: () => void;
 } = {}) {
   const [mode, setMode] = useState<"single" | "compare">("single");
   const [skinProfile, setSkinProfile] = useState<SkinProfile | undefined>(undefined);
@@ -800,17 +808,64 @@ export function IngredientScanner({
   const [quickStartResetKey, setQuickStartResetKey] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  const emitScanCompleted = (kind: "single" | "compare") => {
+  // Holds the product name(s) for an in-flight seeded auto-run. React state
+  // updates inside applySeed are not yet flushed when analyze*.mutate() is
+  // called in the same tick, so onSuccess can read stale state. The ref lets
+  // onSuccess pull the deterministic name set by applySeed and is then cleared.
+  const pendingScanNameRef = useRef<string | null>(null);
+
+  const emitScanCompleted = (
+    kind: "single" | "compare",
+    extra?: { productName?: string; verdict?: "safe" | "warning" | "high" },
+  ) => {
     if (typeof window === "undefined") return;
     window.dispatchEvent(
-      new CustomEvent("skinscreen:scan-completed", { detail: { kind } }),
+      new CustomEvent("skinscreen:scan-completed", {
+        detail: { kind, ...extra },
+      }),
     );
   };
   const analyzeSingle = useAnalyzeSingle({
-    mutation: { onSuccess: () => emitScanCompleted("single") },
+    mutation: {
+      onSuccess: (data) => {
+        const flagsArr = (data as { flags?: Array<{ severity?: string }> }).flags ?? [];
+        const overallSafe = (data as { overallSafe?: boolean }).overallSafe ?? false;
+        const hasHigh = flagsArr.some((f) => f?.severity === "HIGH_RISK");
+        const verdict: "safe" | "warning" | "high" = overallSafe
+          ? "safe"
+          : hasHigh
+            ? "high"
+            : "warning";
+        const pendingName = pendingScanNameRef.current;
+        pendingScanNameRef.current = null;
+        emitScanCompleted("single", {
+          productName: pendingName ?? productName ?? undefined,
+          verdict,
+        });
+      },
+    },
   });
   const analyzeCompare = useAnalyzeIngredients({
-    mutation: { onSuccess: () => emitScanCompleted("compare") },
+    mutation: {
+      onSuccess: (data) => {
+        const conflicts = (data as { conflicts?: Array<{ severity?: string }> }).conflicts ?? [];
+        const overallSafe = (data as { overallSafe?: boolean }).overallSafe ?? false;
+        const hasHigh = conflicts.some((c) => c?.severity === "HIGH_RISK");
+        const verdict: "safe" | "warning" | "high" =
+          overallSafe && conflicts.length === 0
+            ? "safe"
+            : hasHigh
+              ? "high"
+              : "warning";
+        const compareName = [product1Name, product2Name].filter(Boolean).join(" + ");
+        const pendingName = pendingScanNameRef.current;
+        pendingScanNameRef.current = null;
+        emitScanCompleted("compare", {
+          productName: pendingName || compareName || undefined,
+          verdict,
+        });
+      },
+    },
   });
 
   const flagOutdated = async (hash: string | undefined) => {
@@ -847,17 +902,24 @@ export function IngredientScanner({
       setIngredients("");
       setProductName("");
       if (s.autoRun && s.product1 && s.product2) {
+        // Seed the deterministic name for the in-flight auto-run so
+        // onSuccess doesn't depend on un-flushed React state.
+        const compareName = [s.product1Name, s.product2Name]
+          .filter(Boolean)
+          .join(" + ");
+        pendingScanNameRef.current = compareName || null;
         setSubmitted(true);
         analyzeCompare.mutate({ data: { product1: s.product1, product2: s.product2 } });
       }
     } else {
       setIngredients(s.ingredients ?? "");
-      setProductName("");
+      setProductName(s.productName ?? "");
       setProduct1("");
       setProduct1Name("");
       setProduct2("");
       setProduct2Name("");
       if (s.autoRun && s.ingredients) {
+        pendingScanNameRef.current = s.productName ?? null;
         setSubmitted(true);
         analyzeSingle.mutate({ data: { ingredients: s.ingredients } });
       }
@@ -869,8 +931,10 @@ export function IngredientScanner({
     if (externalSeed && lastAppliedSeedRef.current !== externalSeed) {
       lastAppliedSeedRef.current = externalSeed;
       applySeed(externalSeed);
+      // Notify parent so it can clear its seed prop without re-applying.
+      onSeedConsumed?.();
     }
-  }, [externalSeed, applySeed]);
+  }, [externalSeed, applySeed, onSeedConsumed]);
 
   const singleResult = submitted && analyzeSingle.isSuccess && analyzeSingle.data ? analyzeSingle.data : null;
   const compareResult = submitted && analyzeCompare.isSuccess && analyzeCompare.data ? analyzeCompare.data : null;
@@ -1262,6 +1326,66 @@ export function IngredientScanner({
             }
             summary={singleResult.verdictSummary ?? undefined}
           />
+
+          {/* Compact ingredient chip strip (Variant C styling) — every parsed
+              ingredient as a small pill, with flagged ones tinted by severity.
+              Sits between the verdict and the detailed flag cards so users get
+              a quick visual scan of what was found. */}
+          {ingredients.trim() && (
+            <FadeIn>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                    Ingredient Analysis
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {(() => {
+                      const total = ingredients
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean).length;
+                      return `${total} ingredient${total === 1 ? "" : "s"}`;
+                    })()}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5 rounded-2xl border border-border/50 bg-white p-3.5">
+                  {ingredients
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                    .map((ing, i) => {
+                      const norm = ing.toLowerCase();
+                      const high = singleHighRisk.find(
+                        (f) => f.ingredient.toLowerCase().trim() === norm,
+                      );
+                      const caution = singleCaution.find(
+                        (f) => f.ingredient.toLowerCase().trim() === norm,
+                      );
+                      const tone = high ? "high" : caution ? "caution" : "neutral";
+                      return (
+                        <span
+                          key={`${ing}-${i}`}
+                          title={
+                            high?.explanation ?? caution?.explanation ?? undefined
+                          }
+                          className={cn(
+                            "rounded-md px-2 py-0.5 text-[11px] font-medium leading-snug transition-colors",
+                            tone === "high" &&
+                              "bg-red-50 text-red-700 ring-1 ring-red-200",
+                            tone === "caution" &&
+                              "bg-amber-50 text-amber-800 ring-1 ring-amber-200",
+                            tone === "neutral" &&
+                              "bg-slate-50 text-slate-600 ring-1 ring-slate-200/60",
+                          )}
+                        >
+                          {ing}
+                        </span>
+                      );
+                    })}
+                </div>
+              </div>
+            </FadeIn>
+          )}
 
           {singleHighRisk.length > 0 && (
             <div>
