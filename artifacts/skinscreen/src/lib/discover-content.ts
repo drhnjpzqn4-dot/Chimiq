@@ -9,6 +9,9 @@ export interface DiscoverScannerSeed {
   product2?: string;
   product2Name?: string;
   ingredients?: string;
+  /** Shown in the scanner header for single-mode seeds so the user sees the
+      product name we pre-loaded, not "Scanned product". */
+  productName?: string;
   autoRun?: boolean;
 }
 
@@ -34,6 +37,52 @@ const ORDINARY_VITAMIN_C =
 
 const ORDINARY_NIACINAMIDE =
   "Aqua, Niacinamide, Pentylene Glycol, Zinc PCA, Dimethyl Isosorbide, Tamarindus Indica Seed Gum, Xanthan Gum, Isoceteth-20, Ethoxydiglycol, Phenoxyethanol, Chlorphenesin";
+
+// Sunscreen with oxybenzone + parabens + fragrance — a textbook chemical SPF
+// for the "find a safer SPF" / "endocrine disruptors" CTAs.
+const BANANA_BOAT_SPF =
+  "Avobenzone 3%, Homosalate 10%, Octisalate 5%, Octocrylene 6%, Oxybenzone 6%, Water, Styrene/Acrylates Copolymer, Stearic Acid, Hydrated Silica, Glyceryl Stearate, PEG-100 Stearate, Cetyl Alcohol, Caprylyl Methicone, Phenoxyethanol, Polyacrylamide, Tocopheryl Acetate, C13-14 Isoparaffin, Laureth-7, Disodium EDTA, Methylparaben, Propylparaben, Fragrance";
+
+// Popular drugstore moisturiser with parabens, fragrance and dyes — generic
+// "scan before you try" demo for first-time users.
+const OLAY_REGENERIST =
+  "Water, Glycerin, Niacinamide, Isohexadecane, Isopropyl Isostearate, Panthenol, Polyacrylamide, Cetyl Alcohol, Polymethylsilsesquioxane, C13-14 Isoparaffin, Behenyl Alcohol, Sucrose Polycottonseedate, PEG-100 Stearate, Tocopheryl Acetate, Allyl Methacrylates Crosspolymer, Camellia Sinensis Leaf Extract, Carnosine, Disodium EDTA, BHT, Phenoxyethanol, Methylparaben, Laureth-7, Fragrance, Yellow 5, Red 4";
+
+// SLS + olefin sulfonate cleanser used for "find a gentler cleanser" and
+// "scan your cleanser" CTAs (over-cleansing / oily-skin articles).
+const NEUTROGENA_OILFREE_WASH =
+  "Salicylic Acid 2%, Water, Cocamidopropyl Betaine, Sodium C14-16 Olefin Sulfonate, Hexylene Glycol, Sodium Laureth Sulfate, Glycerin, PEG-150 Pentaerythrityl Tetrastearate, Sodium Lauroamphoacetate, Citric Acid, Sodium Chloride, Tetrasodium EDTA, PEG-120 Methyl Glucose Dioleate, Aloe Barbadensis Leaf Juice, Menthol, Sodium Benzoate, Fragrance";
+
+// "Natural" branding but loaded with 35% denatured alcohol + linalool +
+// limonene — perfect demo for hidden fragrance and marketing-claim articles.
+const BODY_SHOP_TEA_TREE =
+  "Aqua, Alcohol Denat. (35%), Glycerin, Niacinamide, Polysorbate 20, Salicylic Acid, Melaleuca Alternifolia (Tea Tree) Leaf Oil, Citric Acid, Sodium Hydroxide, Limonene, Linalool";
+
+// Famously comedogenic body oil (mineral oil + isopropyl myristate) for the
+// "scan for pore-cloggers" CTA on the breakouts article.
+const BIO_OIL =
+  "Paraffinum Liquidum, Triisononanoin, Cetearyl Ethylhexanoate, Isopropyl Myristate, Retinyl Palmitate, Helianthus Annuus Seed Oil, Tocopheryl Acetate, BHT, Bisabolol, Glycine Soja Oil, Calendula Officinalis Extract, Lavandula Angustifolia Oil, Rosmarinus Officinalis Leaf Oil, Anthemis Nobilis Flower Oil, CI 26100, Fragrance";
+
+// Hydroquinone + glycolic + SLS + parabens — harsh brightener that triggers
+// "find a gentler brightener" alternatives on the dark-spots article.
+const MURAD_RAPID_AGE_SPOT =
+  "Hydroquinone 2%, Water, Glycolic Acid, Glycerin, Cetyl Alcohol, Glyceryl Stearate, Ammonium Glycolate, Steareth-21, Isohexadecane, Sodium Hyaluronate, Sodium Sulfite, Disodium EDTA, Sodium Lauryl Sulfate, Phenoxyethanol, Methylparaben, Propylparaben, Fragrance";
+
+// Lightweight gel-cream that's too thin for properly dry skin AND contains
+// fragrance + Blue 1 dye so the scanner reliably flags it — the dryness
+// article CTA needs an alternatives result to surface "find a richer
+// moisturiser" suggestions, which only render when at least one flag exists.
+const NEUTROGENA_HYDRO_BOOST =
+  "Water, Dimethicone, Glycerin, Dimethicone/Vinyl Dimethicone Crosspolymer, Phenoxyethanol, Polyacrylamide, Cetearyl Olivate, C13-14 Isoparaffin, Sorbitan Olivate, Synthetic Beeswax, Carbomer, Sodium Hyaluronate, Olea Europaea (Olive) Fruit Oil, Ethylhexylglycerin, Sodium Hydroxide, Disodium EDTA, Laureth-7, Fragrance, Blue 1";
+
+// Adapalene retinoid — exactly what to flag on the pregnancy-safety article.
+const DIFFERIN_ADAPALENE =
+  "Adapalene 0.1%, Carbomer 940, Edetate Disodium, Methylparaben, Poloxamer 182, Propylene Glycol, Purified Water, Sodium Hydroxide";
+
+// 5% glycolic acid toner — the most common over-exfoliation culprit, used on
+// the barrier-damage article so the scanner suggests gentler swaps.
+const PIXI_GLOW_TONIC =
+  "Aqua, Glycolic Acid 5%, Hamamelis Virginiana (Witch Hazel) Water, Aloe Barbadensis Leaf Juice, Ammonium Glycolate, Glycerin, Aesculus Hippocastanum (Horse Chestnut) Seed Extract, Panax Ginseng Root Extract, Hexylene Glycol, Butylene Glycol, Polysorbate 20, Sodium PCA, Biotin, Fragrance, Hexyl Cinnamal";
 
 export interface DiscoverItem {
   slug: string;
@@ -154,7 +203,16 @@ export const TOP_MISTAKES: MistakeItem[] = [
       "Reapply every 2 hours if you're outside.",
       "Choose a sunscreen you actually like wearing — that's the one you'll use.",
     ],
-    cta: { label: "Find a safer SPF", type: "alternatives" },
+    cta: {
+      label: "Find a safer SPF",
+      type: "alternatives",
+      seed: {
+        mode: "single",
+        ingredients: BANANA_BOAT_SPF,
+        productName: "Banana Boat Sport SPF 30",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "too-many-actives",
@@ -208,7 +266,16 @@ export const TOP_MISTAKES: MistakeItem[] = [
       "Look for redness, itching or bumps.",
       "If it's clear, you're safe to use it on your face.",
     ],
-    cta: { label: "Scan a product before you try it", type: "scan" },
+    cta: {
+      label: "Scan a product before you try it",
+      type: "scan",
+      seed: {
+        mode: "single",
+        ingredients: OLAY_REGENERIST,
+        productName: "Olay Regenerist Micro-Sculpting Cream",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "over-cleansing",
@@ -226,7 +293,16 @@ export const TOP_MISTAKES: MistakeItem[] = [
       "Skip the second cleanse unless you wore heavy makeup or SPF.",
       "If your skin feels tight after washing, your cleanser is too harsh.",
     ],
-    cta: { label: "Find a gentler cleanser", type: "alternatives" },
+    cta: {
+      label: "Find a gentler cleanser",
+      type: "alternatives",
+      seed: {
+        mode: "single",
+        ingredients: NEUTROGENA_OILFREE_WASH,
+        productName: "Neutrogena Oil-Free Acne Wash",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "fragrance-on-sensitive-skin",
@@ -244,7 +320,16 @@ export const TOP_MISTAKES: MistakeItem[] = [
       "Switch fragranced moisturisers and serums first — they sit on your skin longest.",
       "Cleansers are lower priority since they rinse off.",
     ],
-    cta: { label: "Scan for hidden fragrance", type: "scan" },
+    cta: {
+      label: "Scan for hidden fragrance",
+      type: "scan",
+      seed: {
+        mode: "single",
+        ingredients: BODY_SHOP_TEA_TREE,
+        productName: "The Body Shop Tea Tree Skin Clearing Lotion",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "buying-by-marketing",
@@ -262,7 +347,16 @@ export const TOP_MISTAKES: MistakeItem[] = [
       "Look for the active you actually want in a meaningful percentage.",
       "If you can't find the active or it's at the bottom of the list, it won't do much.",
     ],
-    cta: { label: "Scan the back-label instead", type: "scan" },
+    cta: {
+      label: "Scan the back-label instead",
+      type: "scan",
+      seed: {
+        mode: "single",
+        ingredients: BODY_SHOP_TEA_TREE,
+        productName: "The Body Shop Tea Tree Skin Clearing Lotion",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "vitamin-c-niacinamide",
@@ -316,7 +410,16 @@ export const TOP_WORRIES: WorryItem[] = [
       "Avoid coconut oil, isopropyl myristate and heavy silicones near breakout-prone areas.",
       "If nothing improves in 8 weeks, see a dermatologist.",
     ],
-    cta: { label: "Scan your products for pore-cloggers", type: "scan" },
+    cta: {
+      label: "Scan your products for pore-cloggers",
+      type: "scan",
+      seed: {
+        mode: "single",
+        ingredients: BIO_OIL,
+        productName: "Bio-Oil Skincare Oil",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "premature-ageing",
@@ -334,7 +437,16 @@ export const TOP_WORRIES: WorryItem[] = [
       "Eat enough protein and sleep — your skin rebuilds at night.",
       "Don't smoke and limit alcohol — both accelerate collagen breakdown.",
     ],
-    cta: { label: "Find a safer SPF", type: "alternatives" },
+    cta: {
+      label: "Find a safer SPF",
+      type: "alternatives",
+      seed: {
+        mode: "single",
+        ingredients: BANANA_BOAT_SPF,
+        productName: "Banana Boat Sport SPF 30",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "dark-spots",
@@ -352,7 +464,16 @@ export const TOP_WORRIES: WorryItem[] = [
       "Try azelaic acid 10% at night — gentle and very effective.",
       "Don't pick at spots or breakouts. Ever.",
     ],
-    cta: { label: "Find a gentler brightener", type: "alternatives" },
+    cta: {
+      label: "Find a gentler brightener",
+      type: "alternatives",
+      seed: {
+        mode: "single",
+        ingredients: MURAD_RAPID_AGE_SPOT,
+        productName: "Murad Rapid Age Spot Serum",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "sensitivity-redness",
@@ -388,7 +509,16 @@ export const TOP_WORRIES: WorryItem[] = [
       "Look for ceramides, glycerin and hyaluronic acid.",
       "Use a humidifier in winter or in air-conditioned rooms.",
     ],
-    cta: { label: "Find a richer moisturiser", type: "alternatives" },
+    cta: {
+      label: "Find a richer moisturiser",
+      type: "alternatives",
+      seed: {
+        mode: "single",
+        ingredients: NEUTROGENA_HYDRO_BOOST,
+        productName: "Neutrogena Hydro Boost Water Gel",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "oiliness",
@@ -406,7 +536,16 @@ export const TOP_WORRIES: WorryItem[] = [
       "Add niacinamide 5% to help regulate sebum.",
       "Try blotting paper instead of mattifying powders.",
     ],
-    cta: { label: "Scan your cleanser", type: "scan" },
+    cta: {
+      label: "Scan your cleanser",
+      type: "scan",
+      seed: {
+        mode: "single",
+        ingredients: NEUTROGENA_OILFREE_WASH,
+        productName: "Neutrogena Oil-Free Acne Wash",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "hormone-disruptors",
@@ -424,7 +563,16 @@ export const TOP_WORRIES: WorryItem[] = [
       "Limit propylparaben and butylparaben in leave-on products.",
       "When in doubt, scan the label.",
     ],
-    cta: { label: "Scan for endocrine disruptors", type: "scan" },
+    cta: {
+      label: "Scan for endocrine disruptors",
+      type: "scan",
+      seed: {
+        mode: "single",
+        ingredients: BANANA_BOAT_SPF,
+        productName: "Banana Boat Sport SPF 30",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "sun-damage",
@@ -442,7 +590,16 @@ export const TOP_WORRIES: WorryItem[] = [
       "Wear a hat and sunglasses for extra cover.",
       "Check moles and skin spots every 3 months — see a doctor for anything new or changing.",
     ],
-    cta: { label: "Find a safer SPF", type: "alternatives" },
+    cta: {
+      label: "Find a safer SPF",
+      type: "alternatives",
+      seed: {
+        mode: "single",
+        ingredients: BANANA_BOAT_SPF,
+        productName: "Banana Boat Sport SPF 30",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "pregnancy-safe",
@@ -460,7 +617,16 @@ export const TOP_WORRIES: WorryItem[] = [
       "Avoid hydroquinone and chemical sunscreens with oxybenzone.",
       "Stick to: gentle cleanser, ceramide moisturiser, mineral SPF, vitamin C, azelaic acid, niacinamide.",
     ],
-    cta: { label: "Scan a product for pregnancy safety", type: "scan" },
+    cta: {
+      label: "Scan a product for pregnancy safety",
+      type: "scan",
+      seed: {
+        mode: "single",
+        ingredients: DIFFERIN_ADAPALENE,
+        productName: "Differin Adapalene 0.1% Gel",
+        autoRun: true,
+      },
+    },
   },
   {
     slug: "barrier-damage",
@@ -478,7 +644,16 @@ export const TOP_WORRIES: WorryItem[] = [
       "Add a thin layer of petrolatum at night for the worst patches.",
       "Be patient — barriers heal at their own pace.",
     ],
-    cta: { label: "Find barrier-friendly products", type: "alternatives" },
+    cta: {
+      label: "Find barrier-friendly products",
+      type: "alternatives",
+      seed: {
+        mode: "single",
+        ingredients: PIXI_GLOW_TONIC,
+        productName: "Pixi Glow Tonic",
+        autoRun: true,
+      },
+    },
   },
 ];
 

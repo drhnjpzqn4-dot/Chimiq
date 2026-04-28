@@ -146,3 +146,13 @@ Utility scripts package. Each script is a `.ts` file in `src/` with a correspond
 - **Sanitization audit (#74)** — all user-text routes confirmed routing
   through `sanitizeText` / `sanitizeProductName` / `sanitizeBrand` /
   `sanitizeIngredients`.
+- **Discover scanner pre-fills (#88)** — every non-shelf Discover article
+  CTA in `discover-content.ts` now carries a `seed` payload (single or
+  compare mode, `autoRun: true`). `DiscoverDetail.tsx` writes the seed to
+  `sessionStorage` under `SCANNER_SEED_STORAGE_KEY`; `IngredientScanner.tsx`
+  reads it and calls `applySeed()` on mount. Seeds for `alternatives`-type
+  CTAs are deliberately built with at least one flagged ingredient
+  (fragrance, dye, hydroquinone, etc.) because the alternatives panel only
+  renders when `singleResult.flags.length > 0`. Shelf-type CTAs (3 articles)
+  intentionally have no seed because they navigate to `/app`, not the
+  scanner.
