@@ -5,7 +5,7 @@ import { ContributeModal } from "@/components/ContributeModal";
 import { isNative } from "@/lib/native";
 
 interface BarcodeScanButtonProps {
-  onResult: (ingredients: string, productName: string) => void;
+  onResult: (ingredients: string, productName: string, barcode?: string) => void;
   disabled?: boolean;
   /**
    * Optional override for the trigger element. When provided, renders a button
@@ -111,7 +111,7 @@ export function BarcodeScanButton({
           setScannedProduct(name);
           setState("success");
           setTimeout(() => {
-            onResult(data.ingredients!, name);
+            onResult(data.ingredients!, name, code);
             setModalOpen(false);
             setState("idle");
             setScannedProduct(null);
@@ -388,7 +388,7 @@ export function BarcodeScanButton({
           onSuccess={(ings, name) => {
             setShowContribute(false);
             close();
-            onResult(ings, name);
+            onResult(ings, name, scannedBarcode ?? undefined);
           }}
           onClose={() => {
             setShowContribute(false);

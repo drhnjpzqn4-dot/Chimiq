@@ -11,6 +11,9 @@ import {
 } from "@workspace/api-client-react";
 import type { IngredientFlag, SkinProfile, AlternativeSuggestion } from "@workspace/api-client-react";
 import { DangerCard } from "@/components/DangerCard";
+import { IngredientDetailSheet, type IngredientDetailFlag } from "@/components/IngredientDetailSheet";
+import { ProductRating } from "@/components/ProductRating";
+import { InlineGapFill } from "@/components/InlineGapFill";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/FadeIn";
@@ -804,9 +807,19 @@ export function IngredientScanner({
   const [productImage, setProductImage] = useState<string>("");
   const [product1Image, setProduct1Image] = useState<string>("");
   const [product2Image, setProduct2Image] = useState<string>("");
+  // Barcode of the most recently scanned single product. Drives the rating
+  // widget on the results header (#97); empty for paste-only flows.
+  const [productBarcode, setProductBarcode] = useState<string>("");
   const [submitted, setSubmitted] = useState(false);
   const [quickStartResetKey, setQuickStartResetKey] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Ingredient detail drawer (#99): tap any chip in the results to see what it
+  // does, regulatory status, and the flag explanation if any.
+  const [chipDetail, setChipDetail] = useState<{
+    ingredient: string;
+    flag: IngredientDetailFlag | null;
+  } | null>(null);
 
   // Holds the product name(s) for an in-flight seeded auto-run. React state
   // updates inside applySeed are not yet flushed when analyze*.mutate() is
@@ -978,6 +991,7 @@ export function IngredientScanner({
     setIngredients("");
     setProductName("");
     setProductImage("");
+    setProductBarcode("");
     setProduct1("");
     setProduct1Name("");
     setProduct1Image("");
@@ -1104,7 +1118,7 @@ export function IngredientScanner({
                 {mode === "single" ? (
                   <QuickStartDropdown
                     key={quickStartResetKey}
-                    onSelect={(ings, name, img) => { setIngredients(ings); setProductName(name); setProductImage(img); resetResults(); }}
+                    onSelect={(ings, name, img) => { setIngredients(ings); setProductName(name); setProductImage(img); setProductBarcode(""); resetResults(); }}
                     disabled={isPending}
                   />
                 ) : (
@@ -1152,11 +1166,11 @@ export function IngredientScanner({
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <ProductSearch
-                          onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); setProductImage(""); resetResults(); }}
+                          onIngredients={(ings, name) => { setIngredients(ings); setProductName(name || ""); setProductImage(""); setProductBarcode(""); resetResults(); }}
                         />
                       </div>
                       <BarcodeScanButton
-                        onResult={(ings, name) => { setIngredients(ings); setProductName(name); setProductImage(""); resetResults(); }}
+                        onResult={(ings, name, code) => { setIngredients(ings); setProductName(name); setProductImage(""); setProductBarcode(code ?? ""); resetResults(); }}
                         disabled={isPending}
                       />
                     </div>
@@ -1170,7 +1184,7 @@ export function IngredientScanner({
                       label="Ingredient List"
                       index={1}
                       value={ingredients}
-                      onChange={(val) => { setIngredients(val); setProductName(""); setProductImage(""); resetResults(); }}
+                      onChange={(val) => { setIngredients(val); setProductName(""); setProductImage(""); setProductBarcode(""); resetResults(); }}
                       placeholder={PLACEHOLDER_SINGLE}
                     />
                   </div>
@@ -1292,10 +1306,26 @@ export function IngredientScanner({
           <FadeIn>
             <div className="flex items-center gap-4">
               <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
-              <h2 className="font-serif text-[22px] font-bold leading-tight text-foreground">
-                Results for:<br />{productName || "Scanned product"}
-              </h2>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <h2 className="font-serif text-[22px] font-bold leading-tight text-foreground">
+                  Results for:<br />{productName || "Scanned product"}
+                </h2>
+                {productBarcode && (
+                  <ProductRating
+                    barcode={productBarcode}
+                    productName={productName || undefined}
+                  />
+                )}
+              </div>
             </div>
+            {productBarcode && /^\d{6,14}$/.test(productBarcode) && (
+              <div className="mt-3">
+                <InlineGapFill
+                  barcode={productBarcode}
+                  productName={productName || undefined}
+                />
+              </div>
+            )}
           </FadeIn>
 
           {/* Verdict headline */}
@@ -1362,14 +1392,29 @@ export function IngredientScanner({
                         (f) => f.ingredient.toLowerCase().trim() === norm,
                       );
                       const tone = high ? "high" : caution ? "caution" : "neutral";
+                      const flagSource = high ?? caution ?? null;
                       return (
-                        <span
+                        <button
+                          type="button"
                           key={`${ing}-${i}`}
-                          title={
-                            high?.explanation ?? caution?.explanation ?? undefined
+                          onClick={() =>
+                            setChipDetail({
+                              ingredient: ing,
+                              flag: flagSource
+                                ? {
+                                    severity: flagSource.severity,
+                                    explanation: flagSource.explanation,
+                                    citation: flagSource.citation,
+                                    citationUrl: flagSource.citationUrl,
+                                    category: flagSource.category,
+                                  }
+                                : null,
+                            })
                           }
+                          aria-label={`See details for ${ing}`}
                           className={cn(
-                            "rounded-md px-2 py-0.5 text-[11px] font-medium leading-snug transition-colors",
+                            "rounded-md px-2 py-0.5 text-[11px] font-medium leading-snug transition-colors cursor-pointer",
+                            "hover:brightness-95 active:brightness-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                             tone === "high" &&
                               "bg-red-50 text-red-700 ring-1 ring-red-200",
                             tone === "caution" &&
@@ -1379,7 +1424,7 @@ export function IngredientScanner({
                           )}
                         >
                           {ing}
-                        </span>
+                        </button>
                       );
                     })}
                 </div>
@@ -1436,6 +1481,7 @@ export function IngredientScanner({
                   setIngredients("");
                   setProductName("");
                   setProductImage("");
+                  setProductBarcode("");
                   resetResults();
                   setTimeout(() => document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }), 100);
                 }}
@@ -1506,7 +1552,7 @@ export function IngredientScanner({
                 <button
                   type="button"
                   onClick={() => {
-                    setIngredients(""); setProductName(""); setProductImage(""); resetResults(); analyzeSingle.reset();
+                    setIngredients(""); setProductName(""); setProductImage(""); setProductBarcode(""); resetResults(); analyzeSingle.reset();
                     setTimeout(() => document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }), 100);
                   }}
                   data-touch-target
@@ -1715,6 +1761,15 @@ export function IngredientScanner({
           </FadeIn>
         </div>
       )}
+
+      <IngredientDetailSheet
+        open={chipDetail !== null}
+        onOpenChange={(next) => {
+          if (!next) setChipDetail(null);
+        }}
+        ingredient={chipDetail?.ingredient ?? null}
+        flag={chipDetail?.flag ?? null}
+      />
     </div>
   );
 }

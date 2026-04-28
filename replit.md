@@ -127,3 +127,22 @@ OpenAI SDK client pre-configured with Replit AI Integration credentials (`AI_INT
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+
+## SkinScreen launch features (Apr 2026)
+
+- **Tap-an-ingredient drawer** — `GET /api/ingredients/lookup?name=` returns
+  cached CosIng + PubChem data; `IngredientDetailSheet.tsx` is a Radix bottom
+  sheet wired into the result chip strip.
+- **1–5 star product ratings** — `product_ratings` table keyed by `barcode`
+  + `userId` (UNIQUE). Eligibility = scanned the barcode OR has the product
+  on their shelf. Important: shelf match uses `lower(name) = lower(name)`,
+  never `ILIKE`, to prevent `%` wildcard auth bypass. Per-IP (30/min) +
+  per-user (10/min) rate limit.
+- **Gap-fill PATCH** — `PATCH /api/products/:barcode/contribute` additively
+  patches `cached_products` only on empty columns and inserts a row in
+  `user_submitted_products`. Photo upload uses base64 → `uploadBufferToGcs`.
+- **Discover ratings rate limit (#85)** — `POST /api/discover/ratings` now
+  has per-IP (30/min) + per-voter (15/min) limits.
+- **Sanitization audit (#74)** — all user-text routes confirmed routing
+  through `sanitizeText` / `sanitizeProductName` / `sanitizeBrand` /
+  `sanitizeIngredients`.

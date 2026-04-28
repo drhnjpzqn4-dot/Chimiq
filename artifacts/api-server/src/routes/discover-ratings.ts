@@ -4,6 +4,7 @@ import { db, discoverRatingsTable } from "@workspace/db";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { isRequestAdmin } from "../lib/admin.js";
 import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
+import { ipRateLimit } from "../lib/rateLimit.js";
 
 const KIND = z.enum(["mistakes", "worries"]);
 const RATING = z.enum(["up", "down"]);
@@ -24,11 +25,21 @@ function voterKeyFor(userId: string | null, sessionId: string | undefined): stri
 
 const router: IRouter = Router();
 
+// Per-IP + per-voter rate limit (#85): blunts thumbs-up/down spam. The IP
+// limiter is fixed-window in-memory; the per-voter limit is enforced inline
+// using the same voterKey that owns the upsert.
+const discoverRatingIpLimit = ipRateLimit({
+  windowMs: 60_000,
+  max: 30,
+  key: "discover-ratings",
+});
+const voterRateHits = new Map<string, { count: number; resetAt: number }>();
+
 /**
  * Submit (or update) a thumbs up/down vote on a Discover article.
  * Idempotent per voter: re-submitting upserts the rating + optional comment.
  */
-router.post("/discover/ratings", async (req, res) => {
+router.post("/discover/ratings", discoverRatingIpLimit, async (req, res) => {
   const parsed = SubmitRatingBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid rating payload." });
@@ -42,6 +53,24 @@ router.post("/discover/ratings", async (req, res) => {
       error: "Missing voter identity. Sign in or accept the rating cookie.",
     });
     return;
+  }
+
+  // Per-voter limit: 15 writes/min keyed off the same voter identity used for
+  // the upsert, so a logged-in user can't bypass via cookie rotation.
+  const now = Date.now();
+  const vBucket = voterRateHits.get(voterKey);
+  if (!vBucket || vBucket.resetAt <= now) {
+    voterRateHits.set(voterKey, { count: 1, resetAt: now + 60_000 });
+  } else {
+    vBucket.count += 1;
+    if (vBucket.count > 15) {
+      res.setHeader("Retry-After", String(Math.ceil((vBucket.resetAt - now) / 1000)));
+      res.status(429).json({ error: "You're rating too quickly. Try again in a moment." });
+      return;
+    }
+  }
+  if (voterRateHits.size > 5000) {
+    for (const [k, b] of voterRateHits) if (b.resetAt <= now) voterRateHits.delete(k);
   }
 
   let safeComment: string | null = null;
