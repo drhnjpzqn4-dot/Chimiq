@@ -614,7 +614,7 @@ const en: Dict = {
 
   // ───── Legal pages (shared chrome) ─────
   "legal.lastUpdated": "Last updated: {date}",
-  "legal.contactPlaceholder": "Contact: [your-business-email]",
+  "legal.contactPlaceholder": "Contact: legal@chimiq.com",
   "legal.backToApp": "Back",
   "legal.privacyTitle": "Privacy Policy",
   "legal.termsTitle": "Terms of Service",
@@ -1223,7 +1223,7 @@ const sv: Dict = {
 
   // ───── Legal pages (shared chrome) ─────
   "legal.lastUpdated": "Senast uppdaterad: {date}",
-  "legal.contactPlaceholder": "Kontakt: [din-företagsmejl]",
+  "legal.contactPlaceholder": "Kontakt: legal@chimiq.com",
   "legal.backToApp": "Tillbaka",
   "legal.privacyTitle": "Integritetspolicy",
   "legal.termsTitle": "Användarvillkor",
@@ -1822,7 +1822,7 @@ const fr: Dict = {
 
   // ───── Legal pages (shared chrome) ─────
   "legal.lastUpdated": "Dernière mise à jour : {date}",
-  "legal.contactPlaceholder": "Contact : [votre-email-pro]",
+  "legal.contactPlaceholder": "Contact : legal@chimiq.com",
   "legal.backToApp": "Retour",
   "legal.privacyTitle": "Politique de confidentialité",
   "legal.termsTitle": "Conditions d'utilisation",

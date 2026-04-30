@@ -1,11 +1,12 @@
-// TODO (BEFORE PUBLISHING):
-//   1. Replace [Your Business Name] and [your-business-email] throughout
-//      this file with the real legal entity that operates SkinScreen.
-//   2. If a licensed dermatologist or pharmacist has reviewed the
-//      methodology behind your scan results, mention that here. If not,
-//      remove the placeholder line that suggests medical review.
-//   3. Update the LAST_UPDATED date below whenever the disclaimer
-//      materially changes.
+// Operating entity: Seafari AB (Tegnérgatan 13A, 11140 Stockholm, Sweden).
+// Contact: legal@chimiq.com.
+//
+// Maintenance notes:
+//   - If a licensed dermatologist or pharmacist reviews the methodology
+//     behind the scan results, mention that here.
+//   - Update LAST_UPDATED below whenever the disclaimer materially
+//     changes, and bump TERMS_VERSION in src/lib/legal-consent.ts to
+//     re-prompt existing users for consent.
 
 import { useTranslation } from "@/lib/i18n";
 import { LegalLayout } from "./LegalLayout";
@@ -79,7 +80,7 @@ export default function MedicalDisclaimer() {
       <p>
         Using the Service does not create a doctor-patient,
         pharmacist-patient, or any other professional relationship
-        between you and <strong>[Your Business Name]</strong> or
+        between you and <strong>Seafari AB</strong> or
         anyone associated with the Service.
       </p>
 
@@ -89,7 +90,7 @@ export default function MedicalDisclaimer() {
         the relevant authority for cosmetic products in your country
         (e.g. the U.S. FDA's MedWatch, the UK MHRA's Yellow Card
         Scheme, the EU's CPNP). You may also email us at{" "}
-        <strong>[your-business-email]</strong> so we can review the
+        <strong>legal@chimiq.com</strong> so we can review the
         product entry, but this is not a substitute for reporting to
         regulators.
       </p>
@@ -97,15 +98,15 @@ export default function MedicalDisclaimer() {
       <h2>8. Limitation of liability</h2>
       <p>
         See section 10 of our Terms of Service. To the maximum extent
-        permitted by law, <strong>[Your Business Name]</strong> is
+        permitted by law, <strong>Seafari AB</strong> is
         not liable for any harm arising from reliance on the Service.
       </p>
 
       <h2>9. Contact</h2>
       <p>
-        <strong>[Your Business Name]</strong>
+        <strong>Seafari AB</strong>
         <br />
-        <strong>[your-business-email]</strong>
+        <strong>legal@chimiq.com</strong>
       </p>
     </LegalLayout>
   );

@@ -1,13 +1,14 @@
-// TODO (BEFORE PUBLISHING):
-//   1. Replace [Your Business Name], [Your Business Address], and
-//      [your-business-email] throughout this file with the real legal
-//      entity that operates SkinScreen.
-//   2. If you operate from the EU/EEA/UK, have a lawyer confirm the GDPR
-//      lawful-basis section is accurate for your processing activities.
-//   3. If you operate or sell to California users, confirm the CCPA section
-//      reflects how you actually handle "Do Not Sell" requests.
-//   4. Update the LAST_UPDATED date below whenever the policy materially
-//      changes.
+// Operating entity: Seafari AB (Tegnérgatan 13A, 11140 Stockholm, Sweden).
+// Contact: legal@chimiq.com.
+//
+// Maintenance notes:
+//   - Have a Swedish/EU privacy lawyer periodically review the GDPR
+//     lawful-basis section to confirm it matches actual processing.
+//   - If you ever start selling to California users, expand the CCPA
+//     section with a "Do Not Sell" handling description.
+//   - Update LAST_UPDATED below whenever the policy materially changes,
+//     and bump TERMS_VERSION in src/lib/legal-consent.ts to re-prompt
+//     existing users for consent.
 
 import { useTranslation } from "@/lib/i18n";
 import { LegalLayout } from "./LegalLayout";
@@ -19,7 +20,7 @@ export default function PrivacyPolicy() {
   return (
     <LegalLayout title={t("legal.privacyTitle")} lastUpdated={LAST_UPDATED}>
       <p>
-        This Privacy Policy explains how <strong>[Your Business Name]</strong>{" "}
+        This Privacy Policy explains how <strong>Seafari AB</strong>{" "}
         ("we", "us", or "our") collects, uses, and protects information when
         you use the SkinScreen web app, mobile app, and related services
         (together, the "Service"). By using the Service you agree to this
@@ -132,7 +133,7 @@ export default function PrivacyPolicy() {
         correct, export, or delete your personal data, to object to
         certain processing, and to lodge a complaint with your
         supervisory authority. Email us at{" "}
-        <strong>[your-business-email]</strong> to exercise these rights.
+        <strong>legal@chimiq.com</strong> to exercise these rights.
         We will respond within 30 days.
       </p>
 
@@ -142,7 +143,7 @@ export default function PrivacyPolicy() {
         cross-context behavioral advertising. California residents have
         the right to know, delete, correct, and limit use of sensitive
         personal information. To exercise these rights, email us at{" "}
-        <strong>[your-business-email]</strong>.
+        <strong>legal@chimiq.com</strong>.
       </p>
 
       <h2>9. Children</h2>
@@ -158,7 +159,7 @@ export default function PrivacyPolicy() {
         We use TLS in transit, encrypted databases at rest, and apply
         the principle of least privilege to internal access. No
         system is perfectly secure; please tell us at{" "}
-        <strong>[your-business-email]</strong> if you find a
+        <strong>legal@chimiq.com</strong> if you find a
         vulnerability.
       </p>
 
@@ -170,11 +171,11 @@ export default function PrivacyPolicy() {
 
       <h2>12. Contact</h2>
       <p>
-        <strong>[Your Business Name]</strong>
+        <strong>Seafari AB</strong>
         <br />
-        <strong>[Your Business Address]</strong>
+        <strong>Tegnérgatan 13A, 11140 Stockholm, Sweden</strong>
         <br />
-        <strong>[your-business-email]</strong>
+        <strong>legal@chimiq.com</strong>
       </p>
     </LegalLayout>
   );

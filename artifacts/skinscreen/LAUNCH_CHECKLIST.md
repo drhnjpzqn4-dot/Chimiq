@@ -60,25 +60,27 @@ It is split into four sections:
 
 ## 2. Before you click Publish (required)
 
-### A. Replace business-name placeholders in legal pages
+### A. Business-name placeholders in legal pages — DONE ✓
 
-Search the three legal page files for `TODO:` comments and replace before publishing:
+All three legal pages have been populated with the operating entity:
+
+- **Entity:** Seafari AB
+- **Address:** Tegnérgatan 13A, 11140 Stockholm, Sweden
+- **Contact:** legal@chimiq.com
+- **Governing law:** Sweden
+
+Files updated:
 
 ```
 artifacts/skinscreen/src/pages/legal/PrivacyPolicy.tsx
 artifacts/skinscreen/src/pages/legal/TermsOfService.tsx
 artifacts/skinscreen/src/pages/legal/MedicalDisclaimer.tsx
+artifacts/skinscreen/src/lib/i18n.tsx (footer "Contact:" line, en/sv/fr)
 ```
 
-Placeholders to fill:
+A grep across `src/pages/legal/` and `src/lib/i18n.tsx` for `[Your Business`, `[Address`, `[email`, `[Country`, `[your-business`, `[din-företagsmejl`, `[votre-email-pro`, or `TODO` returns zero hits.
 
-- `[Your Business Name]` — legal entity (e.g. "ChimIQ AB")
-- `[Address]` — registered business address
-- `[email]` — contact email for privacy/legal requests (suggested: `legal@chimiq.com` or `privacy@chimiq.com`)
-- `[Country]` — governing law jurisdiction
-- Any other text wrapped in square brackets
-
-If your governing law is in the EU/EEA, the current Privacy Policy is GDPR-aware; if you are US-based you may want a CCPA-specific notice block.
+The Privacy Policy is GDPR-aware (lawful-basis section retained) and the Terms now declare Sweden as governing law. A CCPA notice is retained as a defensive shell — you do not currently sell data to California users, so no further work is required unless you open a US sales channel later.
 
 ### B. Stripe production keys (CRITICAL)
 

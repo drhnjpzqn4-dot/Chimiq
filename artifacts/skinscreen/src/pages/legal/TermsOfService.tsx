@@ -1,13 +1,14 @@
-// TODO (BEFORE PUBLISHING):
-//   1. Replace [Your Business Name], [Your Business Address],
-//      [your-business-email], and [Your Country / State of incorporation]
-//      throughout this file with the real legal entity that operates
-//      SkinScreen.
-//   2. Have a lawyer review the limitation-of-liability and arbitration
-//      clauses for your jurisdiction — the wording below is a starting
-//      template, not legal advice.
-//   3. Update the LAST_UPDATED date below whenever the terms materially
-//      change. Notify users in-app at least 14 days before the change.
+// Operating entity: Seafari AB (Tegnérgatan 13A, 11140 Stockholm, Sweden).
+// Contact: legal@chimiq.com. Governing law: Sweden.
+//
+// Maintenance notes:
+//   - Have a Swedish lawyer periodically review the limitation-of-liability
+//     and dispute-resolution clauses — wording below is a starting template,
+//     not legal advice.
+//   - When you make material changes, bump LAST_UPDATED below AND
+//     TERMS_VERSION in src/lib/legal-consent.ts so existing users are
+//     re-prompted for consent. Notify users in-app at least 14 days before
+//     the change takes effect.
 
 import { useTranslation } from "@/lib/i18n";
 import { LegalLayout } from "./LegalLayout";
@@ -21,7 +22,7 @@ export default function TermsOfService() {
       <p>
         These Terms of Service ("Terms") govern your use of the
         SkinScreen web app, mobile app, and related services (the
-        "Service") operated by <strong>[Your Business Name]</strong>{" "}
+        "Service") operated by <strong>Seafari AB</strong>{" "}
         ("we", "us", or "our"). By creating an account or using the
         Service you agree to these Terms.
       </p>
@@ -37,7 +38,7 @@ export default function TermsOfService() {
       <p>
         You are responsible for any activity under your account. Keep
         your sign-in credentials confidential. Tell us at{" "}
-        <strong>[your-business-email]</strong> if you suspect
+        <strong>legal@chimiq.com</strong> if you suspect
         unauthorized access.
       </p>
 
@@ -61,13 +62,13 @@ export default function TermsOfService() {
       <p>
         Refunds are handled on a case-by-case basis to the extent
         required by law in your jurisdiction. Email{" "}
-        <strong>[your-business-email]</strong> with refund requests.
+        <strong>legal@chimiq.com</strong> with refund requests.
       </p>
 
       <h2>5. User contributions</h2>
       <p>
         When you submit a product, recipe, tip, photo, or rating, you
-        grant <strong>[Your Business Name]</strong> a worldwide,
+        grant <strong>Seafari AB</strong> a worldwide,
         non-exclusive, royalty-free licence to host, display,
         translate, and adapt that content as part of the Service. You
         keep ownership of your contributions. You represent that you
@@ -90,7 +91,7 @@ export default function TermsOfService() {
       <h2>7. Intellectual property</h2>
       <p>
         The SkinScreen and ChimIQ names, logos, brand, and source code
-        are owned by <strong>[Your Business Name]</strong>. You may
+        are owned by <strong>Seafari AB</strong>. You may
         not use them without our written permission, except to refer
         to the Service in standard, factual ways (e.g. "I use
         SkinScreen").
@@ -117,7 +118,7 @@ export default function TermsOfService() {
       <h2>10. Limitation of liability</h2>
       <p>
         To the maximum extent permitted by law,{" "}
-        <strong>[Your Business Name]</strong> will not be liable for
+        <strong>Seafari AB</strong> will not be liable for
         any indirect, incidental, consequential, special, or punitive
         damages, or for loss of profits, revenue, data, or goodwill,
         arising from your use of the Service. Our aggregate liability
@@ -148,7 +149,7 @@ export default function TermsOfService() {
       <h2>13. Governing law</h2>
       <p>
         These Terms are governed by the laws of{" "}
-        <strong>[Your Country / State of incorporation]</strong>,
+        <strong>Sweden</strong>,
         without regard to conflict-of-laws principles. Disputes will
         be resolved in the competent courts of that jurisdiction
         (subject to mandatory consumer-protection rules in your home
@@ -157,11 +158,11 @@ export default function TermsOfService() {
 
       <h2>14. Contact</h2>
       <p>
-        <strong>[Your Business Name]</strong>
+        <strong>Seafari AB</strong>
         <br />
-        <strong>[Your Business Address]</strong>
+        <strong>Tegnérgatan 13A, 11140 Stockholm, Sweden</strong>
         <br />
-        <strong>[your-business-email]</strong>
+        <strong>legal@chimiq.com</strong>
       </p>
     </LegalLayout>
   );
