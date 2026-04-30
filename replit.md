@@ -208,3 +208,39 @@ Utility scripts package. Each script is a `.ts` file in `src/` with a correspond
   sizes use symbol only. Pre-publish reference: `LAUNCH_CHECKLIST.md`
   in the skinscreen artifact (covers Stripe live-mode requirements,
   on-device test plan, Lighthouse, monitoring).
+
+## GitHub Backup (Standing Instruction)
+
+The user wants the entire project mirrored to GitHub for double-save
+safety. Repo: `https://github.com/drhnjpzqn4-dot/Chimiq` (branch `main`).
+
+**Push command** (token from Replit secret `GITHUB_TOKEN`, never written
+to disk):
+
+```bash
+git --no-optional-locks push \
+  "https://x-access-token:${GITHUB_TOKEN}@github.com/drhnjpzqn4-dot/Chimiq.git" \
+  master:main
+```
+
+**When to push automatically:**
+- After every `mark_task_complete` that produces commits (the platform
+  auto-commits at task end, so push immediately after the task is
+  approved/merged).
+- After any direct commit you make outside the task workflow.
+- If the user explicitly says "push", do it on demand.
+
+**Skip push when:**
+- No new commits since the last push (`git log origin/main..master` is
+  empty — but we don't have a tracking ref locally, so just check
+  `git log -1 --format=%H` against the previous push's hash if you
+  remembered it; otherwise just push, it's a no-op when up-to-date).
+- The push fails due to GitHub being down — note it and retry next time.
+
+**Notes:**
+- Local branch is `master`, GitHub default is `main` — always push
+  `master:main`.
+- Replit's git config writes are blocked for the agent; do not try to
+  configure a credential helper. Use the inline URL form above.
+- The `subrepl-0vdlt063` remote already points to the GitHub repo but
+  has no auth configured, so the inline URL form is the reliable path.
