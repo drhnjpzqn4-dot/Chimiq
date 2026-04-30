@@ -592,6 +592,33 @@ const en: Dict = {
   "rewards.rule3":
     "Duplicate or already-known products do not count toward the 30-contribution milestone.",
   "rewards.rule4": "Premium grants stack on top of any time you already have left.",
+
+  // ───── Legal consent gate ─────
+  "consent.title": "Before you continue",
+  "consent.intro":
+    "SkinScreen is a wellness tool, not a substitute for medical advice. Please confirm you've read our terms before signing in.",
+  "consent.checkboxPrefix": "I agree to the ",
+  "consent.linkTerms": "Terms of Service",
+  "consent.linkPrivacy": "Privacy Policy",
+  "consent.checkboxAnd": ", and ",
+  "consent.linkDisclaimer": "Medical Disclaimer",
+  "consent.checkboxSuffix": ".",
+  "consent.continue": "Agree & continue",
+  "consent.cancel": "Cancel",
+
+  // ───── Footer legal links ─────
+  "footer.legalHeading": "Legal",
+  "footer.legalPrivacy": "Privacy Policy",
+  "footer.legalTerms": "Terms of Service",
+  "footer.legalDisclaimer": "Medical Disclaimer",
+
+  // ───── Legal pages (shared chrome) ─────
+  "legal.lastUpdated": "Last updated: {date}",
+  "legal.contactPlaceholder": "Contact: [your-business-email]",
+  "legal.backToApp": "Back",
+  "legal.privacyTitle": "Privacy Policy",
+  "legal.termsTitle": "Terms of Service",
+  "legal.disclaimerTitle": "Medical & Health Disclaimer",
 };
 
 const sv: Dict = {
@@ -1174,6 +1201,33 @@ const sv: Dict = {
   "rewards.rule3":
     "Dubbla eller redan kända produkter räknas inte mot 30-bidragsmålet.",
   "rewards.rule4": "Premium-månader läggs ovanpå tid du redan har kvar.",
+
+  // ───── Legal consent gate ─────
+  "consent.title": "Innan du fortsätter",
+  "consent.intro":
+    "SkinScreen är ett välmåendeverktyg, inte en ersättning för medicinsk rådgivning. Bekräfta att du har läst våra villkor innan du loggar in.",
+  "consent.checkboxPrefix": "Jag godkänner ",
+  "consent.linkTerms": "användarvillkoren",
+  "consent.linkPrivacy": "integritetspolicyn",
+  "consent.checkboxAnd": " och ",
+  "consent.linkDisclaimer": "den medicinska ansvarsfriskrivningen",
+  "consent.checkboxSuffix": ".",
+  "consent.continue": "Godkänn & fortsätt",
+  "consent.cancel": "Avbryt",
+
+  // ───── Footer legal links ─────
+  "footer.legalHeading": "Juridik",
+  "footer.legalPrivacy": "Integritetspolicy",
+  "footer.legalTerms": "Användarvillkor",
+  "footer.legalDisclaimer": "Medicinsk ansvarsfriskrivning",
+
+  // ───── Legal pages (shared chrome) ─────
+  "legal.lastUpdated": "Senast uppdaterad: {date}",
+  "legal.contactPlaceholder": "Kontakt: [din-företagsmejl]",
+  "legal.backToApp": "Tillbaka",
+  "legal.privacyTitle": "Integritetspolicy",
+  "legal.termsTitle": "Användarvillkor",
+  "legal.disclaimerTitle": "Medicinsk ansvarsfriskrivning",
 };
 
 const fr: Dict = {
@@ -1746,6 +1800,33 @@ const fr: Dict = {
   "rewards.rule3":
     "Les produits en doublon ou déjà connus ne comptent pas dans le palier des 30 contributions.",
   "rewards.rule4": "Les mois Premium s'ajoutent au temps qu'il vous reste.",
+
+  // ───── Legal consent gate ─────
+  "consent.title": "Avant de continuer",
+  "consent.intro":
+    "SkinScreen est un outil de bien-être, pas un substitut à un avis médical. Confirmez que vous avez lu nos conditions avant de vous connecter.",
+  "consent.checkboxPrefix": "J'accepte les ",
+  "consent.linkTerms": "Conditions d'utilisation",
+  "consent.linkPrivacy": "la Politique de confidentialité",
+  "consent.checkboxAnd": " et ",
+  "consent.linkDisclaimer": "l'Avis médical",
+  "consent.checkboxSuffix": ".",
+  "consent.continue": "Accepter & continuer",
+  "consent.cancel": "Annuler",
+
+  // ───── Footer legal links ─────
+  "footer.legalHeading": "Mentions légales",
+  "footer.legalPrivacy": "Politique de confidentialité",
+  "footer.legalTerms": "Conditions d'utilisation",
+  "footer.legalDisclaimer": "Avis médical",
+
+  // ───── Legal pages (shared chrome) ─────
+  "legal.lastUpdated": "Dernière mise à jour : {date}",
+  "legal.contactPlaceholder": "Contact : [votre-email-pro]",
+  "legal.backToApp": "Retour",
+  "legal.privacyTitle": "Politique de confidentialité",
+  "legal.termsTitle": "Conditions d'utilisation",
+  "legal.disclaimerTitle": "Avis médical et de santé",
 };
 
 const DICTS: Record<Locale, Dict> = { en, sv, fr };

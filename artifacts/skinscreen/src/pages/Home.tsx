@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useLoginWithConsent } from "@/components/ConsentGate";
 import { ScanLine, Sparkles } from "lucide-react";
 import { LandingPage } from "@/components/LandingPage";
 import { generalConfig } from "@/lib/landing-config";
@@ -20,6 +21,7 @@ function isStandaloneDisplay(): boolean {
  */
 function StandaloneWelcome() {
   const { t } = useTranslation();
+  const { requestLogin } = useLoginWithConsent();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
   return (
     <main
@@ -44,14 +46,15 @@ function StandaloneWelcome() {
         </p>
       </div>
       <div className="space-y-3 pb-2">
-        <a
-          href={`/api/login?returnTo=${encodeURIComponent(base + "/app/scan")}`}
+        <button
+          type="button"
+          onClick={() => requestLogin(base + "/app/scan")}
           data-touch-target
           className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-base font-semibold text-white shadow-lg shadow-primary/25 transition-transform active:scale-[0.98]"
         >
           <Sparkles className="h-4 w-4" />
           {t("homeStandalone.cta")}
-        </a>
+        </button>
         <p className="text-center text-xs text-muted-foreground">
           {t("homeStandalone.priceNote")}
         </p>

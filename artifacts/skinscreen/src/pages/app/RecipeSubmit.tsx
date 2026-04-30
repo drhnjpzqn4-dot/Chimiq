@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useLoginWithConsent } from "@/components/ConsentGate";
 import { useTranslation } from "@/lib/i18n";
 
 const CATEGORIES = [
@@ -81,18 +82,20 @@ export default function RecipeSubmitScreen() {
     [t],
   );
 
+  const { requestLogin } = useLoginWithConsent();
+
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
       const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
-      window.location.href = `/api/login?returnTo=${encodeURIComponent(base + "/app/recipes/new")}`;
+      requestLogin(base + "/app/recipes/new");
       return;
     }
     fetch("/api/recipes/eligibility", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setEligibility(d as Eligibility))
       .catch(() => setEligibility({ canSubmit: false, emailVerified: false, reason: "auth_required" }));
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, requestLogin]);
 
   const updateIngredient = (idx: number, field: keyof IngredientRow, value: string) => {
     setIngredients((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));

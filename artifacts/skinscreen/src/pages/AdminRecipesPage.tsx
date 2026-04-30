@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useLoginWithConsent } from "@/components/ConsentGate";
 import {
   Loader2,
   CheckCircle2,
@@ -49,13 +50,14 @@ export default function AdminRecipesPage() {
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
 
+  const { requestLogin } = useLoginWithConsent();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      window.location.href = `/api/login?returnTo=${encodeURIComponent(base + "/admin/recipes")}`;
+      requestLogin(base + "/admin/recipes");
     }
-  }, [isLoading, isAuthenticated, base]);
+  }, [isLoading, isAuthenticated, base, requestLogin]);
 
   const fetchRecipes = useCallback(async () => {
     setLoading(true);

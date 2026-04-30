@@ -442,6 +442,30 @@ export default function ProfileScreen() {
         </ul>
       </section>
 
+      <nav
+        aria-label={t("footer.legalHeading")}
+        className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground"
+      >
+        <a
+          href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/legal/privacy`}
+          className="hover:text-foreground underline-offset-2 hover:underline"
+        >
+          {t("footer.legalPrivacy")}
+        </a>
+        <a
+          href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/legal/terms`}
+          className="hover:text-foreground underline-offset-2 hover:underline"
+        >
+          {t("footer.legalTerms")}
+        </a>
+        <a
+          href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/legal/medical-disclaimer`}
+          className="hover:text-foreground underline-offset-2 hover:underline"
+        >
+          {t("footer.legalDisclaimer")}
+        </a>
+      </nav>
+
       <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground/40">
         ChimIQ · Plan: {plan}
       </p>

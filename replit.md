@@ -190,3 +190,21 @@ Utility scripts package. Each script is a `.ts` file in `src/` with a correspond
   unchanged. Locale resolution priority is `?lang=` URL param →
   `localStorage["skinscreen.locale"]` → browser `navigator.language` →
   `en`; the URL-param hop makes spot-checks (e.g. `/?lang=sv`) trivial.
+- **Launch readiness — legal pages, consent gate, real PWA icons
+  (Apr 30 2026, Task #100)** — added `/legal/privacy`, `/legal/terms`,
+  `/legal/medical-disclaimer` (`src/pages/legal/`) sharing a
+  `LegalLayout` shell, fully i18n'd in en/sv/fr (~30 keys each).
+  Footer of `LandingPage` and the `Profile` page both link to the three
+  pages. A new `ConsentGateProvider` (`src/components/ConsentGate.tsx`)
+  wraps the app, exposes `useLoginWithConsent().requestLogin()`, and
+  intercepts every "Sign in" CTA with a required-checkbox modal before
+  delegating to `useAuth().login()`. Acceptance is persisted in
+  `localStorage` under `skinscreen.legal.consent` keyed by
+  `TERMS_VERSION` (`src/lib/legal-consent.ts`); bumping the constant
+  forces re-acceptance for all returning users. PWA icons (192, 512,
+  512-maskable, apple-touch-icon-180, favicon.ico/svg/96) were
+  regenerated from `public/images/logo-chimiq-long.png` (rose-gold
+  molecule symbol) — 192/maskable/apple use symbol+wordmark, smaller
+  sizes use symbol only. Pre-publish reference: `LAUNCH_CHECKLIST.md`
+  in the skinscreen artifact (covers Stripe live-mode requirements,
+  on-device test plan, Lighthouse, monitoring).

@@ -15,9 +15,13 @@ import RecipeDetailPage from "@/pages/RecipeDetail";
 import Discover from "@/pages/Discover";
 import { MistakeDetail, WorryDetail } from "@/pages/DiscoverDetail";
 import NotFound from "@/pages/not-found";
+import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
+import TermsOfService from "@/pages/legal/TermsOfService";
+import MedicalDisclaimer from "@/pages/legal/MedicalDisclaimer";
 import { useNativeAuthDeepLink } from "@/hooks/useNativeAuthDeepLink";
 import { AUTH_REFRESH_EVENT } from "@workspace/replit-auth-web";
 import { I18nProvider } from "@/lib/i18n";
+import { ConsentGateProvider } from "@/components/ConsentGate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +48,9 @@ function Router() {
       <Route path="/discover/worries/:slug" component={WorryDetail} />
       <Route path="/admin/submissions" component={AdminPage} />
       <Route path="/admin/recipes" component={AdminRecipesPage} />
+      <Route path="/legal/privacy" component={PrivacyPolicy} />
+      <Route path="/legal/terms" component={TermsOfService} />
+      <Route path="/legal/medical-disclaimer" component={MedicalDisclaimer} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -65,14 +72,16 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <NativeBootstrap />
-            <Router />
-          </WouterRouter>
-          <Toaster />
-          <UpdateBanner />
-        </TooltipProvider>
+        <ConsentGateProvider>
+          <TooltipProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <NativeBootstrap />
+              <Router />
+            </WouterRouter>
+            <Toaster />
+            <UpdateBanner />
+          </TooltipProvider>
+        </ConsentGateProvider>
       </I18nProvider>
     </QueryClientProvider>
   );

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useLoginWithConsent } from "@/components/ConsentGate";
 import { ChatPanel } from "@/components/ChatPanel";
 import ScanScreen from "@/pages/app/Scan";
 import ShelfScreen from "@/pages/app/Shelf";
@@ -15,13 +16,14 @@ import RewardsScreen from "@/pages/app/Rewards";
 
 export default function AppPage() {
   const { isLoading, isAuthenticated } = useAuth();
+  const { requestLogin } = useLoginWithConsent();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      window.location.href = `/api/login?returnTo=${encodeURIComponent(base + "/app/scan")}`;
+      requestLogin(base + "/app/scan");
     }
-  }, [isLoading, isAuthenticated, base]);
+  }, [isLoading, isAuthenticated, base, requestLogin]);
 
   if (isLoading) {
     return (

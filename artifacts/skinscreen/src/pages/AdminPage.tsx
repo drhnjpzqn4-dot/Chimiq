@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useLoginWithConsent } from "@/components/ConsentGate";
 import { Loader2, CheckCircle2, XCircle, LogOut, ShieldCheck } from "lucide-react";
 import { DiscoverRatingsAdmin } from "@/components/admin/DiscoverRatingsAdmin";
 
@@ -26,13 +27,14 @@ export default function AdminPage() {
   const [rejectMap, setRejectMap] = useState<Record<string, { open: boolean; reason: string; error: string | null }>>({});
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
+  const { requestLogin } = useLoginWithConsent();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      window.location.href = `/api/login?returnTo=${encodeURIComponent(base + "/admin/submissions")}`;
+      requestLogin(base + "/admin/submissions");
     }
-  }, [isLoading, isAuthenticated, base]);
+  }, [isLoading, isAuthenticated, base, requestLogin]);
 
   const fetchSubmissions = useCallback(async () => {
     setLoading(true);

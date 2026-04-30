@@ -13,6 +13,7 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { PricingSection } from "@/components/PricingSection";
 import type { LandingConfig } from "@/lib/landing-config";
 import { useAuth } from "@workspace/replit-auth-web";
+import { useLoginWithConsent } from "@/components/ConsentGate";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@/lib/i18n";
@@ -148,7 +149,9 @@ function ContactFooterForm() {
 
 export function LandingPage({ config }: LandingPageProps) {
   const { t } = useTranslation();
-  const { user, isLoading: authLoading, isAuthenticated, login, logout } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
+  const { requestLogin } = useLoginWithConsent();
+  const login = requestLogin;
   const [scannerSeed, setScannerSeed] = useState<ScannerSeed | null>(null);
   const [stats, setStats] = useState<SiteStats | null>(null);
   const [subNavVisible, setSubNavVisible] = useState(false);
@@ -952,6 +955,30 @@ export function LandingPage({ config }: LandingPageProps) {
               <p className="text-xs text-muted-foreground/60 leading-relaxed max-w-xs">
                 {t("footer.aboutChimIQ")}
               </p>
+
+              <nav
+                aria-label={t("footer.legalHeading")}
+                className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground pt-3 border-t border-border/30 mt-3"
+              >
+                <a
+                  href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/legal/privacy`}
+                  className="hover:text-foreground underline-offset-2 hover:underline"
+                >
+                  {t("footer.legalPrivacy")}
+                </a>
+                <a
+                  href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/legal/terms`}
+                  className="hover:text-foreground underline-offset-2 hover:underline"
+                >
+                  {t("footer.legalTerms")}
+                </a>
+                <a
+                  href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/legal/medical-disclaimer`}
+                  className="hover:text-foreground underline-offset-2 hover:underline"
+                >
+                  {t("footer.legalDisclaimer")}
+                </a>
+              </nav>
             </div>
 
           </div>
