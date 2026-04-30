@@ -106,6 +106,8 @@ export default function MedicalDisclaimer() {
       <p>
         <strong>Seafari AB</strong>
         <br />
+        <strong>Tegnérgatan 13A, 11140 Stockholm, Sweden</strong>
+        <br />
         <strong>legal@chimiq.com</strong>
       </p>
     </LegalLayout>
