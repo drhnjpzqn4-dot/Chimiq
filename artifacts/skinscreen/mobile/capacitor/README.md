@@ -214,6 +214,35 @@ The **same** `@capacitor/*` JS packages are also installed in the web app's own 
 
 Why two `package.json`s? `cap sync` reads the package.json next to `capacitor.config.ts` to discover which native plugins to register. Keeping `mobile/capacitor/` outside the pnpm workspace (it lives two levels under `artifacts/`, outside the `artifacts/*` workspace glob) avoids pulling iOS/Android-only dependencies (e.g. `@capacitor/cli`) into the web `node_modules`.
 
+## Auth flow on native — current state and limitations
+
+The current wiring is the **v1 shared-cookie** approach:
+
+1. App calls `useAuth().login()` → opens the system browser at
+   `https://app.chimiq.app/api/login?returnTo=skinscreen://auth/callback`.
+2. Server's `getSafeReturnTo()` allows this exact URL via
+   `NATIVE_RETURN_TO_ALLOWLIST` in `artifacts/api-server/src/routes/auth.ts`.
+3. After OIDC completes, server sets the session cookie on `app.chimiq.app`
+   and 302s to `skinscreen://auth/callback`.
+4. The OS routes that URL into the app, fires `appUrlOpen`, the in-app
+   browser closes, and the SPA re-fetches `/api/auth/user`.
+
+**Known limitation:** the session cookie is set in the system browser's
+cookie jar (Safari on iOS via `SFSafariViewController`, Chrome Custom Tabs
+on Android), not in the WebView's cookie jar. Whether the WebView sees the
+cookie depends on platform plumbing — this is acceptable for a v1
+TestFlight / internal-testing build but is not the production-grade
+solution.
+
+The production solution is to call the existing
+`/api/mobile-auth/token-exchange` endpoint from the native client (the
+endpoint already exists in `artifacts/api-server/src/routes/auth.ts`).
+Wiring the client side of that exchange — generating PKCE, opening the
+authorize URL directly, posting the resulting code to the exchange
+endpoint, and persisting the returned session id in the WebView — is task
+**#68** ("native session-cookie reconciliation"). Do not duplicate it
+here.
+
 ## API base URL on native
 
 The Capacitor WebView loads bundled assets from `capacitor://localhost` (iOS) or `https://localhost` (Android). Any `fetch("/api/...")` call would otherwise hit that local origin and fail. `src/lib/native.ts` exports `installNativeFetchInterceptor()` (called once from `src/main.tsx`) which transparently rewrites relative `/api/*` requests to `https://app.chimiq.app/api/*` whenever the app is running natively. **If you change the production backend host, update `NATIVE_API_BASE_URL` in `src/lib/native.ts`.**

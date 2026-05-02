@@ -8,6 +8,17 @@
 
 set -u
 
+# By default, MISSING ios/ or android/ projects are a hard error — the only
+# legitimate use of this script is AFTER `cap add` has scaffolded them. Pass
+# `--allow-missing` (or set ALLOW_MISSING=1) when intentionally running before
+# cap add (e.g. from the Linux dev environment that cannot scaffold either).
+ALLOW_MISSING="${ALLOW_MISSING:-0}"
+for arg in "$@"; do
+  case "$arg" in
+    --allow-missing) ALLOW_MISSING=1 ;;
+  esac
+done
+
 CAP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 INFO_PLIST="$CAP_DIR/ios/App/App/Info.plist"
 ANDROID_MANIFEST="$CAP_DIR/android/app/src/main/AndroidManifest.xml"
@@ -20,7 +31,12 @@ errors=0
 
 check_ios() {
   if [ ! -f "$INFO_PLIST" ]; then
-    yellow "[ios] $INFO_PLIST not found — run \`npx cap add ios\` first. Skipping iOS checks."
+    if [ "$ALLOW_MISSING" = "1" ]; then
+      yellow "[ios] $INFO_PLIST not found — run \`npx cap add ios\` from a Mac. Skipping iOS checks (--allow-missing)."
+      return
+    fi
+    red "[ios] MISSING: $INFO_PLIST — run \`npx cap add ios\` from a Mac before invoking this script. Pass --allow-missing to skip."
+    errors=$((errors + 1))
     return
   fi
 
@@ -43,7 +59,12 @@ check_ios() {
 
 check_android() {
   if [ ! -f "$ANDROID_MANIFEST" ]; then
-    yellow "[android] $ANDROID_MANIFEST not found — run \`npx cap add android\` first. Skipping Android checks."
+    if [ "$ALLOW_MISSING" = "1" ]; then
+      yellow "[android] $ANDROID_MANIFEST not found — run \`npx cap add android\`. Skipping Android checks (--allow-missing)."
+      return
+    fi
+    red "[android] MISSING: $ANDROID_MANIFEST — run \`npx cap add android\` before invoking this script. Pass --allow-missing to skip."
+    errors=$((errors + 1))
     return
   fi
 

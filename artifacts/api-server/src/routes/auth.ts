@@ -50,10 +50,20 @@ function setOidcCookie(res: Response, name: string, value: string) {
   });
 }
 
+// Allowlist of native deep-link callback URLs. The Capacitor shell opens the
+// system browser at /api/login?returnTo=<one of these>, completes OIDC, and
+// the final 302 to this URL is what the OS routes back into the app via the
+// registered URL scheme. Without this allowlist getSafeReturnTo() would
+// rewrite the custom-scheme URL to "/" and the user would land on the web
+// app instead of returning to the native shell.
+const NATIVE_RETURN_TO_ALLOWLIST = new Set<string>([
+  "skinscreen://auth/callback",
+]);
+
 function getSafeReturnTo(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
-    return "/";
-  }
+  if (typeof value !== "string") return "/";
+  if (NATIVE_RETURN_TO_ALLOWLIST.has(value)) return value;
+  if (!value.startsWith("/") || value.startsWith("//")) return "/";
   return value;
 }
 
