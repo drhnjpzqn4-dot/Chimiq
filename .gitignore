@@ -50,7 +50,6 @@ Thumbs.db
 
 # Capacitor native builds (artifacts/skinscreen/mobile/capacitor)
 artifacts/*/mobile/capacitor/node_modules/
-artifacts/*/mobile/capacitor/www/
 artifacts/*/mobile/capacitor/ios/App/Pods/
 artifacts/*/mobile/capacitor/ios/App/Podfile.lock
 artifacts/*/mobile/capacitor/ios/DerivedData/

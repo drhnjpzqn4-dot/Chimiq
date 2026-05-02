@@ -3,7 +3,11 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "se.seafari.chimiq",
   appName: "Chimiq",
-  webDir: "www",
+  // Point at the Vite production build directly so the documented flow
+  //   pnpm --filter @workspace/skinscreen build && npx cap sync
+  // works without an intermediate copy step. Path is relative to this
+  // capacitor.config.ts file: artifacts/skinscreen/mobile/capacitor → ../../dist/public.
+  webDir: "../../dist/public",
   bundledWebRuntime: false,
   server: {
     androidScheme: "https",

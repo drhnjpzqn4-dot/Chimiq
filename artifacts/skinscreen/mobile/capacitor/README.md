@@ -41,15 +41,13 @@ npm install
 
 ### Build the web app first
 
-Capacitor needs the production web build in `www/`. From the repo root:
+Capacitor's `webDir` points directly at `../../dist/public` (the Vite production output), so there is **no copy step**. From the repo root:
 
 ```bash
 pnpm --filter @workspace/skinscreen build
-rm -rf artifacts/skinscreen/mobile/capacitor/www
-cp -R artifacts/skinscreen/dist/public artifacts/skinscreen/mobile/capacitor/www
 ```
 
-(Or use `pnpm build:mobile` from repo root, which does both.)
+Or use `pnpm build:mobile` from the repo root, which builds the web app and runs `cap sync` in one shot.
 
 ### Add the native platforms (first run only)
 

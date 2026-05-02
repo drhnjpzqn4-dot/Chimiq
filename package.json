@@ -7,7 +7,7 @@
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "build:mobile": "pnpm --filter @workspace/skinscreen run build && rm -rf artifacts/skinscreen/mobile/capacitor/www && cp -R artifacts/skinscreen/dist/public artifacts/skinscreen/mobile/capacitor/www && cd artifacts/skinscreen/mobile/capacitor && (test -d node_modules || npm install --silent --no-audit --no-fund) && npx cap sync"
+    "build:mobile": "pnpm --filter @workspace/skinscreen run build && cd artifacts/skinscreen/mobile/capacitor && (test -d node_modules || npm install --silent --no-audit --no-fund) && npx cap sync"
   },
   "private": true,
   "devDependencies": {

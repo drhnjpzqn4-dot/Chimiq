@@ -9,6 +9,7 @@ import { useUserPlan } from "@/hooks/useUserPlan";
 import { cn } from "@/lib/utils";
 import { getBaseUrl } from "@/lib/base-url";
 import { useTranslation } from "@/lib/i18n";
+import { isNative, openExternal } from "@/lib/native";
 
 export default function Pricing() {
   const [, navigate] = useLocation();
@@ -85,7 +86,15 @@ export default function Pricing() {
       }
       const data = (await res.json()) as { url?: string; error?: string };
       if (data.url) {
-        window.location.href = data.url;
+        if (isNative()) {
+          // App Store / Play Store reader-app flow: open Stripe Checkout in
+          // the system in-app browser (SFSafariViewController / Custom Tabs)
+          // so cookies and the return URL behave correctly. The app shell
+          // never displays Stripe UI inline.
+          await openExternal(data.url);
+        } else {
+          window.location.href = data.url;
+        }
       } else {
         setError(data.error ?? t("pricing.errorGeneric"));
       }
