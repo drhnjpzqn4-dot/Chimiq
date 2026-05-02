@@ -92,7 +92,20 @@ const PROSE_STOP_WORDS = new Set([
 ]);
 
 export function sanitizeIngredients(raw: unknown, allowEmpty = false): string {
-  const cleaned = sanitizeText(raw, {
+  // Convert one-per-line paste into a comma-separated list BEFORE the
+  // generic sanitizer collapses all whitespace. Many product labels list
+  // ingredients with newlines instead of commas; without this normalization
+  // the "at least 3 ingredients" check would reject a legitimate paste.
+  let normalized: unknown = raw;
+  if (typeof raw === "string" && /\r|\n/.test(raw)) {
+    normalized = raw
+      .replace(/\r\n?/g, "\n")
+      .split("\n")
+      .map((line) => line.trim().replace(/[,;\s]+$/g, ""))
+      .filter((line) => line.length > 0)
+      .join(", ");
+  }
+  const cleaned = sanitizeText(normalized, {
     fieldName: "Ingredient list",
     maxLength: 5000,
     minLength: allowEmpty ? undefined : 5,

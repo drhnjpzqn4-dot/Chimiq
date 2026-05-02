@@ -32,6 +32,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -319,50 +320,83 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
 
 function FlagCard({ flag, delay }: { flag: IngredientFlag; delay?: number }) {
   const isHighRisk = flag.severity === "HIGH_RISK";
+  // High-risk flags expand by default so users can't miss the explanation.
+  // Caution flags collapse by default to keep the results list scannable on
+  // mobile when a product has many minor flags.
+  const [open, setOpen] = useState(isHighRisk);
+  const headingId = `flag-${flag.ingredient.replace(/\W+/g, "-").toLowerCase()}`;
+  const panelId = `${headingId}-panel`;
   return (
     <FadeIn delay={delay} fullWidth>
       <div className={cn(
-        "flex flex-col justify-between h-full p-5 sm:p-6 rounded-3xl border shadow-sm",
+        "flex flex-col h-full rounded-3xl border shadow-sm overflow-hidden",
         isHighRisk
           ? "bg-red-50/60 border-red-200"
           : "bg-amber-50/40 border-amber-200/70",
       )}>
-        <div>
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="min-w-0">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls={panelId}
+          id={headingId}
+          className="text-left p-5 sm:p-6 flex items-start justify-between gap-3 hover:bg-black/[0.02] transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-3xl"
+          data-touch-target
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base sm:text-lg font-serif font-semibold text-foreground leading-tight">
                 {flag.ingredient}
               </h3>
-              <span className={cn(
-                "inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                isHighRisk ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700",
-              )}>
-                {FLAG_CATEGORY_LABELS[flag.category] ?? flag.category}
-              </span>
+              <Badge
+                variant={isHighRisk ? "destructive" : "warning"}
+                className="shrink-0 text-[10px] font-sans tracking-wide uppercase"
+              >
+                {isHighRisk ? "HIGH RISK" : "CAUTION"}
+              </Badge>
             </div>
-            <Badge
-              variant={isHighRisk ? "destructive" : "warning"}
-              className="shrink-0 text-[10px] font-sans tracking-wide uppercase"
-            >
-              {isHighRisk ? "HIGH RISK" : "CAUTION"}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">{flag.explanation}</p>
-        </div>
-        <div className="pt-3 border-t border-border/40 mt-auto">
-          <a
-            href={flag.citationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-muted-foreground flex items-start gap-2 hover:text-primary transition-colors group"
-          >
-            <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
-            <span className="italic leading-snug">
-              <span className="font-semibold not-italic text-muted-foreground">Source: </span>
-              {flag.citation}
+            <span className={cn(
+              "inline-block mt-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
+              isHighRisk ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700",
+            )}>
+              {FLAG_CATEGORY_LABELS[flag.category] ?? flag.category}
             </span>
-          </a>
-        </div>
+            {!open && (
+              <p className="mt-2 text-xs text-muted-foreground">Tap to see why and view the source.</p>
+            )}
+          </div>
+          <ChevronRight
+            className={cn(
+              "w-4 h-4 mt-1 shrink-0 text-muted-foreground transition-transform duration-200",
+              open ? "rotate-90" : "rotate-0",
+            )}
+            aria-hidden="true"
+          />
+        </button>
+        {open && (
+          <div
+            id={panelId}
+            role="region"
+            aria-labelledby={headingId}
+            className="px-5 sm:px-6 pb-5 sm:pb-6"
+          >
+            <p className="text-sm text-muted-foreground leading-relaxed mb-4">{flag.explanation}</p>
+            <div className="pt-3 border-t border-border/40">
+              <a
+                href={flag.citationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground flex items-start gap-2 hover:text-primary transition-colors group"
+              >
+                <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
+                <span className="italic leading-snug">
+                  <span className="font-semibold not-italic text-muted-foreground">Source: </span>
+                  {flag.citation}
+                </span>
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </FadeIn>
   );
@@ -797,7 +831,32 @@ export function IngredientScanner({
   onSeedConsumed?: () => void;
 } = {}) {
   const [mode, setMode] = useState<"single" | "compare">("single");
-  const [skinProfile, setSkinProfile] = useState<SkinProfile | undefined>(undefined);
+  // Persist the user's last skin-type choice so returning users don't have to
+  // re-pick it on every scan. Stored in localStorage; gracefully ignores any
+  // legacy/invalid value.
+  const [skinProfile, setSkinProfile] = useState<SkinProfile | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+    try {
+      const stored = window.localStorage.getItem("skinscreen.skinProfile");
+      if (!stored) return undefined;
+      const valid = SKIN_PROFILES.some((o) => o.value === stored);
+      return valid ? (stored as SkinProfile) : undefined;
+    } catch {
+      return undefined;
+    }
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (skinProfile) {
+        window.localStorage.setItem("skinscreen.skinProfile", skinProfile);
+      } else {
+        window.localStorage.removeItem("skinscreen.skinProfile");
+      }
+    } catch {
+      // ignore quota / disabled storage
+    }
+  }, [skinProfile]);
   const [ingredients, setIngredients] = useState("");
   const [productName, setProductName] = useState<string>("");
   const [product1, setProduct1] = useState("");

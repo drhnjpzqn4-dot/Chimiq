@@ -1,11 +1,29 @@
 /// <reference types="vite-plugin-pwa/client" />
 
 type Listener = () => void;
+type OfflineListener = () => void;
 
 let updateAvailable = false;
 let updateToken: string | null = null;
 let triggerUpdate: ((reload: boolean) => Promise<void>) | null = null;
 const listeners = new Set<Listener>();
+const offlineReadyListeners = new Set<OfflineListener>();
+let offlineReadyFired = false;
+
+/**
+ * Subscribe to the one-time "service worker has cached the app for offline
+ * use" event. If the event already fired before subscription, the listener
+ * is invoked immediately so late-mounted UI (toaster) still sees it.
+ */
+export function onOfflineReady(listener: OfflineListener): () => void {
+  if (offlineReadyFired) {
+    try { listener(); } catch { /* swallow */ }
+  }
+  offlineReadyListeners.add(listener);
+  return () => {
+    offlineReadyListeners.delete(listener);
+  };
+}
 
 function emit() {
   for (const l of listeners) {
@@ -70,6 +88,12 @@ export function registerServiceWorker(): void {
         updateAvailable = true;
         updateToken = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
         emit();
+      },
+      onOfflineReady() {
+        offlineReadyFired = true;
+        for (const l of offlineReadyListeners) {
+          try { l(); } catch { /* swallow */ }
+        }
       },
       onRegisteredSW(_swUrl, registration) {
         if (!registration) return;

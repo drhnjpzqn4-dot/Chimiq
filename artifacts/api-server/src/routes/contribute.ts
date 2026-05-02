@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { db, userSubmittedProductsTable, cachedProductsTable, usersTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { uploadBufferToGcs } from "../lib/objectStorage";
 import { getAdminEmails, getRequestEmail, isRequestAdmin } from "../lib/admin";
 import { randomUUID } from "crypto";
@@ -515,6 +515,10 @@ router.get("/contribute/status/:id", async (req, res) => {
         brand: userSubmittedProductsTable.brand,
         ingredients: userSubmittedProductsTable.ingredients,
         aiReviewNote: userSubmittedProductsTable.aiReviewNote,
+        // Surface the admin's rejection reason so the submitter can see why
+        // their product wasn't accepted (#72). Only populated for rejected
+        // submissions; null otherwise.
+        reviewNote: userSubmittedProductsTable.reviewNote,
         submittedBy: userSubmittedProductsTable.submittedBy,
       })
       .from(userSubmittedProductsTable)
@@ -580,21 +584,108 @@ router.get("/admin/check", async (req, res) => {
   res.json({ isAdmin: getAdminEmails().includes(email) });
 });
 
+/**
+ * GET /admin/submissions — list crowdsourced product submissions for review.
+ *
+ * Query params (all optional):
+ *  - status   pending|approved|rejected|all  (default: pending)
+ *             "pending" maps to the internal "needs_admin" status.
+ *  - q        case-insensitive substring match on barcode, product name,
+ *             or brand. Wildcards are escaped.
+ *  - limit    1-200 (default 200)
+ *
+ * Always ordered newest-submitted first. Bumped to a richer response so the
+ * admin UI can show approved/rejected history alongside the pending queue
+ * (#73).
+ */
+const AdminSubmissionsQuery = z.object({
+  status: z.enum(["pending", "approved", "rejected", "all"]).optional(),
+  q: z.string().trim().max(120).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+
 router.get("/admin/submissions", async (req, res) => {
   if (!isRequestAdmin(req as { user?: { email?: string } })) {
     res.status(403).json({ error: "Admin access required." });
     return;
   }
 
+  const parsed = AdminSubmissionsQuery.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid filter values." });
+    return;
+  }
+
+  const { status, q, limit } = parsed.data;
+  const conds = [];
+  // "pending" is the user-facing label; the schema status is "needs_admin".
+  if (!status || status === "pending") {
+    conds.push(eq(userSubmittedProductsTable.status, "needs_admin"));
+  } else if (status === "approved") {
+    conds.push(eq(userSubmittedProductsTable.status, "approved"));
+  } else if (status === "rejected") {
+    conds.push(eq(userSubmittedProductsTable.status, "rejected"));
+  }
+  // status === "all" intentionally adds no status condition.
+
+  if (q && q.length > 0) {
+    const needle = `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
+    const orClauses = or(
+      ilike(userSubmittedProductsTable.barcode, needle),
+      ilike(userSubmittedProductsTable.productName, needle),
+      ilike(userSubmittedProductsTable.brand, needle),
+    );
+    if (orClauses) conds.push(orClauses);
+  }
+
   try {
     const rows = await db
       .select()
       .from(userSubmittedProductsTable)
-      .where(eq(userSubmittedProductsTable.status, "needs_admin"));
+      .where(conds.length ? and(...conds) : undefined)
+      .orderBy(desc(userSubmittedProductsTable.submittedAt))
+      .limit(limit ?? 200);
     res.json({ submissions: rows });
   } catch (err) {
     req.log.error({ err }, "Admin submissions query failed");
     res.status(500).json({ error: "Failed to load submissions." });
+  }
+});
+
+/**
+ * GET /contribute/my-recent — return the logged-in user's most recent
+ * submissions so the contributor surface (Profile) can show the admin's
+ * rejection note (#72) and let users follow up on outstanding items.
+ * Returns at most 10 rows, newest first.
+ */
+router.get("/contribute/my-recent", async (req, res) => {
+  const userId = (req as { user?: { id?: string } }).user?.id;
+  if (!userId) {
+    res.json({ submissions: [] });
+    return;
+  }
+
+  try {
+    const rows = await db
+      .select({
+        id: userSubmittedProductsTable.id,
+        barcode: userSubmittedProductsTable.barcode,
+        productName: userSubmittedProductsTable.productName,
+        brand: userSubmittedProductsTable.brand,
+        status: userSubmittedProductsTable.status,
+        reviewNote: userSubmittedProductsTable.reviewNote,
+        aiReviewNote: userSubmittedProductsTable.aiReviewNote,
+        submittedAt: userSubmittedProductsTable.submittedAt,
+        reviewedAt: userSubmittedProductsTable.reviewedAt,
+      })
+      .from(userSubmittedProductsTable)
+      .where(eq(userSubmittedProductsTable.submittedBy, userId))
+      .orderBy(desc(userSubmittedProductsTable.submittedAt))
+      .limit(10);
+    res.json({ submissions: rows });
+  } catch (err) {
+    req.log.error({ err }, "Failed to load user's recent submissions");
+    res.status(500).json({ error: "Failed to load your submissions." });
   }
 });
 

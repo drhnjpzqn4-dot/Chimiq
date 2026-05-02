@@ -13,6 +13,9 @@ import {
   Layers,
   Trophy,
   Info,
+  XCircle,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useUserPlan } from "@/hooks/useUserPlan";
@@ -33,6 +36,18 @@ interface BadgeItem {
   awardedAt: string;
 }
 
+interface MySubmission {
+  id: string;
+  barcode: string;
+  productName: string | null;
+  brand: string | null;
+  status: string;
+  reviewNote: string | null;
+  aiReviewNote: string | null;
+  submittedAt: string;
+  reviewedAt: string | null;
+}
+
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { plan, isPremium, isLoading } = useUserPlan();
@@ -42,6 +57,7 @@ export default function ProfileScreen() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
+  const [mySubmissions, setMySubmissions] = useState<MySubmission[]>([]);
 
   useEffect(() => {
     fetch("/api/contribute/stats", { credentials: "include" })
@@ -55,6 +71,12 @@ export default function ProfileScreen() {
     fetch("/api/badges/me", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { badges: [] }))
       .then((d) => setBadges((d as { badges?: BadgeItem[] }).badges ?? []))
+      .catch(() => {});
+    // Pull the user's recent submissions so we can surface the admin's
+    // rejection note when present (#72). Anonymous users get an empty list.
+    fetch("/api/contribute/my-recent", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : { submissions: [] }))
+      .then((d) => setMySubmissions((d as { submissions?: MySubmission[] }).submissions ?? []))
       .catch(() => {});
   }, []);
 
@@ -223,6 +245,82 @@ export default function ProfileScreen() {
           </div>
         </div>
       </section>
+
+      {/* My recent submissions — surfaces the admin's rejection note (#72). */}
+      {mySubmissions.length > 0 && (
+        <section className="mb-5">
+          <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Your recent submissions
+            </p>
+            <ul className="space-y-3">
+              {mySubmissions.slice(0, 5).map((s) => {
+                const isRejected = s.status === "rejected";
+                const isApproved = s.status === "approved";
+                const isPending =
+                  s.status === "pending" ||
+                  s.status === "needs_admin" ||
+                  s.status === "ai_reviewing";
+                const label = isApproved
+                  ? "Approved"
+                  : isRejected
+                  ? "Rejected"
+                  : isPending
+                  ? "Under review"
+                  : s.status;
+                const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
+                const iconClass = isApproved
+                  ? "text-green-600"
+                  : isRejected
+                  ? "text-destructive"
+                  : "text-amber-500";
+                return (
+                  <li
+                    key={s.id}
+                    className={`rounded-2xl border p-3 ${
+                      isRejected
+                        ? "border-destructive/30 bg-red-50/40"
+                        : "border-border/40 bg-muted/20"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {s.productName?.trim() || s.brand?.trim() || s.barcode}
+                        </p>
+                        {s.brand && s.productName && (
+                          <p className="truncate text-xs text-muted-foreground">{s.brand}</p>
+                        )}
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          Submitted {new Date(s.submittedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                          isApproved
+                            ? "bg-green-100 text-green-700"
+                            : isRejected
+                            ? "bg-red-100 text-red-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        <Icon className={`h-3 w-3 ${iconClass}`} />
+                        {label}
+                      </span>
+                    </div>
+                    {isRejected && s.reviewNote && (
+                      <p className="mt-2 rounded-lg bg-white/80 p-2 text-xs text-destructive">
+                        <span className="font-semibold">Reviewer note: </span>
+                        {s.reviewNote}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* Badges */}
       <section className="mb-5">

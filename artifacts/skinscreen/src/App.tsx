@@ -1,8 +1,11 @@
+import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { onOfflineReady } from "@/lib/register-sw";
+import { useToast } from "@/hooks/use-toast";
 import Home from "@/pages/Home";
 import HomeA from "@/pages/HomeA";
 import HomeB from "@/pages/HomeB";
@@ -68,6 +71,33 @@ function NativeBootstrap() {
   return null;
 }
 
+/**
+ * Mounts once and shows a single confirmation toast the first time the
+ * service worker finishes caching the app for offline use. The
+ * register-sw helper replays the event for late subscribers, so this is
+ * safe to mount inside a deferred-render tree.
+ */
+function OfflineReadyNotifier() {
+  const { toast } = useToast();
+  useEffect(() => {
+    let dismissed = false;
+    const unsubscribe = onOfflineReady(() => {
+      if (dismissed) return;
+      dismissed = true;
+      toast({
+        title: "Installed",
+        description: "Chimiq now works offline.",
+        duration: 5000,
+      });
+    });
+    return () => {
+      dismissed = true;
+      unsubscribe();
+    };
+  }, [toast]);
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -80,6 +110,7 @@ function App() {
             </WouterRouter>
             <Toaster />
             <UpdateBanner />
+            <OfflineReadyNotifier />
           </TooltipProvider>
         </ConsentGateProvider>
       </I18nProvider>

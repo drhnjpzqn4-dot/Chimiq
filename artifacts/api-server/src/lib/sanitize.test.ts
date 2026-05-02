@@ -201,6 +201,24 @@ describe("sanitizeIngredients", () => {
     expect(sanitizeIngredients(input)).toContain("Aqua");
   });
 
+  it("accepts a newline-separated INCI list (one ingredient per line)", () => {
+    const input = "Aqua\nGlycerin\nNiacinamide\nTocopherol\nButylene Glycol";
+    const out = sanitizeIngredients(input);
+    expect(out).toContain("Aqua");
+    expect(out).toContain("Tocopherol");
+    // Newlines must be replaced with comma+space so the downstream
+    // tokenizer (which splits on commas) sees 5 distinct ingredients.
+    expect(out.split(/,\s*/).length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("accepts a CRLF newline paste with mixed trailing whitespace", () => {
+    const input = "  Aqua  \r\n Glycerin\r\nNiacinamide,\r\n  Tocopherol\r\n";
+    const out = sanitizeIngredients(input);
+    expect(out).toContain("Aqua");
+    expect(out).toContain("Niacinamide");
+    expect(out).toContain("Tocopherol");
+  });
+
   it("rejects fewer than 3 tokens", () => {
     expect(() => sanitizeIngredients("Aqua, Glycerin")).toThrow(/at least 3 ingredients/);
   });
