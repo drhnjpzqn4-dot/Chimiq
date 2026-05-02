@@ -1,32 +1,32 @@
 /**
  * Native (Capacitor) adapter with web fallbacks.
  *
- * The web build must NOT statically import any @capacitor/* package — those
- * packages are only installed in `mobile/capacitor`. We rely on the global
- * `window.Capacitor` object that Capacitor injects at runtime when the app is
- * loaded inside the native shell, plus dynamic imports gated behind that
- * check so Vite tree-shakes them out of the web bundle.
+ * Capacitor 6 plugins must be statically importable so the bundler can
+ * register them. On web, each plugin's web shim takes over (no-ops or
+ * uses standard browser APIs). On native iOS/Android, the JS bridge
+ * routes calls into the native implementation registered via `cap sync`.
  */
-
-interface CapacitorGlobal {
-  isNativePlatform?: () => boolean;
-  getPlatform?: () => "ios" | "android" | "web";
-}
-
-declare global {
-  interface Window {
-    Capacitor?: CapacitorGlobal;
-  }
-}
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 
 export function isNative(): boolean {
   if (typeof window === "undefined") return false;
-  return Boolean(window.Capacitor?.isNativePlatform?.());
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
 }
 
 export function nativePlatform(): "ios" | "android" | "web" {
   if (typeof window === "undefined") return "web";
-  return window.Capacitor?.getPlatform?.() ?? "web";
+  try {
+    const p = Capacitor.getPlatform();
+    if (p === "ios" || p === "android") return p;
+    return "web";
+  } catch {
+    return "web";
+  }
 }
 
 /**
@@ -36,9 +36,13 @@ export function nativePlatform(): "ios" | "android" | "web" {
  * (SFSafariViewController on iOS, Chrome Custom Tabs on Android). This is
  * required for App Store-compliant OAuth and for Stripe Checkout / Billing.
  *
- * On web: falls back to window.open / location.href.
+ * On web: falls back to window.location.href so the existing redirect flow
+ * keeps working unchanged.
  */
-export async function openExternal(url: string, opts?: { presentation?: "popover" | "fullscreen" }) {
+export async function openExternal(
+  url: string,
+  opts?: { presentation?: "popover" | "fullscreen" },
+) {
   if (!isNative()) {
     if (typeof window !== "undefined") {
       window.location.href = url;
@@ -46,13 +50,7 @@ export async function openExternal(url: string, opts?: { presentation?: "popover
     return;
   }
   try {
-    // Indirect specifier so TS doesn't try to resolve @capacitor/browser at
-    // compile time — the package is only installed in mobile/capacitor.
-    const browserSpec = "@capacitor/browser";
-    const mod = (await import(/* @vite-ignore */ browserSpec)) as unknown as {
-      Browser: { open: (o: { url: string; presentationStyle?: string }) => Promise<void> };
-    };
-    await mod.Browser.open({
+    await Browser.open({
       url,
       presentationStyle: opts?.presentation === "popover" ? "popover" : "fullscreen",
     });

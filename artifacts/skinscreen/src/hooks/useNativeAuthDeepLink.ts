@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { App, type URLOpenListenerEvent } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
 import { isNative, NATIVE_AUTH_CALLBACK } from "@/lib/native";
 
 /**
@@ -26,54 +28,41 @@ export function useNativeAuthDeepLink(onAuthReturn?: () => void) {
 
     (async () => {
       try {
-        // Indirect specifiers so TS does not try to resolve these packages at
-        // compile time — they are only installed inside mobile/capacitor.
-        const appSpec = "@capacitor/app";
-        const browserSpec = "@capacitor/browser";
-        const appMod = (await import(/* @vite-ignore */ appSpec)) as unknown as {
-          App: {
-            addListener: (
-              event: "appUrlOpen",
-              cb: (data: { url: string }) => void,
-            ) => Promise<{ remove: () => Promise<void> }>;
-          };
-        };
-        const browserMod = (await import(/* @vite-ignore */ browserSpec)) as unknown as {
-          Browser: { close: () => Promise<void> };
-        };
-
-        const handle = await appMod.App.addListener("appUrlOpen", async ({ url }) => {
-          if (!url.startsWith(NATIVE_AUTH_CALLBACK)) return;
-          try {
-            await browserMod.Browser.close();
-          } catch {
-            /* browser may already be closed */
-          }
-          // Strip the known scheme prefix and use any remainder as the SPA
-          // target. Custom-scheme URLs don't parse cleanly with `new URL` —
-          // hostname becomes the first path segment ("auth") and pathname
-          // becomes "/callback", so we derive the route by prefix instead.
-          try {
-            const remainder = url.slice(NATIVE_AUTH_CALLBACK.length); // "" | "?..." | "/extra?..."
-            let target = "/app";
-            if (remainder.startsWith("?")) {
-              target = `/app${remainder}`;
-            } else if (remainder.startsWith("/")) {
-              target = remainder;
+        const handle = await App.addListener(
+          "appUrlOpen",
+          async ({ url }: URLOpenListenerEvent) => {
+            if (!url.startsWith(NATIVE_AUTH_CALLBACK)) return;
+            try {
+              await Browser.close();
+            } catch {
+              /* browser may already be closed */
             }
-            window.history.replaceState({}, "", target);
-            window.dispatchEvent(new PopStateEvent("popstate"));
-          } catch {
-            window.location.href = "/app";
-          }
-          onAuthReturn?.();
-        });
+            // Strip the known scheme prefix and use any remainder as the SPA
+            // target. Custom-scheme URLs don't parse cleanly with `new URL` —
+            // hostname becomes the first path segment ("auth") and pathname
+            // becomes "/callback", so we derive the route by prefix instead.
+            try {
+              const remainder = url.slice(NATIVE_AUTH_CALLBACK.length);
+              let target = "/app";
+              if (remainder.startsWith("?")) {
+                target = `/app${remainder}`;
+              } else if (remainder.startsWith("/")) {
+                target = remainder;
+              }
+              window.history.replaceState({}, "", target);
+              window.dispatchEvent(new PopStateEvent("popstate"));
+            } catch {
+              window.location.href = "/app";
+            }
+            onAuthReturn?.();
+          },
+        );
 
         cleanup = () => {
           handle.remove().catch(() => undefined);
         };
       } catch {
-        /* not running on native or plugins not installed — safe no-op */
+        /* not running on native or plugins not available — safe no-op */
       }
     })();
 

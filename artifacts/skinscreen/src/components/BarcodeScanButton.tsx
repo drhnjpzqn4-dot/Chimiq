@@ -3,6 +3,7 @@ import { Barcode, X, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributeModal } from "@/components/ContributeModal";
 import { isNative } from "@/lib/native";
+import { BarcodeScanner } from "@capacitor-mlkit/barcode-scanning";
 
 interface BarcodeScanButtonProps {
   onResult: (ingredients: string, productName: string, barcode?: string) => void;
@@ -142,20 +143,21 @@ export function BarcodeScanButton({
       setState("requesting");
       setModalOpen(true);
       try {
-        const spec = "@capacitor-mlkit/barcode-scanning";
-        const mod = (await import(/* @vite-ignore */ spec)) as unknown as {
-          BarcodeScanner: {
-            requestPermissions?: () => Promise<{ camera?: string }>;
-            scan: (opts?: {
-              formats?: string[];
-            }) => Promise<{ barcodes?: Array<{ rawValue?: string; displayValue?: string }> }>;
-          };
-        };
-        if (mod.BarcodeScanner.requestPermissions) {
-          await mod.BarcodeScanner.requestPermissions();
+        try {
+          await BarcodeScanner.requestPermissions();
+        } catch {
+          /* permissions API may not be available on every plugin version */
         }
-        const result = await mod.BarcodeScanner.scan({
-          formats: ["EAN_13", "EAN_8", "UPC_A", "UPC_E", "CODE_128", "CODE_39", "QR_CODE"],
+        const result = await BarcodeScanner.scan({
+          formats: [
+            "EAN_13" as never,
+            "EAN_8" as never,
+            "UPC_A" as never,
+            "UPC_E" as never,
+            "CODE_128" as never,
+            "CODE_39" as never,
+            "QR_CODE" as never,
+          ],
         });
         const code = result.barcodes?.[0]?.rawValue ?? result.barcodes?.[0]?.displayValue;
         if (code) {
