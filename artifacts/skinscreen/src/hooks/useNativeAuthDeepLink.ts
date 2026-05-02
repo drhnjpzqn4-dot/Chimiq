@@ -4,21 +4,12 @@ import { Browser } from "@capacitor/browser";
 import { isNative, NATIVE_AUTH_CALLBACK } from "@/lib/native";
 
 /**
- * Listens for the appUrlOpen Capacitor event and routes the deep-link path
+ * Listens for Capacitor's appUrlOpen event and routes our deep-link callback
  * back into the SPA. No-op on web.
  *
- * Flow:
- *   1. User taps "Sign in" inside the native shell.
- *   2. We open the system browser at `/api/login?returnTo=<callback>`.
- *   3. Replit Auth completes, server 302s to `skinscreen://auth/callback?...`.
- *   4. iOS / Android route that URL into the app and fire `appUrlOpen`.
- *   5. We close the in-app browser, replace history, and refresh the session.
- *
- * The actual session-cookie-vs-token reconciliation between the system browser
- * and the in-app webview is handled server-side via /api/auth/native/exchange
- * (see future task #66 — for v1 we rely on shared cookies via Custom Tabs on
- * Android and ASWebAuthenticationSession on iOS, which both share Safari's
- * cookie jar with the embedded webview when configured correctly).
+ * Flow: native sign-in opens the system browser at /api/login, server 302s
+ * to skinscreen://auth/callback?..., the OS routes that URL into the app
+ * and fires appUrlOpen — we close the in-app browser and refresh the SPA.
  */
 export function useNativeAuthDeepLink(onAuthReturn?: () => void) {
   useEffect(() => {
@@ -26,45 +17,26 @@ export function useNativeAuthDeepLink(onAuthReturn?: () => void) {
 
     let cleanup: (() => void) | undefined;
 
-    (async () => {
-      try {
-        const handle = await App.addListener(
-          "appUrlOpen",
-          async ({ url }: URLOpenListenerEvent) => {
-            if (!url.startsWith(NATIVE_AUTH_CALLBACK)) return;
-            try {
-              await Browser.close();
-            } catch {
-              /* browser may already be closed */
-            }
-            // Strip the known scheme prefix and use any remainder as the SPA
-            // target. Custom-scheme URLs don't parse cleanly with `new URL` —
-            // hostname becomes the first path segment ("auth") and pathname
-            // becomes "/callback", so we derive the route by prefix instead.
-            try {
-              const remainder = url.slice(NATIVE_AUTH_CALLBACK.length);
-              let target = "/app";
-              if (remainder.startsWith("?")) {
-                target = `/app${remainder}`;
-              } else if (remainder.startsWith("/")) {
-                target = remainder;
-              }
-              window.history.replaceState({}, "", target);
-              window.dispatchEvent(new PopStateEvent("popstate"));
-            } catch {
-              window.location.href = "/app";
-            }
-            onAuthReturn?.();
-          },
-        );
+    App.addListener("appUrlOpen", async ({ url }: URLOpenListenerEvent) => {
+      if (!url.startsWith(NATIVE_AUTH_CALLBACK)) return;
+      Browser.close().catch(() => undefined);
 
-        cleanup = () => {
-          handle.remove().catch(() => undefined);
-        };
-      } catch {
-        /* not running on native or plugins not available — safe no-op */
-      }
-    })();
+      // Custom-scheme URLs don't parse cleanly via `new URL` — derive the
+      // SPA target by stripping the known prefix.
+      const remainder = url.slice(NATIVE_AUTH_CALLBACK.length);
+      const target = remainder.startsWith("?")
+        ? `/app${remainder}`
+        : remainder.startsWith("/")
+          ? remainder
+          : "/app";
+      window.history.replaceState({}, "", target);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      onAuthReturn?.();
+    }).then((handle) => {
+      cleanup = () => {
+        handle.remove().catch(() => undefined);
+      };
+    });
 
     return () => {
       cleanup?.();

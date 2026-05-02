@@ -1,14 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import type { AuthUser } from "@workspace/api-client-react";
 
 export type { AuthUser };
 
-/**
- * Custom event other code can dispatch to force useAuth to re-fetch the
- * current user. Used by the native deep-link handler after a successful
- * sign-in completes in the system browser.
- */
 export const AUTH_REFRESH_EVENT = "skinscreen:auth-refresh";
+
+/**
+ * Production backend the native shell talks to. The Capacitor WebView origin
+ * is `capacitor://localhost` (iOS) or `https://localhost` (Android), so the
+ * deployed host has to be hard-coded for native auth/login URLs.
+ */
+const NATIVE_AUTH_HOST = "https://app.chimiq.app";
+const NATIVE_AUTH_CALLBACK = "skinscreen://auth/callback";
 
 interface AuthState {
   user: AuthUser | null;
@@ -19,19 +24,9 @@ interface AuthState {
   refetch: () => void;
 }
 
-interface CapacitorBrowserModule {
-  Browser: {
-    open: (opts: { url: string; presentationStyle?: string }) => Promise<void>;
-  };
-}
-
-type CapWin = Window & {
-  Capacitor?: { isNativePlatform?: () => boolean };
-};
-
-function isNativePlatform(): boolean {
+function isNative(): boolean {
   if (typeof window === "undefined") return false;
-  return !!(window as CapWin).Capacitor?.isNativePlatform?.();
+  return Capacitor.isNativePlatform();
 }
 
 export function useAuth(): AuthState {
@@ -65,8 +60,6 @@ export function useAuth(): AuthState {
     };
   }, [refetchTick]);
 
-  // Listen for forced refresh requests (e.g. from the native deep-link
-  // handler after a successful system-browser sign-in).
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onRefresh = () => setRefetchTick((n) => n + 1);
@@ -82,18 +75,9 @@ export function useAuth(): AuthState {
     const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "/";
     const target = returnTo ?? base;
 
-    if (isNativePlatform()) {
-      const callback = "skinscreen://auth/callback";
-      const origin = window.location.origin;
-      const loginUrl = `${origin}/api/login?returnTo=${encodeURIComponent(callback)}`;
-      // Indirect specifier so TS / Vite don't try to resolve @capacitor/browser
-      // at compile time (the package is only installed in mobile/capacitor).
-      const browserSpec = "@capacitor/browser";
-      (import(/* @vite-ignore */ browserSpec) as Promise<CapacitorBrowserModule>)
-        .then((mod) => mod.Browser.open({ url: loginUrl, presentationStyle: "fullscreen" }))
-        .catch(() => {
-          window.location.href = `/api/login?returnTo=${encodeURIComponent(target)}`;
-        });
+    if (isNative()) {
+      const url = `${NATIVE_AUTH_HOST}/api/login?returnTo=${encodeURIComponent(NATIVE_AUTH_CALLBACK)}`;
+      Browser.open({ url, presentationStyle: "fullscreen" });
       return;
     }
 
@@ -101,16 +85,8 @@ export function useAuth(): AuthState {
   }, []);
 
   const logout = useCallback(() => {
-    if (isNativePlatform()) {
-      const browserSpec = "@capacitor/browser";
-      const origin = window.location.origin;
-      (import(/* @vite-ignore */ browserSpec) as Promise<CapacitorBrowserModule>)
-        .then((mod) =>
-          mod.Browser.open({ url: `${origin}/api/logout`, presentationStyle: "fullscreen" }),
-        )
-        .catch(() => {
-          window.location.href = "/api/logout";
-        });
+    if (isNative()) {
+      Browser.open({ url: `${NATIVE_AUTH_HOST}/api/logout`, presentationStyle: "fullscreen" });
       return;
     }
     window.location.href = "/api/logout";
