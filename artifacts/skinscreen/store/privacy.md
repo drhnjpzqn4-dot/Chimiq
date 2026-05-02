@@ -1,5 +1,7 @@
 # Chimiq — App Privacy / Data Safety form
 
+**Publisher:** Seafari AB (Chimiq is published by Seafari AB).
+
 This document mirrors the answers we provide in **App Store Connect → App Privacy** and **Play Console → Data safety**. Keep in sync with the public privacy policy at https://chimiq.com/privacy.
 
 ---

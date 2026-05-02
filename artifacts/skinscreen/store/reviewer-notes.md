@@ -1,5 +1,7 @@
 # Chimiq — App Review notes
 
+**Publisher:** Seafari AB (Chimiq is published by Seafari AB).
+
 Paste the relevant block into **App Store Connect → App Review Information → Notes** and **Play Console → App content → Reviewer comments**.
 
 ---
