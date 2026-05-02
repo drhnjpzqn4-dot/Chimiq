@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import {
   db,
   recipesTable,
   RECIPE_RISK_LEVELS,
+  RECIPE_STATUSES,
   type RecipeIngredient,
 } from "@workspace/db";
 import { isRequestAdmin } from "../lib/admin";
@@ -325,24 +326,214 @@ router.post("/recipes", async (req, res) => {
   }
 });
 
+const AdminListQuery = z.object({
+  status: z.enum([...RECIPE_STATUSES, "all"]).optional(),
+  category: z.enum(RECIPE_CATEGORIES).optional(),
+  riskLevel: z.enum(RECIPE_RISK_LEVELS).optional(),
+  q: z.string().trim().min(1).max(120).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+
 /**
- * GET /admin/recipes — list pending recipes (admin only).
+ * GET /admin/recipes — list recipes for moderation.
+ *
+ * Query params:
+ *  - status     pending|approved|changes_requested|rejected|all (default: pending)
+ *  - category   filter by recipe category
+ *  - riskLevel  filter by AI safety verdict
+ *  - q          case-insensitive substring match on title or ingredient name
+ *  - limit      1-200 (default 200)
  */
 router.get("/admin/recipes", async (req, res) => {
   if (!isRequestAdmin(req as { user?: { email?: string | null } })) {
     res.status(403).json({ error: "Admin access required." });
     return;
   }
+  const parsed = AdminListQuery.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid filter values." });
+    return;
+  }
+  const { status, category, riskLevel, q, limit } = parsed.data;
+  const conds = [];
+  if (status && status !== "all") conds.push(eq(recipesTable.status, status));
+  else if (!status) conds.push(eq(recipesTable.status, "pending"));
+  if (category) conds.push(eq(recipesTable.category, category));
+  if (riskLevel) conds.push(eq(recipesTable.riskLevel, riskLevel));
+  if (q) {
+    const needle = `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
+    conds.push(
+      or(
+        ilike(recipesTable.title, needle),
+        sql`EXISTS (
+          SELECT 1 FROM jsonb_array_elements(${recipesTable.ingredients}) AS ing
+          WHERE ing->>'name' ILIKE ${needle}
+        )`,
+      )!,
+    );
+  }
   try {
     const rows = await db
       .select()
       .from(recipesTable)
-      .where(eq(recipesTable.status, "pending"))
-      .orderBy(desc(recipesTable.createdAt));
+      .where(conds.length ? and(...conds) : undefined)
+      .orderBy(desc(recipesTable.createdAt))
+      .limit(limit ?? 200);
     res.json({ recipes: rows });
   } catch (err) {
     req.log.error({ err }, "admin recipes list failed");
     res.status(500).json({ error: "Failed to load recipes." });
+  }
+});
+
+/**
+ * PATCH /admin/recipes/:id — edit recipe fields before approving.
+ * Allows the admin to fix typos, normalize ingredient names, or trim a method
+ * without bouncing the submission back to the user.
+ */
+const AdminEditBody = z.object({
+  title: z.string().min(3).max(120).optional(),
+  category: z.enum(RECIPE_CATEGORIES).optional(),
+  skinTypes: z.array(z.enum(SKIN_TYPES)).min(1).max(SKIN_TYPES.length).optional(),
+  ingredients: z.array(RecipeIngredientInput).min(2).max(40).optional(),
+  method: z.string().min(10).max(4000).optional(),
+});
+
+router.patch("/admin/recipes/:id", async (req, res) => {
+  if (!isRequestAdmin(req as { user?: { email?: string | null } })) {
+    res.status(403).json({ error: "Admin access required." });
+    return;
+  }
+  const id = String(req.params.id ?? "");
+  if (!UUID_RE.test(id)) {
+    res.status(400).json({ error: "Invalid recipe ID." });
+    return;
+  }
+  const parsed = AdminEditBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid edit data." });
+    return;
+  }
+
+  const update: Partial<typeof recipesTable.$inferInsert> = {};
+  try {
+    if (parsed.data.title !== undefined) {
+      update.title = sanitizeText(parsed.data.title, {
+        fieldName: "Recipe title",
+        maxLength: 120,
+        minLength: 3,
+      });
+    }
+    if (parsed.data.method !== undefined) {
+      update.method = sanitizeText(parsed.data.method, {
+        fieldName: "Method",
+        maxLength: 4000,
+        minLength: 10,
+      });
+    }
+    if (parsed.data.ingredients !== undefined) {
+      update.ingredients = parsed.data.ingredients.map((ing) => ({
+        name: sanitizeText(ing.name, { fieldName: "Ingredient name", maxLength: 120 }),
+        amount: ing.amount
+          ? sanitizeText(ing.amount, { fieldName: "Amount", maxLength: 60, allowEmpty: true })
+          : undefined,
+        notes: ing.notes
+          ? sanitizeText(ing.notes, { fieldName: "Notes", maxLength: 200, allowEmpty: true })
+          : undefined,
+      }));
+    }
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
+  if (parsed.data.category !== undefined) update.category = parsed.data.category;
+  if (parsed.data.skinTypes !== undefined) update.skinTypes = parsed.data.skinTypes;
+
+  if (Object.keys(update).length === 0) {
+    res.status(400).json({ error: "No fields to update." });
+    return;
+  }
+
+  try {
+    const [updated] = await db
+      .update(recipesTable)
+      .set(update)
+      .where(eq(recipesTable.id, id))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Recipe not found." });
+      return;
+    }
+    res.json({ recipe: updated });
+  } catch (err) {
+    req.log.error({ err }, "admin recipe edit failed");
+    res.status(500).json({ error: "Failed to update recipe." });
+  }
+});
+
+/**
+ * POST /admin/recipes/bulk — apply the same action to many recipes at once.
+ * Body: { ids: string[], action: "approve"|"reject"|"request-changes", note?: string }
+ */
+const AdminBulkBody = z.object({
+  ids: z.array(z.string().regex(UUID_RE)).min(1).max(100),
+  action: z.enum(["approve", "reject", "request-changes"]),
+  note: z.string().max(1000).optional(),
+});
+
+router.post("/admin/recipes/bulk", async (req, res) => {
+  if (!isRequestAdmin(req as { user?: { email?: string | null } })) {
+    res.status(403).json({ error: "Admin access required." });
+    return;
+  }
+  const parsed = AdminBulkBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid bulk action data." });
+    return;
+  }
+  const status: "approved" | "rejected" | "changes_requested" =
+    parsed.data.action === "approve"
+      ? "approved"
+      : parsed.data.action === "reject"
+        ? "rejected"
+        : "changes_requested";
+
+  let note: string | null = null;
+  if (parsed.data.note) {
+    try {
+      note = sanitizeText(parsed.data.note, {
+        fieldName: "Admin note",
+        maxLength: 1000,
+        allowEmpty: true,
+      });
+    } catch (err) {
+      if (err instanceof SanitizationError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  }
+
+  const reviewerId = req.user?.id ?? null;
+  try {
+    const updated = await db
+      .update(recipesTable)
+      .set({
+        status,
+        adminNote: note,
+        reviewedById: reviewerId,
+        reviewedAt: new Date(),
+      })
+      .where(inArray(recipesTable.id, parsed.data.ids))
+      .returning({ id: recipesTable.id });
+    res.json({ updated: updated.length, ids: updated.map((u) => u.id) });
+  } catch (err) {
+    req.log.error({ err }, "admin recipe bulk action failed");
+    res.status(500).json({ error: "Failed to apply bulk action." });
   }
 });
 
