@@ -2,6 +2,12 @@ import { Router, type IRouter } from "express";
 import { z } from "zod";
 import { db, cachedProductsTable, userSubmittedProductsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import {
+  SanitizationError,
+  sanitizeBrand,
+  sanitizeIngredients,
+  sanitizeProductName,
+} from "../lib/sanitize.js";
 
 const router: IRouter = Router();
 
@@ -108,14 +114,31 @@ router.post("/barcode/submit", async (req, res) => {
     return;
   }
 
-  const { barcode, productName, brand, ingredients } = parseResult.data;
+  const { barcode } = parseResult.data;
+
+  // #74: sanitize every free-form field BEFORE the row is upserted into
+  // the crowdsourced cache so the public DB never stores unsanitized text.
+  let productName: string;
+  let brand: string;
+  let ingredients: string;
+  try {
+    productName = sanitizeProductName(parseResult.data.productName, true);
+    brand = sanitizeBrand(parseResult.data.brand, true);
+    ingredients = sanitizeIngredients(parseResult.data.ingredients);
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
 
   try {
     await db.insert(userSubmittedProductsTable).values({
       barcode,
-      productName: productName ?? null,
-      brand: brand ?? null,
-      ingredients: ingredients ?? null,
+      productName: productName || null,
+      brand: brand || null,
+      ingredients: ingredients || null,
       status: "pending",
       obfContributed: "pending",
     });

@@ -259,9 +259,104 @@ describe("sanitizeIngredients", () => {
     expect(() => sanitizeIngredients("<script>alert(1)</script>", true)).toThrow(/script-like/);
   });
 
+  // #74 — the same sanitizer is now wired into chat, suggest-alternatives,
+  // and barcode/submit. These cases lock in the behavior the routes rely on
+  // when a malicious payload is posted.
+  it("rejects payloads that look like inline JavaScript handlers", () => {
+    expect(() =>
+      sanitizeIngredients(
+        "Aqua, Glycerin, javascript:alert(1), Niacinamide, Tocopherol",
+      ),
+    ).toThrow(SanitizationError);
+  });
+
+  it("rejects HTML-tag injection attempts even mixed with real INCI tokens", () => {
+    expect(() =>
+      sanitizeIngredients(
+        "Aqua, Glycerin, <iframe src=evil>, Niacinamide, Tocopherol",
+      ),
+    ).toThrow(SanitizationError);
+  });
+});
+
+describe("sanitizeText - chat-route hardening (#74)", () => {
+  it("accepts a normal conversational chat message unchanged", () => {
+    const msg = "Can I use retinol with vitamin C in the same routine?";
+    expect(
+      sanitizeText(msg, { fieldName: "Message", maxLength: 2000, minLength: 1 }),
+    ).toBe(msg);
+  });
+
+  it("rejects a chat message that embeds a script tag", () => {
+    expect(() =>
+      sanitizeText("Hi <script>alert(1)</script>", {
+        fieldName: "Message",
+        maxLength: 2000,
+        minLength: 1,
+      }),
+    ).toThrow(SanitizationError);
+  });
+
+  it("rejects a shelf-context payload that embeds an HTML iframe", () => {
+    expect(() =>
+      sanitizeText("Cream A — <iframe src=//evil>x</iframe>", {
+        fieldName: "Shelf context",
+        maxLength: 4000,
+        allowEmpty: true,
+      }),
+    ).toThrow(SanitizationError);
+  });
+
   it("rejects HTML/script payloads in ingredients", () => {
     expect(() =>
       sanitizeIngredients("<script>x</script>, Aqua, Glycerin, Niacinamide"),
     ).toThrow(/script-like/);
+  });
+
+  // Conversational mode: chat prose can legitimately contain double-dash
+  // ("retinol -- and acids?") so the SQL `--` rule must NOT fire there,
+  // but real script content must still be rejected.
+  it("accepts double-dash punctuation in conversational mode", () => {
+    const msg = "Can I use retinol -- and vitamin C -- in the same routine?";
+    expect(
+      sanitizeText(msg, {
+        fieldName: "Message",
+        maxLength: 2000,
+        minLength: 1,
+        conversational: true,
+      }),
+    ).toBe(msg);
+  });
+
+  it("still rejects SQL keywords even in conversational mode", () => {
+    expect(() =>
+      sanitizeText("hi DROP TABLE users", {
+        fieldName: "Message",
+        maxLength: 2000,
+        minLength: 1,
+        conversational: true,
+      }),
+    ).toThrow(SanitizationError);
+  });
+
+  it("still rejects script tags in conversational mode", () => {
+    expect(() =>
+      sanitizeText("hello <script>x</script>", {
+        fieldName: "Message",
+        maxLength: 2000,
+        minLength: 1,
+        conversational: true,
+      }),
+    ).toThrow(SanitizationError);
+  });
+
+  it("non-conversational sanitize still rejects double-dash (INCI fields)", () => {
+    expect(() =>
+      sanitizeText("Aqua -- Glycerin", {
+        fieldName: "Ingredient list",
+        maxLength: 2000,
+        minLength: 1,
+      }),
+    ).toThrow(SanitizationError);
   });
 });

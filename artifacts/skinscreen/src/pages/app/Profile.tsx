@@ -16,6 +16,10 @@ import {
   XCircle,
   CheckCircle2,
   Clock,
+  Pencil,
+  Sparkles,
+  AlertTriangle,
+  ShieldAlert,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useUserPlan } from "@/hooks/useUserPlan";
@@ -48,6 +52,18 @@ interface MySubmission {
   reviewedAt: string | null;
 }
 
+interface MyRecipe {
+  id: string;
+  title: string;
+  category: string;
+  status: "pending" | "approved" | "changes_requested" | "rejected";
+  riskLevel: "safe" | "caution" | "high_risk" | null;
+  adminNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt: string | null;
+}
+
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { plan, isPremium, isLoading } = useUserPlan();
@@ -58,6 +74,7 @@ export default function ProfileScreen() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [mySubmissions, setMySubmissions] = useState<MySubmission[]>([]);
+  const [myRecipes, setMyRecipes] = useState<MyRecipe[]>([]);
 
   useEffect(() => {
     fetch("/api/contribute/stats", { credentials: "include" })
@@ -77,6 +94,12 @@ export default function ProfileScreen() {
     fetch("/api/contribute/my-recent", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { submissions: [] }))
       .then((d) => setMySubmissions((d as { submissions?: MySubmission[] }).submissions ?? []))
+      .catch(() => {});
+    // Pull the user's own recipes (#69) so they can see admin notes and
+    // edit/resubmit when status is `changes_requested`.
+    fetch("/api/recipes/mine", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : { recipes: [] }))
+      .then((d) => setMyRecipes((d as { recipes?: MyRecipe[] }).recipes ?? []))
       .catch(() => {});
   }, []);
 
@@ -313,6 +336,141 @@ export default function ProfileScreen() {
                         <span className="font-semibold">Reviewer note: </span>
                         {s.reviewNote}
                       </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {/* My recipes — lets submitters see admin feedback and edit/resubmit
+          changes_requested recipes (#69). */}
+      {myRecipes.length > 0 && (
+        <section className="mb-5">
+          <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Your DIY recipes
+            </p>
+            <ul className="space-y-3">
+              {myRecipes.slice(0, 8).map((r) => {
+                const isApproved = r.status === "approved";
+                const isRejected = r.status === "rejected";
+                const isChanges = r.status === "changes_requested";
+                const isPending = r.status === "pending";
+                const label = isApproved
+                  ? "Approved"
+                  : isRejected
+                    ? "Rejected"
+                    : isChanges
+                      ? "Changes requested"
+                      : "Under review";
+                const StatusIcon = isApproved
+                  ? CheckCircle2
+                  : isRejected
+                    ? XCircle
+                    : isChanges
+                      ? AlertTriangle
+                      : Clock;
+                const RiskIcon =
+                  r.riskLevel === "high_risk"
+                    ? ShieldAlert
+                    : r.riskLevel === "caution"
+                      ? AlertTriangle
+                      : r.riskLevel === "safe"
+                        ? Sparkles
+                        : null;
+                const riskColor =
+                  r.riskLevel === "high_risk"
+                    ? "text-red-600"
+                    : r.riskLevel === "caution"
+                      ? "text-amber-600"
+                      : "text-green-600";
+                const cardTone = isChanges
+                  ? "border-amber-300 bg-amber-50/60"
+                  : isRejected
+                    ? "border-destructive/30 bg-red-50/40"
+                    : "border-border/40 bg-muted/20";
+                const badgeTone = isApproved
+                  ? "bg-green-100 text-green-700"
+                  : isRejected
+                    ? "bg-red-100 text-red-700"
+                    : isChanges
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-muted text-muted-foreground";
+                return (
+                  <li key={r.id} className={`rounded-2xl border p-3 ${cardTone}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {r.title}
+                        </p>
+                        <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <span className="capitalize">{r.category}</span>
+                          {RiskIcon && (
+                            <>
+                              <span aria-hidden>·</span>
+                              <RiskIcon className={`h-3 w-3 ${riskColor}`} />
+                            </>
+                          )}
+                          <span aria-hidden>·</span>
+                          <span>
+                            {new Date(r.updatedAt).toLocaleDateString()}
+                          </span>
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${badgeTone}`}
+                      >
+                        <StatusIcon className="h-3 w-3" />
+                        {label}
+                      </span>
+                    </div>
+                    {(isChanges || isRejected) && r.adminNote && (
+                      <p
+                        className={`mt-2 rounded-lg bg-white/80 p-2 text-xs ${
+                          isChanges ? "text-amber-800" : "text-destructive"
+                        }`}
+                      >
+                        <span className="font-semibold">Reviewer note: </span>
+                        {r.adminNote}
+                      </p>
+                    )}
+                    {isChanges && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/app/recipes/new?edit=${r.id}`)}
+                        data-touch-target
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit and resubmit
+                      </button>
+                    )}
+                    {(isPending || isApproved) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          isApproved
+                            ? navigate(`/recipes/${r.id}`)
+                            : navigate(`/app/recipes/new?edit=${r.id}`)
+                        }
+                        data-touch-target
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+                      >
+                        {isApproved ? (
+                          <>
+                            <ChevronRight className="h-3 w-3" />
+                            View public page
+                          </>
+                        ) : (
+                          <>
+                            <Pencil className="h-3 w-3" />
+                            Edit while pending
+                          </>
+                        )}
+                      </button>
                     )}
                   </li>
                 );

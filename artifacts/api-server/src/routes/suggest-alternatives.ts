@@ -1,6 +1,11 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
+import {
+  SanitizationError,
+  sanitizeIngredients,
+  sanitizeText,
+} from "../lib/sanitize.js";
 
 const SuggestAlternativesBody = z.object({
   ingredients: z.string().trim().min(1).max(3000),
@@ -88,7 +93,31 @@ router.post("/suggest-alternatives", async (req, res) => {
     return;
   }
 
-  const { ingredients, flaggedIngredients, productType } = parseResult.data;
+  // #74: every free-form field that flows into the alternatives prompt
+  // is sanitized first so a malicious user can't smuggle script-like
+  // content or attempted prompt-injection payloads into Claude.
+  let ingredients: string;
+  let flaggedIngredients: string[];
+  let productType: string | undefined;
+  try {
+    ingredients = sanitizeIngredients(parseResult.data.ingredients);
+    flaggedIngredients = parseResult.data.flaggedIngredients.map((f) =>
+      sanitizeText(f, { fieldName: "Flagged ingredient", maxLength: 200 }),
+    );
+    productType = parseResult.data.productType
+      ? sanitizeText(parseResult.data.productType, {
+          fieldName: "Product type",
+          maxLength: 100,
+          allowEmpty: true,
+        })
+      : undefined;
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
 
   const anthropic = new Anthropic({ apiKey, baseURL });
 

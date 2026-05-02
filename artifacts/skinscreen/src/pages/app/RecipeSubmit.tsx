@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
 import {
   Plus,
@@ -57,7 +57,18 @@ export default function RecipeSubmitScreen() {
   const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
+  const search = useSearch();
+  // #69: edit mode is keyed by `?edit=<recipeId>`. When present, we fetch
+  // the existing recipe, prefill the form, and submit via PUT instead of
+  // POST.
+  const editId = useMemo(() => {
+    const params = new URLSearchParams(search);
+    return params.get("edit");
+  }, [search]);
   const [eligibility, setEligibility] = useState<Eligibility | null>(null);
+  const [editLoading, setEditLoading] = useState<boolean>(!!editId);
+  const [editLoadError, setEditLoadError] = useState<string | null>(null);
+  const [adminNote, setAdminNote] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<Category>("serum");
@@ -96,6 +107,73 @@ export default function RecipeSubmitScreen() {
       .then((d) => setEligibility(d as Eligibility))
       .catch(() => setEligibility({ canSubmit: false, emailVerified: false, reason: "auth_required" }));
   }, [isAuthenticated, isLoading, requestLogin]);
+
+  // Edit mode: pull the user's recipe from /recipes/mine, find the row by
+  // id, and prefill the form. We deliberately use /mine (not /recipes/:id)
+  // so the lookup works for non-approved statuses (`pending`,
+  // `changes_requested`).
+  useEffect(() => {
+    if (!editId || !isAuthenticated) return;
+    let cancelled = false;
+    setEditLoading(true);
+    setEditLoadError(null);
+    fetch("/api/recipes/mine", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("auth"))))
+      .then((d) => {
+        if (cancelled) return;
+        const list = (d as {
+          recipes?: Array<{
+            id: string;
+            title: string;
+            category: Category;
+            skinTypes: SkinType[];
+            ingredients: { name: string; amount?: string; notes?: string }[];
+            method: string;
+            status: "pending" | "approved" | "changes_requested" | "rejected";
+            adminNote: string | null;
+          }>;
+        }).recipes ?? [];
+        const found = list.find((r) => r.id === editId);
+        if (!found) {
+          setEditLoadError(t("recipeSubmit.editNotFound"));
+          setEditLoading(false);
+          return;
+        }
+        if (found.status !== "pending" && found.status !== "changes_requested") {
+          setEditLoadError(t("recipeSubmit.editNotEditable"));
+          setEditLoading(false);
+          return;
+        }
+        setTitle(found.title);
+        setCategory(found.category);
+        setSkinTypes(
+          Array.isArray(found.skinTypes) && found.skinTypes.length > 0
+            ? found.skinTypes
+            : ["all"],
+        );
+        const rows = (found.ingredients ?? []).map((i) => ({
+          name: i.name ?? "",
+          amount: i.amount ?? "",
+          notes: i.notes ?? "",
+        }));
+        setIngredients(
+          rows.length >= 2
+            ? rows
+            : [...rows, ...Array.from({ length: 2 - rows.length }, () => ({ name: "", amount: "", notes: "" }))],
+        );
+        setMethod(found.method);
+        setAdminNote(found.adminNote);
+        setEditLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setEditLoadError(t("recipeSubmit.editLoadFailed"));
+        setEditLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, isAuthenticated, t]);
 
   const updateIngredient = (idx: number, field: keyof IngredientRow, value: string) => {
     setIngredients((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
@@ -151,18 +229,21 @@ export default function RecipeSubmitScreen() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/recipes", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          category,
-          skinTypes,
-          ingredients: cleaned,
-          method: method.trim(),
-        }),
-      });
+      const res = await fetch(
+        editId ? `/api/recipes/${editId}` : "/api/recipes",
+        {
+          method: editId ? "PUT" : "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title.trim(),
+            category,
+            skinTypes,
+            ingredients: cleaned,
+            method: method.trim(),
+          }),
+        },
+      );
       const data = (await res.json()) as {
         error?: string;
         aiVerdict?: AiVerdict | null;
@@ -183,11 +264,29 @@ export default function RecipeSubmitScreen() {
     }
   };
 
-  if (isLoading || !eligibility) {
+  if (isLoading || !eligibility || (editId && editLoading)) {
     return (
       <AppShell title={t("recipeSubmit.headerLoading")}>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (editId && editLoadError) {
+    return (
+      <AppShell title={t("recipeSubmit.headerLoading")}>
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-center">
+          <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-600" />
+          <p className="text-sm text-amber-800">{editLoadError}</p>
+          <button
+            type="button"
+            onClick={() => navigate("/app/profile")}
+            className="mt-4 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+          >
+            {t("recipeSubmit.backToProfile")}
+          </button>
         </div>
       </AppShell>
     );
@@ -319,9 +418,18 @@ export default function RecipeSubmitScreen() {
 
   return (
     <AppShell
-      title={t("recipeSubmit.shareTitle")}
-      subtitle={t("recipeSubmit.shareSubtitle")}
+      title={editId ? t("recipeSubmit.editTitle") : t("recipeSubmit.shareTitle")}
+      subtitle={editId ? t("recipeSubmit.editSubtitle") : t("recipeSubmit.shareSubtitle")}
     >
+      {editId && adminNote && (
+        <div className="mb-5 rounded-3xl border border-amber-200 bg-amber-50 p-4">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-800">
+            <AlertTriangle className="h-4 w-4" />
+            {t("recipeSubmit.adminNoteLabel")}
+          </p>
+          <p className="mt-1 text-sm text-amber-900">{adminNote}</p>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -479,6 +587,8 @@ export default function RecipeSubmitScreen() {
               <Loader2 className="h-4 w-4 animate-spin" />
               {t("recipeSubmit.scanAndSave")}
             </>
+          ) : editId ? (
+            t("recipeSubmit.resubmitForReview")
           ) : (
             t("recipeSubmit.submitForReview")
           )}

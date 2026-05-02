@@ -13,6 +13,14 @@ const SQL_INJECTION_PATTERNS = [
   /(--|;\s*--|\/\*|\*\/)/,
   /\bxp_cmdshell\b/i,
 ];
+// Conversational fields (chat messages, shelf context, recipe method) can
+// legitimately contain `--` (em-dash style) and SQL block-comment markers
+// would never reach a query. We only enforce the heavier SQL-keyword rules
+// for these inputs.
+const SQL_INJECTION_PATTERNS_CONVERSATIONAL = [
+  /(\b(union\s+select|drop\s+table|insert\s+into|delete\s+from|update\s+\w+\s+set|alter\s+table|create\s+table|truncate\s+table)\b)/i,
+  /\bxp_cmdshell\b/i,
+];
 
 export class SanitizationError extends Error {
   status = 400;
@@ -27,17 +35,24 @@ export interface SanitizeOptions {
   maxLength: number;
   minLength?: number;
   allowEmpty?: boolean;
+  // When true, double-dash (`--`) and `/* */` are not treated as SQL
+  // injection markers. Use for free-form prose fields (chat, method, etc.)
+  // where these characters appear in normal writing.
+  conversational?: boolean;
 }
 
 function stripHtml(input: string): string {
   return input.replace(HTML_TAG_RE, " ").replace(/&lt;|&gt;|&quot;|&#x27;|&amp;/gi, " ");
 }
 
-function detectMalicious(input: string): string | null {
+function detectMalicious(input: string, conversational = false): string | null {
   for (const re of SCRIPT_PATTERNS) {
     if (re.test(input)) return "contains script-like content";
   }
-  for (const re of SQL_INJECTION_PATTERNS) {
+  const sqlPatterns = conversational
+    ? SQL_INJECTION_PATTERNS_CONVERSATIONAL
+    : SQL_INJECTION_PATTERNS;
+  for (const re of sqlPatterns) {
     if (re.test(input)) return "contains code-like patterns";
   }
   return null;
@@ -52,7 +67,7 @@ export function sanitizeText(raw: unknown, opts: SanitizeOptions): string {
     throw new SanitizationError(`${opts.fieldName} must be text.`);
   }
 
-  const malicious = detectMalicious(raw);
+  const malicious = detectMalicious(raw, opts.conversational ?? false);
   if (malicious) {
     throw new SanitizationError(
       `${opts.fieldName} ${malicious}. Please remove HTML, scripts, or code and submit only product information.`,

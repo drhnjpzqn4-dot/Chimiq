@@ -1,6 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
+import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
 
 const router: IRouter = Router();
 
@@ -90,7 +91,38 @@ router.post("/chat", async (req: Request, res: Response) => {
     return;
   }
 
-  const { messages, shelfContext } = parsed.data;
+  const { messages: rawMessages, shelfContext: rawShelfContext } = parsed.data;
+
+  // #74: every free-form field that ends up inside an LLM prompt has to go
+  // through the hardened sanitizer first so prompt injection / XSS-like
+  // payloads are rejected before we send them to Anthropic.
+  let messages: typeof rawMessages;
+  let shelfContext: string | undefined;
+  try {
+    messages = rawMessages.map((m) => ({
+      role: m.role,
+      content: sanitizeText(m.content, {
+        fieldName: "Message",
+        maxLength: 2000,
+        minLength: 1,
+        conversational: true,
+      }),
+    }));
+    shelfContext = rawShelfContext
+      ? sanitizeText(rawShelfContext, {
+          fieldName: "Shelf context",
+          maxLength: 4000,
+          allowEmpty: true,
+          conversational: true,
+        })
+      : undefined;
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
 
   // Static SYSTEM_PROMPT goes in its own block flagged for Anthropic prompt
   // caching (~90% input-token discount on repeat calls within the cache TTL).

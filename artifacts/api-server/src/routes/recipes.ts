@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 import {
   db,
   recipesTable,
+  recipeEditEventsTable,
   RECIPE_RISK_LEVELS,
   RECIPE_STATUSES,
   type RecipeIngredient,
@@ -112,6 +113,47 @@ router.get("/recipes", publicReadLimit, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "public recipes list failed");
     res.status(500).json({ error: "Failed to load recipes." });
+  }
+});
+
+/**
+ * GET /recipes/mine — list the signed-in user's own recipes (#69).
+ *
+ * Returns every status (pending / approved / changes_requested / rejected)
+ * so the submitter can see admin feedback and resubmit edits. Defined
+ * BEFORE `/recipes/:id` so `mine` does not get caught by the UUID matcher.
+ */
+router.get("/recipes/mine", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Sign in to view your recipes." });
+    return;
+  }
+  try {
+    const rows = await db
+      .select({
+        id: recipesTable.id,
+        title: recipesTable.title,
+        category: recipesTable.category,
+        skinTypes: recipesTable.skinTypes,
+        ingredients: recipesTable.ingredients,
+        method: recipesTable.method,
+        photoUrl: recipesTable.photoUrl,
+        aiVerdict: recipesTable.aiVerdict,
+        riskLevel: recipesTable.riskLevel,
+        status: recipesTable.status,
+        adminNote: recipesTable.adminNote,
+        createdAt: recipesTable.createdAt,
+        updatedAt: recipesTable.updatedAt,
+        reviewedAt: recipesTable.reviewedAt,
+      })
+      .from(recipesTable)
+      .where(eq(recipesTable.submitterId, req.user.id))
+      .orderBy(desc(recipesTable.updatedAt))
+      .limit(50);
+    res.json({ recipes: rows });
+  } catch (err) {
+    req.log.error({ err }, "GET /recipes/mine failed");
+    res.status(500).json({ error: "Failed to load your recipes." });
   }
 });
 
@@ -322,6 +364,239 @@ router.post("/recipes", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "recipe submit insert failed");
+    res.status(500).json({ error: "Failed to save recipe. Please try again." });
+  }
+});
+
+/**
+ * PUT /recipes/:id — submitter edits + resubmits a pending or
+ * changes_requested recipe (#69).
+ *
+ * Re-runs the AI safety scan, replaces the verdict, and resets status to
+ * 'pending' so the recipe re-enters the admin queue. An edit counts toward
+ * the daily 5-action rate limit (created today + edited-today recipes), so
+ * this endpoint can't be used to amplify LLM costs.
+ */
+router.put("/recipes/:id", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Sign in to edit a recipe." });
+    return;
+  }
+  if (req.user.emailVerified !== true) {
+    res.status(403).json({
+      error: "Please verify your email with your sign-in provider before editing recipes.",
+    });
+    return;
+  }
+  const id = String(req.params.id ?? "");
+  if (!UUID_RE.test(id)) {
+    res.status(400).json({ error: "Invalid recipe ID." });
+    return;
+  }
+
+  const parsed = SubmitRecipeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Recipe data is invalid or incomplete." });
+    return;
+  }
+
+  // Ownership + editable-status check before doing any work.
+  const submitterId = req.user.id;
+  const [existing] = await db
+    .select({
+      submitterId: recipesTable.submitterId,
+      status: recipesTable.status,
+    })
+    .from(recipesTable)
+    .where(eq(recipesTable.id, id));
+  if (!existing) {
+    res.status(404).json({ error: "Recipe not found." });
+    return;
+  }
+  if (existing.submitterId !== submitterId) {
+    res.status(403).json({ error: "You can only edit your own recipes." });
+    return;
+  }
+  if (existing.status !== "pending" && existing.status !== "changes_requested") {
+    res.status(409).json({
+      error:
+        "This recipe can no longer be edited (it has been approved or rejected).",
+    });
+    return;
+  }
+
+  let title: string;
+  let method: string;
+  let cleanIngredients: RecipeIngredient[];
+  try {
+    title = sanitizeText(parsed.data.title, {
+      fieldName: "Recipe title",
+      maxLength: 120,
+      minLength: 3,
+    });
+    method = sanitizeText(parsed.data.method, {
+      fieldName: "Method",
+      maxLength: 4000,
+      minLength: 10,
+    });
+    cleanIngredients = parsed.data.ingredients.map((ing) => ({
+      name: sanitizeText(ing.name, { fieldName: "Ingredient name", maxLength: 120 }),
+      amount: ing.amount
+        ? sanitizeText(ing.amount, { fieldName: "Amount", maxLength: 60, allowEmpty: true })
+        : undefined,
+      notes: ing.notes
+        ? sanitizeText(ing.notes, { fieldName: "Notes", maxLength: 200, allowEmpty: true })
+        : undefined,
+    }));
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
+
+  // Pre-flight rate-limit check (cheap path before LLM scan). The
+  // authoritative count happens inside the transaction below; this is just
+  // a fast-fail to avoid burning Anthropic tokens for users already at
+  // their daily cap.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [{ count: preCreated }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(recipesTable)
+    .where(
+      and(
+        eq(recipesTable.submitterId, submitterId),
+        gte(recipesTable.createdAt, since),
+      ),
+    );
+  const [{ count: preEdits }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(recipeEditEventsTable)
+    .where(
+      and(
+        eq(recipeEditEventsTable.submitterId, submitterId),
+        gte(recipeEditEventsTable.createdAt, since),
+      ),
+    );
+  if (preCreated + preEdits >= 5) {
+    res.status(429).json({
+      error:
+        "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
+    });
+    return;
+  }
+
+  let aiVerdict: Awaited<ReturnType<typeof scanRecipeSafety>> = null;
+  let riskLevel: (typeof RECIPE_RISK_LEVELS)[number] | null = null;
+  let scannerUnavailable = false;
+  try {
+    aiVerdict = await scanRecipeSafety({
+      title,
+      category: parsed.data.category,
+      ingredients: cleanIngredients,
+      method,
+      log: (msg, data) => req.log.info(data ?? {}, msg),
+    });
+    if (aiVerdict) riskLevel = aiVerdict.riskLevel;
+  } catch (err) {
+    if (err instanceof RecipeSafetyUnavailableError) {
+      scannerUnavailable = true;
+      req.log.warn("recipe-safety scanner unavailable on edit; storing without verdict");
+    } else {
+      req.log.error({ err }, "recipe-safety scan failed on edit");
+    }
+  }
+
+  // Authoritative atomic step: lock the user, recount under the lock,
+  // insert an edit-event row, and update the recipe — all in one
+  // transaction. Concurrent PUTs serialize on the advisory lock, so two
+  // requests near the boundary cannot both pass.
+  try {
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${submitterId}))`,
+      );
+      const [{ count: createdToday }] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(recipesTable)
+        .where(
+          and(
+            eq(recipesTable.submitterId, submitterId),
+            gte(recipesTable.createdAt, since),
+          ),
+        );
+      const [{ count: editsToday }] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(recipeEditEventsTable)
+        .where(
+          and(
+            eq(recipeEditEventsTable.submitterId, submitterId),
+            gte(recipeEditEventsTable.createdAt, since),
+          ),
+        );
+      if (createdToday + editsToday >= 5) {
+        return { kind: "limit" as const };
+      }
+      // Re-assert editable status inside the transaction. Without this,
+      // an admin who flips the recipe to approved/rejected between our
+      // pre-check (above) and this UPDATE could be overwritten back to
+      // pending by the submitter (TOCTOU on moderation state).
+      const [updated] = await tx
+        .update(recipesTable)
+        .set({
+          title,
+          category: parsed.data.category,
+          skinTypes: parsed.data.skinTypes,
+          ingredients: cleanIngredients,
+          method,
+          photoUrl: parsed.data.photoUrl ?? null,
+          aiVerdict: aiVerdict ?? null,
+          riskLevel,
+          status: "pending",
+          // Clear the prior admin note so the resubmitted recipe shows
+          // clean in the queue; admins write a new note if they request
+          // more changes. `reviewedAt` is preserved so the audit history
+          // stays intact across resubmissions.
+          adminNote: null,
+        })
+        .where(
+          and(
+            eq(recipesTable.id, id),
+            eq(recipesTable.submitterId, submitterId),
+            inArray(recipesTable.status, ["pending", "changes_requested"]),
+          ),
+        )
+        .returning();
+      if (!updated) {
+        // Either the row vanished or its status moved to approved/rejected
+        // between the pre-check and the transactional update.
+        return { kind: "conflict" as const };
+      }
+      await tx.insert(recipeEditEventsTable).values({
+        submitterId,
+        recipeId: id,
+        action: "edit",
+      });
+      return { kind: "ok" as const, updated };
+    });
+    if (result.kind === "limit") {
+      res.status(429).json({
+        error:
+          "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
+      });
+      return;
+    }
+    if (result.kind === "conflict") {
+      res.status(409).json({
+        error:
+          "This recipe can no longer be edited (it has been approved or rejected).",
+      });
+      return;
+    }
+    res.json({ recipe: result.updated, aiVerdict, scannerUnavailable });
+  } catch (err) {
+    req.log.error({ err }, "recipe edit update failed");
     res.status(500).json({ error: "Failed to save recipe. Please try again." });
   }
 });

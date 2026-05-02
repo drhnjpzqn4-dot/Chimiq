@@ -563,6 +563,15 @@ const en: Dict = {
     "Our AI will scan your recipe for safety concerns. Then a Chimiq admin will review and approve it before it appears in the public library.",
   "recipeSubmit.scanAndSave": "Scanning & saving…",
   "recipeSubmit.submitForReview": "Submit for review",
+  "recipeSubmit.editTitle": "Edit your recipe",
+  "recipeSubmit.editSubtitle":
+    "Update your recipe and resubmit for review. The AI safety scan will run again.",
+  "recipeSubmit.adminNoteLabel": "Reviewer note",
+  "recipeSubmit.resubmitForReview": "Resubmit for review",
+  "recipeSubmit.editNotFound": "We couldn't find that recipe under your account.",
+  "recipeSubmit.editNotEditable":
+    "This recipe can no longer be edited (already approved or rejected).",
+  "recipeSubmit.editLoadFailed": "Couldn't load your recipe. Please try again.",
 
   // ───── Rewards ─────
   "rewards.headline": "How rewards work",
@@ -1172,6 +1181,15 @@ const sv: Dict = {
     "Vår AI skannar receptet efter säkerhetsproblem. Sen granskar och godkänner en Chimiq-admin det innan det syns i det publika biblioteket.",
   "recipeSubmit.scanAndSave": "Skannar & sparar…",
   "recipeSubmit.submitForReview": "Skicka för granskning",
+  "recipeSubmit.editTitle": "Redigera ditt recept",
+  "recipeSubmit.editSubtitle":
+    "Uppdatera receptet och skicka in det igen för granskning. AI-säkerhetsskanningen körs på nytt.",
+  "recipeSubmit.adminNoteLabel": "Granskarens kommentar",
+  "recipeSubmit.resubmitForReview": "Skicka in på nytt",
+  "recipeSubmit.editNotFound": "Vi hittade inte det receptet på ditt konto.",
+  "recipeSubmit.editNotEditable":
+    "Det här receptet kan inte längre redigeras (redan godkänt eller avvisat).",
+  "recipeSubmit.editLoadFailed": "Kunde inte ladda ditt recept. Försök igen.",
 
   // ───── Rewards ─────
   "rewards.headline": "Så funkar belöningarna",
@@ -1772,6 +1790,15 @@ const fr: Dict = {
     "Notre IA analysera votre recette pour des problèmes de sécurité. Puis un admin Chimiq la vérifie et l'approuve avant qu'elle n'apparaisse dans la bibliothèque publique.",
   "recipeSubmit.scanAndSave": "Analyse & enregistrement…",
   "recipeSubmit.submitForReview": "Soumettre pour validation",
+  "recipeSubmit.editTitle": "Modifier votre recette",
+  "recipeSubmit.editSubtitle":
+    "Mettez à jour votre recette et soumettez-la à nouveau. L'analyse de sécurité IA sera relancée.",
+  "recipeSubmit.adminNoteLabel": "Note du modérateur",
+  "recipeSubmit.resubmitForReview": "Soumettre à nouveau",
+  "recipeSubmit.editNotFound": "Recette introuvable dans votre compte.",
+  "recipeSubmit.editNotEditable":
+    "Cette recette ne peut plus être modifiée (déjà approuvée ou rejetée).",
+  "recipeSubmit.editLoadFailed": "Impossible de charger votre recette. Réessayez.",
 
   "rewards.headline": "Comment fonctionnent les récompenses",
   "rewards.sub": "Trois moyens simples de gagner du Premium gratuit et de la reconnaissance dans Chimiq.",
