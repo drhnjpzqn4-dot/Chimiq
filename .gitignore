@@ -47,3 +47,14 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Capacitor native builds (artifacts/skinscreen/mobile/capacitor)
+artifacts/*/mobile/capacitor/node_modules/
+artifacts/*/mobile/capacitor/www/
+artifacts/*/mobile/capacitor/ios/App/Pods/
+artifacts/*/mobile/capacitor/ios/App/Podfile.lock
+artifacts/*/mobile/capacitor/ios/DerivedData/
+artifacts/*/mobile/capacitor/android/.gradle/
+artifacts/*/mobile/capacitor/android/build/
+artifacts/*/mobile/capacitor/android/app/build/
+artifacts/*/mobile/capacitor/android/local.properties

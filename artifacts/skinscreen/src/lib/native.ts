@@ -67,7 +67,7 @@ export async function openExternal(url: string, opts?: { presentation?: "popover
  * prohibits in-app purchase flows for digital subscriptions sold elsewhere.
  */
 export const MANAGE_SUBSCRIPTION_WEB_URL =
-  "https://app.skinscreen.chimiq.com/pricing";
+  "https://app.chimiq.app/pricing";
 
 /**
  * Deep-link scheme registered for the native shell. The auth flow opens the
