@@ -22,7 +22,7 @@ export default function PrivacyPolicy() {
       <p>
         This Privacy Policy explains how <strong>Seafari AB</strong>{" "}
         ("we", "us", or "our") collects, uses, and protects information when
-        you use the SkinScreen web app, mobile app, and related services
+        you use the Chimiq (formerly SkinScreen) web app, mobile app, and related services
         (together, the "Service"). By using the Service you agree to this
         policy.
       </p>
@@ -148,7 +148,7 @@ export default function PrivacyPolicy() {
 
       <h2>9. Children</h2>
       <p>
-        SkinScreen is not directed at children under 13 (or under 16 in
+        Chimiq is not directed at children under 13 (or under 16 in
         the EEA/UK). We do not knowingly collect personal data from
         children. If you believe a child has provided us data, contact
         us and we will delete it.

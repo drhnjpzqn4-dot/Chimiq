@@ -1,14 +1,14 @@
-# SkinScreen — App Store / Play Store-text (Svenska)
+# Chimiq — App Store / Play Store-text (Svenska)
 
 > Lokal: `sv-SE`
 > Bundle ID: `com.seafari.skinscreen`
-> Utgivare: Seafari AB (ChimIQ)
+> Utgivare: Seafari AB (Chimiq)
 
 ---
 
 ## Appnamn (30 tecken)
 
-**SkinScreen: Granska hudvård**
+**Chimiq: Granska hudvård**
 
 ## Underrubrik / kort beskrivning
 
@@ -26,7 +26,7 @@ Play Store (80 tecken):
 
 **Avkoda vilken hudvårdsetikett som helst på några sekunder.**
 
-SkinScreen läser ingredienslistor, hittar kombinationer som motverkar eller skadar din hud, och berättar exakt vad du borde använda istället. Byggt av kemister, finjusterat av 25 000+ hudvårdsentusiaster, och gratis att använda varje dag.
+Chimiq läser ingredienslistor, hittar kombinationer som motverkar eller skadar din hud, och berättar exakt vad du borde använda istället. Byggt av kemister, finjusterat av 25 000+ hudvårdsentusiaster, och gratis att använda varje dag.
 
 **Vad det gör**
 
@@ -51,7 +51,7 @@ Varje ingredienslista du bidrar med ger dig framsteg mot gratis Premium — 30 g
 • Hela rutin-granskningen utöver 2 produkter
 • Personliga förslag på "vad du kan använda istället"
 
-Prenumerera på app.skinscreen.chimiq.com. Hantera eller avsluta när som helst på samma adress.
+Prenumerera på app.chimiq.app. Hantera eller avsluta när som helst på samma adress.
 
 **Integritet först**
 
@@ -69,7 +69,7 @@ https://chimiq.com/support
 
 ## Marknadsförings-URL
 
-https://app.skinscreen.chimiq.com
+https://app.chimiq.app
 
 ## Sekretesspolicy-URL
 
@@ -77,7 +77,7 @@ https://chimiq.com/privacy
 
 ## Nyheter (första version)
 
-Välkommen till SkinScreen 1.0!
+Välkommen till Chimiq 1.0!
 
 • Skanna vilken ingredienslista som helst — streckkod, foto eller inklistring.
 • Jämför två produkter och granska hela rutinen.

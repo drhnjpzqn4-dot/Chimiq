@@ -1,4 +1,4 @@
-# SkinScreen — App Privacy / Data Safety form
+# Chimiq — App Privacy / Data Safety form
 
 This document mirrors the answers we provide in **App Store Connect → App Privacy** and **Play Console → Data safety**. Keep in sync with the public privacy policy at https://chimiq.com/privacy.
 
@@ -50,7 +50,7 @@ This document mirrors the answers we provide in **App Store Connect → App Priv
 
 ## Tracking
 
-**SkinScreen does not track users across apps and websites owned by other companies.**
+**Chimiq does not track users across apps and websites owned by other companies.**
 We do not call `App Tracking Transparency` (`ATTrackingManager.requestTrackingAuthorization`).
 
 ---
@@ -80,7 +80,7 @@ A data-export download (JSON of your scans, contributions, and shelf) is availab
 
 ## Children
 
-SkinScreen is not directed to children under 13 (under 16 in the EEA / UK). Account creation requires the user to confirm they meet the minimum age. We do not knowingly collect data from children below the threshold. If we discover such an account we delete it.
+Chimiq is not directed to children under 13 (under 16 in the EEA / UK). Account creation requires the user to confirm they meet the minimum age. We do not knowingly collect data from children below the threshold. If we discover such an account we delete it.
 
 ---
 

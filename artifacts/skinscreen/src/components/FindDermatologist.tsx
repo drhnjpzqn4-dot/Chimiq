@@ -15,7 +15,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=12`,
       {
-        headers: { "Accept-Language": "en", "User-Agent": "SkinScreen/1.0" },
+        headers: { "Accept-Language": "en", "User-Agent": "Chimiq/1.0" },
         signal: AbortSignal.timeout(4000),
       },
     );
@@ -89,7 +89,7 @@ export function FindDermatologist() {
               Find a Dermatologist Near You
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              SkinScreen flags the risks — but for medical concerns, a licensed dermatologist is your best resource. Find rated clinics near you in seconds.
+              Chimiq flags the risks — but for medical concerns, a licensed dermatologist is your best resource. Find rated clinics near you in seconds.
             </p>
           </div>
         </FadeIn>

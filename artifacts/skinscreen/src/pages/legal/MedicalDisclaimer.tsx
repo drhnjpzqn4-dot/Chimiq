@@ -18,7 +18,7 @@ export default function MedicalDisclaimer() {
   return (
     <LegalLayout title={t("legal.disclaimerTitle")} lastUpdated={LAST_UPDATED}>
       <p>
-        <strong>SkinScreen is not a medical device.</strong> The
+        <strong>Chimiq is not a medical device.</strong> The
         Service is intended for general wellness and education only.
         It is <strong>not</strong> intended to diagnose, treat, cure,
         or prevent any disease or skin condition.
@@ -61,7 +61,7 @@ export default function MedicalDisclaimer() {
       <h2>4. Individual variation</h2>
       <p>
         Skin reacts differently from person to person. A product
-        flagged as safe by SkinScreen may still cause a reaction in
+        flagged as safe by Chimiq may still cause a reaction in
         you, and a product flagged with concerns may be fine for you.
         Patch-test new products and stop use if you experience
         irritation.

@@ -23,15 +23,15 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
         style={{ paddingTop: "var(--safe-top)" }}
       >
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
-          <a href={base + "/"} className="flex items-center gap-2" data-touch-target aria-label="ChimIQ home">
+          <a href={base + "/"} className="flex items-center gap-2" data-touch-target aria-label="Chimiq home">
             <span
               aria-hidden
               className="font-serif text-2xl font-bold leading-none tracking-tight text-primary-strong"
               style={{ letterSpacing: "-0.01em" }}
             >
-              ChimIQ
+              Chimiq
             </span>
-            <span className="sr-only">ChimIQ</span>
+            <span className="sr-only">Chimiq</span>
           </a>
           <div className="flex items-center gap-2">
             {rightSlot}

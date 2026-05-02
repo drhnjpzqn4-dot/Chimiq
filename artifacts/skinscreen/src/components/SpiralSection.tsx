@@ -127,7 +127,7 @@ export function SpiralSection() {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="pt-4"
         >
-          <p className="text-2xl font-serif text-primary italic mb-8">SkinScreen breaks the cycle.</p>
+          <p className="text-2xl font-serif text-primary italic mb-8">Chimiq breaks the cycle.</p>
 
           {/* Outcome mini-cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

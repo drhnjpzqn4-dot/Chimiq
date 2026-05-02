@@ -286,7 +286,7 @@ export function LandingPage({ config }: LandingPageProps) {
           <a href="#hero" className="flex items-center">
             <img
               src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
-              alt="ChimIQ"
+              alt="Chimiq"
               style={{ height: 32, width: "auto", objectFit: "contain" }}
             />
           </a>
@@ -932,7 +932,7 @@ export function LandingPage({ config }: LandingPageProps) {
             <div className="flex flex-col gap-4">
               <img
                 src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
-                alt="ChimIQ"
+                alt="Chimiq"
                 className="opacity-90"
                 style={{ height: 52, width: "auto", objectFit: "contain", objectPosition: "left" }}
               />
@@ -953,7 +953,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground/60 leading-relaxed max-w-xs">
-                {t("footer.aboutChimIQ")}
+                {t("footer.aboutChimiq")}
               </p>
 
               <nav

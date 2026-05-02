@@ -115,7 +115,7 @@ export default function AdminRecipesPage() {
           <a href={base + "/"}>
             <img
               src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
-              alt="ChimIQ"
+              alt="Chimiq"
               className="h-8 w-auto"
             />
           </a>

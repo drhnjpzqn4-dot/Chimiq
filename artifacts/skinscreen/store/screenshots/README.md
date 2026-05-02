@@ -32,4 +32,4 @@ Save into `screenshots/android/<device-name>/01-scan.png` …
 4. **Routine cross-check** — 3 products in shelf with "1 conflict found" banner.
 5. **Profile** — Premium badge, contributions progress ring, "30 contributions = 1 free month".
 
-Add an overlay headline (we use Figma template `figma.com/file/skinscreen-store-screens` — ask the design team for access) so each screen reads as a feature poster, not a bare screenshot.
+Add an overlay headline (we use Figma template `figma.com/file/chimiq-store-screens` — ask the design team for access) so each screen reads as a feature poster, not a bare screenshot.

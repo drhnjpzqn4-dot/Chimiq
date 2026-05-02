@@ -1,4 +1,4 @@
-# SkinScreen App Navigation — Accessibility Audit
+# Chimiq App Navigation — Accessibility Audit
 
 Scope: bottom tab bar, sticky `AppShell` header, floating chat panel,
 Profile plan badge, and Discover tip tags. Audit covers WCAG 2.1 AA for

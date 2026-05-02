@@ -21,7 +21,7 @@ export default function TermsOfService() {
     <LegalLayout title={t("legal.termsTitle")} lastUpdated={LAST_UPDATED}>
       <p>
         These Terms of Service ("Terms") govern your use of the
-        SkinScreen web app, mobile app, and related services (the
+        Chimiq web app, mobile app, and related services (the
         "Service") operated by <strong>Seafari AB</strong>{" "}
         ("we", "us", or "our"). By creating an account or using the
         Service you agree to these Terms.
@@ -90,11 +90,11 @@ export default function TermsOfService() {
 
       <h2>7. Intellectual property</h2>
       <p>
-        The SkinScreen and ChimIQ names, logos, brand, and source code
-        are owned by <strong>Seafari AB</strong>. You may
+        The Chimiq name (formerly SkinScreen), logo, brand, and source
+        code are owned by <strong>Seafari AB</strong>. You may
         not use them without our written permission, except to refer
         to the Service in standard, factual ways (e.g. "I use
-        SkinScreen").
+        Chimiq").
       </p>
 
       <h2>8. Termination</h2>

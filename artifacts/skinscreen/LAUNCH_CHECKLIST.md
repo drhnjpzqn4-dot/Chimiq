@@ -1,9 +1,9 @@
-# SkinScreen — Launch Checklist
+# Chimiq — Launch Checklist
 
 Last updated: April 30, 2026
 Owner: User publishes manually after merge.
 
-This document is the single source of truth for "is SkinScreen ready to publish?".
+This document is the single source of truth for "is Chimiq ready to publish?".
 It is split into four sections:
 
 1. [What was verified in this task](#1-what-was-verified-in-this-task)
@@ -36,7 +36,7 @@ It is split into four sections:
 ### PWA assets
 
 - [x] `public/icon-192.png` (symbol only, transparent — Android home screen)
-- [x] `public/icon-512.png` (symbol + "SkinScreen" wordmark, transparent — splash)
+- [x] `public/icon-512.png` (symbol + "Chimiq" wordmark, transparent — splash)
 - [x] `public/icon-512-maskable.png` (symbol + wordmark on `#0d0d0d`, ~80% safe zone — Android adaptive)
 - [x] `public/apple-touch-icon.png` (180×180, cream `#F5F1EB` bg — iOS adds rounded corners)
 - [x] `public/favicon.ico`, `public/favicon-96.png`, `public/favicon.svg`
@@ -145,7 +145,7 @@ Run these on a **real iPhone (Safari)** AND a **real Android phone (Chrome)**. T
 - [ ] Visit `https://<your-domain>` in Safari.
 - [ ] Verify the favicon (rose-gold molecule) appears in the tab.
 - [ ] Tap the Share sheet → "Add to Home Screen".
-- [ ] Confirm the home-screen icon shows **the molecule on cream background** with "SkinScreen" beneath (this is `apple-touch-icon.png`).
+- [ ] Confirm the home-screen icon shows **the molecule on cream background** with "Chimiq" beneath (this is `apple-touch-icon.png`).
 - [ ] Launch from the home screen. The app should open standalone (no Safari chrome).
 - [ ] Splash screen: cream/light background while loading is acceptable.
 - [ ] Tap "Sign in" → consent modal appears with the required checkbox.
@@ -158,7 +158,7 @@ Run these on a **real iPhone (Safari)** AND a **real Android phone (Chrome)**. T
 
 - [ ] Visit `https://<your-domain>` in Chrome.
 - [ ] Open the menu → "Install app" (or accept the install prompt if it auto-shows).
-- [ ] Confirm the home-screen icon is the **maskable icon on dark background** (Android adaptively masks the icon — the molecule + "SkinScreen" should be visible inside the shape).
+- [ ] Confirm the home-screen icon is the **maskable icon on dark background** (Android adaptively masks the icon — the molecule + "Chimiq" should be visible inside the shape).
 - [ ] Launch from the home screen. Confirm standalone display (no URL bar).
 - [ ] Repeat the consent-gate test: untick → disabled, tick → enabled → continue.
 - [ ] Sign in via Replit OIDC, verify return into the app.

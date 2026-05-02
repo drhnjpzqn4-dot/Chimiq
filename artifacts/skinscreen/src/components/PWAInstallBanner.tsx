@@ -53,7 +53,7 @@ export function PWAInstallBanner() {
     <div
       className="fixed bottom-3 left-3 right-3 z-[60] sm:hidden"
       role="dialog"
-      aria-label="Install SkinScreen as an app"
+      aria-label="Install Chimiq as an app"
     >
       <div className="bg-white border border-[#E8F0E8] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] overflow-hidden">
         <div className="flex items-start gap-3 p-3">
@@ -62,7 +62,7 @@ export function PWAInstallBanner() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground leading-tight">
-              Install SkinScreen as an app
+              Install Chimiq as an app
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Add to your home screen for one-tap access.

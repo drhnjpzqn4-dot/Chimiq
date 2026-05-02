@@ -1,8 +1,8 @@
-# SkinScreen — App Store / Play Store listing (English)
+# Chimiq — App Store / Play Store listing (English)
 
 > Locale: `en-US` (also valid for `en-GB`, `en-AU`)
 > Bundle ID: `com.seafari.skinscreen`
-> Publisher: Seafari AB (ChimIQ)
+> Publisher: Seafari AB (Chimiq)
 > Category — App Store: Health & Fitness · Secondary: Lifestyle
 > Category — Play Store: Beauty
 
@@ -10,7 +10,7 @@
 
 ## App name (30 chars)
 
-**SkinScreen: Ingredient Check**
+**Chimiq: Ingredient Check**
 
 ## Subtitle / short description (App Store: 30 chars · Play: 80 chars)
 
@@ -27,7 +27,7 @@ Play Store short description (80 chars):
 
 **Decode any skincare label in seconds.**
 
-SkinScreen reads ingredient lists, finds combinations that fight or harm your skin, and tells you exactly what to do instead. Built by chemists, refined by a community of 25,000+ skincare nerds, and free to use every day.
+Chimiq reads ingredient lists, finds combinations that fight or harm your skin, and tells you exactly what to do instead. Built by chemists, refined by a community of 25,000+ skincare nerds, and free to use every day.
 
 **What it does**
 
@@ -52,7 +52,7 @@ Every ingredient list you contribute earns you progress toward free Premium — 
 • Full routine cross-check beyond 2 products
 • Personalised "what to use instead" suggestions
 
-Subscribe at app.skinscreen.chimiq.com. Manage or cancel any time at the same address.
+Subscribe at app.chimiq.app. Manage or cancel any time at the same address.
 
 **Privacy first**
 
@@ -70,7 +70,7 @@ https://chimiq.com/support
 
 ## Marketing URL
 
-https://app.skinscreen.chimiq.com
+https://app.chimiq.app
 
 ## Privacy policy URL
 
@@ -78,7 +78,7 @@ https://chimiq.com/privacy
 
 ## What's new (release notes — first version)
 
-Welcome to SkinScreen 1.0!
+Welcome to Chimiq 1.0!
 
 • Scan any ingredient label by barcode, photo, or paste.
 • Two-product compare and full-routine cross-check.
@@ -96,6 +96,6 @@ No objectionable content. Camera permission is requested only when scanning a la
 
 ## In-app purchases
 
-**None.** Premium is sold and managed exclusively on the web at app.skinscreen.chimiq.com. The mobile app reads entitlement from the user's account.
+**None.** Premium is sold and managed exclusively on the web at app.chimiq.app. The mobile app reads entitlement from the user's account.
 
 This is a reader app per Apple App Store Review Guideline §3.1.3(a) and Google Play's external billing exception for digital content sold outside the app.

@@ -73,7 +73,7 @@ function ShareButton({ title }: { title: string }) {
   const handleShare = async () => {
     const url = window.location.href;
     const shareData = {
-      title: `${title} · SkinScreen`,
+      title: `${title} · Chimiq`,
       text: title,
       url,
     };

@@ -507,7 +507,7 @@ function AlternativesSection({
             )}
 
             <p className="text-[10px] text-muted-foreground text-center mt-4">
-              Suggestions are for informational purposes only · No affiliate links · SkinScreen has no brand partnerships
+              Suggestions are for informational purposes only · No affiliate links · Chimiq has no brand partnerships
             </p>
           </div>
         )}
@@ -1501,7 +1501,7 @@ export function IngredientScanner({
                   if (!ctx) return;
                   ctx.fillStyle = "#F7FAF7"; ctx.fillRect(0, 0, W, H);
                   ctx.fillStyle = "#7BAF7A"; ctx.fillRect(0, 0, W, 10);
-                  ctx.fillStyle = "#7BAF7A"; ctx.font = "600 28px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText("ChimIQ · SkinScreen", 80, 90);
+                  ctx.fillStyle = "#7BAF7A"; ctx.font = "600 28px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText("Chimiq", 80, 90);
                   ctx.fillStyle = "#1A1A1A"; ctx.font = "700 52px Georgia, serif"; ctx.textAlign = "center";
                   const name = productName || "Scanned product";
                   ctx.fillText(name.length > 36 ? name.slice(0, 35) + "…" : name, W / 2, 240);
@@ -1522,12 +1522,12 @@ export function IngredientScanner({
                   ctx.fillStyle = "#7BAF7A"; ctx.font = "600 34px Inter, sans-serif"; ctx.textAlign = "center"; ctx.fillText("chimiq.com", W / 2, H - 80);
                   canvas.toBlob((blob) => {
                     if (!blob) return;
-                    const file = new File([blob], "skinscreen-result.png", { type: "image/png" });
+                    const file = new File([blob], "chimiq-result.png", { type: "image/png" });
                     if (navigator.canShare?.({ files: [file] })) {
-                      navigator.share({ files: [file], title: "My SkinScreen result" }).catch(() => {});
+                      navigator.share({ files: [file], title: "My Chimiq result" }).catch(() => {});
                     } else {
                       const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a"); a.href = url; a.download = "skinscreen-result.png"; a.click();
+                      const a = document.createElement("a"); a.href = url; a.download = "chimiq-result.png"; a.click();
                       URL.revokeObjectURL(url);
                     }
                   }, "image/png");

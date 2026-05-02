@@ -115,7 +115,7 @@ export default function Discover() {
           <a href={base + "/"}>
             <img
               src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
-              alt="ChimIQ"
+              alt="Chimiq"
               className="h-7 w-auto"
             />
           </a>

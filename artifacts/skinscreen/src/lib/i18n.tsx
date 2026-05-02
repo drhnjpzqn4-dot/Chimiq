@@ -64,7 +64,7 @@ const en: Dict = {
   "discover.emptyTips":
     "No tips yet. Be the first to share one — the most upvoted tip each week wins a free month of Premium.",
   "discover.aiAskAnything": "Ask anything",
-  "discover.aiTitle": "Chat with the SkinScreen AI",
+  "discover.aiTitle": "Chat with the Chimiq AI",
   "discover.aiSubtitle":
     "Get evidence-based answers about your shelf, ingredient interactions, and routine timing.",
   "discover.aiHint": "Tap the chat bubble to start",
@@ -114,13 +114,13 @@ const en: Dict = {
   "landing.general.heroHeadline": "40 products. 400 ingredients.",
   "landing.general.heroHeadlineItalic": "Do you know what they do to each other?",
   "landing.general.heroSubhead":
-    "SkinScreen scans your skincare and finds dangerous combinations — before they find your skin.",
+    "Chimiq scans your skincare and finds dangerous combinations — before they find your skin.",
   "landing.general.heroCta": "Get early access",
   "landing.general.goalHeadline": "Healthy skin needs less, not more.",
   "landing.general.goalBody":
-    "With the right products and the right combinations, you need a 3-step routine — not 12. Healthy skin means fewer breakouts to cover. Fewer concealers. Less spending. And fewer potentially harmful substances on the thinnest, most absorbent organ in your body. SkinScreen helps you buy once, buy right, and stop the spiral.",
+    "With the right products and the right combinations, you need a 3-step routine — not 12. Healthy skin means fewer breakouts to cover. Fewer concealers. Less spending. And fewer potentially harmful substances on the thinnest, most absorbent organ in your body. Chimiq helps you buy once, buy right, and stop the spiral.",
   "landing.general.scannerSubhead":
-    "Paste two ingredient lists and see SkinScreen detect conflicts in seconds — dermatologist-informed, research-backed.",
+    "Paste two ingredient lists and see Chimiq detect conflicts in seconds — dermatologist-informed, research-backed.",
   "landing.general.scannerCtaSingle": "Scan Ingredients",
   "landing.general.scannerCtaCompare": "Check Compatibility",
 
@@ -128,11 +128,11 @@ const en: Dict = {
   "landing.teen.heroHeadline": "Your skin was fine",
   "landing.teen.heroHeadlineItalic": "before you started their routine.",
   "landing.teen.heroSubhead":
-    "TikTok recommended 12 products. Your skin barrier only ever needed 3. SkinScreen shows you what the algorithm won't.",
+    "TikTok recommended 12 products. Your skin barrier only ever needed 3. Chimiq shows you what the algorithm won't.",
   "landing.teen.heroCta": "Show me what's in my routine",
   "landing.teen.goalHeadline": "You were sold a problem that didn't exist.",
   "landing.teen.goalBody":
-    "Influencers profit from your next purchase. They don't profit from your healthy skin. A 3-step routine with the right products — a cleanser, moisturiser, and SPF — is all most skin needs. SkinScreen helps you cut through the noise, stop the spiral, and take back control of your skin.",
+    "Influencers profit from your next purchase. They don't profit from your healthy skin. A 3-step routine with the right products — a cleanser, moisturiser, and SPF — is all most skin needs. Chimiq helps you cut through the noise, stop the spiral, and take back control of your skin.",
   "landing.teen.scannerSubhead":
     "Paste your routine's ingredient lists and find out if the products you were sold are working — or working against you.",
   "landing.teen.scannerCtaSingle": "See what this is doing to my skin",
@@ -142,11 +142,11 @@ const en: Dict = {
   "landing.mature.heroHeadline": "The beauty industry profits from your insecurity.",
   "landing.mature.heroHeadlineItalic": "Your skin deserves better than that.",
   "landing.mature.heroSubhead":
-    "Underneath the serums, retinols and collagen creams, some combinations quietly do damage. SkinScreen shows you what's really happening.",
+    "Underneath the serums, retinols and collagen creams, some combinations quietly do damage. Chimiq shows you what's really happening.",
   "landing.mature.heroCta": "Tell me what's really in my products",
   "landing.mature.goalHeadline": "Less is more. The science agrees.",
   "landing.mature.goalBody":
-    "Decades of marketing have convinced us that more products means healthier skin. The research says the opposite. A simplified, conflict-free routine protects your barrier, reduces inflammation, and actually lets your actives work. SkinScreen helps you strip back, buy right, and let your skin do what it knows how to do.",
+    "Decades of marketing have convinced us that more products means healthier skin. The research says the opposite. A simplified, conflict-free routine protects your barrier, reduces inflammation, and actually lets your actives work. Chimiq helps you strip back, buy right, and let your skin do what it knows how to do.",
   "landing.mature.scannerSubhead":
     "Paste your skincare ingredient lists and find out whether your anti-ageing routine is working with your skin — or quietly working against it.",
   "landing.mature.scannerCtaSingle": "Analyse this product",
@@ -160,7 +160,7 @@ const en: Dict = {
     "Sign in, save the products you use, and let our AI flag dangerous skincare combinations before they damage your skin.",
 
   // ───── How it works ─────
-  "howItWorks.title": "How SkinScreen works",
+  "howItWorks.title": "How Chimiq works",
   "howItWorks.subtitle": "Three steps. Seconds. No guesswork.",
   "howItWorks.scanTitle": "Scan or paste",
   "howItWorks.scanBody":
@@ -248,7 +248,7 @@ const en: Dict = {
     "Every product you contribute helps thousands of people avoid skin-damaging combinations.",
   "earnPremium.privateTitle": "Your private skincare shelf",
   "earnPremium.privateBody":
-    "Save every product you use. SkinScreen checks your full routine for conflicts and flags risks before they damage your skin.",
+    "Save every product you use. Chimiq checks your full routine for conflicts and flags risks before they damage your skin.",
   "earnPremium.privateBullet1": "Private to you — never shared",
   "earnPremium.privateBullet2": "AI-powered conflict analysis backed by peer-reviewed research",
   "earnPremium.privateBullet3": "Scan any new product before you buy it",
@@ -274,14 +274,14 @@ const en: Dict = {
   "footer.emailPlaceholder": "your@email.com",
   "footer.messagePlaceholder": "What's on your mind?",
   "footer.send": "Send message",
-  "footer.copyright": "© {year} ChimIQ. Smarter skincare starts here.",
+  "footer.copyright": "© {year} Chimiq. Smarter skincare starts here.",
   "footer.skincare": "Skincare",
   "footer.hair": "Hair",
   "footer.household": "Household",
   "footer.comingSoon": "(coming soon)",
-  "footer.aboutChimIQ":
-    "SkinScreen is the first ChimIQ product. We scan ingredient lists across categories — because what you put on your skin, hair, and home matters.",
-  "footer.contactSubject": "SkinScreen enquiry",
+  "footer.aboutChimiq":
+    "Chimiq is the first Chimiq product. We scan ingredient lists across categories — because what you put on your skin, hair, and home matters.",
+  "footer.contactSubject": "Chimiq enquiry",
   "howItWorks.demoPair": "Retinol + Glycolic Acid",
   "howItWorks.demoSubtitle": "Degrades retinol efficacy",
 
@@ -291,7 +291,7 @@ const en: Dict = {
     "Your plan has been upgraded. Enjoy unlimited shelf products, AI Chat, and more.",
 
   // ───── Pricing (full page) ─────
-  "pricing.backToSkinScreen": "Back to SkinScreen",
+  "pricing.backToChimiq": "Back to Chimiq",
   "pricing.headline": "Simple, honest pricing",
   "pricing.subhead":
     "Start free. Upgrade when you need the full power of your personal dermatology assistant.",
@@ -339,7 +339,7 @@ const en: Dict = {
   "pricing.feat.shelfLimited": "My Shelf (up to 2 products)",
   "pricing.feat.shelfUnlimited": "Unlimited shelf products",
   "pricing.feat.routineCheck": "Full routine cross-check",
-  "pricing.feat.aiChatWith": "AI Chat with SkinScreen",
+  "pricing.feat.aiChatWith": "AI Chat with Chimiq",
   "pricing.feat.aiChat": "AI Chat",
   "pricing.feat.pdf": "PDF Safety Report",
   "pricing.feat.everythingFree": "Everything in Free",
@@ -389,7 +389,7 @@ const en: Dict = {
   // ───── Recipes (list) ─────
   "recipes.title": "DIY recipes",
   "recipes.subtitle":
-    "Community-shared at-home formulas, scanned by our AI and reviewed by SkinScreen admins.",
+    "Community-shared at-home formulas, scanned by our AI and reviewed by Chimiq admins.",
   "recipes.share": "Share",
   "recipes.filters": "Filters",
   "recipes.clearFilters": "Clear filters",
@@ -490,7 +490,7 @@ const en: Dict = {
 
   // ───── Leaderboard ─────
   "leaderboard.title": "Leaderboard",
-  "leaderboard.subtitle": "Top contributors to the SkinScreen ingredient database.",
+  "leaderboard.subtitle": "Top contributors to the Chimiq ingredient database.",
   "leaderboard.backToDiscover": "Back to Discover",
   "leaderboard.howRewardsWork": "How rewards work",
   "leaderboard.bestTipBadge": "Best Tip of the Week",
@@ -560,13 +560,13 @@ const en: Dict = {
   "recipeSubmit.methodPlaceholder": "Describe how to mix and apply…",
   "recipeSubmit.whatNext": "What happens next",
   "recipeSubmit.whatNextBody":
-    "Our AI will scan your recipe for safety concerns. Then a SkinScreen admin will review and approve it before it appears in the public library.",
+    "Our AI will scan your recipe for safety concerns. Then a Chimiq admin will review and approve it before it appears in the public library.",
   "recipeSubmit.scanAndSave": "Scanning & saving…",
   "recipeSubmit.submitForReview": "Submit for review",
 
   // ───── Rewards ─────
   "rewards.headline": "How rewards work",
-  "rewards.sub": "Three simple ways to earn free Premium and recognition in SkinScreen.",
+  "rewards.sub": "Three simple ways to earn free Premium and recognition in Chimiq.",
   "rewards.contribTitle": "Contribute products",
   "rewards.contribBody":
     "Scan products that aren't in our database yet. Every accepted contribution counts toward your total. Reach 30 accepted contributions and get one full month of Premium — free.",
@@ -596,7 +596,7 @@ const en: Dict = {
   // ───── Legal consent gate ─────
   "consent.title": "Before you continue",
   "consent.intro":
-    "SkinScreen is a wellness tool, not a substitute for medical advice. Please confirm you've read our terms before signing in.",
+    "Chimiq is a wellness tool, not a substitute for medical advice. Please confirm you've read our terms before signing in.",
   "consent.checkboxPrefix": "I agree to the ",
   "consent.linkTerms": "Terms of Service",
   "consent.linkPrivacy": "Privacy Policy",
@@ -666,7 +666,7 @@ const sv: Dict = {
   "discover.emptyTips":
     "Inga tips ännu. Bli först med att dela ett — veckans mest uppröstade tips vinner en gratis månad med Premium.",
   "discover.aiAskAnything": "Fråga vad som helst",
-  "discover.aiTitle": "Chatta med SkinScreens AI",
+  "discover.aiTitle": "Chatta med Chimiqs AI",
   "discover.aiSubtitle":
     "Få evidensbaserade svar om din hylla, ingrediensinteraktioner och rutintider.",
   "discover.aiHint": "Tryck på chattbubblan för att börja",
@@ -716,13 +716,13 @@ const sv: Dict = {
   "landing.general.heroHeadline": "40 produkter. 400 ingredienser.",
   "landing.general.heroHeadlineItalic": "Vet du vad de gör med varandra?",
   "landing.general.heroSubhead":
-    "SkinScreen skannar din hudvård och hittar farliga kombinationer — innan de hittar din hud.",
+    "Chimiq skannar din hudvård och hittar farliga kombinationer — innan de hittar din hud.",
   "landing.general.heroCta": "Få tidig tillgång",
   "landing.general.goalHeadline": "Frisk hud behöver mindre, inte mer.",
   "landing.general.goalBody":
-    "Med rätt produkter och rätt kombinationer behöver du en rutin med 3 steg — inte 12. Frisk hud betyder färre utbrott att täcka. Färre concealers. Mindre slöseri. Och färre potentiellt skadliga ämnen på det tunnaste och mest absorberande organet du har. SkinScreen hjälper dig köpa en gång, köpa rätt och bryta spiralen.",
+    "Med rätt produkter och rätt kombinationer behöver du en rutin med 3 steg — inte 12. Frisk hud betyder färre utbrott att täcka. Färre concealers. Mindre slöseri. Och färre potentiellt skadliga ämnen på det tunnaste och mest absorberande organet du har. Chimiq hjälper dig köpa en gång, köpa rätt och bryta spiralen.",
   "landing.general.scannerSubhead":
-    "Klistra in två innehållsförteckningar och se SkinScreen hitta konflikter på sekunder — dermatolog-baserat och forskningsstött.",
+    "Klistra in två innehållsförteckningar och se Chimiq hitta konflikter på sekunder — dermatolog-baserat och forskningsstött.",
   "landing.general.scannerCtaSingle": "Skanna ingredienser",
   "landing.general.scannerCtaCompare": "Kontrollera kompatibilitet",
 
@@ -730,11 +730,11 @@ const sv: Dict = {
   "landing.teen.heroHeadline": "Din hud mådde bra",
   "landing.teen.heroHeadlineItalic": "innan du började på deras rutin.",
   "landing.teen.heroSubhead":
-    "TikTok rekommenderade 12 produkter. Din hudbarriär behövde aldrig mer än 3. SkinScreen visar dig det algoritmen inte vill visa.",
+    "TikTok rekommenderade 12 produkter. Din hudbarriär behövde aldrig mer än 3. Chimiq visar dig det algoritmen inte vill visa.",
   "landing.teen.heroCta": "Visa vad jag har i min rutin",
   "landing.teen.goalHeadline": "Du fick köpa lösningen på ett problem som inte fanns.",
   "landing.teen.goalBody":
-    "Influencers tjänar på ditt nästa köp. De tjänar inte på att din hud mår bra. En rutin på tre steg med rätt produkter — rengöring, fuktkräm och solskydd — är allt de flesta hudtyper behöver. SkinScreen hjälper dig sortera ut bruset, bryta spiralen och ta tillbaka kontrollen över din hud.",
+    "Influencers tjänar på ditt nästa köp. De tjänar inte på att din hud mår bra. En rutin på tre steg med rätt produkter — rengöring, fuktkräm och solskydd — är allt de flesta hudtyper behöver. Chimiq hjälper dig sortera ut bruset, bryta spiralen och ta tillbaka kontrollen över din hud.",
   "landing.teen.scannerSubhead":
     "Klistra in din rutins innehållsförteckningar och ta reda på om produkterna du köpt jobbar med — eller mot — din hud.",
   "landing.teen.scannerCtaSingle": "Visa vad det gör med min hud",
@@ -744,11 +744,11 @@ const sv: Dict = {
   "landing.mature.heroHeadline": "Skönhetsindustrin tjänar på din osäkerhet.",
   "landing.mature.heroHeadlineItalic": "Din hud förtjänar bättre än så.",
   "landing.mature.heroSubhead":
-    "Bakom serum, retinol och kollagenkrämer finns kombinationer som tyst gör skada. SkinScreen visar vad som faktiskt händer.",
+    "Bakom serum, retinol och kollagenkrämer finns kombinationer som tyst gör skada. Chimiq visar vad som faktiskt händer.",
   "landing.mature.heroCta": "Berätta vad som verkligen finns i mina produkter",
   "landing.mature.goalHeadline": "Mindre är mer. Forskningen håller med.",
   "landing.mature.goalBody":
-    "Decennier av marknadsföring har övertygat oss om att fler produkter ger friskare hud. Forskningen säger motsatsen. En förenklad, konfliktfri rutin skyddar din barriär, minskar inflammation och låter dina aktiva ingredienser faktiskt verka. SkinScreen hjälper dig skala bort, köpa rätt och låta huden göra det den redan kan.",
+    "Decennier av marknadsföring har övertygat oss om att fler produkter ger friskare hud. Forskningen säger motsatsen. En förenklad, konfliktfri rutin skyddar din barriär, minskar inflammation och låter dina aktiva ingredienser faktiskt verka. Chimiq hjälper dig skala bort, köpa rätt och låta huden göra det den redan kan.",
   "landing.mature.scannerSubhead":
     "Klistra in dina innehållsförteckningar och ta reda på om din anti-age-rutin jobbar med din hud — eller tyst emot den.",
   "landing.mature.scannerCtaSingle": "Analysera den här produkten",
@@ -762,7 +762,7 @@ const sv: Dict = {
     "Logga in, spara produkterna du använder och låt vår AI flagga farliga hudvårdskombinationer innan de skadar din hud.",
 
   // ───── How it works ─────
-  "howItWorks.title": "Så funkar SkinScreen",
+  "howItWorks.title": "Så funkar Chimiq",
   "howItWorks.subtitle": "Tre steg. Sekunder. Inga gissningar.",
   "howItWorks.scanTitle": "Skanna eller klistra in",
   "howItWorks.scanBody":
@@ -850,7 +850,7 @@ const sv: Dict = {
     "Varje produkt du bidrar med hjälper tusentals människor undvika hudskadliga kombinationer.",
   "earnPremium.privateTitle": "Din privata hudvårdshylla",
   "earnPremium.privateBody":
-    "Spara varje produkt du använder. SkinScreen kontrollerar hela din rutin för konflikter och flaggar risker innan de skadar din hud.",
+    "Spara varje produkt du använder. Chimiq kontrollerar hela din rutin för konflikter och flaggar risker innan de skadar din hud.",
   "earnPremium.privateBullet1": "Privat för dig — delas aldrig",
   "earnPremium.privateBullet2":
     "AI-driven konfliktanalys baserad på peer-reviewad forskning",
@@ -877,14 +877,14 @@ const sv: Dict = {
   "footer.emailPlaceholder": "din@email.com",
   "footer.messagePlaceholder": "Vad har du på hjärtat?",
   "footer.send": "Skicka meddelande",
-  "footer.copyright": "© {year} ChimIQ. Smartare hudvård börjar här.",
+  "footer.copyright": "© {year} Chimiq. Smartare hudvård börjar här.",
   "footer.skincare": "Hudvård",
   "footer.hair": "Hår",
   "footer.household": "Hushåll",
   "footer.comingSoon": "(kommer snart)",
-  "footer.aboutChimIQ":
-    "SkinScreen är den första ChimIQ-produkten. Vi skannar innehållsförteckningar i flera kategorier — för det du sätter på din hud, ditt hår och i ditt hem spelar roll.",
-  "footer.contactSubject": "Förfrågan till SkinScreen",
+  "footer.aboutChimiq":
+    "Chimiq är den första Chimiq-produkten. Vi skannar innehållsförteckningar i flera kategorier — för det du sätter på din hud, ditt hår och i ditt hem spelar roll.",
+  "footer.contactSubject": "Förfrågan till Chimiq",
   "howItWorks.demoPair": "Retinol + glykolsyra",
   "howItWorks.demoSubtitle": "Försämrar retinolens effekt",
 
@@ -894,7 +894,7 @@ const sv: Dict = {
     "Ditt abonnemang har uppgraderats. Njut av obegränsade hyllprodukter, AI-chatt och mer.",
 
   // ───── Pricing page ─────
-  "pricing.backToSkinScreen": "Tillbaka till SkinScreen",
+  "pricing.backToChimiq": "Tillbaka till Chimiq",
   "pricing.headline": "Enkel, ärlig prissättning",
   "pricing.subhead":
     "Börja gratis. Uppgradera när du vill ha hela kraften i din personliga dermatologi-assistent.",
@@ -941,7 +941,7 @@ const sv: Dict = {
   "pricing.feat.shelfLimited": "Min hylla (upp till 2 produkter)",
   "pricing.feat.shelfUnlimited": "Obegränsade hyllprodukter",
   "pricing.feat.routineCheck": "Korskontroll av hela rutinen",
-  "pricing.feat.aiChatWith": "AI-chatt med SkinScreen",
+  "pricing.feat.aiChatWith": "AI-chatt med Chimiq",
   "pricing.feat.aiChat": "AI-chatt",
   "pricing.feat.pdf": "PDF-säkerhetsrapport",
   "pricing.feat.everythingFree": "Allt i Gratis",
@@ -990,7 +990,7 @@ const sv: Dict = {
   // ───── Recipes ─────
   "recipes.title": "DIY-recept",
   "recipes.subtitle":
-    "Hemmagjorda formler från gemenskapen, skannade av vår AI och granskade av SkinScreens admins.",
+    "Hemmagjorda formler från gemenskapen, skannade av vår AI och granskade av Chimiqs admins.",
   "recipes.share": "Dela",
   "recipes.filters": "Filter",
   "recipes.clearFilters": "Rensa filter",
@@ -1096,7 +1096,7 @@ const sv: Dict = {
 
   // ───── Leaderboard ─────
   "leaderboard.title": "Topplista",
-  "leaderboard.subtitle": "De främsta bidragsgivarna till SkinScreens ingrediensdatabas.",
+  "leaderboard.subtitle": "De främsta bidragsgivarna till Chimiqs ingrediensdatabas.",
   "leaderboard.backToDiscover": "Tillbaka till Upptäck",
   "leaderboard.howRewardsWork": "Så funkar belöningarna",
   "leaderboard.bestTipBadge": "Veckans bästa tips",
@@ -1169,13 +1169,13 @@ const sv: Dict = {
   "recipeSubmit.methodPlaceholder": "Beskriv hur du blandar och applicerar…",
   "recipeSubmit.whatNext": "Vad händer härnäst",
   "recipeSubmit.whatNextBody":
-    "Vår AI skannar receptet efter säkerhetsproblem. Sen granskar och godkänner en SkinScreen-admin det innan det syns i det publika biblioteket.",
+    "Vår AI skannar receptet efter säkerhetsproblem. Sen granskar och godkänner en Chimiq-admin det innan det syns i det publika biblioteket.",
   "recipeSubmit.scanAndSave": "Skannar & sparar…",
   "recipeSubmit.submitForReview": "Skicka för granskning",
 
   // ───── Rewards ─────
   "rewards.headline": "Så funkar belöningarna",
-  "rewards.sub": "Tre enkla sätt att tjäna gratis Premium och bli sedd i SkinScreen.",
+  "rewards.sub": "Tre enkla sätt att tjäna gratis Premium och bli sedd i Chimiq.",
   "rewards.contribTitle": "Bidra med produkter",
   "rewards.contribBody":
     "Skanna produkter som inte finns i vår databas. Varje godkänt bidrag räknas. Vid 30 godkända bidrag får du en hel månad Premium — gratis.",
@@ -1205,7 +1205,7 @@ const sv: Dict = {
   // ───── Legal consent gate ─────
   "consent.title": "Innan du fortsätter",
   "consent.intro":
-    "SkinScreen är ett välmåendeverktyg, inte en ersättning för medicinsk rådgivning. Bekräfta att du har läst våra villkor innan du loggar in.",
+    "Chimiq är ett välmåendeverktyg, inte en ersättning för medicinsk rådgivning. Bekräfta att du har läst våra villkor innan du loggar in.",
   "consent.checkboxPrefix": "Jag godkänner ",
   "consent.linkTerms": "användarvillkoren",
   "consent.linkPrivacy": "integritetspolicyn",
@@ -1275,7 +1275,7 @@ const fr: Dict = {
   "discover.emptyTips":
     "Aucun conseil pour l'instant. Soyez le premier à en partager un — le conseil le plus voté chaque semaine gagne un mois gratuit de Premium.",
   "discover.aiAskAnything": "Posez une question",
-  "discover.aiTitle": "Discutez avec l'IA SkinScreen",
+  "discover.aiTitle": "Discutez avec l'IA Chimiq",
   "discover.aiSubtitle":
     "Obtenez des réponses fondées sur des preuves concernant votre étagère, les interactions entre ingrédients et le moment de votre routine.",
   "discover.aiHint": "Touchez la bulle de chat pour commencer",
@@ -1324,13 +1324,13 @@ const fr: Dict = {
   "landing.general.heroHeadlineItalic":
     "Savez-vous ce qu'ils se font les uns aux autres ?",
   "landing.general.heroSubhead":
-    "SkinScreen analyse vos soins et détecte les combinaisons dangereuses — avant qu'elles n'atteignent votre peau.",
+    "Chimiq analyse vos soins et détecte les combinaisons dangereuses — avant qu'elles n'atteignent votre peau.",
   "landing.general.heroCta": "Accès anticipé",
   "landing.general.goalHeadline": "Une peau saine a besoin de moins, pas plus.",
   "landing.general.goalBody":
-    "Avec les bons produits et les bonnes combinaisons, une routine en 3 étapes suffit — pas 12. Une peau saine, c'est moins d'imperfections à camoufler. Moins de fond de teint. Moins de dépenses. Et moins de substances potentiellement nocives sur l'organe le plus fin et le plus absorbant de votre corps. SkinScreen vous aide à acheter une fois, à acheter juste, et à briser la spirale.",
+    "Avec les bons produits et les bonnes combinaisons, une routine en 3 étapes suffit — pas 12. Une peau saine, c'est moins d'imperfections à camoufler. Moins de fond de teint. Moins de dépenses. Et moins de substances potentiellement nocives sur l'organe le plus fin et le plus absorbant de votre corps. Chimiq vous aide à acheter une fois, à acheter juste, et à briser la spirale.",
   "landing.general.scannerSubhead":
-    "Collez deux listes d'ingrédients et regardez SkinScreen détecter les conflits en quelques secondes — fondé sur la dermatologie et la recherche.",
+    "Collez deux listes d'ingrédients et regardez Chimiq détecter les conflits en quelques secondes — fondé sur la dermatologie et la recherche.",
   "landing.general.scannerCtaSingle": "Scanner les ingrédients",
   "landing.general.scannerCtaCompare": "Vérifier la compatibilité",
 
@@ -1338,12 +1338,12 @@ const fr: Dict = {
   "landing.teen.heroHeadline": "Votre peau allait bien",
   "landing.teen.heroHeadlineItalic": "avant que vous suiviez leur routine.",
   "landing.teen.heroSubhead":
-    "TikTok a recommandé 12 produits. Votre barrière cutanée n'en a jamais eu besoin que de 3. SkinScreen vous montre ce que l'algorithme tait.",
+    "TikTok a recommandé 12 produits. Votre barrière cutanée n'en a jamais eu besoin que de 3. Chimiq vous montre ce que l'algorithme tait.",
   "landing.teen.heroCta": "Montrez-moi ce qu'il y a dans ma routine",
   "landing.teen.goalHeadline":
     "On vous a vendu une solution à un problème inexistant.",
   "landing.teen.goalBody":
-    "Les influenceurs profitent de votre prochain achat. Pas de votre peau saine. Une routine à trois étapes avec les bons produits — un nettoyant, un hydratant et un SPF — suffit à la plupart des peaux. SkinScreen vous aide à couper le bruit, à briser la spirale et à reprendre le contrôle de votre peau.",
+    "Les influenceurs profitent de votre prochain achat. Pas de votre peau saine. Une routine à trois étapes avec les bons produits — un nettoyant, un hydratant et un SPF — suffit à la plupart des peaux. Chimiq vous aide à couper le bruit, à briser la spirale et à reprendre le contrôle de votre peau.",
   "landing.teen.scannerSubhead":
     "Collez les listes d'ingrédients de votre routine et découvrez si les produits qu'on vous a vendus travaillent — ou jouent contre vous.",
   "landing.teen.scannerCtaSingle": "Voir l'effet sur ma peau",
@@ -1354,11 +1354,11 @@ const fr: Dict = {
     "L'industrie de la beauté profite de vos doutes.",
   "landing.mature.heroHeadlineItalic": "Votre peau mérite mieux.",
   "landing.mature.heroSubhead":
-    "Sous les sérums, le rétinol et les crèmes au collagène, certaines combinaisons font des dégâts en silence. SkinScreen vous montre ce qui se passe vraiment.",
+    "Sous les sérums, le rétinol et les crèmes au collagène, certaines combinaisons font des dégâts en silence. Chimiq vous montre ce qui se passe vraiment.",
   "landing.mature.heroCta": "Dites-moi ce qu'il y a vraiment dans mes produits",
   "landing.mature.goalHeadline": "Moins, c'est plus. La science est d'accord.",
   "landing.mature.goalBody":
-    "Des décennies de marketing nous ont fait croire que plus de produits = peau plus saine. La recherche dit l'inverse. Une routine simplifiée et sans conflits protège votre barrière, réduit l'inflammation et permet à vos actifs de réellement agir. SkinScreen vous aide à épurer, à acheter juste et à laisser votre peau faire son travail.",
+    "Des décennies de marketing nous ont fait croire que plus de produits = peau plus saine. La recherche dit l'inverse. Une routine simplifiée et sans conflits protège votre barrière, réduit l'inflammation et permet à vos actifs de réellement agir. Chimiq vous aide à épurer, à acheter juste et à laisser votre peau faire son travail.",
   "landing.mature.scannerSubhead":
     "Collez vos listes d'ingrédients et découvrez si votre routine anti-âge travaille avec votre peau — ou silencieusement contre elle.",
   "landing.mature.scannerCtaSingle": "Analyser ce produit",
@@ -1371,7 +1371,7 @@ const fr: Dict = {
     "Connectez-vous, enregistrez les produits que vous utilisez, et laissez notre IA signaler les combinaisons dangereuses avant qu'elles n'abîment votre peau.",
 
   // ───── How it works ─────
-  "howItWorks.title": "Comment fonctionne SkinScreen",
+  "howItWorks.title": "Comment fonctionne Chimiq",
   "howItWorks.subtitle": "Trois étapes. Quelques secondes. Aucune incertitude.",
   "howItWorks.scanTitle": "Scanner ou coller",
   "howItWorks.scanBody":
@@ -1457,7 +1457,7 @@ const fr: Dict = {
     "Chaque produit que vous ajoutez aide des milliers de personnes à éviter les combinaisons dangereuses.",
   "earnPremium.privateTitle": "Votre étagère soin privée",
   "earnPremium.privateBody":
-    "Enregistrez chaque produit que vous utilisez. SkinScreen vérifie toute votre routine et signale les risques avant qu'ils n'abîment votre peau.",
+    "Enregistrez chaque produit que vous utilisez. Chimiq vérifie toute votre routine et signale les risques avant qu'ils n'abîment votre peau.",
   "earnPremium.privateBullet1": "Privée — jamais partagée",
   "earnPremium.privateBullet2":
     "Analyse de conflits par IA appuyée par la recherche évaluée par les pairs",
@@ -1483,14 +1483,14 @@ const fr: Dict = {
   "footer.emailPlaceholder": "votre@email.com",
   "footer.messagePlaceholder": "Qu'avez-vous en tête ?",
   "footer.send": "Envoyer le message",
-  "footer.copyright": "© {year} ChimIQ. Une routine plus intelligente commence ici.",
+  "footer.copyright": "© {year} Chimiq. Une routine plus intelligente commence ici.",
   "footer.skincare": "Soins",
   "footer.hair": "Cheveux",
   "footer.household": "Maison",
   "footer.comingSoon": "(bientôt)",
-  "footer.aboutChimIQ":
-    "SkinScreen est le premier produit ChimIQ. Nous analysons les listes d'ingrédients dans plusieurs catégories — parce que ce que vous mettez sur votre peau, vos cheveux et chez vous compte.",
-  "footer.contactSubject": "Demande SkinScreen",
+  "footer.aboutChimiq":
+    "Chimiq est le premier produit Chimiq. Nous analysons les listes d'ingrédients dans plusieurs catégories — parce que ce que vous mettez sur votre peau, vos cheveux et chez vous compte.",
+  "footer.contactSubject": "Demande Chimiq",
   "howItWorks.demoPair": "Rétinol + acide glycolique",
   "howItWorks.demoSubtitle": "Réduit l'efficacité du rétinol",
 
@@ -1499,7 +1499,7 @@ const fr: Dict = {
     "Votre forfait a été mis à niveau. Profitez d'une étagère illimitée, du chat IA et plus encore.",
 
   // ───── Pricing ─────
-  "pricing.backToSkinScreen": "Retour à SkinScreen",
+  "pricing.backToChimiq": "Retour à Chimiq",
   "pricing.headline": "Tarifs simples et honnêtes",
   "pricing.subhead":
     "Commencez gratuitement. Passez à la version supérieure quand vous voulez la pleine puissance de votre assistant dermatologie.",
@@ -1546,7 +1546,7 @@ const fr: Dict = {
   "pricing.feat.shelfLimited": "Mon étagère (jusqu'à 2 produits)",
   "pricing.feat.shelfUnlimited": "Étagère illimitée",
   "pricing.feat.routineCheck": "Vérification croisée de la routine complète",
-  "pricing.feat.aiChatWith": "Chat IA avec SkinScreen",
+  "pricing.feat.aiChatWith": "Chat IA avec Chimiq",
   "pricing.feat.aiChat": "Chat IA",
   "pricing.feat.pdf": "Rapport PDF de sécurité",
   "pricing.feat.everythingFree": "Tout du forfait Gratuit",
@@ -1596,7 +1596,7 @@ const fr: Dict = {
   // ───── Recipes ─────
   "recipes.title": "Recettes DIY",
   "recipes.subtitle":
-    "Formules maison partagées par la communauté, scannées par notre IA et vérifiées par les admins SkinScreen.",
+    "Formules maison partagées par la communauté, scannées par notre IA et vérifiées par les admins Chimiq.",
   "recipes.share": "Partager",
   "recipes.filters": "Filtres",
   "recipes.clearFilters": "Effacer les filtres",
@@ -1698,7 +1698,7 @@ const fr: Dict = {
   "browseDetail.fullIngredients": "Liste complète des ingrédients",
 
   "leaderboard.title": "Classement",
-  "leaderboard.subtitle": "Meilleurs contributeurs à la base d'ingrédients SkinScreen.",
+  "leaderboard.subtitle": "Meilleurs contributeurs à la base d'ingrédients Chimiq.",
   "leaderboard.backToDiscover": "Retour à Découvrir",
   "leaderboard.howRewardsWork": "Comment fonctionnent les récompenses",
   "leaderboard.bestTipBadge": "Meilleur conseil de la semaine",
@@ -1769,12 +1769,12 @@ const fr: Dict = {
   "recipeSubmit.methodPlaceholder": "Décrivez comment mélanger et appliquer…",
   "recipeSubmit.whatNext": "Et ensuite",
   "recipeSubmit.whatNextBody":
-    "Notre IA analysera votre recette pour des problèmes de sécurité. Puis un admin SkinScreen la vérifie et l'approuve avant qu'elle n'apparaisse dans la bibliothèque publique.",
+    "Notre IA analysera votre recette pour des problèmes de sécurité. Puis un admin Chimiq la vérifie et l'approuve avant qu'elle n'apparaisse dans la bibliothèque publique.",
   "recipeSubmit.scanAndSave": "Analyse & enregistrement…",
   "recipeSubmit.submitForReview": "Soumettre pour validation",
 
   "rewards.headline": "Comment fonctionnent les récompenses",
-  "rewards.sub": "Trois moyens simples de gagner du Premium gratuit et de la reconnaissance dans SkinScreen.",
+  "rewards.sub": "Trois moyens simples de gagner du Premium gratuit et de la reconnaissance dans Chimiq.",
   "rewards.contribTitle": "Contribuer aux produits",
   "rewards.contribBody":
     "Scannez les produits qui ne sont pas encore dans notre base. Chaque contribution acceptée compte. Atteignez 30 contributions et obtenez un mois entier de Premium — gratuit.",
@@ -1804,7 +1804,7 @@ const fr: Dict = {
   // ───── Legal consent gate ─────
   "consent.title": "Avant de continuer",
   "consent.intro":
-    "SkinScreen est un outil de bien-être, pas un substitut à un avis médical. Confirmez que vous avez lu nos conditions avant de vous connecter.",
+    "Chimiq est un outil de bien-être, pas un substitut à un avis médical. Confirmez que vous avez lu nos conditions avant de vous connecter.",
   "consent.checkboxPrefix": "J'accepte les ",
   "consent.linkTerms": "Conditions d'utilisation",
   "consent.linkPrivacy": "la Politique de confidentialité",

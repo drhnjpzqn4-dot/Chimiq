@@ -36,7 +36,7 @@ function StandaloneWelcome() {
           <ScanLine className="h-10 w-10" />
         </div>
         <h1 className="font-serif text-3xl font-bold leading-tight text-foreground">
-          SkinScreen
+          Chimiq
         </h1>
         <p className="mt-2 text-sm font-medium uppercase tracking-widest text-primary">
           {t("homeStandalone.kicker")}

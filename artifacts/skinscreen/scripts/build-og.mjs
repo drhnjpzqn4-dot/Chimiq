@@ -12,7 +12,7 @@ const distDir = resolve(root, "dist/public");
 const ogOutDir = resolve(distDir, "og/discover");
 const ogMarketingOutDir = resolve(distDir, "og/marketing");
 
-const SITE_NAME = "SkinScreen";
+const SITE_NAME = "Chimiq";
 const BRAND = "#7BAF7A";
 const BG = "#FAFAF8";
 const INK = "#1C2421";
@@ -30,7 +30,7 @@ const MARKETING_PAGES = [
     title: "Free for life. Premium when you want more.",
     hook: "Scan unlimited products on Free. Unlock the full routine analysis on Premium for 49 SEK/mo.",
     description:
-      "SkinScreen Pricing — start free, upgrade for full routine ingredient-conflict analysis.",
+      "Chimiq Pricing — start free, upgrade for full routine ingredient-conflict analysis.",
   },
   {
     slug: "discover",
@@ -150,8 +150,8 @@ function svgFor({ rank, title, hook, tagLabel, sectionLabel }) {
 
   <g transform="translate(80, 540)">
     <circle cx="22" cy="22" r="22" fill="${BRAND}"/>
-    <text x="22" y="30" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="800" fill="white" text-anchor="middle">S</text>
-    <text x="62" y="30" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="700" fill="${INK}">SkinScreen</text>
+    <text x="22" y="30" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="800" fill="white" text-anchor="middle">C</text>
+    <text x="62" y="30" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="700" fill="${INK}">Chimiq</text>
     <text x="62" y="56" font-family="Inter, system-ui, sans-serif" font-size="16" fill="${MUTED}">Skincare ingredient safety</text>
   </g>
 </svg>`;
@@ -204,8 +204,8 @@ function svgForMarketing({ eyebrow, title, hook }) {
 
   <g transform="translate(80, 540)">
     <circle cx="22" cy="22" r="22" fill="${BRAND}"/>
-    <text x="22" y="30" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="800" fill="white" text-anchor="middle">S</text>
-    <text x="62" y="30" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="700" fill="${INK}">SkinScreen</text>
+    <text x="22" y="30" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="800" fill="white" text-anchor="middle">C</text>
+    <text x="62" y="30" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="700" fill="${INK}">Chimiq</text>
     <text x="62" y="56" font-family="Inter, system-ui, sans-serif" font-size="16" fill="${MUTED}">Skincare ingredient safety</text>
   </g>
 </svg>`;
@@ -308,7 +308,7 @@ async function main() {
   const { TOP_MISTAKES, TOP_WORRIES, SEVERITY_LABEL, FREQUENCY_LABEL } =
     await loadDiscoverContent();
 
-  const baseUrl = (process.env.OG_BASE_URL ?? "https://skinscreen.app").replace(/\/+$/, "");
+  const baseUrl = (process.env.OG_BASE_URL ?? "https://chimiq.app").replace(/\/+$/, "");
   const basePath = (process.env.BASE_PATH ?? "/").replace(/\/+$/, "");
   const ogPublicBase = `${basePath}/og/discover`;
   const articleBase = basePath; // empty when basePath is "/"
@@ -374,7 +374,7 @@ async function main() {
     const url = `${baseUrl}${basePath}/${page.slug}`;
     const imageUrl = `${baseUrl}${marketingPublicBase}/${page.slug}.png`;
     // `renderHtml` already appends ` · ${SITE_NAME}` to the title, so just
-    // pass the eyebrow here — otherwise we get "Pricing · SkinScreen · SkinScreen".
+    // pass the eyebrow here — otherwise we get "Pricing · Chimiq · Chimiq".
     const html = renderHtml(template, {
       title: page.eyebrow,
       description: page.description,

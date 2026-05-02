@@ -111,7 +111,7 @@ export function ChatPanel() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Open SkinScreen AI assistant"
+        aria-label="Open Chimiq AI assistant"
         aria-expanded={open}
         aria-controls="chat-panel-dialog"
         style={{ bottom: "calc(var(--tab-bar-height, 64px) + var(--safe-bottom, 0px) + 18px)" }}
@@ -145,7 +145,7 @@ export function ChatPanel() {
               <Bot className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p id="chat-panel-title" className="text-white font-semibold text-sm leading-tight">Ask SkinScreen</p>
+              <p id="chat-panel-title" className="text-white font-semibold text-sm leading-tight">Ask Chimiq</p>
               <p className="text-white/80 text-xs">AI skincare safety assistant</p>
             </div>
           </div>

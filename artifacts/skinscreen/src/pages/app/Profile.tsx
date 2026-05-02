@@ -467,7 +467,7 @@ export default function ProfileScreen() {
       </nav>
 
       <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground/40">
-        ChimIQ · Plan: {plan}
+        Chimiq · Plan: {plan}
       </p>
     </AppShell>
   );

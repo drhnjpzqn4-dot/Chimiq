@@ -175,7 +175,7 @@ export function SocialProof({ style = "mixed" }: SocialProofProps) {
 
         <FadeIn delay={0.5}>
           <p className="text-center text-sm text-muted-foreground/60 mt-10 italic">
-            SkinScreen answers these questions in seconds.
+            Chimiq answers these questions in seconds.
           </p>
         </FadeIn>
       </div>
