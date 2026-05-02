@@ -35,7 +35,7 @@ export default defineConfig({
       manifest: {
         name: "Chimiq",
         short_name: "Chimiq",
-        description: "Know your UV risk before you step outside.",
+        description: "Chimiq scans skincare ingredients and detects dangerous conflicts before they damage your skin.",
         theme_color: "#7BAF7A",
         background_color: "#F5F1EB",
         display: "standalone",

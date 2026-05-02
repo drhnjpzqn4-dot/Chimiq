@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "SkinScreen"
+title = "Chimiq"
 version = "1.0.0"
 id = "artifacts/skinscreen"
 router = "path"

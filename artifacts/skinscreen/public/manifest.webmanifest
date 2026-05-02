@@ -1,7 +1,7 @@
 {
-  "name": "Chimiq — Skincare Ingredient Safety",
+  "name": "Chimiq",
   "short_name": "Chimiq",
-  "description": "Scan skincare ingredients and detect dangerous conflicts before they damage your skin.",
+  "description": "Chimiq scans skincare ingredients and detects dangerous conflicts before they damage your skin.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
