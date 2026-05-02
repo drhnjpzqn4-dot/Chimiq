@@ -208,4 +208,12 @@ Same as above. For iOS you must sign with your Apple Developer team in Xcode →
 
 ## Why this is a separate package
 
-`@capacitor/*` packages reference Node and native modules that would explode the web bundle if pulled in by Vite. By keeping them in their own `npm`-managed package outside the pnpm workspace, the web build stays clean — `src/lib/native.ts` and `src/hooks/useNativeAuthDeepLink.ts` use **dynamic imports gated behind `window.Capacitor`** so the bundler tree-shakes them out for the web build but they resolve at runtime inside the native shell.
+This `mobile/capacitor/` package is what Capacitor's CLI consumes: `capacitor.config.ts` plus the `@capacitor/*` deps in its `package.json` are how `npx cap sync` discovers plugins to register on the native (iOS / Android) side.
+
+The **same** `@capacitor/*` JS packages are also installed in the web app's own `package.json` (`artifacts/skinscreen/package.json`). Capacitor's design is "one JS bundle runs on web and native": the web shims of each plugin no-op (or use standard browser APIs) when `Capacitor.isNativePlatform()` is `false`, and the native bridge takes over when it's `true`. Static imports in `src/lib/native.ts`, `src/hooks/useNativeAuthDeepLink.ts`, and `src/components/BarcodeScanButton.tsx` are therefore the correct pattern.
+
+Why two `package.json`s? `cap sync` reads the package.json next to `capacitor.config.ts` to discover which native plugins to register. Keeping `mobile/capacitor/` outside the pnpm workspace (it lives two levels under `artifacts/`, outside the `artifacts/*` workspace glob) avoids pulling iOS/Android-only dependencies (e.g. `@capacitor/cli`) into the web `node_modules`.
+
+## API base URL on native
+
+The Capacitor WebView loads bundled assets from `capacitor://localhost` (iOS) or `https://localhost` (Android). Any `fetch("/api/...")` call would otherwise hit that local origin and fail. `src/lib/native.ts` exports `installNativeFetchInterceptor()` (called once from `src/main.tsx`) which transparently rewrites relative `/api/*` requests to `https://app.chimiq.app/api/*` whenever the app is running natively. **If you change the production backend host, update `NATIVE_API_BASE_URL` in `src/lib/native.ts`.**

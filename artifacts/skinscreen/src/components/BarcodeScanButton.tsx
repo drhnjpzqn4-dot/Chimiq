@@ -3,7 +3,7 @@ import { Barcode, X, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributeModal } from "@/components/ContributeModal";
 import { isNative } from "@/lib/native";
-import { BarcodeScanner } from "@capacitor-mlkit/barcode-scanning";
+import { BarcodeScanner, BarcodeFormat } from "@capacitor-mlkit/barcode-scanning";
 
 interface BarcodeScanButtonProps {
   onResult: (ingredients: string, productName: string, barcode?: string) => void;
@@ -150,13 +150,13 @@ export function BarcodeScanButton({
         }
         const result = await BarcodeScanner.scan({
           formats: [
-            "EAN_13" as never,
-            "EAN_8" as never,
-            "UPC_A" as never,
-            "UPC_E" as never,
-            "CODE_128" as never,
-            "CODE_39" as never,
-            "QR_CODE" as never,
+            BarcodeFormat.Ean13,
+            BarcodeFormat.Ean8,
+            BarcodeFormat.UpcA,
+            BarcodeFormat.UpcE,
+            BarcodeFormat.Code128,
+            BarcodeFormat.Code39,
+            BarcodeFormat.QrCode,
           ],
         });
         const code = result.barcodes?.[0]?.rawValue ?? result.barcodes?.[0]?.displayValue;
