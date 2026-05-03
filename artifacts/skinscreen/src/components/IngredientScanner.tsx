@@ -71,7 +71,7 @@ function SkinProfileSelector({
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm font-semibold text-foreground mb-2">{t("scanner.yourSkinType")}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider mb-2 text-primary">{t("scanner.yourSkinType")}</p>
       <div className="flex flex-wrap gap-2">
         {SKIN_PROFILES.map((p) => (
           <button
@@ -594,56 +594,115 @@ export interface ScannerSeed {
   autoRun?: boolean;
 }
 
+// Verified against Open Beauty Facts (https://world.openbeautyfacts.org). Each
+// `imageUrl` was confirmed to return HTTP 200 at the time the list was last
+// expanded. Keep entries pointing at OBF `front_*.400.jpg` thumbnails so the
+// `ProductImageThumb` lazy-load + fallback behaviour stays consistent.
 const QUICK_START_PRODUCTS: { name: string; imageUrl: string; ingredients: string }[] = [
   {
     name: "CeraVe Moisturising Cream",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/301/872/349/0766/front_en.8.400.jpg",
-    ingredients: "Aqua, Glycerin, Cetearyl Alcohol, Caprylic/Capric Triglyceride, Behentrimonium Methosulfate, Ceteareth-20, Petrolatum, Panthenol, Niacinamide, Sodium Hyaluronate, Ceramide NP, Ceramide AP, Ceramide EOP, Phytosphingosine, Cholesterol, Carbomer, Dimethicone, Methylparaben, Propylparaben, Sodium Lauroyl Lactylate, Disodium EDTA, Xanthan Gum, Tocopherol",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/333/787/559/7470/front_en.3.400.jpg",
+    ingredients: "Aqua/Water, Glycerin, Caprylic/Capric Triglyceride, Cetearyl Alcohol, Ceteareth-20, Petrolatum, Potassium Phosphate, Ceramide NP, Ceramide AP, Ceramide EOP, Carbomer, Dimethicone, Behentrimonium Methosulfate, Sodium Lauroyl Lactylate, Sodium Hyaluronate, Cholesterol, Phenoxyethanol, Disodium EDTA, Dipotassium Phosphate, Tocopherol, Phytosphingosine, Xanthan Gum, Ethylhexylglycerin",
   },
   {
-    name: "The Ordinary Retinol 0.5% in Squalane",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0009/front_en.6.400.jpg",
-    ingredients: "Squalane, Caprylic/Capric Triglyceride, Retinol, Solanum Lycopersicum Fruit Extract, Simmondsia Chinensis Seed Oil",
+    name: "CeraVe SA Smoothing Cleanser",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/333/787/579/5456/front_en.14.400.jpg",
+    ingredients: "Aqua/Water, Sodium Lauroyl Sarcosinate, Cocamidopropyl Hydroxysultaine, Glycerin, Niacinamide, Gluconolactone, Sodium Methyl Cocoyl Taurate, PEG-150 Pentaerythrityl Tetrastearate, Ceramide NP, Ceramide AP, Ceramide EOP, Carbomer, Calcium Gluconate, Salicylic Acid, Sodium Benzoate, Sodium Lauroyl Lactylate, Cholesterol, Phenoxyethanol, Disodium EDTA, Tetrasodium EDTA, Hyaluronic Acid, Phytosphingosine, Xanthan Gum, Ethylhexylglycerin",
   },
   {
-    name: "The Ordinary AHA 30% + BHA 2%",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0559/front_en.9.400.jpg",
-    ingredients: "Aqua, Glycolic Acid, Aloe Barbadensis Leaf Juice, Sodium Hydroxide, Dextrin, Propanediol, Salicylic Acid, Charcoal Powder, Potassium Citrate, Lactic Acid, Tartaric Acid, Citric Acid, Panthenol, Sodium Hyaluronate Crosspolymer, Tasmannia Lanceolata Fruit/Leaf Extract, Ethyl Ascorbic Acid, Glycerin, Adansonia Digitata Seed Oil, Tocopherol, Potassium Sorbate, Sodium Benzoate",
+    name: "The Ordinary Granactive Retinoid 5% in Squalane",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/076/991/519/3954/front_en.14.400.jpg",
+    ingredients: "Squalane, C12-15 Alkyl Benzoate, Bisabolol, Dimethyl Isosorbide, Caprylic/Capric Triglyceride, Simmondsia Chinensis (Jojoba) Seed Oil, Hydroxypinacolone Retinoate, Solanum Lycopersicum (Tomato) Fruit Extract, Rosmarinus Officinalis (Rosemary) Leaf Extract, Hydroxymethoxyphenyl Decanone",
   },
   {
-    name: "La Roche-Posay Toleriane Moisturizer",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/332/582/036/2921/front_en.7.400.jpg",
-    ingredients: "Water, Glycerin, Niacinamide, Dimethicone, Squalane, Ceramide NP, Ceramide AP, Ceramide EOP, Phytosphingosine, Cholesterol, Carbomer, Sodium Lauroyl Lactylate, Sodium Hyaluronate, Xanthan Gum, Citric Acid, Sodium Citrate, Disodium EDTA, Butylparaben, Ethylparaben, Methylparaben",
+    name: "The Ordinary Lactic Acid 10% + HA",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/076/991/519/0373/front_en.12.400.jpg",
+    ingredients: "Aqua (Water), Lactic Acid, Glycerin, Pentylene Glycol, Propanediol, Sodium Hydroxide, Sodium Hyaluronate Crosspolymer, Tasmannia Lanceolata Fruit/Leaf Extract, Acacia Senegal Gum, Xanthan Gum, Isoceteth-20, Trisodium Ethylenediamine Disuccinate, Ethylhexylglycerin, 1,2-Hexanediol, Caprylyl Glycol",
   },
   {
-    name: "Paula's Choice 2% BHA Exfoliant",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/670/367/011/5151/front_en.6.400.jpg",
-    ingredients: "Water, Methylpropanediol, Butylene Glycol, Salicylic Acid, Camellia Sinensis Leaf Extract, Sodium Hydroxide",
+    name: "La Roche-Posay Cicaplast Baume B5+",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/333/787/581/6847/front_fr.12.400.jpg",
+    ingredients: "Eau/Water, Hydrogenated Polyisobutene, Dimethicone, Glycerin, Butyrospermum Parkii (Shea) Butter, Panthenol, Zea Mays (Corn) Starch, Propanediol, Butylene Glycol, Cetyl PEG/PPG-10/1 Dimethicone, Trihydroxystearin, Centella Asiatica Leaf Extract, Polymnia Sonchifolia Root Juice, Zinc Gluconate, Madecassoside, Manganese Gluconate, Alpha-Glucan Oligosaccharide, Silica, Aluminum Hydroxide, Magnesium Sulfate, Mannose, Capryloyl Glycine, Caprylyl Glycol, Vitreoscilla Ferment, Citric Acid, Trisodium Ethylenediamine Disuccinate",
   },
   {
-    name: "The Ordinary Niacinamide 10% + Zinc 1%",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/0030/front_en.11.400.jpg",
-    ingredients: "Aqua, Niacinamide, Pentylene Glycol, Zinc PCA, Dimethyl Isosorbide, Tamarindus Indica Seed Gum, Xanthan Gum, Isoceteth-20, Ethoxydiglycol, Phenoxyethanol, Chlorphenesin",
-  },
-  {
-    name: "Neutrogena Hydro Boost Water Gel",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/070/501/109/3908/front_en.7.400.jpg",
-    ingredients: "Water, Dimethicone, Glycerin, Dimethicone/Vinyl Dimethicone Crosspolymer, Sodium Hyaluronate, Phenoxyethanol, Methylparaben, Carbomer, Sodium Hydroxide",
-  },
-  {
-    name: "The Ordinary Vitamin C 23%",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/769/915/195/1426/front_en.5.400.jpg",
-    ingredients: "Ascorbic Acid, Squalane, Isodecyl Neopentanoate, Isononyl Isononanoate, Silica, Hydroxypropyl Cyclodextrin, Sodium Hyaluronate Crosspolymer, Triethoxycaprylylsilane",
+    name: "La Roche-Posay Toleriane Dermallergo Fluid",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/333/787/575/7669/front_en.5.400.jpg",
+    ingredients: "Aqua, Glycerin, Coco-Caprylate/Caprate, Dimethicone, Niacinamide, Sodium Hyaluronate, Squalane, Carnosine, Tocopherol, Pentylene Glycol, Caprylyl Glycol, Citric Acid, Xanthan Gum, Disodium EDTA, Phenoxyethanol",
   },
   {
     name: "Cetaphil Gentle Skin Cleanser",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/302/993/100/0785/front_en.9.400.jpg",
-    ingredients: "Water, Cetyl Alcohol, Propylene Glycol, Sodium Lauryl Sulfate, Stearyl Alcohol, Methylparaben, Propylparaben, Butylparaben",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/890/600/527/4106/front_en.6.400.jpg",
+    ingredients: "Aqua, Glycerin, Cetearyl Alcohol, Panthenol, Niacinamide, Pantolactone, Xanthan Gum, Sodium Cocoyl Isethionate, Sodium Benzoate, Citric Acid",
   },
   {
-    name: "Bioderma Sensibio H2O",
-    imageUrl: "https://images.openbeautyfacts.org/images/products/340/139/932/7264/front_fr.8.400.jpg",
-    ingredients: "Aqua, Cucumis Sativus Fruit Extract, Fructooligosaccharides, Mannitol, Xylitol, Rhamnose, Cetrimonium Bromide, Disodium Cocoamphodiacetate, Disodium EDTA, Sodium Benzoate",
+    name: "Vichy Mineral 89",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/333/787/554/3248/front_en.5.400.jpg",
+    ingredients: "Aqua/Water, PEG/PPG/Polybutylene Glycol-8/5/3 Glycerin, Glycerin, Butylene Glycol, Methyl Gluceth-20, Carbomer, Sodium Hyaluronate, Phenoxyethanol, Caprylyl Glycol, Citric Acid, Biosaccharide Gum-1",
+  },
+  {
+    name: "Garnier Micellar Cleansing Water",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/360/054/193/8489/front_en.25.400.jpg",
+    ingredients: "Aqua/Water, Hexylene Glycol, Glycerin, Poloxamer 184, Disodium Cocoamphodiacetate, Disodium EDTA, Myrtrimonium Bromide",
+  },
+  {
+    name: "Clinique Moisture Surge 100H",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/019/233/306/6942/front_en.3.400.jpg",
+    ingredients: "Water/Aqua/Eau, Dimethicone, Butylene Glycol, Glycerin, Trisiloxane, Trehalose, Sucrose, Ammonium Acryloyldimethyltaurate/VP Copolymer, Hydroxyethyl Urea, Camellia Sinensis (Green Tea) Leaf Extract, Silybum Marianum (Lady's Thistle) Extract, Betula Alba (Birch) Bark Extract, Saccharomyces Lysate Extract, Aloe Barbadensis Leaf Water, Aloe Barbadensis Leaf Extract, Thermus Thermophilus Ferment, Caffeine, Sorbitol, Palmitoyl Hexapeptide-12, Sodium Hyaluronate, Caprylyl Glycol, Oleth-10, Phenoxyethanol",
+  },
+  {
+    name: "Neutrogena Hydro Boost Cleansing Gel",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/357/466/132/0700/front_de.4.400.jpg",
+    ingredients: "Aqua, Glycerin, Cocamidopropyl Hydroxysultaine, Sodium Cocoyl Isethionate, Sodium Methyl Cocoyl Taurate, Sodium Hydrolyzed Potato Starch Dodecenylsuccinate, Hydrolyzed Hyaluronic Acid, Ethylhexylglycerin, Linoleamidopropyl PG-Dimonium Chloride Phosphate, Polyquaternium-10, Polysorbate 20, Sodium Isethionate, Sodium Lauryl Sulfate, Sodium C14-16 Olefin Sulfonate, Sodium Chloride, Propylene Glycol, Disodium EDTA, Citric Acid, Sodium Hydroxide, Hydroxyacetophenone, Tocopherol",
+  },
+  {
+    name: "Paula's Choice Skin Perfecting 6% Mandelic + 2% Lactic",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/200/000/015/2356/front_en.3.400.jpg",
+    ingredients: "Water, Mandelic Acid, Butylene Glycol, Lactic Acid, Glycerin, Sodium Hydroxide, Pentylene Glycol, Camellia Sinensis (Green Tea) Leaf Extract, Glycyrrhiza Glabra (Licorice) Root Extract, Allantoin, Bisabolol, Beta-Glucan, Sodium Hyaluronate, Tocopheryl Acetate, Sodium Citrate, Disodium EDTA, Phenoxyethanol",
+  },
+  {
+    name: "Weleda Skin Food",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/359/620/007/7555/front_fr.8.400.jpg",
+    ingredients: "Water (Aqua), Helianthus Annuus (Sunflower) Seed Oil, Glycerin, Alcohol, Glyceryl Stearate Citrate, Beeswax (Cera Alba), Theobroma Cacao (Cocoa) Seed Butter, Cetearyl Alcohol, Butyrospermum Parkii (Shea) Butter, Limonene, Viola Tricolor Extract, Chamomilla Recutita (Matricaria) Flower Extract, Calendula Officinalis Flower Extract, Lanolin, Carrageenan, Xanthan Gum, Lactic Acid, Glyceryl Caprylate, Fragrance (Parfum), Linalool, Geraniol, Citral",
+  },
+  {
+    name: "Drunk Elephant C-Firma Vitamin C Serum",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/085/655/600/4111/front_en.3.400.jpg",
+    ingredients: "Water/Aqua/Eau, Dimethyl Isosorbide, Ascorbic Acid, Laureth-23, Glycerin, Lactobacillus/Pumpkin Ferment Extract, Sclerocarya Birrea Seed Oil, Dipotassium Glycyrrhizate, Glycyrrhiza Glabra (Licorice) Root Extract, Vitis Vinifera (Grape) Juice Extract, Phyllanthus Emblica Fruit Extract, Camellia Sinensis Leaf Extract, Tocopherol, Lactobacillus/Punica Granatum Fruit Ferment Extract, Sodium Hyaluronate Crosspolymer, Hydrolyzed Quinoa, Phytosterols, Glutamylamidoethyl Imidazole",
+  },
+  {
+    name: "Eucerin Urea Repair Plus Lotion",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/400/580/002/4245/front_fr.4.400.jpg",
+    ingredients: "Aqua, Urea, Glycerin, Isopropyl Stearate, Dicaprylyl Ether, Glyceryl Glucoside, Sodium Lactate, Butyrospermum Parkii Butter, Polyglyceryl-4 Diisostearate/Polyhydroxystearate/Sebacate, Tapioca Starch, Carnitine, Cetearyl Alcohol, Ceramide NP, Arginine HCL, Sodium PCA, Histidine HCl, Lactic Acid, Mannitol, Arginine, Serine, Sucrose, PCA, Citrulline, Glycogen, Alanine, Threonine, Glutamic Acid, Lysine HCl, Sodium Chloride, 1,2-Hexanediol, Phenoxyethanol, Potassium Sorbate",
+  },
+  {
+    name: "Bioderma Sébium Hydra",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/340/134/884/0421/front_en.3.400.jpg",
+    ingredients: "Aqua/Water/Eau, Glycerin, Paraffinum Liquidum, Pentylene Glycol, Cetearyl Alcohol, Niacinamide, Squalane, Mannose, Ginkgo Biloba Leaf Extract, Xylitol, Rhamnose, Tocopheryl Acetate, Disodium EDTA, Allantoin, Citric Acid, Phenoxyethanol",
+  },
+  {
+    name: "Eucerin Aquaphor Healing Ointment",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/400/580/015/8650/front_en.3.400.jpg",
+    ingredients: "Petrolatum, Mineral Oil, Ceresin, Lanolin Alcohol, Panthenol, Glycerin, Bisabolol",
+  },
+  {
+    name: "Nuxe Rêve de Miel Gel Lavant",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/326/468/002/5891/front_fr.4.400.jpg",
+    ingredients: "Aqua/Water, Glycerin, Sodium Cocoamphoacetate, Sodium Lauroyl Sarcosinate, Lauryl Glucoside, Parfum/Fragrance, Mel/Honey, Sunflower Seed Oil PEG-8 Esters, Sodium Cocoyl Glutamate, Sodium Lauryl Glucose Carboxylate, Acrylates/C10-30 Alkyl Acrylate Crosspolymer, Phenoxyethanol, Gluconolactone, Sodium Hydroxide, Glyceryl Oleate, Citric Acid, Allantoin, Sodium Benzoate, Tetrasodium Glutamate Diacetate, 1,2-Hexanediol, Caprylyl Glycol, Calcium Gluconate",
+  },
+  {
+    name: "NIVEA Men Protect & Care Moisturising Cream",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/400/580/891/6719/front_nl.17.400.jpg",
+    ingredients: "Aqua, Glycerin, Ethylhexyl Cocoate, Cetyl Alcohol, Hydrogenated Coco-Glycerides, Isopropyl Palmitate, Glyceryl Stearate Citrate, Methylpropanediol, Aluminum Starch Octenylsuccinate, Myristyl Myristate, Tocopheryl Acetate, Aloe Barbadensis Leaf Juice, Glyceryl Glucoside, 1,2-Hexanediol, Dimethicone, Sodium Carbomer, Trisodium EDTA, Phenoxyethanol, Benzyl Alcohol, Limonene, Linalool, Parfum",
+  },
+  {
+    name: "Aveeno Eczema Therapy Daily Moisturizing Cream",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/038/137/115/1059/front_en.3.400.jpg",
+    ingredients: "Active Ingredient: Colloidal Oatmeal 1%. Inactive Ingredients: Water, Glycerin, Distearyldimonium Chloride, Petrolatum, Isopropyl Palmitate, Cetyl Alcohol, Dimethicone, Sodium Chloride, Avena Sativa (Oat) Kernel Flour, Avena Sativa (Oat) Kernel Oil, Benzalkonium Chloride",
+  },
+  {
+    name: "RoC Retinol Correxion Night Serum Capsules",
+    imageUrl: "https://images.openbeautyfacts.org/images/products/121/000/080/0237/front_fr.3.400.jpg",
+    ingredients: "Caprylic/Capric Triglyceride, Dimethicone, Cyclopentasiloxane, Squalane, Polyglyceryl-3 Diisostearate, Retinol, Tocopherol, BHT, Polysorbate 20, Phenoxyethanol",
   },
 ];
 
@@ -805,7 +864,25 @@ interface ScannerPreset {
   badgeColor: "red" | "amber" | "green";
   description: string;
   seed: ScannerSeed;
+  /** Single-product preset thumbnail (Open Beauty Facts URL). */
+  image?: string;
+  /** Compare-preset thumbnails — rendered side by side in the tile. */
+  product1Image?: string;
+  product2Image?: string;
 }
+
+// Neutrogena Rapid Clear BP Wash is not in Open Beauty Facts at the time of
+// writing, so the preset's first product falls back to the FlaskConical
+// thumbnail rendered by `ProductImageThumb` when no `product1Image` is set.
+// The name and ingredient seed are kept as the original hard-coded sample.
+const ROC_RETINOL_PRESET_IMAGE =
+  "https://images.openbeautyfacts.org/images/products/121/000/080/0237/front_fr.3.400.jpg";
+const CERAVE_SA_PRESET_IMAGE =
+  "https://images.openbeautyfacts.org/images/products/333/787/579/5456/front_en.14.400.jpg";
+const PAULAS_CHOICE_PRESET_IMAGE =
+  "https://images.openbeautyfacts.org/images/products/200/000/015/2356/front_en.3.400.jpg";
+const CERAVE_MOISTURISER_PRESET_IMAGE =
+  "https://images.openbeautyfacts.org/images/products/333/787/559/7470/front_en.3.400.jpg";
 
 const COMPARE_PRESETS: ScannerPreset[] = [
   {
@@ -813,6 +890,7 @@ const COMPARE_PRESETS: ScannerPreset[] = [
     badge: "shareCanvas.highRisk",
     badgeColor: "red",
     description: "scanner.presetBpRetinolDesc",
+    product2Image: ROC_RETINOL_PRESET_IMAGE,
     seed: {
       mode: "compare",
       product1: NEUTROGENA_BP_INGREDIENTS,
@@ -827,6 +905,8 @@ const COMPARE_PRESETS: ScannerPreset[] = [
     badge: "shareCanvas.caution",
     badgeColor: "amber",
     description: "scanner.presetSaAhaDesc",
+    product1Image: CERAVE_SA_PRESET_IMAGE,
+    product2Image: PAULAS_CHOICE_PRESET_IMAGE,
     seed: {
       mode: "compare",
       product1: CERAVE_SA_INGREDIENTS,
@@ -843,6 +923,7 @@ const SINGLE_PRESET: ScannerPreset = {
   badge: "scanner.scanIngredientsBadge",
   badgeColor: "green",
   description: "scanner.presetCeravePremiumDesc",
+  image: CERAVE_MOISTURISER_PRESET_IMAGE,
   seed: {
     mode: "single",
     ingredients: CERAVE_MOISTURISER_INGREDIENTS,
@@ -1148,61 +1229,79 @@ export function IngredientScanner({
             </button>
           </div>
 
-          {/* Sub-options A / B / C */}
+          {/* Sub-options A / B / C — three parallel ways to pick ingredients.
+              Each letter badge gets its own accent colour, and a small "OR"
+              chip sits in the left rail directly under the badge so the three
+              options read as a vertical stack of alternatives instead of
+              separate full-width rows. */}
           <div className="space-y-5">
 
             {/* A — Preloaded sample */}
             <div className="flex gap-3">
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 bg-primary/10 text-primary border border-primary/30"
-              >
-                A
+              <div className="flex flex-col items-center shrink-0 mt-0.5 gap-1.5">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-300">
+                  A
+                </div>
+                <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                  {t("scanner.or")}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.useSample")}</h4>
                 <p className="text-xs text-muted-foreground mb-3">{t("scanner.useSampleHint")}</p>
                 <div className={cn("grid gap-3", presets.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-sm")}>
-                  {presets.map((preset) => (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => applySeed(preset.seed)}
-                      className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white border border-border/50 hover:border-primary/40 hover:shadow-sm transition-all duration-150 text-left group"
-                    >
-                      <div className="flex items-center justify-between w-full gap-2">
-                        <span className="text-sm font-medium text-foreground leading-snug">{preset.label}</span>
-                        <span className={cn(
-                          "shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                          preset.badgeColor === "red" && "bg-red-100 text-red-600",
-                          preset.badgeColor === "amber" && "bg-amber-100 text-amber-700",
-                          preset.badgeColor === "green" && "bg-primary/10 text-primary",
-                        )}>
-                          {t(preset.badge)}
+                  {presets.map((preset) => {
+                    const isCompare = preset.seed.mode === "compare";
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => applySeed(preset.seed)}
+                        className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white border border-border/50 hover:border-primary/40 hover:shadow-sm transition-all duration-150 text-left group"
+                      >
+                        <div className="flex items-center gap-3 w-full">
+                          {isCompare ? (
+                            <div className="flex items-center -space-x-2 shrink-0">
+                              <ProductImageThumb src={preset.product1Image} size={40} radius={50} />
+                              <ProductImageThumb src={preset.product2Image} size={40} radius={50} />
+                            </div>
+                          ) : (
+                            <ProductImageThumb src={preset.image} size={48} radius={50} />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium text-foreground leading-snug">{preset.label}</span>
+                              <span className={cn(
+                                "shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                                preset.badgeColor === "red" && "bg-red-100 text-red-600",
+                                preset.badgeColor === "amber" && "bg-amber-100 text-amber-700",
+                                preset.badgeColor === "green" && "bg-primary/10 text-primary",
+                              )}>
+                                {t(preset.badge)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{t(preset.description)}</span>
+                        <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                          {t("scanner.loadExample")}
                         </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{t(preset.description)}</span>
-                      <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                        {t("scanner.loadExample")}
-                      </span>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
-            {/* divider */}
-            <div className="flex items-center gap-3 pl-10">
-              <div className="flex-1 border-t border-border/40" />
-              <span className="text-[11px] text-muted-foreground shrink-0">{t("scanner.or")}</span>
-              <div className="flex-1 border-t border-border/40" />
-            </div>
-
             {/* B — Popular product */}
             <div className="flex gap-3">
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 bg-primary/10 text-primary border border-primary/30"
-              >
-                B
+              <div className="flex flex-col items-center shrink-0 mt-0.5 gap-1.5">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-300">
+                  B
+                </div>
+                <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                  {t("scanner.or")}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.choosePopular")}</h4>
@@ -1236,19 +1335,15 @@ export function IngredientScanner({
               </div>
             </div>
 
-            {/* divider */}
-            <div className="flex items-center gap-3 pl-10">
-              <div className="flex-1 border-t border-border/40" />
-              <span className="text-[11px] text-muted-foreground shrink-0">{t("scanner.or")}</span>
-              <div className="flex-1 border-t border-border/40" />
-            </div>
-
             {/* C — Scan your own */}
             <div className="flex gap-3">
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 bg-primary/10 text-primary border border-primary/30"
-              >
-                C
+              <div className="flex flex-col items-center shrink-0 mt-0.5 gap-1.5">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-amber-100 text-amber-700 border border-amber-300">
+                  C
+                </div>
+                <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                  {t("scanner.or")}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.scanOwn")}</h4>

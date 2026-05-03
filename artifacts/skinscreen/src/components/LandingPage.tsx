@@ -468,7 +468,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 <a
                   href="#scanner"
                   onClick={(e) => { e.preventDefault(); smoothScrollTo("scanner"); }}
-                  className="inline-flex items-center justify-center gap-2.5 bg-primary-strong hover:bg-primary-strong/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(53,110,53,0.35)] hover:shadow-[0_0_60px_rgba(53,110,53,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
+                  className="inline-flex items-center justify-center gap-3 bg-primary-strong hover:bg-primary-strong/90 text-white px-10 sm:px-14 py-5 sm:py-6 rounded-full text-lg sm:text-xl font-bold tracking-tight transition-all duration-200 shadow-[0_0_60px_rgba(53,110,53,0.55)] hover:shadow-[0_0_80px_rgba(53,110,53,0.7)] hover:-translate-y-0.5 w-full sm:w-auto ring-1 ring-white/20"
                 >
                   {t("nav.tryItNowArrow")}
                 </a>
@@ -476,7 +476,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 <button
                   type="button"
                   onClick={goToSignup}
-                  className="inline-flex items-center justify-center gap-2.5 bg-primary-strong hover:bg-primary-strong/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(53,110,53,0.35)] hover:shadow-[0_0_60px_rgba(53,110,53,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
+                  className="inline-flex items-center justify-center gap-3 bg-primary-strong hover:bg-primary-strong/90 text-white px-10 sm:px-14 py-5 sm:py-6 rounded-full text-lg sm:text-xl font-bold tracking-tight transition-all duration-200 shadow-[0_0_60px_rgba(53,110,53,0.55)] hover:shadow-[0_0_80px_rgba(53,110,53,0.7)] hover:-translate-y-0.5 w-full sm:w-auto ring-1 ring-white/20"
                 >
                   {trialEligible
                     ? t("pricing.startTrialCta", { days: trialDays })
@@ -486,7 +486,7 @@ export function LandingPage({ config }: LandingPageProps) {
               <a
                 href="#how-it-works"
                 onClick={(e) => { e.preventDefault(); smoothScrollTo("how-it-works"); }}
-                className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/18 backdrop-blur-sm text-white border border-white/25 px-8 py-4 rounded-full text-base font-medium transition-all duration-200 hover:-translate-y-0.5 w-full sm:w-auto"
+                className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/18 backdrop-blur-sm text-white border border-white/25 px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 w-full sm:w-auto"
               >
                 {t("nav.seeHowItWorks")}
               </a>
@@ -600,7 +600,39 @@ export function LandingPage({ config }: LandingPageProps) {
           </div>
         </div>
       </section>
-      {/* 3. SCANNER */}
+      {/* 3. DANGER COMBINATIONS — show the problem first so users grok the
+          stakes before they reach the scanner. The internal anchor stays
+          `#danger-zone` so existing in-page links keep working. */}
+      <section id="danger-zone" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn>
+            <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
+              {t("dangerZone.title")}
+            </h2>
+            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
+              {t("dangerZone.subtitle")}
+            </p>
+          </FadeIn>
+
+          <DangerVisual />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            {dangerCombinations.map((combo, idx) => (
+              <DangerCard
+                key={combo.pair}
+                pair={combo.pair}
+                risk={combo.risk}
+                citation={combo.citation}
+                citationUrl={combo.citationUrl}
+                severity={combo.severity}
+                delay={idx * 0.1}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+      {/* 4. SCANNER — placed after the danger explainer so the user lands on
+          the tool with the problem already framed. */}
       <section id="scanner" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#F5F5F7]">
         <div className="max-w-5xl mx-auto">
           <FadeIn>
@@ -651,35 +683,6 @@ export function LandingPage({ config }: LandingPageProps) {
                 <IngredientScanner ctaLabel={scannerCtaLabel} seed={scannerSeed} />
               </Suspense>
             </LazyOnVisible>
-          </div>
-        </div>
-      </section>
-      {/* 4. DANGER COMBINATIONS */}
-      <section id="danger-zone" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
-        <div className="max-w-7xl mx-auto">
-          <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-serif text-center mb-4">
-              {t("dangerZone.title")}
-            </h2>
-            <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
-              {t("dangerZone.subtitle")}
-            </p>
-          </FadeIn>
-
-          <DangerVisual />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-            {dangerCombinations.map((combo, idx) => (
-              <DangerCard
-                key={combo.pair}
-                pair={combo.pair}
-                risk={combo.risk}
-                citation={combo.citation}
-                citationUrl={combo.citationUrl}
-                severity={combo.severity}
-                delay={idx * 0.1}
-              />
-            ))}
           </div>
         </div>
       </section>
@@ -741,7 +744,7 @@ export function LandingPage({ config }: LandingPageProps) {
                           className="h-full w-full object-contain p-3"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
-                        <span className="absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-wider text-red-200/90 bg-red-500/40 px-2 py-0.5 rounded-full border border-red-400/30">
+                        <span className="absolute top-2.5 right-2.5 text-[10px] font-bold uppercase tracking-wider text-white bg-red-600 px-2.5 py-1 rounded-full shadow-sm">
                           {product.role}
                         </span>
                       </div>
