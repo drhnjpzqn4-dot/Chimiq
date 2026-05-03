@@ -283,3 +283,146 @@ This rebuilds the web app, copies it into `mobile/capacitor/www/`, and runs `cap
 - Push notifications (future task).
 - Native code-signing certificates and provisioning profiles (you manage these in Xcode).
 - Final store metadata: store screenshots in `store/screenshots/` are placeholders; replace before submission.
+
+---
+
+## 6. Stripe live mode — go-live runbook
+
+This section is the operational reference for taking (or keeping) Stripe in
+live mode in production. Use it for the initial go-live, for key rotations,
+and whenever you need to re-verify a real charge.
+
+### 6.1 Where each Stripe value lives
+
+| Value                                  | Where it comes from                                              | Where it is consumed                                                   |
+| -------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Live publishable key                   | Replit **Stripe connector**, "production" environment            | `getStripePublishableKey()` in `artifacts/api-server/src/stripeClient.ts` |
+| Live secret key                        | Replit **Stripe connector**, "production" environment            | `getUncachableStripeClient()` and `getStripeSync()`                    |
+| Live webhook signing secret            | Replit **Stripe connector**, "production" environment (auto-fetched at runtime by `stripe-replit-sync`) | `WebhookHandlers.processWebhook` in `artifacts/api-server/src/webhookHandlers.ts` |
+| `STRIPE_PREMIUM_PRICE_ID_MONTHLY`      | Set as a **deployment secret** on the API Server artifact         | `artifacts/api-server/src/routes/payments.ts` (`/api/payments/checkout`) |
+| `STRIPE_PREMIUM_PRICE_ID_YEARLY`       | Set as a **deployment secret** on the API Server artifact         | `artifacts/api-server/src/routes/payments.ts` (`/api/payments/checkout`) |
+
+The connector switches automatically based on `REPLIT_DEPLOYMENT === "1"`:
+
+- Local dev (workflow) → `development` connector → Stripe **test mode**.
+- Deployed (`REPLIT_DEPLOYMENT === "1"`) → `production` connector → Stripe **live mode**.
+
+There is no separate "live keys" env var to set; the live publishable / secret
+/ webhook secrets are all served by the Replit Stripe connector when you
+connect the **production** Stripe environment in the Replit integration UI.
+
+### 6.2 First-time go-live (one-shot)
+
+Run these in order. Do not skip step 1 — if the connector is missing, the
+deployed API server will throw `Stripe production connection not found` at the
+first checkout request.
+
+1. **Connect production Stripe in Replit Connectors.** Open the Replit Stripe
+   integration → "Connect" → choose your **live** Stripe account (not the
+   sandbox/test account). After connecting, the connector page should list a
+   "production" environment alongside "development".
+
+2. **Seed live products and prices.** From the repo root, run:
+
+   ```bash
+   STRIPE_TARGET_ENV=production pnpm --filter @workspace/scripts run seed:stripe
+   ```
+
+   The script is **idempotent**: it matches the product by metadata
+   (`app=chimiq, tier=premium`) and matches each price by `lookup_key`
+   (`chimiq_premium_monthly_sek`, `chimiq_premium_yearly_sek`). Re-running it
+   will reuse existing entities instead of creating duplicates.
+
+   Expected output (the IDs differ per account):
+
+   ```text
+   Seeding Stripe products against the "production (LIVE MODE)" connector.
+   Created product → prod_xxx (Chimiq Premium)
+   Created price   → price_xxx (49.00 SEK/month, lookup_key=chimiq_premium_monthly_sek)
+   Created price   → price_yyy (490.00 SEK/year, lookup_key=chimiq_premium_yearly_sek)
+
+   Done. Set these env vars on the deployment:
+     STRIPE_PREMIUM_PRICE_ID_MONTHLY=price_xxx
+     STRIPE_PREMIUM_PRICE_ID_YEARLY=price_yyy
+   ```
+
+   Sanity-check in the Stripe Dashboard (top-right toggle on **"Live mode"**):
+   the product "Chimiq Premium" and both prices (49 SEK/month and 490 SEK/yr)
+   should appear.
+
+3. **Set the live price IDs on the deployment.** In the Replit Deployment for
+   the API Server artifact, set the two secrets to the values printed above:
+
+   - `STRIPE_PREMIUM_PRICE_ID_MONTHLY`
+   - `STRIPE_PREMIUM_PRICE_ID_YEARLY`
+
+   These must point at **live mode** prices. Both live and test price IDs
+   start with `price_…`, so confirm by viewing the price in the Dashboard with
+   the live-mode toggle on.
+
+4. **Register the live webhook endpoint.** In Stripe Dashboard → Developers →
+   Webhooks → **make sure the live-mode toggle is on** → "Add endpoint":
+
+   - URL: `https://<your-production-domain>/api/payments/webhook`
+   - Events: select the same set already used by the test webhook
+     (`checkout.session.completed`, `customer.subscription.created/updated/deleted`,
+     `invoice.paid`, `invoice.payment_failed`, `charge.refunded`).
+   - Save. Click "Send test event" → pick `checkout.session.completed` → "Send".
+     The endpoint should respond with HTTP 200. (`stripe-replit-sync` fetches
+     the signing secret from the connector at runtime, so there is nothing to
+     paste anywhere — the test event will verify the signature succeeds.)
+
+5. **Redeploy** the API Server artifact so the new env vars are picked up.
+
+6. **Real-charge smoke test** (see §6.4).
+
+### 6.3 Rotating the live keys
+
+If Stripe forces a key rotation (or you suspect a leaked secret):
+
+1. In Stripe Dashboard → Developers → API keys (live mode) → roll the secret key.
+2. In Replit Connectors → Stripe → production → **disconnect** then
+   **reconnect** to the live Stripe account. This refreshes the publishable
+   and secret keys cached in the connector.
+3. No env var changes required — `getCredentials()` re-fetches on every call.
+4. If the webhook signing secret was rotated, also re-confirm the live
+   webhook endpoint in the Dashboard (the connector picks up the new secret
+   automatically; no env var to update).
+5. Smoke-test a real charge again per §6.4.
+
+### 6.4 Verifying a real charge end-to-end
+
+Do this with a real card (yours) on the published site, against live mode.
+Refund yourself afterwards.
+
+1. Sign in to the production app.
+2. Open `/pricing` → confirm Stripe Checkout opens with **no "Test mode"
+   banner** and the price displays as `49 SEK/mo` (or `490 SEK/yr`) in real
+   currency.
+3. Complete checkout with a real card.
+4. Confirm in the Stripe Dashboard (live mode): the charge appears under
+   Payments, and the customer has an active subscription on the Chimiq
+   Premium product.
+5. In the deployment logs (`fetch_deployment_logs` or the Replit UI), confirm
+   the webhook delivery for `checkout.session.completed` and the
+   `customer.subscription.created` events both responded with 200.
+6. In the app, confirm the user's plan flipped to **Premium**
+   (`/api/payments/status` returns `{ plan: "premium" }`, the Pricing page
+   shows "You're on Premium").
+7. **Cancel the subscription** through the customer portal (Profile → Manage
+   billing). Confirm the webhook fires `customer.subscription.updated` with
+   `cancel_at_period_end=true`; the user remains Premium until period end.
+8. **Immediate downgrade test**: in the Stripe Dashboard, refund the charge.
+   Confirm `charge.refunded` fires and the user is downgraded to Free
+   immediately. (This path is exercised by the existing webhook handler from
+   task #52.)
+
+### 6.5 Re-registering the webhook (if you change domains)
+
+If the production domain changes (custom domain swap, new deployment URL):
+
+1. Stripe Dashboard → Developers → Webhooks (live mode) → open the existing
+   endpoint → "Update details" → change the URL to the new
+   `https://<new-domain>/api/payments/webhook`.
+2. "Send test event" → confirm 200.
+3. No code or env-var changes required.

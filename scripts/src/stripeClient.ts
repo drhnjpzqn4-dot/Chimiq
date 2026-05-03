@@ -13,8 +13,20 @@ async function getCredentials() {
   }
 
   const connectorName = "stripe";
+  // Allow scripts (e.g. seed-stripe-products) to explicitly target the live
+  // Stripe connector while running locally. Without this override the
+  // connector defaults to "development" outside of REPLIT_DEPLOYMENT and we
+  // would silently seed test-mode products.
+  const override = process.env.STRIPE_TARGET_ENV?.toLowerCase();
   const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
-  const targetEnvironment = isProduction ? "production" : "development";
+  const targetEnvironment =
+    override === "production" || override === "live"
+      ? "production"
+      : override === "development" || override === "test"
+        ? "development"
+        : isProduction
+          ? "production"
+          : "development";
 
   const url = new URL(`https://${hostname}/api/v2/connection`);
   url.searchParams.set("include_secrets", "true");
