@@ -15,6 +15,28 @@ contrast, keyboard, screen-reader, and motion preferences.
   `/app/scan` and `/app/discover`. (Reproduce with: open DevTools → Issues
   → "Check accessibility" or run `axe.run()` from the console after
   loading the axe-core dev bundle.)
+- Automated regression guard via Playwright + `@axe-core/playwright`
+  (`e2e/a11y-navigation.spec.ts`). Loads `/app/scan`, `/app/discover`,
+  and `/app/profile` with mocked auth/consent and asserts zero
+  serious/critical axe violations on the navigation chrome (sticky
+  header, primary nav landmark, home logo).
+
+  Run locally:
+
+  ```bash
+  # one-time, only needed the first time on a machine
+  pnpm --filter @workspace/skinscreen exec playwright install chromium
+
+  # run the a11y smoke test (boots vite on port 4317 automatically)
+  pnpm --filter @workspace/skinscreen test:a11y
+
+  # or the full e2e suite
+  pnpm --filter @workspace/skinscreen test:e2e
+  ```
+
+  Wire into CI by running the same `test:a11y` script after
+  `playwright install --with-deps chromium`. The Playwright config
+  prints the GitHub-Actions reporter automatically when `CI` is set.
 
 ## Findings & fixes
 
