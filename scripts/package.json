@@ -8,6 +8,7 @@
     "seed:products": "tsx ./src/seed-products-cache.ts",
     "seed:cosing": "tsx ./src/seed-cosing.ts",
     "seed:stripe": "tsx ./src/seed-stripe-products.ts",
+    "refresh:obf-images": "tsx ./src/refresh-obf-images.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

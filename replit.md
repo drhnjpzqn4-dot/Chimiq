@@ -128,6 +128,15 @@ OpenAI SDK client pre-configured with Replit AI Integration credentials (`AI_INT
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
 
+- `refresh:obf-images` — re-resolves every Open Beauty Facts front-image URL
+  in `artifacts/skinscreen/src/components/IngredientScanner.tsx`
+  (`QUICK_START_PRODUCTS`, `COMPARE_PRESETS`, `SINGLE_PRESET`, and the
+  `*_PRESET_IMAGE` constants) against the OBF v2 API and rewrites stale
+  `front_<lang>.<rev>.400.jpg` revs in place. Exits non-zero when any URL
+  cannot be resolved or returns non-200, so it can run on a schedule (e.g.
+  weekly cron / CI) to catch silent breakage when contributors re-upload
+  product photos.
+
 ## SkinScreen launch features (Apr 2026)
 
 - **Tap-an-ingredient drawer** — `GET /api/ingredients/lookup?name=` returns
