@@ -998,6 +998,20 @@ export function LandingPage({ config }: LandingPageProps) {
             <p className="text-sm font-semibold text-primary-strong tracking-wider uppercase mb-3">
               {t("download.kicker")}
             </p>
+
+            {/* App icon — the actual Chimiq mark people will see on their home screen */}
+            <div className="flex justify-center mb-6">
+              <img
+                src={`${import.meta.env.BASE_URL}images/app-icon.png`}
+                alt={t("download.appIconAlt")}
+                width={120}
+                height={120}
+                className="rounded-[28px] shadow-xl ring-1 ring-black/5"
+                style={{ width: 120, height: 120, objectFit: "cover" }}
+                loading="lazy"
+              />
+            </div>
+
             <h2
               id="download-heading"
               className="text-4xl sm:text-5xl font-serif font-semibold text-foreground mb-5"
@@ -1056,6 +1070,22 @@ export function LandingPage({ config }: LandingPageProps) {
             <p className="text-xs text-muted-foreground mt-3">
               {t("download.notifyHint")}
             </p>
+
+            {/* Web app — what works today */}
+            <div className="mt-12 pt-10 border-t border-border/40">
+              <p className="text-sm font-medium text-muted-foreground mb-5">
+                {t("download.webDivider")}
+              </p>
+              <a
+                href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/app`}
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-primary-strong hover:bg-primary-strong/90 text-white text-base font-semibold no-underline transition-colors shadow-md hover:shadow-lg"
+              >
+                {t("download.useWebApp")}
+              </a>
+              <p className="text-xs text-muted-foreground mt-4 max-w-md mx-auto leading-relaxed">
+                {t("download.installHint")}
+              </p>
+            </div>
           </div>
         </FadeIn>
       </section>
