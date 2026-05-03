@@ -131,7 +131,7 @@ export function sanitizeIngredients(raw: unknown, allowEmpty = false): string {
   const letterRatio = (cleaned.match(/[a-zA-Z]/g) ?? []).length / cleaned.length;
   if (letterRatio < 0.4) {
     throw new SanitizationError(
-      "Ingredient list looks invalid. Please paste the comma-separated INCI list from the product label.",
+      "Ingredient list looks invalid. Please paste the INCI list from the product label (separate ingredients with commas, semicolons, or new lines).",
     );
   }
 
@@ -143,7 +143,7 @@ export function sanitizeIngredients(raw: unknown, allowEmpty = false): string {
 
   if (tokens.length < 3) {
     throw new SanitizationError(
-      "Ingredient list must contain at least 3 ingredients separated by commas (e.g. 'Aqua, Glycerin, Niacinamide…').",
+      "Ingredient list must contain at least 3 ingredients separated by commas, semicolons, or new lines (e.g. 'Aqua, Glycerin, Niacinamide…').",
     );
   }
 
@@ -163,7 +163,7 @@ export function sanitizeIngredients(raw: unknown, allowEmpty = false): string {
   }
   if (suspiciousTokens > Math.max(1, Math.floor(tokens.length * 0.25))) {
     throw new SanitizationError(
-      "That doesn't look like an ingredient list. Paste the comma-separated INCI list (e.g. 'Aqua, Glycerin, Niacinamide…').",
+      "That doesn't look like an ingredient list. Paste the INCI list with one ingredient per line, or separated by commas or semicolons (e.g. 'Aqua, Glycerin, Niacinamide…').",
     );
   }
 
@@ -173,7 +173,7 @@ export function sanitizeIngredients(raw: unknown, allowEmpty = false): string {
     const proseHits = allWords.filter((w) => PROSE_STOP_WORDS.has(w)).length;
     if (proseHits / allWords.length > 0.15) {
       throw new SanitizationError(
-        "Ingredient list reads like a sentence. Please paste only the comma-separated INCI list from the product label.",
+        "Ingredient list reads like a sentence. Please paste only the INCI list from the product label (one ingredient per line, or separated by commas or semicolons).",
       );
     }
   }
