@@ -73,10 +73,10 @@ router.post("/feedback", feedbackIpLimit, async (req, res) => {
       "Feedback submission received",
     );
 
-    // Non-blocking: fire Slack notification (or no-op when the webhook
-    // env var isn't set). Failures inside notifyNewFeedback are logged
-    // but never propagated, so the user's request always succeeds once
-    // the row is persisted.
+    // Non-blocking: send the team an email via SendGrid (no-op when the
+    // SendGrid connector isn't configured). Failures inside
+    // notifyNewFeedback are logged but never propagated, so the user's
+    // request always succeeds once the row is persisted.
     notifyNewFeedback(
       {
         message: safeMessage,
