@@ -33,7 +33,7 @@ export function PricingSection() {
         body: JSON.stringify({ plan: billing }),
       });
       if (res.status === 401) {
-        navigate("/signup?next=/app");
+        navigate("/signup?next=/pricing");
         return;
       }
       const data = (await res.json()) as { url?: string; error?: string };
