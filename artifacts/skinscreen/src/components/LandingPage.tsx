@@ -201,7 +201,12 @@ export function LandingPage({ config }: LandingPageProps) {
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
   const { trialEligible, trialDays } = useUserPlan();
-  const goToSignup = () => navigate("/signup");
+  // Trial-eligible visitors are sent into /pricing after signup so the
+  // primary CTA actually starts the trial/checkout flow (the trial CTA
+  // promises that). Other visitors land on the default post-signup
+  // destination.
+  const goToSignup = () =>
+    navigate(trialEligible ? "/signup?next=/pricing" : "/signup");
   const goToLogin = () => navigate("/login");
   const [scannerSeed, setScannerSeed] = useState<ScannerSeed | null>(null);
   const [stats, setStats] = useState<SiteStats | null>(null);
