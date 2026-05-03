@@ -1,0 +1,256 @@
+You are expanding three curated TypeScript databases inside artifacts/api-server/src/lib/. Make additive changes only — do NOT modify existing entries' English content, do NOT touch any route handler, frontend, or scan logic. The goal is to broaden coverage and add Swedish translations so the app can serve Swedish users without extra LLM calls.
+TARGET FILES (only these):
+
+artifacts/api-server/src/lib/risky-ingredients.ts
+artifacts/api-server/src/lib/conflict-pairs.ts
+artifacts/api-server/src/lib/safe-ingredients.ts
+
+STRICT GUARDRAILS — NON-NEGOTIABLE:
+
+No hallucinated citations. For every NEW entry that needs a citation:
+
+PREFER institutional URLs that are guaranteed stable: SCCS reports (https://health.ec.europa.eu/scientific-committees/scientific-committee-consumer-safety-sccs_en), IARC monographs (https://publications.iarc.fr/), EU regulations (https://eur-lex.europa.eu/...), FDA guidance (https://www.fda.gov/...), or EFSA opinions (https://www.efsa.europa.eu/...).
+If you must cite a primary research paper and you are NOT 100% confident in a specific PubMed ID from your training, use a PubMed SEARCH URL instead: https://pubmed.ncbi.nlm.nih.gov/?term=AUTHOR+KEYWORDS. This is always a valid URL.
+If you are uncertain about an entire claim, DO NOT INVENT IT. Skip the entry rather than hallucinate.
+Add // NEEDS_VERIFICATION as a trailing TS comment on any entry where you are less than 95% confident in the underlying science. We will manually review those.
+
+
+Do not modify existing entries' English hint, citation, or citationUrl fields. Only ADD the new hint_se field on existing entries (translate from the existing English hint).
+Do not change the public API of any function (getRisksInList, severityFor, buildMandatoryFlagsBlock, getConflicts, buildMandatoryConflictsBlock). Internal helpers may be added.
+TypeScript must remain green throughout. After every phase below, ensure the file compiles. After all phases, run pnpm typecheck from the repo root.
+No new dependencies. Use only what's already in package.json.
+
+
+PHASE 1 — risky-ingredients.ts: add hint_se, then expand to 80+ entries
+Step 1.1 — Update the RiskEntry interface:
+Add a new REQUIRED field after hint:
+tsexport interface RiskEntry {
+  display: string;
+  category: RiskCategory;
+  severity: RiskSeverity;
+  profileOverrides?: Partial<Record<SkinProfile, RiskSeverity>>;
+  /** English hint passed to the model. */
+  hint: string;
+  /** Swedish translation of the hint — used when the API serves a Swedish user. */
+  hint_se: string;
+  citation: string;
+  citationUrl: string;
+  concentrationDependent?: boolean;
+  concentrationNote?: string;
+  aliases?: string[];
+}
+Step 1.2 — Back-fill hint_se on every existing entry in RAW_RISKS.
+For each existing entry, add hint_se immediately after hint. Translate to Swedish in a tone aimed at teenagers and parents who are NOT chemistry experts. Keep the same factual claim, same length (~1–2 sentences). Examples:
+ts// EXISTING:
+"dmdm hydantoin": {
+  display: "DMDM Hydantoin",
+  category: "FORMALDEHYDE_RELEASER",
+  severity: "HIGH_RISK",
+  hint: "Slowly releases formaldehyde — known human carcinogen and contact allergen.",
+  // ADD:
+  hint_se: "Frigör långsamt formaldehyd — ett ämne som klassas som cancerframkallande för människa och är en vanlig kontaktallergen.",
+  citation: "IARC Monographs Vol. 100F, 2012.",
+  citationUrl: "https://publications.iarc.fr/123",
+},
+Apply the same translation pattern to ALL existing entries in RAW_RISKS. Do not change any other field.
+Step 1.3 — Add at least 50 new risk entries to RAW_RISKS, organized by category. Each must include display, category, severity, hint, hint_se, citation, citationUrl. Include profileOverrides, concentrationDependent, or aliases where relevant.
+Suggested coverage (add as many as you can defend with real, verifiable claims — better fewer high-quality entries than many speculative ones):
+Formaldehyde releasers (add 4–6 if not present):
+
+Methenamine, Sodium Hydroxymethylglycinate, Polyoxymethylene Urea, Glyoxal, Imidazolidinyl Urea variants
+
+Endocrine disruptors / hormonal concerns (add 8–10):
+
+Triclosan, Triclocarban, Cyclopentasiloxane (D5), Cyclotetrasiloxane (D4), 4-Methylbenzylidene Camphor (4-MBC), Ethylhexyl Salicylate (with caveat — only flag at active conc), Octocrylene (degrades to benzophenone)
+
+Harsh preservatives / contact allergens (add 6–8):
+
+Methylisothiazolinone (MI), Methylchloroisothiazolinone (MCI), Iodopropynyl Butylcarbamate (IPBC), Phenoxyethanol (CAUTION only — not HIGH_RISK), Sodium Benzoate + Ascorbic Acid combo (benzene risk — flag here OR add as conflict pair instead, your choice)
+
+Photosensitisers (add 4–6):
+
+Bergamot oil (Bergapten), Lime oil, Furocoumarin-containing essential oils, St John's Wort extract, Rue extract, certain retinoid esters at high concentration
+
+Known allergens (add 8–12 from EU's 26-allergen list):
+
+Linalool, Limonene, Citronellol, Geraniol, Eugenol, Cinnamal, Cinnamyl Alcohol, Coumarin, Hydroxycitronellal, Isoeugenol, Methyl 2-Octynoate, Amyl Cinnamal — flag with category: "KNOWN_ALLERGEN", severity: "CAUTION", profile override sensitive: "HIGH_RISK"
+
+Nanoparticles (add 2–3):
+
+Nano-Titanium Dioxide (only flag if labelled "nano"), Nano-Zinc Oxide (same), Carbon Black
+
+Caution-tier ingredients (add 8–12):
+
+Sodium Lauryl Sulfate (SLS — already might exist as borderline, ensure it's CAUTION not HIGH_RISK), Cocamidopropyl Betaine (allergen risk), Propylene Glycol (sensitisation), DEA/TEA/MEA (each separate entry — nitrosamine precursor), Ethanolamine variants, BHT, BHA (butylated hydroxyanisole — separate from BHA-acid), Hydroquinone (HIGH_RISK — pregnancy contraindication), Kojic Acid (CAUTION), Resorcinol (CAUTION pregnant), Coal Tar (HIGH_RISK)
+
+Pregnancy-specific (add 4–6 with profileOverrides: { pregnant: "HIGH_RISK" }):
+
+All retinoids (already present — verify), Salicylic Acid >2% (verify it's marked concentration-dependent), high-dose hydroquinone, certain essential oils (clary sage, rosemary)
+
+For each new entry, follow this exact shape:
+ts"INGREDIENT_NORMALIZED_KEY": {
+  display: "Ingredient Display Name",
+  category: "ENDOCRINE_DISRUPTOR", // pick from RiskCategory union
+  severity: "CAUTION", // or "HIGH_RISK"
+  profileOverrides: { sensitive: "HIGH_RISK", pregnant: "HIGH_RISK" }, // optional
+  hint: "One-sentence English hint summarising the concern.",
+  hint_se: "Svensk översättning av hint:en.",
+  citation: "Author Year. Journal/Authority.",
+  citationUrl: "https://...", // institutional URL preferred, PubMed search URL if specific paper
+  // Optional: concentrationDependent, concentrationNote, aliases
+},
+Keys must be normalized (lowercase, no parens, no hyphens — replace with spaces). Run normalizeIngredientName(displayName) mentally before choosing the key.
+Step 1.4 — Verify Phase 1:
+Run: cd artifacts/api-server && pnpm exec tsc --noEmit. No errors expected. Count the entries in RAW_RISKS — should be 80 or more.
+
+PHASE 2 — conflict-pairs.ts: add hint_se, then expand to 30+ pairs
+Step 2.1 — Update the ConflictPair interface:
+tsexport interface ConflictPair {
+  id: string;
+  display: string;
+  severity: ConflictSeverity;
+  profileOverrides?: Partial<Record<SkinProfile, ConflictSeverity>>;
+  /** English hint for the model. */
+  hint: string;
+  /** Swedish translation. */
+  hint_se: string;
+  citation: string;
+  citationUrl: string;
+  sideA: string[];
+  sideB: string[];
+  applyWithinProduct?: boolean;
+}
+Step 2.2 — Back-fill hint_se on every existing entry in RAW_CONFLICTS.
+Same pattern as Phase 1 — translate the English hint to Swedish, place hint_se immediately after hint. Do not change any other field.
+Step 2.3 — Add at least 17 new conflict pairs to RAW_CONFLICTS. Use the same shape as existing entries.
+Suggested coverage (only add what is well-documented):
+
+Niacinamide + L-Ascorbic Acid (low-pH form) — possible flush in some users; CAUTION
+Vitamin C + Retinoid — pH incompatibility, alternate AM/PM
+AHA + Niacinamide — minor pH flush risk; CAUTION
+AHA + Mineral SPF — reduced UV protection if layered immediately
+Hyaluronic Acid + Anhydrous formula — moisture-pulling effect in dry climate; CAUTION
+Retinoid + Vitamin C (L-AA) — pH and stability conflict; CAUTION
+Retinoid + Salicylic Acid same product — already present but verify
+Salicylic Acid + Glycolic Acid — over-exfoliation; HIGH_RISK on sensitive
+Lactic Acid + Retinoid same routine — barrier disruption; HIGH_RISK on sensitive/young
+Sunscreen + Self-tanner (DHA) — DHA can degrade sunscreen actives
+Benzoyl Peroxide + Tetracycline (oral) — photosensitivity stack (medication interaction — flag with note)
+Hydroquinone + AHA — over-irritation at concentration
+Adapalene + Tretinoin (double retinoid) — over-active stack; HIGH_RISK
+Niacinamide + Copper Peptides — possible chelation; CAUTION
+Vitamin C + Zinc Oxide / Iron Oxide pigments — already partially covered, extend to zinc
+Essential oils + Retinoid — stacked irritation; CAUTION
+Fragrance + Damaged-barrier products (anti-aging stack) — irritation amplification; CAUTION sensitive
+
+For each new pair, structure:
+ts{
+  id: "kebab-case-id",
+  display: "Side A + Side B",
+  severity: "HIGH_RISK", // or "CAUTION"
+  profileOverrides: { sensitive: "HIGH_RISK" }, // optional
+  hint: "2–3 sentence English explanation of WHY they conflict and WHAT to do instead.",
+  hint_se: "Svensk översättning.",
+  citation: "Author Year. Journal/Authority.",
+  citationUrl: "https://...",
+  sideA: ["normalized name", "synonym 1", "synonym 2"],
+  sideB: ["normalized name", "synonym 1"],
+  applyWithinProduct: false, // true only if the conflict matters even when both ingredients are in the SAME product
+},
+All sideA/sideB strings MUST already be in their normalized form (passed through normalizeIngredientName mentally).
+Step 2.4 — Verify Phase 2:
+Run typecheck. Count entries in RAW_CONFLICTS — should be 30 or more.
+
+PHASE 3 — safe-ingredients.ts: expand from 76 to 200+ entries
+Step 3.1 — Add 100+ new universally-safe ingredients to the UNIVERSALLY_SAFE_INGREDIENTS Set.
+Criteria are already documented at the top of the file (decades of safe leave-on use, no documented endocrine/allergen/irritation concern in general population, safe across pregnancy and on developing skin).
+Suggested additions, organized by function:
+Emollients / oils (15–20):
+
+jojoba oil (simmondsia chinensis seed oil), squalane, argan oil (argania spinosa kernel oil), rosehip seed oil, almond oil (prunus amygdalus dulcis oil), avocado oil, olive oil (olea europaea fruit oil), coconut oil (cocos nucifera oil — note: comedogenic for some, but biochemically safe), grapeseed oil, sunflower oil, safflower oil, meadowfoam seed oil, marula oil, tamanu oil, hempseed oil, evening primrose oil
+
+Butters (5–7):
+
+shea butter (butyrospermum parkii butter — already present, verify), cocoa butter (theobroma cacao seed butter), mango butter (mangifera indica seed butter), kokum butter, murumuru butter
+
+Plant extracts with strong safety record (10–15):
+
+aloe barbadensis leaf juice (already present, verify), centella asiatica extract, green tea extract (camellia sinensis leaf extract), oat extract (avena sativa kernel extract), colloidal oatmeal, cucumber extract, calendula extract, chamomile extract (matricaria recutita), licorice root extract (glycyrrhiza glabra root extract — note caution at high conc, but trace = safe)
+
+Humectants / NMF components (8–12):
+
+propanediol, methylpropanediol, isopentyldiol, sorbitol, xylitol, erythritol, mannitol, sodium lactate, urea (low conc), allantoin, panthenol, dexpanthenol
+
+Ceramides (full set — 4–6):
+
+ceramide np, ceramide ap, ceramide eop, ceramide ns, phytosphingosine, sphingolipids
+
+Vitamins (safe forms — 5–8):
+
+tocopheryl acetate (already verify), tocotrienols, ascorbyl tetraisopalmitate, magnesium ascorbyl phosphate, sodium ascorbyl phosphate, biotin, panthenol (already)
+
+Peptides (safe categories — 5–8):
+
+palmitoyl tripeptide 1, palmitoyl pentapeptide 4, acetyl hexapeptide 8, palmitoyl tetrapeptide 7, oligopeptide 1, copper peptide variants (note: still flag in conflict-pairs.ts with VitC and acids — but the peptide ITSELF is safe)
+
+Polymers / film-formers (5–8):
+
+carbomer, sodium polyacrylate, polyacrylate crosspolymer 6, hydroxyethylcellulose, sodium polyacrylate, ammonium acryloyldimethyltaurate vp copolymer
+
+Mild surfactants (5–8):
+
+coco glucoside, decyl glucoside, lauryl glucoside, caprylyl capryl glucoside, sodium cocoyl glutamate, disodium cocoyl glutamate, sodium lauroyl sarcosinate
+
+Mineral pigments / SPF (3–5):
+
+non-nano titanium dioxide (NOTE: flag nano version separately in risky-ingredients.ts), non-nano zinc oxide
+
+Salts / pH adjusters (already mostly present — verify and add):
+
+sodium gluconate, calcium gluconate, citric acid (trace as pH adjuster — safe; only flag if labelled as exfoliant active)
+
+Each new entry is a single line in the Set:
+ts"jojoba oil",
+"simmondsia chinensis seed oil",
+"squalane",
+// ... etc
+Use the same comment-section pattern as existing entries (organized by function). All entries must be in normalized form (lowercase, hyphens replaced with spaces, no parens, no percentages).
+Step 3.2 — Verify Phase 3:
+Run typecheck. Count entries — should be 200 or more.
+
+PHASE 4 — Final verification
+
+Run pnpm typecheck from the repo root. All packages must pass.
+Run pnpm --filter @workspace/api-server test if a test runner is configured. Existing tests must still pass.
+Print to console:
+
+Final count of entries in RAW_RISKS (target: 80+)
+Final count of entries in RAW_CONFLICTS (target: 30+)
+Final count of entries in UNIVERSALLY_SAFE_INGREDIENTS (target: 200+)
+Number of entries marked with // NEEDS_VERIFICATION
+
+
+Do NOT commit or push. Leave the changes in the working tree so Pia can review the diff in Files-fliken before merging.
+
+
+DO NOT DO (strictly)
+
+Do NOT touch any file outside the three target files.
+Do NOT modify existing entries' English hint, citation, citationUrl, severity, category, sideA, sideB, or any other field.
+Do NOT change the public function signatures.
+Do NOT install new dependencies.
+Do NOT push to GitHub or create a PR. Pia will do that manually after review.
+Do NOT invent PubMed IDs you are not certain about. Use search URLs or institutional URLs instead.
+Do NOT mass-import from external sources at runtime — these files are static curated data.
+Do NOT translate the existing citation strings — they stay in English (primary literature language).
+
+
+FORMAT AT THE END
+When done, print a single summary line per phase, like:
+Phase 1 (risky-ingredients.ts): 32 existing entries back-filled with hint_se, 51 new entries added, 7 marked NEEDS_VERIFICATION. Final count: 83.
+Phase 2 (conflict-pairs.ts): 13 existing pairs back-filled with hint_se, 18 new pairs added, 2 marked NEEDS_VERIFICATION. Final count: 31.
+Phase 3 (safe-ingredients.ts): 76 existing entries unchanged, 127 new entries added. Final count: 203.
+Typecheck: PASS.
+Then stop. Do not start a new task.
+
+End of prompt.
