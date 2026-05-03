@@ -408,6 +408,111 @@ router.get("/admin/tester-promo/history", async (req: Request, res: Response) =>
   }
 });
 
+// GET /admin/tester-promo/history/summary
+//
+// Returns per-bucket counts of raise_cap and mint actions, respecting
+// the same filters as /history (action, q, from, to). The bucket size
+// is "quarter" by default; pass `bucket=month` for finer granularity
+// when the active range is short. Buckets are returned oldest first
+// because that's the order Pia reads them in (Q1 → Q2 → …) above the
+// newest-first table.
+router.get(
+  "/admin/tester-promo/history/summary",
+  async (req: Request, res: Response) => {
+    if (!requireAdmin(req, res)) return;
+
+    const actionParam =
+      typeof req.query.action === "string" ? req.query.action : "";
+    const actionFilter =
+      actionParam === "raise_cap" || actionParam === "mint" ? actionParam : null;
+
+    const fromDate = parseDateParam(req.query.from);
+    const toDate = parseDateParam(req.query.to);
+    if (fromDate === "invalid" || toDate === "invalid") {
+      res.status(400).json({ error: "Invalid date range." });
+      return;
+    }
+
+    const qRaw = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const qFilter = qRaw.length > 0 ? qRaw.slice(0, 200) : null;
+
+    const bucketParam =
+      typeof req.query.bucket === "string" ? req.query.bucket : "";
+    const bucket: "quarter" | "month" =
+      bucketParam === "month" ? "month" : "quarter";
+
+    const whereParts: SQL[] = [];
+    if (actionFilter) {
+      whereParts.push(eq(testerPromoChangesTable.action, actionFilter));
+    }
+    if (fromDate) {
+      whereParts.push(gte(testerPromoChangesTable.createdAt, fromDate));
+    }
+    if (toDate) {
+      whereParts.push(lte(testerPromoChangesTable.createdAt, toDate));
+    }
+    if (qFilter) {
+      const escaped = qFilter.replace(/[\\%_]/g, (c) => `\\${c}`);
+      const pattern = `%${escaped}%`;
+      const orClause = or(
+        ilike(testerPromoChangesTable.newCode, pattern),
+        ilike(testerPromoChangesTable.oldCode, pattern),
+        ilike(testerPromoChangesTable.adminEmail, pattern),
+      );
+      if (orClause) whereParts.push(orClause);
+    }
+    const whereClause =
+      whereParts.length === 0
+        ? undefined
+        : whereParts.length === 1
+          ? whereParts[0]
+          : and(...whereParts);
+
+    try {
+      // date_trunc on a timestamptz uses the session's TimeZone, which
+      // could shift a row across a quarter/month boundary depending on
+      // where the DB is configured. Force the truncation to happen in
+      // UTC by converting to UTC first, then cast the resulting naive
+      // timestamp back to timestamptz "AT TIME ZONE 'UTC'" so it round
+      // -trips as the same UTC instant the frontend formats from.
+      const truncUnit = bucket === "month" ? "month" : "quarter";
+      const truncExpr = sql`(date_trunc(${truncUnit}, ${testerPromoChangesTable.createdAt} at time zone 'UTC') at time zone 'UTC')`;
+      const rows = await db
+        .select({
+          bucketStart: sql<Date>`${truncExpr}`.as("bucket_start"),
+          raiseCap: sql<number>`count(*) filter (where ${testerPromoChangesTable.action} = 'raise_cap')::int`,
+          mint: sql<number>`count(*) filter (where ${testerPromoChangesTable.action} = 'mint')::int`,
+          total: sql<number>`count(*)::int`,
+        })
+        .from(testerPromoChangesTable)
+        .where(whereClause)
+        .groupBy(sql`bucket_start`)
+        .orderBy(sql`bucket_start asc`);
+
+      res.json({
+        bucket,
+        buckets: rows.map((r) => ({
+          bucketStart:
+            r.bucketStart instanceof Date
+              ? r.bucketStart.toISOString()
+              : new Date(r.bucketStart as unknown as string).toISOString(),
+          raiseCap: r.raiseCap ?? 0,
+          mint: r.mint ?? 0,
+          total: r.total ?? 0,
+        })),
+        action: actionFilter,
+        q: qFilter,
+        from: fromDate ? fromDate.toISOString() : null,
+        to: toDate ? toDate.toISOString() : null,
+      });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[admin/tester-promo] failed to load history summary", err);
+      res.status(500).json({ error: "Failed to load promo history summary." });
+    }
+  },
+);
+
 // GET /admin/tester-promo/history.csv
 //
 // Streams *all* rows matching the action filter (no pagination) as CSV so

@@ -26,6 +26,18 @@ interface PromoChange {
   createdAt: string;
 }
 
+interface SummaryBucket {
+  bucketStart: string;
+  raiseCap: number;
+  mint: number;
+  total: number;
+}
+
+interface SummaryResponse {
+  bucket: "quarter" | "month";
+  buckets: SummaryBucket[];
+}
+
 interface HistoryResponse {
   changes: PromoChange[];
   total: number;
@@ -149,6 +161,7 @@ function AdminTesterPromoHistoryPageInner() {
   const [data, setData] = useState<HistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [actionFilter, setActionFilter] = useState<ActionFilter>(
     initialFilters.actionFilter,
   );
@@ -193,6 +206,21 @@ function AdminTesterPromoHistoryPageInner() {
     return params;
   }, [fromDate, toDate, dateRangeInvalid]);
 
+  // Pick a bucket size for the summary based on how wide the active
+  // range is. Quarters work for the typical "year so far" or unfiltered
+  // view; switch to months when Pia narrows down to roughly a quarter
+  // or less so each row carries some signal instead of just one bar.
+  const summaryBucket: "quarter" | "month" = useMemo(() => {
+    if (!fromDate || !toDate) return "quarter";
+    const from = new Date(`${fromDate}T00:00:00`);
+    const to = new Date(`${toDate}T00:00:00`);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+      return "quarter";
+    }
+    const days = (to.getTime() - from.getTime()) / 86_400_000;
+    return days <= 122 ? "month" : "quarter";
+  }, [fromDate, toDate]);
+
   const fetchHistory = useCallback(async () => {
     if (dateRangeInvalid) {
       setError("End date can't be before start date.");
@@ -231,6 +259,47 @@ function AdminTesterPromoHistoryPageInner() {
   useEffect(() => {
     void fetchHistory();
   }, [fetchHistory]);
+
+  // Fetch the per-bucket summary alongside the table. We deliberately
+  // don't gate it on `loading` so the summary still updates if the table
+  // request is mid-flight; both endpoints share the same filter inputs.
+  useEffect(() => {
+    if (dateRangeInvalid) {
+      setSummary(null);
+      return;
+    }
+    let cancelled = false;
+    const params = new URLSearchParams({ bucket: summaryBucket });
+    if (actionFilter !== "all") params.set("action", actionFilter);
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (dateParams.from) params.set("from", dateParams.from);
+    if (dateParams.to) params.set("to", dateParams.to);
+    fetch(
+      `/api/admin/tester-promo/history/summary?${params.toString()}`,
+      { credentials: "include" },
+    )
+      .then(async (res) => {
+        if (!res.ok) throw new Error("summary failed");
+        return (await res.json()) as SummaryResponse;
+      })
+      .then((body) => {
+        if (!cancelled) setSummary(body);
+      })
+      .catch(() => {
+        // Summary is a "nice to have" — if it fails we just hide it
+        // rather than blocking the table view with an error.
+        if (!cancelled) setSummary(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    actionFilter,
+    debouncedSearch,
+    dateParams,
+    dateRangeInvalid,
+    summaryBucket,
+  ]);
 
   // Mirror the bookmarkable filters into window.location.search so that
   // refreshing or sharing the URL restores the same view. We use
@@ -287,6 +356,28 @@ function AdminTesterPromoHistoryPageInner() {
     if (!data || data.total === 0) return 1;
     return Math.max(1, Math.ceil(data.total / data.pageSize));
   }, [data]);
+
+  // Pretty-print a bucket-start timestamp as "Q2 2025" or "Apr 2025".
+  // We treat the ISO string as UTC start-of-day (date_trunc returns
+  // 00:00 UTC for the chosen unit) and read the calendar pieces back in
+  // UTC too so a bucket never drifts across timezones.
+  const formatBucketLabel = useCallback(
+    (iso: string, bucket: "quarter" | "month"): string => {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      const year = d.getUTCFullYear();
+      if (bucket === "quarter") {
+        const q = Math.floor(d.getUTCMonth() / 3) + 1;
+        return `Q${q} ${year}`;
+      }
+      const month = d.toLocaleString(undefined, {
+        month: "short",
+        timeZone: "UTC",
+      });
+      return `${month} ${year}`;
+    },
+    [],
+  );
 
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
@@ -454,6 +545,68 @@ function AdminTesterPromoHistoryPageInner() {
             )}
           </div>
         </div>
+
+        {summary && summary.buckets.length > 0 && (
+          <div className="mb-4 rounded-2xl border border-border/60 bg-white p-3 sm:p-4">
+            <div className="flex items-baseline justify-between gap-2 mb-2">
+              <span className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+                Summary by {summary.bucket}
+              </span>
+              <span className="text-[11px] text-muted-foreground">
+                Counts respect the active filters
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="py-1.5 pr-4 font-semibold">Period</th>
+                    <th className="py-1.5 pr-4 font-semibold">Raise cap</th>
+                    <th className="py-1.5 pr-4 font-semibold">Mint</th>
+                    <th className="py-1.5 font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.buckets.map((b) => (
+                    <tr
+                      key={b.bucketStart}
+                      className="border-t border-border/30"
+                    >
+                      <td className="py-1.5 pr-4 font-medium text-foreground whitespace-nowrap">
+                        {formatBucketLabel(b.bucketStart, summary.bucket)}
+                      </td>
+                      <td className="py-1.5 pr-4 tabular-nums">
+                        {b.raiseCap > 0 ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide bg-blue-100 text-blue-700">
+                              {b.raiseCap}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="py-1.5 pr-4 tabular-nums">
+                        {b.mint > 0 ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide bg-violet-100 text-violet-700">
+                              {b.mint}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="py-1.5 tabular-nums text-muted-foreground">
+                        {b.total}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center mb-6">
