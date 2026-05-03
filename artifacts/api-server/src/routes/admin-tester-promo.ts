@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import type Stripe from "stripe";
 import { db, testerPromoChangesTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient";
 import { isRequestAdmin, getRequestEmail } from "../lib/admin";
 import {
@@ -284,19 +284,51 @@ async function recordPromoChange(opts: {
 
 // GET /admin/tester-promo/history
 //
-// Returns the most recent admin-driven promo changes (raise cap / mint).
-// The widget calls this to render a "Recent changes" list under the
-// stats. We cap at 20 to keep the payload tiny — older history is still
-// in the DB for ad-hoc queries if Pia ever needs it.
+// Returns admin-driven promo changes (raise cap / mint), newest first.
+//
+// Query params (all optional, all backward-compatible — calling with no
+// params still returns the most recent 20 rows like the widget expects):
+//   - page: 1-indexed page number (default 1)
+//   - pageSize: rows per page, 1..100 (default 20)
+//   - action: filter to "raise_cap" or "mint" only
+//
+// Response includes `total` (matching the action filter) and the page
+// metadata so the dedicated history page can paginate without guessing.
 router.get("/admin/tester-promo/history", async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
+  const pageRaw = Number(req.query.page);
+  const pageSizeRaw = Number(req.query.pageSize);
+  const page = Number.isInteger(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize =
+    Number.isInteger(pageSizeRaw) && pageSizeRaw > 0
+      ? Math.min(pageSizeRaw, 100)
+      : 20;
+
+  const actionParam = typeof req.query.action === "string" ? req.query.action : "";
+  const actionFilter =
+    actionParam === "raise_cap" || actionParam === "mint" ? actionParam : null;
+
+  const whereClause = actionFilter
+    ? eq(testerPromoChangesTable.action, actionFilter)
+    : undefined;
+
   try {
-    const rows = await db
-      .select()
-      .from(testerPromoChangesTable)
-      .orderBy(desc(testerPromoChangesTable.createdAt))
-      .limit(20);
+    const offset = (page - 1) * pageSize;
+    const [rows, totalRow] = await Promise.all([
+      db
+        .select()
+        .from(testerPromoChangesTable)
+        .where(whereClause)
+        .orderBy(desc(testerPromoChangesTable.createdAt))
+        .limit(pageSize)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(testerPromoChangesTable)
+        .where(whereClause),
+    ]);
+    const total = totalRow[0]?.count ?? 0;
     res.json({
       changes: rows.map((r) => ({
         id: r.id,
@@ -310,6 +342,10 @@ router.get("/admin/tester-promo/history", async (req: Request, res: Response) =>
         newPromotionCodeId: r.newPromotionCodeId,
         createdAt: r.createdAt.toISOString(),
       })),
+      total,
+      page,
+      pageSize,
+      action: actionFilter,
     });
   } catch (err) {
     // eslint-disable-next-line no-console

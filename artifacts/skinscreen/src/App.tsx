@@ -24,6 +24,9 @@ const AppPage = lazy(() => import("@/pages/AppPage"));
 const AdminPage = lazy(() => import("@/pages/AdminPage"));
 const AdminRecipesPage = lazy(() => import("@/pages/AdminRecipesPage"));
 const AdminUsersPage = lazy(() => import("@/pages/AdminUsersPage"));
+const AdminTesterPromoHistoryPage = lazy(
+  () => import("@/pages/AdminTesterPromoHistoryPage"),
+);
 const RecipesPage = lazy(() => import("@/pages/Recipes"));
 const RecipeDetailPage = lazy(() => import("@/pages/RecipeDetail"));
 const Discover = lazy(() => import("@/pages/Discover"));
@@ -78,6 +81,10 @@ function Router() {
         <Route path="/admin/submissions" component={AdminPage} />
         <Route path="/admin/recipes" component={AdminRecipesPage} />
         <Route path="/admin/users" component={AdminUsersPage} />
+        <Route
+          path="/admin/tester-promo/history"
+          component={AdminTesterPromoHistoryPage}
+        />
         <Route path="/legal/privacy" component={PrivacyPolicy} />
         <Route path="/legal/terms" component={TermsOfService} />
         <Route path="/legal/medical-disclaimer" component={MedicalDisclaimer} />

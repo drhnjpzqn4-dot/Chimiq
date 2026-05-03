@@ -517,13 +517,22 @@ function RecentChanges({
   error: string | null;
   currentCode: string;
 }) {
+  const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
   return (
     <div className="pt-3 border-t border-border/40">
-      <div className="flex items-center gap-1.5 mb-2">
-        <History className="w-3.5 h-3.5 text-muted-foreground" />
-        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Recent changes
-        </h3>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-1.5">
+          <History className="w-3.5 h-3.5 text-muted-foreground" />
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Recent changes
+          </h3>
+        </div>
+        <a
+          href={base + "/admin/tester-promo/history"}
+          className="text-[11px] font-semibold text-primary hover:underline"
+        >
+          View all changes →
+        </a>
       </div>
       {error && <p className="text-xs text-red-700">{error}</p>}
       {!error && history === null && (
