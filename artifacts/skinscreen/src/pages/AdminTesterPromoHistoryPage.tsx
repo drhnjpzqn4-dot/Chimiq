@@ -211,6 +211,122 @@ function readFiltersFromUrl(): {
   return { actionFilter, q, page, datePreset, fromDate, toDate };
 }
 
+// Compact stacked bar chart for the per-bucket summary. Built from
+// styled divs so we don't pull in a chart library for one small
+// visualization. Each bar stacks raise-cap (blue) under mint (violet);
+// native title tooltips surface the exact counts on hover. Single-
+// bucket and all-zero cases still render a meaningful baseline instead
+// of collapsing to nothing.
+function SummaryBarChart({
+  buckets,
+  bucket,
+  formatBucketLabel,
+}: {
+  buckets: SummaryBucket[];
+  bucket: "quarter" | "month";
+  formatBucketLabel: (iso: string, b: "quarter" | "month") => string;
+}) {
+  const max = Math.max(1, ...buckets.map((b) => b.total));
+  // Cap the bar width so a single bucket doesn't stretch into one giant
+  // block, and keep a sensible minimum so dense ranges stay readable.
+  const barWidth =
+    buckets.length <= 1
+      ? 56
+      : Math.min(56, Math.max(18, 320 / buckets.length));
+  const gap = 12;
+  const chartHeight = 96;
+  if (buckets.length === 0) {
+    // Preserve the chart's vertical footprint and legend so the card
+    // doesn't visually jump when filters return no rows. The empty
+    // baseline communicates "we plotted, there's just nothing here".
+    return (
+      <div className="mb-4">
+        <div
+          className="flex items-end pb-1"
+          role="img"
+          aria-label="No data to chart for the current filters"
+        >
+          <div
+            className="rounded-md bg-muted/40 w-full"
+            style={{ height: chartHeight }}
+          />
+        </div>
+        <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-400" />
+            Raise cap
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-violet-400" />
+            Mint
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-4">
+      <div
+        className="flex items-end gap-3 overflow-x-auto pb-1"
+        role="img"
+        aria-label={`Bar chart of raise-cap and mint counts per ${bucket}`}
+      >
+        {buckets.map((b) => {
+          const total = b.total;
+          const raiseH = total > 0 ? (b.raiseCap / max) * chartHeight : 0;
+          const mintH = total > 0 ? (b.mint / max) * chartHeight : 0;
+          const label = formatBucketLabel(b.bucketStart, bucket);
+          const tooltip = `${label}: ${b.raiseCap} raise-cap, ${b.mint} mint`;
+          return (
+            <div
+              key={b.bucketStart}
+              className="flex flex-col items-center gap-1 shrink-0"
+              style={{ width: barWidth + gap }}
+              title={tooltip}
+            >
+              <span className="text-[10px] tabular-nums text-muted-foreground h-3 leading-3">
+                {total > 0 ? total : ""}
+              </span>
+              <div
+                className="relative flex flex-col-reverse rounded-md overflow-hidden bg-muted/40"
+                style={{ width: barWidth, height: chartHeight }}
+              >
+                {b.raiseCap > 0 && (
+                  <div
+                    className="bg-blue-400"
+                    style={{ height: raiseH }}
+                    aria-label={`${b.raiseCap} raise-cap`}
+                  />
+                )}
+                {b.mint > 0 && (
+                  <div
+                    className="bg-violet-400"
+                    style={{ height: mintH }}
+                    aria-label={`${b.mint} mint`}
+                  />
+                )}
+              </div>
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                {label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-400" />
+          Raise cap
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-violet-400" />
+          Mint
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function AdminTesterPromoHistoryPageInner() {
   const { user, logout } = useAuth();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
@@ -616,7 +732,7 @@ function AdminTesterPromoHistoryPageInner() {
           </div>
         </div>
 
-        {summary && summary.buckets.length > 0 && (
+        {summary && (
           <div className="mb-4 rounded-2xl border border-border/60 bg-white p-3 sm:p-4">
             <div className="flex items-baseline justify-between gap-2 mb-2">
               <span className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
@@ -626,6 +742,16 @@ function AdminTesterPromoHistoryPageInner() {
                 Counts respect the active filters
               </span>
             </div>
+            <SummaryBarChart
+              buckets={summary.buckets}
+              bucket={summary.bucket}
+              formatBucketLabel={formatBucketLabel}
+            />
+            {summary.buckets.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">
+                No promo changes match the current filters yet.
+              </p>
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -675,6 +801,7 @@ function AdminTesterPromoHistoryPageInner() {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         )}
 
