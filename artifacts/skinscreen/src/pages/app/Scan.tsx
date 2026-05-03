@@ -14,7 +14,6 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { IngredientScanner } from "@/components/IngredientScanner";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
-import { ContributeModal } from "@/components/ContributeModal";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useTranslation } from "@/lib/i18n";
 
@@ -114,7 +113,6 @@ function relativeWhen(at: number): string {
 
 export default function ScanScreen() {
   const [, navigate] = useLocation();
-  const [showContribute, setShowContribute] = useState(false);
   const [seed, setSeed] = useState<
     { mode: "single"; ingredients: string; productName?: string; autoRun: true } | null
   >(null);
@@ -475,10 +473,6 @@ export default function ScanScreen() {
           }}
         />
       </section>
-
-      {showContribute && (
-        <ContributeModal onClose={() => setShowContribute(false)} />
-      )}
 
       {/* viewfinder scan-line keyframes — local to this page so we don't
           touch global stylesheets. */}

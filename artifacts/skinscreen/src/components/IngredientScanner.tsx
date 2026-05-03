@@ -318,7 +318,15 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
   );
 }
 
-function FlagCard({ flag, delay }: { flag: IngredientFlag; delay?: number }) {
+function FlagCard({
+  flag,
+  delay,
+  onOpenProfile,
+}: {
+  flag: IngredientFlag;
+  delay?: number;
+  onOpenProfile?: () => void;
+}) {
   const isHighRisk = flag.severity === "HIGH_RISK";
   // High-risk flags expand by default so users can't miss the explanation.
   // Caution flags collapse by default to keep the results list scannable on
@@ -381,6 +389,21 @@ function FlagCard({ flag, delay }: { flag: IngredientFlag; delay?: number }) {
             className="px-5 sm:px-6 pb-5 sm:pb-6"
           >
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">{flag.explanation}</p>
+            {onOpenProfile && (
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                data-touch-target
+                className={cn(
+                  "mb-3 inline-flex items-center gap-1 text-xs font-semibold transition-colors",
+                  isHighRisk
+                    ? "text-red-700 hover:text-red-800"
+                    : "text-amber-700 hover:text-amber-800",
+                )}
+              >
+                See full ingredient profile →
+              </button>
+            )}
             <div className="pt-3 border-t border-border/40">
               <a
                 href={flag.citationUrl}
@@ -1500,7 +1523,25 @@ export function IngredientScanner({
                 </h3>
               </FadeIn>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {singleHighRisk.map((f, i) => <FlagCard key={f.ingredient} flag={f} delay={i * 0.1} />)}
+                {singleHighRisk.map((f, i) => (
+                  <FlagCard
+                    key={f.ingredient}
+                    flag={f}
+                    delay={i * 0.1}
+                    onOpenProfile={() =>
+                      setChipDetail({
+                        ingredient: f.ingredient,
+                        flag: {
+                          severity: f.severity,
+                          explanation: f.explanation,
+                          citation: f.citation,
+                          citationUrl: f.citationUrl,
+                          category: f.category,
+                        },
+                      })
+                    }
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -1514,7 +1555,25 @@ export function IngredientScanner({
                 </h3>
               </FadeIn>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {singleCaution.map((f, i) => <FlagCard key={f.ingredient} flag={f} delay={i * 0.1} />)}
+                {singleCaution.map((f, i) => (
+                  <FlagCard
+                    key={f.ingredient}
+                    flag={f}
+                    delay={i * 0.1}
+                    onOpenProfile={() =>
+                      setChipDetail({
+                        ingredient: f.ingredient,
+                        flag: {
+                          severity: f.severity,
+                          explanation: f.explanation,
+                          citation: f.citation,
+                          citationUrl: f.citationUrl,
+                          category: f.category,
+                        },
+                      })
+                    }
+                  />
+                ))}
               </div>
             </div>
           )}
