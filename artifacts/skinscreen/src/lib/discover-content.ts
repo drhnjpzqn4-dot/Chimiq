@@ -118,7 +118,12 @@ function fnv1a(input: string): string {
   return (h >>> 0).toString(36);
 }
 
-const DISCOVER_BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+// Safe in both Vite (browser/SSR) and Node (build-og.mjs bundles this file
+// via esbuild without Vite's import.meta.env injection). Accessing
+// import.meta.env directly throws in Node when env is undefined.
+const DISCOVER_BASE = (
+  ((import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL) ?? "/"
+).replace(/\/+$/, "") || "";
 
 export interface DiscoverImage {
   /** Cache-busted URL safe to drop into <img src>. */
