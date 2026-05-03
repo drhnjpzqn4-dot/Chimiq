@@ -70,6 +70,7 @@ export function CookieBanner() {
       >
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-3">
+            <CookieIllustration />
             <div className="flex-1 min-w-0">
               <h2
                 id="cookie-banner-title"
@@ -149,6 +150,80 @@ export function CookieBanner() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CookieIllustration() {
+  return (
+    <div
+      aria-hidden="true"
+      className="shrink-0 mt-0.5 cookie-banner-wiggle"
+      style={{ width: 44, height: 44 }}
+    >
+      <style>{`
+        @keyframes cookie-banner-wiggle {
+          0%   { transform: rotate(0deg) scale(1); }
+          15%  { transform: rotate(-8deg) scale(1.05); }
+          30%  { transform: rotate(7deg) scale(1.05); }
+          45%  { transform: rotate(-5deg) scale(1.03); }
+          60%  { transform: rotate(3deg) scale(1.02); }
+          100% { transform: rotate(0deg) scale(1); }
+        }
+        .cookie-banner-wiggle {
+          animation: cookie-banner-wiggle 1.1s ease-in-out 0.2s 1;
+          transform-origin: 50% 55%;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cookie-banner-wiggle { animation: none; }
+        }
+      `}</style>
+      <svg
+        viewBox="0 0 64 64"
+        width="44"
+        height="44"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <radialGradient id="cookieDough" cx="40%" cy="35%" r="75%">
+            <stop offset="0%" stopColor="#E8C68A" />
+            <stop offset="55%" stopColor="#C9904A" />
+            <stop offset="100%" stopColor="#8B5A2B" />
+          </radialGradient>
+        </defs>
+        {/* Cookie body with a bite taken out (top-right) */}
+        <path
+          d="M32 4
+             a28 28 0 1 0 0.01 0
+             Z
+             M54 14
+             c-3 4 -8 4 -10 0
+             c-2 -4 2 -8 6 -7
+             c4 1 6 3 4 7 Z"
+          fill="url(#cookieDough)"
+          stroke="#6B3F1A"
+          strokeWidth="1.2"
+          fillRule="evenodd"
+        />
+        {/* Bite scallops */}
+        <circle cx="49" cy="9" r="2.2" fill="#6B3F1A" opacity="0.35" />
+        <circle cx="56" cy="14" r="2" fill="#6B3F1A" opacity="0.35" />
+        <circle cx="52" cy="18" r="1.8" fill="#6B3F1A" opacity="0.35" />
+        {/* Chocolate chips */}
+        <ellipse cx="22" cy="22" rx="4.2" ry="3.4" fill="#3B1E0F" />
+        <ellipse cx="38" cy="34" rx="4.8" ry="3.8" fill="#3B1E0F" />
+        <ellipse cx="20" cy="42" rx="3.6" ry="3" fill="#3B1E0F" />
+        <ellipse cx="42" cy="50" rx="3.4" ry="2.8" fill="#3B1E0F" />
+        <ellipse cx="14" cy="32" rx="2.6" ry="2.2" fill="#3B1E0F" />
+        <ellipse cx="30" cy="14" rx="2.4" ry="2" fill="#3B1E0F" />
+        {/* Chip highlights for a little shine */}
+        <ellipse cx="21" cy="20.5" rx="1.1" ry="0.7" fill="#7a4423" opacity="0.7" />
+        <ellipse cx="37" cy="32.5" rx="1.3" ry="0.8" fill="#7a4423" opacity="0.7" />
+        {/* Crumbs */}
+        <circle cx="9" cy="48" r="1.1" fill="#C9904A" />
+        <circle cx="55" cy="38" r="1" fill="#C9904A" />
+        <circle cx="48" cy="56" r="1.2" fill="#C9904A" />
+      </svg>
     </div>
   );
 }
