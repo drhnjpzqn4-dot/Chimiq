@@ -1,5 +1,30 @@
 # GitHub Actions
 
+## `refresh-obf-images.yml` — Weekly Open Beauty Facts photo refresh
+
+Triggers: weekly cron (Mondays 06:00 UTC) and **Run workflow** in the
+Actions tab.
+
+What it does: runs `pnpm --filter @workspace/scripts run refresh:obf-images`
+to re-resolve the numeric "rev" segment in OBF front-image URLs hard-coded
+in `artifacts/skinscreen/src/components/IngredientScanner.tsx`. OBF
+contributors re-upload product photos and the old revs eventually 404, so
+running this on a schedule keeps the scanner gallery from silently
+breaking.
+
+Outcomes:
+
+- If the script rewrote any URLs, the workflow opens (or updates) a PR on
+  branch `chore/refresh-obf-images` with the diff. Merge it to ship the
+  new revs to production.
+- If the script exited non-zero — meaning at least one URL could not be
+  resolved or HEAD-verified — the job fails. GitHub then emails repo
+  watchers via the standard "Actions workflow failed" notification so the
+  team can investigate before the gallery breaks.
+
+No repo secrets required: the script only talks to the public OBF API and
+uses `GITHUB_TOKEN` (provided automatically) to open the PR.
+
 ## `android-release.yml` — Signed Android .aab on every tag
 
 Triggers: `git push origin v1.2.3` (any tag matching `v*`), or **Run
