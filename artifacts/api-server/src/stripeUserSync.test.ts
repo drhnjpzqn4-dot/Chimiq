@@ -267,7 +267,6 @@ describe("applyStripeEventToUser", () => {
         plan: "free",
         stripeSubscriptionId: null,
         subscriptionStatus: "canceled",
-        trialEndsAt: null,
       });
     });
   });
@@ -290,7 +289,6 @@ describe("applyStripeEventToUser", () => {
           plan: "free",
           stripeSubscriptionId: null,
           subscriptionStatus: "canceled",
-          trialEndsAt: null,
         },
       ]);
     });
@@ -372,7 +370,6 @@ describe("applyStripeEventToUser", () => {
           plan: "free",
           stripeSubscriptionId: null,
           subscriptionStatus: "canceled",
-          trialEndsAt: null,
         },
       ]);
     });

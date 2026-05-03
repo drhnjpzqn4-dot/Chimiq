@@ -28,6 +28,7 @@ interface UserRow {
   trialEndsAt: string | null;
   trialDaysLeft: number | null;
   premiumUntil: string | null;
+  stripeSubscriptionId: string | null;
   hasSubscription: boolean;
   emailVerified: boolean;
   createdAt: string;
@@ -363,9 +364,11 @@ function AdminUsersPageInner() {
                         <td className="px-4 py-3 text-muted-foreground">
                           {u.bucket === "trial" && u.trialDaysLeft !== null
                             ? `${u.trialDaysLeft} day${u.trialDaysLeft === 1 ? "" : "s"} left`
-                            : u.hasSubscription && !u.trialEndsAt
-                              ? "Used trial"
-                              : "—"}
+                            : u.trialEndsAt
+                              ? `Used trial · ended ${formatDate(u.trialEndsAt)}`
+                              : u.hasSubscription
+                                ? "No trial"
+                                : "—"}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {formatDate(u.createdAt)}

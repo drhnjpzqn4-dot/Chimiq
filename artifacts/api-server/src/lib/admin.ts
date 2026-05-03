@@ -14,19 +14,11 @@
 const SUPER_ADMIN_EMAIL = "pia@seafari.se";
 
 export function getAdminEmails(): string[] {
-  // In production, admin is strictly locked to the super admin — env config
-  // cannot widen the allowlist. Outside production (NODE_ENV !== "production")
-  // ADMIN_EMAILS is additive so local dev and the existing recipes test suite
-  // (which sets ADMIN_EMAILS="admin@skinscreen.test") keep working.
-  if (process.env.NODE_ENV === "production") {
-    return [SUPER_ADMIN_EMAIL];
-  }
-  const fromEnv = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  const set = new Set<string>([SUPER_ADMIN_EMAIL, ...fromEnv]);
-  return Array.from(set);
+  // Strict, unconditional lock — admin access is only ever granted to
+  // the hardcoded super admin email, in every environment. ADMIN_EMAILS
+  // env config is intentionally ignored so a misconfigured deploy can
+  // never widen the allowlist.
+  return [SUPER_ADMIN_EMAIL];
 }
 
 export function getRequestEmail(req: { user?: { email?: string | null } }): string | null {

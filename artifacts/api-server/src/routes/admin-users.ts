@@ -174,6 +174,7 @@ router.get("/admin/users", async (req: Request, res: Response) => {
       trialEndsAt: r.trialEndsAt ? r.trialEndsAt.toISOString() : null,
       trialDaysLeft,
       premiumUntil: r.premiumUntil ? r.premiumUntil.toISOString() : null,
+      stripeSubscriptionId: r.stripeSubscriptionId,
       hasSubscription: !!r.stripeSubscriptionId,
       emailVerified: r.emailVerified,
       createdAt: r.createdAt.toISOString(),

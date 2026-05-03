@@ -104,7 +104,10 @@ export async function applyStripeEventToUser(
           plan: "free",
           stripeSubscriptionId: null,
           subscriptionStatus: sub.status,
-          trialEndsAt: null,
+          // Preserve the historical trial end so the admin Users
+          // dashboard can still tell "used trial then cancelled" apart
+          // from "never trialed". Only the active-state branch above
+          // overwrites it from a fresh sub.trial_end value.
         })
         .where(eq(usersTable.stripeCustomerId, customerId));
       log.info(
@@ -198,11 +201,13 @@ export async function applyStripeEventToUser(
         .set({
           plan: "free",
           stripeSubscriptionId: null,
-          // Clear mirrored Stripe state so the admin Users dashboard
-          // bucket logic doesn't misclassify a refunded user as still
-          // "active"/"trialing" until the next subscription.* event.
+          // Mark the subscription as canceled so the admin Users
+          // dashboard bucket logic doesn't keep showing a refunded
+          // user as still "active"/"trialing" until the next
+          // subscription.* event arrives. We deliberately keep
+          // trialEndsAt so "used trial then refunded" is still
+          // distinguishable from "never trialed".
           subscriptionStatus: "canceled",
-          trialEndsAt: null,
         })
         .where(eq(usersTable.stripeCustomerId, customerId));
       log.info(

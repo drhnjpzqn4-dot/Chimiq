@@ -204,7 +204,9 @@ const verdict = {
   modelVersion: "test-model",
 };
 
-const ADMIN_EMAIL = "admin@skinscreen.test";
+// Admin access is hardcoded to pia@seafari.se in lib/admin.ts (super
+// admin lock). Tests authenticate as her to exercise admin-only paths.
+const ADMIN_EMAIL = "pia@seafari.se";
 
 beforeEach(() => {
   state.selectResults = [];
@@ -216,7 +218,10 @@ beforeEach(() => {
   state.transactionCount = 0;
   safetyMock.scan.mockReset();
   safetyMock.scan.mockResolvedValue(verdict);
-  process.env.ADMIN_EMAILS = ADMIN_EMAIL;
+  // ADMIN_EMAILS is ignored by lib/admin.ts (Pia is the only admin),
+  // but we clear it so a test environment with a stale value can't
+  // confuse readers of these tests.
+  delete process.env.ADMIN_EMAILS;
 });
 
 // ---------------------------------------------------------------------------
