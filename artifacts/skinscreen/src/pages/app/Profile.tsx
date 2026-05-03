@@ -75,6 +75,7 @@ export default function ProfileScreen() {
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [mySubmissions, setMySubmissions] = useState<MySubmission[]>([]);
   const [myRecipes, setMyRecipes] = useState<MyRecipe[]>([]);
+  const [unseenRecipeCount, setUnseenRecipeCount] = useState(0);
 
   useEffect(() => {
     fetch("/api/contribute/stats", { credentials: "include" })
@@ -98,8 +99,24 @@ export default function ProfileScreen() {
     // Pull the user's own recipes (#69) so they can see admin notes and
     // edit/resubmit when status is `changes_requested`.
     fetch("/api/recipes/mine", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { recipes: [] }))
-      .then((d) => setMyRecipes((d as { recipes?: MyRecipe[] }).recipes ?? []))
+      .then((r) => (r.ok ? r.json() : { recipes: [], unseenCount: 0 }))
+      .then((d) => {
+        const data = d as { recipes?: MyRecipe[]; unseenCount?: number };
+        setMyRecipes(data.recipes ?? []);
+        const unseen = data.unseenCount ?? 0;
+        setUnseenRecipeCount(unseen);
+        // Mark the review feedback as seen ~2s after the Profile renders
+        // so the dot stays visible long enough to register, then disappears
+        // on the next visit. (#70)
+        if (unseen > 0) {
+          setTimeout(() => {
+            fetch("/api/recipes/mine/seen", {
+              method: "POST",
+              credentials: "include",
+            }).catch(() => {});
+          }, 2000);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -350,9 +367,24 @@ export default function ProfileScreen() {
       {myRecipes.length > 0 && (
         <section className="mb-5">
           <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-              Your DIY recipes
-            </p>
+            <div className="mb-3 flex items-center gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                {t("myRecipes.heading")}
+              </p>
+              {unseenRecipeCount > 0 && (
+                <span
+                  data-testid="my-recipes-unseen-dot"
+                  role="status"
+                  aria-live="polite"
+                  aria-label={t("myRecipes.unseenAria", {
+                    count: unseenRecipeCount,
+                  })}
+                  className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white shadow-sm"
+                >
+                  {unseenRecipeCount}
+                </span>
+              )}
+            </div>
             <ul className="space-y-3">
               {myRecipes.slice(0, 8).map((r) => {
                 const isApproved = r.status === "approved";
@@ -360,12 +392,12 @@ export default function ProfileScreen() {
                 const isChanges = r.status === "changes_requested";
                 const isPending = r.status === "pending";
                 const label = isApproved
-                  ? "Approved"
+                  ? t("myRecipes.status.approved")
                   : isRejected
-                    ? "Rejected"
+                    ? t("myRecipes.status.rejected")
                     : isChanges
-                      ? "Changes requested"
-                      : "Under review";
+                      ? t("myRecipes.status.changesRequested")
+                      : t("myRecipes.status.underReview");
                 const StatusIcon = isApproved
                   ? CheckCircle2
                   : isRejected
@@ -421,9 +453,10 @@ export default function ProfileScreen() {
                         </p>
                       </div>
                       <span
+                        role="status"
                         className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${badgeTone}`}
                       >
-                        <StatusIcon className="h-3 w-3" />
+                        <StatusIcon className="h-3 w-3" aria-hidden="true" />
                         {label}
                       </span>
                     </div>
@@ -433,7 +466,9 @@ export default function ProfileScreen() {
                           isChanges ? "text-amber-800" : "text-destructive"
                         }`}
                       >
-                        <span className="font-semibold">Reviewer note: </span>
+                        <span className="font-semibold">
+                          {t("myRecipes.reviewerNote")}{" "}
+                        </span>
                         {r.adminNote}
                       </p>
                     )}
@@ -444,8 +479,8 @@ export default function ProfileScreen() {
                         data-touch-target
                         className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90"
                       >
-                        <Pencil className="h-3 w-3" />
-                        Edit and resubmit
+                        <Pencil className="h-3 w-3" aria-hidden="true" />
+                        {t("myRecipes.editAndResubmit")}
                       </button>
                     )}
                     {(isPending || isApproved) && (
@@ -461,13 +496,13 @@ export default function ProfileScreen() {
                       >
                         {isApproved ? (
                           <>
-                            <ChevronRight className="h-3 w-3" />
-                            View public page
+                            <ChevronRight className="h-3 w-3" aria-hidden="true" />
+                            {t("myRecipes.viewPublic")}
                           </>
                         ) : (
                           <>
-                            <Pencil className="h-3 w-3" />
-                            Edit while pending
+                            <Pencil className="h-3 w-3" aria-hidden="true" />
+                            {t("myRecipes.editWhilePending")}
                           </>
                         )}
                       </button>

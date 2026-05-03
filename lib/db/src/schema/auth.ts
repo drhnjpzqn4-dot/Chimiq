@@ -25,6 +25,7 @@ export const usersTable = pgTable("users", {
   acceptedContributions: integer("accepted_contributions").notNull().default(0),
   premiumUntil: timestamp("premium_until", { withTimezone: true }),
   emailVerified: boolean("email_verified").notNull().default(false),
+  recipesSeenAt: timestamp("recipes_seen_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

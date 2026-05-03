@@ -5,6 +5,7 @@ import {
   db,
   recipesTable,
   recipeEditEventsTable,
+  usersTable,
   RECIPE_RISK_LEVELS,
   RECIPE_STATUSES,
   type RecipeIngredient,
@@ -150,10 +151,54 @@ router.get("/recipes/mine", async (req, res) => {
       .where(eq(recipesTable.submitterId, req.user.id))
       .orderBy(desc(recipesTable.updatedAt))
       .limit(50);
-    res.json({ recipes: rows });
+    // Unseen review count powers the notification dot on Profile (#70).
+    // A recipe is "unseen" when it's been reviewed by an admin AFTER the
+    // user last opened the My-recipes section. First-ever load (when
+    // recipesSeenAt is null) treats every reviewed row as unseen.
+    // We count separately from `rows` because rows is capped at 50, and
+    // a user with >50 recipes could otherwise miss feedback on an older one.
+    const userRows = await db
+      .select({ recipesSeenAt: usersTable.recipesSeenAt })
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.id))
+      .limit(1);
+    const seenAt = userRows[0]?.recipesSeenAt ?? null;
+    const unseenCountRows = await db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(recipesTable)
+      .where(
+        and(
+          eq(recipesTable.submitterId, req.user.id),
+          sql`${recipesTable.reviewedAt} IS NOT NULL`,
+          seenAt
+            ? sql`${recipesTable.reviewedAt} > ${seenAt.toISOString()}`
+            : sql`TRUE`,
+        ),
+      );
+    const unseenCount = unseenCountRows[0]?.c ?? 0;
+    res.json({ recipes: rows, unseenCount });
   } catch (err) {
     req.log.error({ err }, "GET /recipes/mine failed");
     res.status(500).json({ error: "Failed to load your recipes." });
+  }
+});
+
+// Mark all current review feedback on the user's recipes as "seen". Called
+// when the Profile -> Your DIY recipes section becomes visible. (#70)
+router.post("/recipes/mine/seen", async (req, res) => {
+  if (!req.user?.id) {
+    res.status(401).json({ error: "Sign in first." });
+    return;
+  }
+  try {
+    await db
+      .update(usersTable)
+      .set({ recipesSeenAt: new Date() })
+      .where(eq(usersTable.id, req.user.id));
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "POST /recipes/mine/seen failed");
+    res.status(500).json({ error: "Failed to mark recipes as seen." });
   }
 });
 

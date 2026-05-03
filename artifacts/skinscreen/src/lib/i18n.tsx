@@ -628,6 +628,18 @@ const en: Dict = {
   "legal.privacyTitle": "Privacy Policy",
   "legal.termsTitle": "Terms of Service",
   "legal.disclaimerTitle": "Medical & Health Disclaimer",
+
+  // ───── Profile -> Your DIY recipes (#69 / #70 / #78) ─────
+  "myRecipes.heading": "Your DIY recipes",
+  "myRecipes.unseenAria": "{count} new updates",
+  "myRecipes.status.approved": "Approved",
+  "myRecipes.status.rejected": "Rejected",
+  "myRecipes.status.changesRequested": "Changes requested",
+  "myRecipes.status.underReview": "Under review",
+  "myRecipes.reviewerNote": "Reviewer note:",
+  "myRecipes.editAndResubmit": "Edit and resubmit",
+  "myRecipes.viewPublic": "View public page",
+  "myRecipes.editWhilePending": "Edit while pending",
 };
 
 const sv: Dict = {
@@ -1246,6 +1258,18 @@ const sv: Dict = {
   "legal.privacyTitle": "Integritetspolicy",
   "legal.termsTitle": "Användarvillkor",
   "legal.disclaimerTitle": "Medicinsk ansvarsfriskrivning",
+
+  // ───── Profile -> Your DIY recipes (#69 / #70 / #78) ─────
+  "myRecipes.heading": "Dina DIY-recept",
+  "myRecipes.unseenAria": "{count} nya uppdateringar",
+  "myRecipes.status.approved": "Godkänt",
+  "myRecipes.status.rejected": "Avvisat",
+  "myRecipes.status.changesRequested": "Ändringar begärda",
+  "myRecipes.status.underReview": "Under granskning",
+  "myRecipes.reviewerNote": "Granskarens kommentar:",
+  "myRecipes.editAndResubmit": "Redigera och skicka igen",
+  "myRecipes.viewPublic": "Visa publik sida",
+  "myRecipes.editWhilePending": "Redigera under granskning",
 };
 
 const fr: Dict = {
@@ -1854,6 +1878,18 @@ const fr: Dict = {
   "legal.privacyTitle": "Politique de confidentialité",
   "legal.termsTitle": "Conditions d'utilisation",
   "legal.disclaimerTitle": "Avis médical et de santé",
+
+  // ───── Profile -> Your DIY recipes (#69 / #70 / #78) ─────
+  "myRecipes.heading": "Vos recettes DIY",
+  "myRecipes.unseenAria": "{count} nouvelles mises à jour",
+  "myRecipes.status.approved": "Approuvée",
+  "myRecipes.status.rejected": "Rejetée",
+  "myRecipes.status.changesRequested": "Modifications demandées",
+  "myRecipes.status.underReview": "En cours d'examen",
+  "myRecipes.reviewerNote": "Note du relecteur :",
+  "myRecipes.editAndResubmit": "Modifier et renvoyer",
+  "myRecipes.viewPublic": "Voir la page publique",
+  "myRecipes.editWhilePending": "Modifier pendant l'examen",
 };
 
 const DICTS: Record<Locale, Dict> = { en, sv, fr };
