@@ -354,4 +354,82 @@ router.get("/admin/tester-promo/history", async (req: Request, res: Response) =>
   }
 });
 
+// GET /admin/tester-promo/history.csv
+//
+// Streams *all* rows matching the action filter (no pagination) as CSV so
+// Pia can pull the audit log into a spreadsheet for quarterly reviews.
+// Columns are intentionally snake_case to match the database / what an
+// analyst would expect, even though the JSON endpoint above uses camelCase.
+function csvEscape(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  const s = String(value);
+  // Quote if the value contains a comma, quote, or newline. Double any
+  // embedded quotes per RFC 4180.
+  if (/[",\r\n]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+router.get("/admin/tester-promo/history.csv", async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const actionParam = typeof req.query.action === "string" ? req.query.action : "";
+  const actionFilter =
+    actionParam === "raise_cap" || actionParam === "mint" ? actionParam : null;
+
+  const whereClause = actionFilter
+    ? eq(testerPromoChangesTable.action, actionFilter)
+    : undefined;
+
+  try {
+    const rows = await db
+      .select()
+      .from(testerPromoChangesTable)
+      .where(whereClause)
+      .orderBy(desc(testerPromoChangesTable.createdAt));
+
+    const filenameSuffix = actionFilter ? `-${actionFilter}` : "";
+    const filename = `tester-promo-history${filenameSuffix}.csv`;
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`,
+    );
+
+    const header = [
+      "created_at",
+      "action",
+      "admin_email",
+      "old_code",
+      "old_max_redemptions",
+      "new_code",
+      "new_max_redemptions",
+    ].join(",");
+    res.write(header + "\r\n");
+
+    for (const r of rows) {
+      const line = [
+        csvEscape(r.createdAt.toISOString()),
+        csvEscape(r.action),
+        csvEscape(r.adminEmail),
+        csvEscape(r.oldCode),
+        csvEscape(r.oldMaxRedemptions),
+        csvEscape(r.newCode),
+        csvEscape(r.newMaxRedemptions),
+      ].join(",");
+      res.write(line + "\r\n");
+    }
+    res.end();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[admin/tester-promo] failed to export history CSV", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to export promo history." });
+    } else {
+      res.end();
+    }
+  }
+});
+
 export default router;

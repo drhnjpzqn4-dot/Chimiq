@@ -8,6 +8,7 @@ import {
   ChevronRight,
   History,
   ArrowLeft,
+  Download,
 } from "lucide-react";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 
@@ -174,6 +175,20 @@ function AdminTesterPromoHistoryPageInner() {
               </button>
             );
           })}
+          <a
+            href={`/api/admin/tester-promo/history.csv${
+              actionFilter !== "all" ? `?action=${actionFilter}` : ""
+            }`}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-border/60 bg-white text-foreground hover:border-primary/40 hover:bg-muted/30 transition-colors"
+            title={
+              actionFilter === "all"
+                ? "Download all rows as CSV"
+                : `Download ${actionFilter === "mint" ? "mint" : "raise-cap"} rows as CSV`
+            }
+          >
+            <Download className="w-3.5 h-3.5" />
+            Download CSV
+          </a>
         </div>
 
         {error && (
