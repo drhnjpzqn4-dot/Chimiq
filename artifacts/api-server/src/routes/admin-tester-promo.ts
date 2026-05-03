@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import type Stripe from "stripe";
 import { db, testerPromoChangesTable } from "@workspace/db";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient";
 import { isRequestAdmin, getRequestEmail } from "../lib/admin";
 import {
@@ -291,6 +291,8 @@ async function recordPromoChange(opts: {
 //   - page: 1-indexed page number (default 1)
 //   - pageSize: rows per page, 1..100 (default 20)
 //   - action: filter to "raise_cap" or "mint" only
+//   - q: free-text search; matches case-insensitively against
+//        new_code, old_code, or admin_email (substring)
 //
 // Response includes `total` (matching the action filter) and the page
 // metadata so the dedicated history page can paginate without guessing.
@@ -309,9 +311,33 @@ router.get("/admin/tester-promo/history", async (req: Request, res: Response) =>
   const actionFilter =
     actionParam === "raise_cap" || actionParam === "mint" ? actionParam : null;
 
-  const whereClause = actionFilter
-    ? eq(testerPromoChangesTable.action, actionFilter)
-    : undefined;
+  const qRaw = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  // Cap query length so we don't push a giant string into the DB. 200
+  // chars is well above any realistic promo code or email length.
+  const qFilter = qRaw.length > 0 ? qRaw.slice(0, 200) : null;
+
+  const whereParts: SQL[] = [];
+  if (actionFilter) {
+    whereParts.push(eq(testerPromoChangesTable.action, actionFilter));
+  }
+  if (qFilter) {
+    // Escape LIKE wildcards in the user input so e.g. "%" or "_" is
+    // treated as a literal, not a wildcard.
+    const escaped = qFilter.replace(/[\\%_]/g, (c) => `\\${c}`);
+    const pattern = `%${escaped}%`;
+    const orClause = or(
+      ilike(testerPromoChangesTable.newCode, pattern),
+      ilike(testerPromoChangesTable.oldCode, pattern),
+      ilike(testerPromoChangesTable.adminEmail, pattern),
+    );
+    if (orClause) whereParts.push(orClause);
+  }
+  const whereClause =
+    whereParts.length === 0
+      ? undefined
+      : whereParts.length === 1
+        ? whereParts[0]
+        : and(...whereParts);
 
   try {
     const offset = (page - 1) * pageSize;
@@ -346,6 +372,7 @@ router.get("/admin/tester-promo/history", async (req: Request, res: Response) =>
       page,
       pageSize,
       action: actionFilter,
+      q: qFilter,
     });
   } catch (err) {
     // eslint-disable-next-line no-console

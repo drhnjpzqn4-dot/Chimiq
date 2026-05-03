@@ -9,6 +9,7 @@ import {
   History,
   ArrowLeft,
   Download,
+  Search,
 } from "lucide-react";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 
@@ -31,6 +32,7 @@ interface HistoryResponse {
   page: number;
   pageSize: number;
   action: "raise_cap" | "mint" | null;
+  q: string | null;
 }
 
 type ActionFilter = "all" | "raise_cap" | "mint";
@@ -64,6 +66,18 @@ function AdminTesterPromoHistoryPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce typing → query, mirroring AdminUsersPage's 300ms window so
+  // Pia gets the same snappy-but-not-chatty feel across admin tools.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -74,6 +88,7 @@ function AdminTesterPromoHistoryPageInner() {
         pageSize: String(PAGE_SIZE),
       });
       if (actionFilter !== "all") params.set("action", actionFilter);
+      if (debouncedSearch) params.set("q", debouncedSearch);
       const res = await fetch(
         `/api/admin/tester-promo/history?${params.toString()}`,
         { credentials: "include" },
@@ -90,7 +105,7 @@ function AdminTesterPromoHistoryPageInner() {
       setError("Network error loading history.");
     }
     setLoading(false);
-  }, [page, actionFilter]);
+  }, [page, actionFilter, debouncedSearch]);
 
   useEffect(() => {
     void fetchHistory();
@@ -152,6 +167,19 @@ function AdminTesterPromoHistoryPageInner() {
             Every raise-cap and mint action recorded for the tester promo, newest
             first. Signed in as {user?.email}.
           </p>
+        </div>
+
+        <div className="mb-4">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by code or admin email…"
+              className="w-full pl-9 pr-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+            />
+          </div>
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
