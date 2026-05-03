@@ -308,7 +308,7 @@ async function main() {
   const { TOP_MISTAKES, TOP_WORRIES, SEVERITY_LABEL, FREQUENCY_LABEL } =
     await loadDiscoverContent();
 
-  const baseUrl = (process.env.OG_BASE_URL ?? "https://chimiq.app").replace(/\/+$/, "");
+  const baseUrl = (process.env.OG_BASE_URL ?? "https://chimiq.com").replace(/\/+$/, "");
   const basePath = (process.env.BASE_PATH ?? "/").replace(/\/+$/, "");
   const ogPublicBase = `${basePath}/og/discover`;
   const articleBase = basePath; // empty when basePath is "/"

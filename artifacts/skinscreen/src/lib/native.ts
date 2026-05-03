@@ -18,7 +18,7 @@ export function nativePlatform(): "ios" | "android" | "web" {
  * relative `/api/...` fetch would hit the local origin. The fetch
  * interceptor below rewrites them to absolute URLs against this host.
  */
-export const NATIVE_API_BASE_URL = "https://app.chimiq.app";
+export const NATIVE_API_BASE_URL = "https://app.chimiq.com";
 
 export const MANAGE_SUBSCRIPTION_WEB_URL = `${NATIVE_API_BASE_URL}/pricing`;
 
