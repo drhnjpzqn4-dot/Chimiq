@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, shelfProductsTable, getUserPlan } from "@workspace/db";
+import { db, shelfProductsTable, usersTable, getUserPlan } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import {
   FREE_DAILY_SCAN_LIMIT,
@@ -58,6 +58,7 @@ router.get("/stats/scans/today", async (req, res) => {
 let cachedStats: {
   analyses: number;
   products: number;
+  users: number;
   updatedAt: number;
 } | null = null;
 
@@ -67,24 +68,26 @@ router.get("/stats", async (req, res) => {
   const now = Date.now();
 
   if (cachedStats && now - cachedStats.updatedAt < CACHE_TTL_MS) {
-    const { analyses, products } = cachedStats;
-    res.json({ analyses, products });
+    const { analyses, products, users } = cachedStats;
+    res.json({ analyses, products, users });
     return;
   }
 
   try {
-    const productsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(shelfProductsTable);
+    const [productsResult, usersResult] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(shelfProductsTable),
+      db.select({ count: sql<number>`count(*)` }).from(usersTable),
+    ]);
 
     const products = Number(productsResult[0]?.count ?? 0);
+    const users = Number(usersResult[0]?.count ?? 0);
     const analyses = Math.max(products * 3 + 12, 20);
 
-    cachedStats = { analyses, products, updatedAt: now };
-    res.json({ analyses, products });
+    cachedStats = { analyses, products, users, updatedAt: now };
+    res.json({ analyses, products, users });
   } catch (err) {
     req.log.warn({ err }, "Stats query failed");
-    res.json({ analyses: 24, products: 8 });
+    res.json({ analyses: 24, products: 8, users: 0 });
   }
 });
 

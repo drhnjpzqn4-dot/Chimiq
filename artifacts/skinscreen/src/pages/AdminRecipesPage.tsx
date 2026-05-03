@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
-import { useLoginWithConsent } from "@/components/ConsentGate";
+import { useLocation } from "wouter";
 import {
   Loader2,
   CheckCircle2,
@@ -118,14 +118,14 @@ function AdminRecipesPageInner() {
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
   const [editSaving, setEditSaving] = useState(false);
 
-  const { requestLogin } = useLoginWithConsent();
+  const [, navigate] = useLocation();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      requestLogin(base + "/admin/recipes");
+      navigate(`/signup?next=${encodeURIComponent(base + "/admin/recipes")}`);
     }
-  }, [isLoading, isAuthenticated, base, requestLogin]);
+  }, [isLoading, isAuthenticated, base, navigate]);
 
   // Debounce the search input → query.
   useEffect(() => {

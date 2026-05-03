@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
-import { useLoginWithConsent } from "@/components/ConsentGate";
 import { ChatPanelLauncher } from "@/components/ChatPanelLauncher";
 
 const ScanScreen = lazy(() => import("@/pages/app/Scan"));
@@ -28,14 +27,13 @@ function AppRouteFallback() {
 
 export default function AppPage() {
   const { isLoading, isAuthenticated } = useAuth();
-  const { requestLogin } = useLoginWithConsent();
-  const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      requestLogin(base + "/app/scan");
+      navigate("/signup?next=" + encodeURIComponent("/app/scan"), { replace: true });
     }
-  }, [isLoading, isAuthenticated, base, requestLogin]);
+  }, [isLoading, isAuthenticated, navigate]);
 
   if (isLoading) {
     return <AppRouteFallback />;

@@ -32,7 +32,7 @@ const PricingSection = lazy(() =>
 );
 import type { LandingConfig } from "@/lib/landing-config";
 import { useAuth } from "@workspace/replit-auth-web";
-import { useLoginWithConsent } from "@/components/ConsentGate";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@/lib/i18n";
@@ -198,8 +198,9 @@ function ContactFooterForm() {
 export function LandingPage({ config }: LandingPageProps) {
   const { t } = useTranslation();
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
-  const { requestLogin } = useLoginWithConsent();
-  const login = requestLogin;
+  const [, navigate] = useLocation();
+  const goToSignup = () => navigate("/signup");
+  const goToLogin = () => navigate("/login");
   const [scannerSeed, setScannerSeed] = useState<ScannerSeed | null>(null);
   const [stats, setStats] = useState<SiteStats | null>(null);
   const [subNavVisible, setSubNavVisible] = useState(false);
@@ -359,7 +360,7 @@ export function LandingPage({ config }: LandingPageProps) {
             ) : (
               <button
                 type="button"
-                onClick={() => login()}
+                onClick={goToLogin}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-primary-strong hover:bg-primary-strong/90 px-4 py-2 rounded-full transition-colors"
               >
                 {t("auth.signIn")}
@@ -465,7 +466,7 @@ export function LandingPage({ config }: LandingPageProps) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => login()}
+                  onClick={goToSignup}
                   className="inline-flex items-center justify-center gap-2.5 bg-primary-strong hover:bg-primary-strong/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(53,110,53,0.35)] hover:shadow-[0_0_60px_rgba(53,110,53,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
                 >
                   {t("nav.signInGetStarted")}
@@ -836,7 +837,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 {!isAuthenticated && (
                   <button
                     type="button"
-                    onClick={() => login()}
+                    onClick={goToSignup}
                     className="inline-flex items-center gap-2 text-white bg-primary-strong hover:bg-primary-strong/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                   >
                     {t("myShelfMkt.signInToStart")}
@@ -879,7 +880,7 @@ export function LandingPage({ config }: LandingPageProps) {
                         {t("myShelfMkt.shelfWaitingBody")}
                       </p>
                       <button
-                        onClick={() => login()}
+                        onClick={goToSignup}
                         className="inline-flex items-center gap-2 text-white bg-primary-strong hover:bg-primary-strong/90 px-5 py-2.5 rounded-full font-medium text-sm transition-colors"
                       >
                         {t("myShelfMkt.signInToGetStarted")}
@@ -957,7 +958,7 @@ export function LandingPage({ config }: LandingPageProps) {
               {!isAuthenticated ? (
                 <button
                   type="button"
-                  onClick={() => login()}
+                  onClick={goToSignup}
                   className="inline-flex items-center gap-2 text-white bg-primary-strong hover:bg-primary-strong/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                 >
                   {t("earnPremium.signInToContribute")}
@@ -1048,7 +1049,7 @@ export function LandingPage({ config }: LandingPageProps) {
             {!isAuthenticated && (
               <button
                 type="button"
-                onClick={() => login()}
+                onClick={goToSignup}
                 className="text-sm font-medium text-primary-strong hover:underline"
               >
                 {t("download.notifyMe")}

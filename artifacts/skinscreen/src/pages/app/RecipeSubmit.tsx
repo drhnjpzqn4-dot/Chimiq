@@ -11,7 +11,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { useLoginWithConsent } from "@/components/ConsentGate";
 import { useTranslation } from "@/lib/i18n";
 
 const CATEGORIES = [
@@ -93,20 +92,18 @@ export default function RecipeSubmitScreen() {
     [t],
   );
 
-  const { requestLogin } = useLoginWithConsent();
-
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
       const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
-      requestLogin(base + "/app/recipes/new");
+      navigate(`/signup?next=${encodeURIComponent(base + "/app/recipes/new")}`);
       return;
     }
     fetch("/api/recipes/eligibility", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setEligibility(d as Eligibility))
       .catch(() => setEligibility({ canSubmit: false, emailVerified: false, reason: "auth_required" }));
-  }, [isAuthenticated, isLoading, requestLogin]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   // Edit mode: pull the user's recipe from /recipes/mine, find the row by
   // id, and prefill the form. We deliberately use /mine (not /recipes/:id)

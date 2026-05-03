@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { getBaseUrl } from "@/lib/base-url";
 import { useTranslation } from "@/lib/i18n";
 import { isNative, openExternal } from "@/lib/native";
+import { getFreeFeatures, getPremiumFeatures } from "@/lib/pricing-features";
 
 export default function Pricing() {
   const [, navigate] = useLocation();
@@ -39,32 +40,9 @@ export default function Pricing() {
       .catch(() => {});
   }, []);
 
-  const FREE_FEATURES = useMemo(
-    () => [
-      { label: t("pricing.feat.safetyAnalysis"), included: true },
-      { label: t("pricing.feat.compare2"), included: true },
-      { label: t("pricing.feat.findDerm"), included: true },
-      { label: t("pricing.feat.barcode"), included: true },
-      { label: t("pricing.feat.shelfLimited"), included: true },
-      { label: t("pricing.feat.shelfUnlimited"), included: false },
-      { label: t("pricing.feat.routineCheck"), included: false },
-      { label: t("pricing.feat.aiChatWith"), included: false },
-      { label: t("pricing.feat.pdf"), included: false },
-    ],
-    [t],
-  );
-
+  const FREE_FEATURES = useMemo(() => getFreeFeatures(t), [t]);
   const PREMIUM_FEATURES = useMemo(
-    () => [
-      { label: t("pricing.feat.safetyAnalysis") },
-      { label: t("pricing.feat.compare2") },
-      { label: t("pricing.feat.findDerm") },
-      { label: t("pricing.feat.barcode") },
-      { label: t("pricing.feat.shelfUnlimited") },
-      { label: t("pricing.feat.routineCheck") },
-      { label: t("pricing.feat.aiChatWith") },
-      { label: t("pricing.feat.pdf") },
-    ],
+    () => getPremiumFeatures(t).map((label) => ({ label })),
     [t],
   );
 
@@ -100,7 +78,7 @@ export default function Pricing() {
         body: JSON.stringify({ plan: billing }),
       });
       if (res.status === 401) {
-        navigate("/");
+        navigate("/signup?next=/pricing");
         return;
       }
       const data = (await res.json()) as { url?: string; error?: string };

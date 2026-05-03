@@ -19,6 +19,7 @@ import { isNative } from "@/lib/native";
 const HomeA = lazy(() => import("@/pages/HomeA"));
 const HomeB = lazy(() => import("@/pages/HomeB"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
+const Signup = lazy(() => import("@/pages/Signup"));
 const AppPage = lazy(() => import("@/pages/AppPage"));
 const AdminPage = lazy(() => import("@/pages/AdminPage"));
 const AdminRecipesPage = lazy(() => import("@/pages/AdminRecipesPage"));
@@ -65,6 +66,8 @@ function Router() {
         <Route path="/a" component={HomeA} />
         <Route path="/b" component={HomeB} />
         <Route path="/pricing" component={Pricing} />
+        <Route path="/signup" component={Signup} />
+        <Route path="/login" component={Signup} />
         <Route path="/app" component={AppPage} />
         <Route path="/app/:rest*" component={AppPage} />
         <Route path="/discover" component={Discover} />

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
-import { useLoginWithConsent } from "@/components/ConsentGate";
 import {
   Loader2,
   CheckCircle2,
@@ -82,7 +82,7 @@ function AdminPageInner() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const { requestLogin } = useLoginWithConsent();
+  const [, navigate] = useLocation();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
   // Debounce search input by 300ms so each keystroke doesn't refire the
@@ -94,9 +94,9 @@ function AdminPageInner() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      requestLogin(base + "/admin/submissions");
+      navigate(`/signup?next=${encodeURIComponent(base + "/admin/submissions")}`);
     }
-  }, [isLoading, isAuthenticated, base, requestLogin]);
+  }, [isLoading, isAuthenticated, base, navigate]);
 
   const fetchSubmissions = useCallback(async () => {
     setLoading(true);
