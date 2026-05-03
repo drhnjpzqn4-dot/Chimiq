@@ -60,6 +60,7 @@ jobs:
         # actually rewrote IngredientScanner.tsx. If the script failed
         # (non-zero exit), this step is skipped and the job is marked
         # failed — which triggers GitHub's default failure email.
+        id: cpr
         if: success()
         uses: peter-evans/create-pull-request@v6
         with:
@@ -71,8 +72,23 @@ jobs:
             Automated weekly refresh of OBF front-image URLs in
             `artifacts/skinscreen/src/components/IngredientScanner.tsx`.
 
-            Triggered by `.github/workflows/refresh-obf-images.yml`. Merge
-            once the diff looks reasonable so the deployed scanner gallery
-            picks up the new revs.
+            Triggered by `.github/workflows/refresh-obf-images.yml`. This
+            PR is set to auto-merge once required status checks pass, so
+            a human only needs to step in if checks fail or the diff
+            looks suspicious.
           add-paths: artifacts/skinscreen/src/components/IngredientScanner.tsx
           delete-branch: true
+
+      - name: Enable auto-merge on the refresh PR
+        # Tells GitHub to merge the PR automatically once all required
+        # status checks pass and any required reviews are satisfied. If
+        # checks fail, the PR stays open for a human to triage instead
+        # of merging a broken refresh. Requires "Allow auto-merge" to be
+        # enabled in the repo settings (Settings → General → Pull
+        # Requests). Skipped when the previous step did not actually
+        # open or update a PR (e.g. no diff to ship).
+        if: success() && steps.cpr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
+        run: gh pr merge --auto --squash "$PR_NUMBER"
