@@ -126,7 +126,7 @@ export default function ScanScreen() {
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [scansToday, setScansToday] = useState<number>(() => readScanCount());
   const [recent, setRecent] = useState<RecentScan[]>(() => readRecent());
-  const { isPremium } = useUserPlan();
+  const { isPremium, trialEligible, trialDays } = useUserPlan();
   const { t, locale } = useTranslation();
 
   // Pull the authoritative per-user count from the server. Falls back to
@@ -303,7 +303,11 @@ export default function ScanScreen() {
           ) : (
             <button
               type="button"
-              onClick={() => navigate("/app/profile")}
+              // When the free daily cap is hit, jump straight to the
+              // pricing/checkout surface instead of profile so the trial
+              // promise is one tap away. Under-limit chips still link to
+              // profile (where users manage everything else).
+              onClick={() => navigate(overLimit ? "/pricing" : "/app/profile")}
               data-touch-target
               className={`inline-flex min-h-[24px] items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors ${
                 overLimit
@@ -313,7 +317,9 @@ export default function ScanScreen() {
               aria-label={t("scan.freeScansAriaFmt", { used: scansToday, total: FREE_DAILY_LIMIT })}
             >
               {overLimit
-                ? t("scan.dailyLimitGoPremium")
+                ? trialEligible
+                  ? t("scan.dailyLimitStartTrial", { days: trialDays })
+                  : t("scan.dailyLimitGoPremium")
                 : t("scan.freeScansLeftFmt", { remaining, total: FREE_DAILY_LIMIT })}
             </button>
           )}

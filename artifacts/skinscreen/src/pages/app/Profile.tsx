@@ -376,17 +376,27 @@ export default function ProfileScreen() {
                 {t("profileCard.nativePremiumNotice")}
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => navigate("/pricing")}
-                data-touch-target
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
-              >
-                <Crown className="h-4 w-4" />
-                {trialEligible
-                  ? t("pricing.startTrialCta", { days: trialDays })
-                  : t("profileCard.upgradeToPremium")}
-              </button>
+              <div className="flex flex-1 flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => navigate("/pricing")}
+                  data-touch-target
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
+                >
+                  <Crown className="h-4 w-4" />
+                  {trialEligible
+                    ? t("pricing.startTrialCta", { days: trialDays })
+                    : t("profileCard.upgradeToPremium")}
+                </button>
+                {trialEligible && (
+                  <p className="px-1 text-center text-[10px] leading-snug text-muted-foreground">
+                    {t("pricing.trialFinePrint", {
+                      days: trialDays,
+                      price: "49 SEK/mo",
+                    })}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
