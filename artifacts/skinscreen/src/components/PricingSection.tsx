@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Check, X, Zap, Loader2, ShieldCheck } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 import { getBaseUrl } from "@/lib/base-url";
 import { useTranslation } from "@/lib/i18n";
 import { getFreeFeatures, getPremiumFeatures } from "@/lib/pricing-features";
+import {
+  getStoredBillingPreference,
+  setStoredBillingPreference,
+} from "@/lib/billing-preference";
 
 export function PricingSection() {
   const [, navigate] = useLocation();
@@ -14,7 +18,13 @@ export function PricingSection() {
   const { plan, isLoading, trialEligible, trialDays } = useUserPlan();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const [billing, setBilling] = useState<"monthly" | "yearly">(
+    getStoredBillingPreference,
+  );
+
+  useEffect(() => {
+    setStoredBillingPreference(billing);
+  }, [billing]);
 
   const FREE_FEATURES = useMemo(() => getFreeFeatures(t), [t]);
   const PREMIUM_FEATURES = useMemo(

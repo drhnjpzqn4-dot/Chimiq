@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import {
   Check, X, Zap, ShieldCheck, MessageCircle, FileText, Layers,
@@ -11,6 +11,10 @@ import { getBaseUrl } from "@/lib/base-url";
 import { useTranslation } from "@/lib/i18n";
 import { isNative, openExternal } from "@/lib/native";
 import { getFreeFeatures, getPremiumFeatures } from "@/lib/pricing-features";
+import {
+  getStoredBillingPreference,
+  setStoredBillingPreference,
+} from "@/lib/billing-preference";
 
 export default function Pricing() {
   const [, navigate] = useLocation();
@@ -19,7 +23,13 @@ export default function Pricing() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const [billing, setBilling] = useState<"monthly" | "yearly">(
+    getStoredBillingPreference,
+  );
+
+  useEffect(() => {
+    setStoredBillingPreference(billing);
+  }, [billing]);
 
   const FREE_FEATURES = useMemo(() => getFreeFeatures(t), [t]);
   const PREMIUM_FEATURES = useMemo(
