@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 import {
   Loader2,
@@ -118,17 +118,43 @@ function formatDateTime(iso: string): string {
   });
 }
 
+// Parse the bookmarkable filter params out of the current URL. We only
+// round-trip `actionFilter`, `q`, and `page` so Pia can refresh, share a
+// link, or use the back button without losing her view. Date-range
+// filters are intentionally session-local for now.
+function readFiltersFromUrl(): {
+  actionFilter: ActionFilter;
+  q: string;
+  page: number;
+} {
+  if (typeof window === "undefined") {
+    return { actionFilter: "all", q: "", page: 1 };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const rawAction = params.get("action");
+  const actionFilter: ActionFilter =
+    rawAction === "raise_cap" || rawAction === "mint" ? rawAction : "all";
+  const q = params.get("q") ?? "";
+  const rawPage = Number.parseInt(params.get("page") ?? "1", 10);
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
+  return { actionFilter, q, page };
+}
+
 function AdminTesterPromoHistoryPageInner() {
   const { user, logout } = useAuth();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
+  const initialFilters = useMemo(() => readFiltersFromUrl(), []);
+
   const [data, setData] = useState<HistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
-  const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [actionFilter, setActionFilter] = useState<ActionFilter>(
+    initialFilters.actionFilter,
+  );
+  const [page, setPage] = useState(initialFilters.page);
+  const [searchInput, setSearchInput] = useState(initialFilters.q);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialFilters.q);
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
   // YYYY-MM-DD strings bound to the date inputs. We keep the strings (not
   // Date objects) so the inputs render exactly what the user picked even
@@ -140,7 +166,14 @@ function AdminTesterPromoHistoryPageInner() {
 
   // Debounce typing → query, mirroring AdminUsersPage's 300ms window so
   // Pia gets the same snappy-but-not-chatty feel across admin tools.
+  // Skip the very first render so a deep link like ?q=foo&page=3 keeps
+  // the hydrated page instead of being reset to 1 by the initial debounce.
+  const isFirstSearchRender = useRef(true);
   useEffect(() => {
+    if (isFirstSearchRender.current) {
+      isFirstSearchRender.current = false;
+      return;
+    }
     const t = setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
       setPage(1);
@@ -198,6 +231,28 @@ function AdminTesterPromoHistoryPageInner() {
   useEffect(() => {
     void fetchHistory();
   }, [fetchHistory]);
+
+  // Mirror the bookmarkable filters into window.location.search so that
+  // refreshing or sharing the URL restores the same view. We use
+  // replaceState (not pushState) to avoid pushing a new history entry on
+  // every keystroke; the browser still preserves the URL across refreshes
+  // and back/forward navigation away from and back to this page.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (actionFilter !== "all") params.set("action", actionFilter);
+    else params.delete("action");
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    else params.delete("q");
+    if (page > 1) params.set("page", String(page));
+    else params.delete("page");
+    const qs = params.toString();
+    const next = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`;
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (next !== current) {
+      window.history.replaceState(window.history.state, "", next);
+    }
+  }, [actionFilter, debouncedSearch, page]);
 
   const handlePresetClick = useCallback((preset: DatePreset) => {
     setDatePreset(preset);
