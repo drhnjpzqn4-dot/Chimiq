@@ -715,7 +715,8 @@ function ProductImageThumb({
   size: number;
   radius: number;
 }) {
-  const [errored, setErrored] = useState(false);
+  const [erroredSrc, setErroredSrc] = useState<string | null>(null);
+  const errored = !!src && erroredSrc === src;
   if (!src || errored) {
     return (
       <div
@@ -737,7 +738,7 @@ function ProductImageThumb({
       src={src}
       alt=""
       loading="lazy"
-      onError={() => setErrored(true)}
+      onError={() => setErroredSrc(src)}
       style={{
         width: size,
         height: size,
