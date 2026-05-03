@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import type { Logger } from "pino";
-import { eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+import { eq, or } from "drizzle-orm";
+import { db, usersTable, paymentTestChargesTable } from "@workspace/db";
 
 /**
  * Apply a (already-verified) Stripe webhook event to our internal user state.
@@ -101,6 +101,60 @@ export async function applyStripeEventToUser(
           ? charge.customer
           : (charge.customer?.id ?? null);
       if (!customerId) return;
+
+      // Skip the operator's go-live verification charges (#107). The admin
+      // "Test live charge" button inserts a payment_test_charges audit row
+      // BEFORE issuing the refund, so any matching charge.refunded event is
+      // a verification ping — not a real cancellation. We mark the audit
+      // row as "delivered" so the UI can confirm true end-to-end webhook
+      // delivery, then early-return without touching user.plan.
+      //
+      // We also accept charge.metadata.purpose as a belt-and-suspenders
+      // fallback in case the audit insert raced the webhook.
+      const paymentIntentId =
+        typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : (charge.payment_intent?.id ?? null);
+      const matchClauses = [];
+      if (paymentIntentId) {
+        matchClauses.push(
+          eq(paymentTestChargesTable.paymentIntentId, paymentIntentId),
+        );
+      }
+      if (charge.id) {
+        matchClauses.push(eq(paymentTestChargesTable.chargeId, charge.id));
+      }
+      let auditMatched = false;
+      if (matchClauses.length > 0) {
+        const matchExpr =
+          matchClauses.length === 1 ? matchClauses[0] : or(...matchClauses);
+        const updated = await db
+          .update(paymentTestChargesTable)
+          .set({
+            webhookReceivedAt: new Date(),
+            webhookEventId: event.id,
+            ...(charge.id ? { chargeId: charge.id } : {}),
+          })
+          .where(matchExpr!)
+          .returning({
+            paymentIntentId: paymentTestChargesTable.paymentIntentId,
+          });
+        auditMatched = updated.length > 0;
+      }
+      if (auditMatched || charge.metadata?.purpose === "go_live_test_charge") {
+        log.info(
+          {
+            customerId,
+            chargeId: charge.id,
+            paymentIntentId,
+            auditMatched,
+            metadataMatched:
+              charge.metadata?.purpose === "go_live_test_charge",
+          },
+          "Ignoring go-live test charge refund — leaving user.plan unchanged",
+        );
+        return;
+      }
       // Only downgrade on full refunds. Partial refunds may be promo credits
       // or partial-period adjustments and shouldn't kick a paying user off.
       const fullyRefunded =

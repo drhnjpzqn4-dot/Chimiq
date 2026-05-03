@@ -1,7 +1,13 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, usersTable, getUserPlan } from "@workspace/db";
+import {
+  db,
+  usersTable,
+  getUserPlan,
+  paymentTestChargesTable,
+} from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient";
+import { isRequestAdmin } from "../lib/admin";
 
 const router: IRouter = Router();
 
@@ -194,5 +200,312 @@ router.post("/payments/portal", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to open billing portal" });
   }
 });
+
+/**
+ * POST /payments/admin/test-charge — admin-only one-tap go-live verification.
+ *
+ * Creates a 1 SEK off-session PaymentIntent against the admin's own saved
+ * card, immediately refunds it, and returns the resulting IDs plus the
+ * webhook endpoint status so the operator can verify that:
+ *   1. The connected Stripe account accepts a real charge.
+ *   2. A webhook endpoint is registered and enabled for `charge.refunded`
+ *      (the path that downgrades subscribers — see LAUNCH_CHECKLIST §6.4).
+ *
+ * Restrictions:
+ *   - Caller must be authenticated AND in ADMIN_EMAILS.
+ *   - Refuses if Stripe is in test mode unless the request body contains
+ *     `confirmTestMode: true` — prevents accidentally pointing the button
+ *     at a useless test-mode account during go-live verification.
+ *   - Requires the admin to already have a saved Stripe customer + card
+ *     (i.e. they've subscribed at least once). Returns a 400 with a clear
+ *     message otherwise so the operator knows what to do.
+ */
+router.post(
+  "/payments/admin/test-charge",
+  async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (!isRequestAdmin(req as { user?: { email?: string | null } })) {
+      res.status(403).json({ error: "Admin access required." });
+      return;
+    }
+
+    const confirmTestMode =
+      (req.body && (req.body as { confirmTestMode?: unknown }).confirmTestMode) ===
+      true;
+
+    try {
+      const [user] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, req.user.id));
+
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      if (!user.stripeCustomerId) {
+        res.status(400).json({
+          error:
+            "No Stripe customer on file — subscribe once with a real card before using the test charge button.",
+        });
+        return;
+      }
+
+      const stripe = await getUncachableStripeClient();
+
+      // Pull the customer to learn (a) live vs. test mode and (b) the
+      // default payment method we should bill.
+      const customer = await stripe.customers.retrieve(user.stripeCustomerId, {
+        expand: ["invoice_settings.default_payment_method"],
+      });
+
+      if (customer.deleted) {
+        res
+          .status(400)
+          .json({ error: "Stripe customer was deleted — re-subscribe first." });
+        return;
+      }
+
+      const livemode = customer.livemode === true;
+      if (!livemode && !confirmTestMode) {
+        res.status(400).json({
+          error:
+            "Stripe is in test mode. Re-send with confirmTestMode=true to charge the test account anyway.",
+          livemode: false,
+          requiresConfirmation: true,
+        });
+        return;
+      }
+
+      // Prefer the customer's default PM (the one Stripe would auto-bill
+      // on subscription renewal); fall back to the first card on file.
+      let paymentMethodId: string | null = null;
+      const defaultPm = customer.invoice_settings?.default_payment_method;
+      if (defaultPm) {
+        paymentMethodId =
+          typeof defaultPm === "string" ? defaultPm : defaultPm.id;
+      }
+      if (!paymentMethodId) {
+        const list = await stripe.paymentMethods.list({
+          customer: user.stripeCustomerId,
+          type: "card",
+          limit: 1,
+        });
+        paymentMethodId = list.data[0]?.id ?? null;
+      }
+      if (!paymentMethodId) {
+        res.status(400).json({
+          error:
+            "No saved card on file — open Manage billing and add a card first.",
+        });
+        return;
+      }
+
+      // 1 SEK = 100 öre. off_session=true + confirm=true means Stripe
+      // attempts the charge synchronously without 3DS prompts; if the
+      // saved card requires authentication the call throws and we surface
+      // the error message verbatim.
+      const intent = await stripe.paymentIntents.create({
+        amount: 100,
+        currency: "sek",
+        customer: user.stripeCustomerId,
+        payment_method: paymentMethodId,
+        off_session: true,
+        confirm: true,
+        description: "Chimiq go-live verification (auto-refunded)",
+        metadata: {
+          purpose: "go_live_test_charge",
+          adminEmail: user.email ?? "",
+          userId: user.id,
+        },
+      });
+
+      const chargeId =
+        typeof intent.latest_charge === "string"
+          ? intent.latest_charge
+          : intent.latest_charge?.id ?? null;
+
+      // From here on, we have a successful 1 SEK charge on the operator's
+      // card. ANY failure before `refunds.create` settles must trigger a
+      // compensating refund or we'd silently leave a real charge sitting
+      // there — defeating the "charge + immediate refund" promise (#107).
+      let refund: import("stripe").default.Refund | null = null;
+      try {
+        // CRITICAL: insert the audit row BEFORE issuing the refund. The
+        // resulting `charge.refunded` webhook handler matches against this
+        // row to know "this is a verification ping, do not downgrade", so
+        // the row must exist before the webhook can fire.
+        await db
+          .insert(paymentTestChargesTable)
+          .values({
+            paymentIntentId: intent.id,
+            userId: user.id,
+            stripeCustomerId: user.stripeCustomerId,
+            chargeId,
+            livemode: livemode ? "live" : "test",
+          })
+          .onConflictDoNothing({
+            target: paymentTestChargesTable.paymentIntentId,
+          });
+
+        // Belt-and-suspenders: also stamp the Charge itself with the same
+        // metadata so the webhook guard still works if the audit insert
+        // somehow failed silently or the row was rolled back.
+        if (chargeId) {
+          try {
+            await stripe.charges.update(chargeId, {
+              metadata: {
+                purpose: "go_live_test_charge",
+                paymentIntent: intent.id,
+              },
+            });
+          } catch (err) {
+            req.log.warn(
+              { err, chargeId },
+              "Could not stamp test-charge metadata on Charge",
+            );
+          }
+        }
+
+        // Refund immediately. We refund the PaymentIntent (Stripe figures
+        // out the underlying charge) so this works even if `latest_charge`
+        // hasn't propagated yet.
+        refund = await stripe.refunds.create({
+          payment_intent: intent.id,
+          metadata: { purpose: "go_live_test_charge" },
+        });
+      } catch (innerErr) {
+        // Compensating refund: at least one path between PI confirmation
+        // and refund creation failed. Try to refund anyway so the operator
+        // isn't out 1 SEK. If even the compensating refund fails we
+        // surface the original error and ask the operator to refund
+        // manually in the Stripe Dashboard.
+        req.log.error(
+          { err: innerErr, paymentIntentId: intent.id, chargeId },
+          "Test charge post-confirm step failed — attempting compensating refund",
+        );
+        try {
+          const compRefund = await stripe.refunds.create({
+            payment_intent: intent.id,
+            metadata: {
+              purpose: "go_live_test_charge",
+              compensating: "true",
+            },
+          });
+          req.log.info(
+            { paymentIntentId: intent.id, refundId: compRefund.id },
+            "Compensating refund succeeded after test-charge failure",
+          );
+          refund = compRefund;
+        } catch (refundErr) {
+          req.log.error(
+            { err: refundErr, paymentIntentId: intent.id, chargeId },
+            "Compensating refund FAILED — manual refund required",
+          );
+          const m = (innerErr as { message?: string }).message ?? "Unknown";
+          res.status(500).json({
+            error: `Test charge created but refund failed: ${m}. Manually refund ${chargeId ?? intent.id} in the Stripe Dashboard.`,
+            paymentIntentId: intent.id,
+            chargeId,
+            refundFailed: true,
+          });
+          return;
+        }
+      }
+
+      await db
+        .update(paymentTestChargesTable)
+        .set({ refundId: refund.id })
+        .where(eq(paymentTestChargesTable.paymentIntentId, intent.id));
+
+      // Endpoint configuration health: list endpoints in the same livemode
+      // and report whether at least one is enabled and listening for
+      // charge.refunded. This is a *configuration* check — not delivery.
+      let webhookEndpoints: Array<{
+        url: string;
+        status: string;
+        listensForChargeRefunded: boolean;
+      }> = [];
+      let chargeRefundedListenerCount = 0;
+      try {
+        const endpoints = await stripe.webhookEndpoints.list({ limit: 30 });
+        webhookEndpoints = endpoints.data
+          .filter((e) => e.livemode === livemode)
+          .map((e) => {
+            const enabledEvents = e.enabled_events ?? [];
+            const listens =
+              enabledEvents.includes("*") ||
+              enabledEvents.includes("charge.refunded");
+            if (listens && e.status === "enabled") {
+              chargeRefundedListenerCount += 1;
+            }
+            return {
+              url: e.url,
+              status: e.status,
+              listensForChargeRefunded: listens,
+            };
+          });
+      } catch (err) {
+        req.log.warn({ err }, "Could not list Stripe webhook endpoints");
+      }
+
+      // Poll the audit row for end-to-end webhook delivery. The handler
+      // sets webhookReceivedAt when the matching charge.refunded event
+      // arrives. We give it up to ~10s; if it hasn't landed by then we
+      // surface that to the operator instead of falsely reporting OK.
+      const POLL_DEADLINE_MS = Date.now() + 10_000;
+      let webhookReceivedAt: string | null = null;
+      let webhookEventId: string | null = null;
+      while (Date.now() < POLL_DEADLINE_MS) {
+        const [row] = await db
+          .select({
+            webhookReceivedAt: paymentTestChargesTable.webhookReceivedAt,
+            webhookEventId: paymentTestChargesTable.webhookEventId,
+          })
+          .from(paymentTestChargesTable)
+          .where(eq(paymentTestChargesTable.paymentIntentId, intent.id));
+        if (row?.webhookReceivedAt) {
+          webhookReceivedAt = row.webhookReceivedAt.toISOString();
+          webhookEventId = row.webhookEventId ?? null;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 500));
+      }
+
+      res.json({
+        ok: true,
+        livemode,
+        amount: intent.amount,
+        currency: intent.currency,
+        paymentIntentId: intent.id,
+        chargeId,
+        refundId: refund.id,
+        refundStatus: refund.status,
+        paymentMethodId,
+        webhook: {
+          endpoints: webhookEndpoints,
+          chargeRefundedListenerCount,
+          configuredOk: chargeRefundedListenerCount > 0,
+          // True end-to-end delivery: did the webhook actually land?
+          delivered: webhookReceivedAt !== null,
+          deliveredAt: webhookReceivedAt,
+          eventId: webhookEventId,
+        },
+      });
+    } catch (err) {
+      const stripeErr = err as { message?: string; code?: string; type?: string };
+      req.log.error({ err }, "Admin test charge failed");
+      res.status(500).json({
+        error: stripeErr.message ?? "Test charge failed",
+        code: stripeErr.code,
+        type: stripeErr.type,
+      });
+    }
+  },
+);
 
 export default router;

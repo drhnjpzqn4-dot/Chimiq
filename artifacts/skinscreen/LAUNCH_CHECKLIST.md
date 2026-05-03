@@ -392,6 +392,18 @@ If Stripe forces a key rotation (or you suspect a leaked secret):
 
 ### 6.4 Verifying a real charge end-to-end
 
+> **Shortcut for re-verifications** (after key rotation, domain swap, etc.):
+> If your operator account already has a saved card from a prior subscription,
+> sign in to the production app, open **Profile**, scroll to the
+> "Test live charge" admin row, and tap **Charge 1 SEK + refund**. The
+> server creates a 1 SEK off-session PaymentIntent against your saved card,
+> immediately refunds it, and shows the resulting `charge`/`refund` IDs plus
+> the live-mode webhook endpoint status (looking for at least one endpoint
+> enabled for `charge.refunded`). The button is gated to `ADMIN_EMAILS` and
+> refuses to run against test mode without an explicit confirmation. This
+> covers steps 1–5 below in ~30 seconds. Steps 6–8 (plan flip, cancel,
+> downgrade) still require the manual run when verifying for the first time.
+
 Do this with a real card (yours) on the published site, against live mode.
 Refund yourself afterwards.
 

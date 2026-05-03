@@ -73,6 +73,31 @@ export default function ProfileScreen() {
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [testChargeLoading, setTestChargeLoading] = useState(false);
+  const [testChargeResult, setTestChargeResult] = useState<{
+    ok: boolean;
+    livemode?: boolean;
+    chargeId?: string | null;
+    refundId?: string;
+    refundStatus?: string;
+    paymentIntentId?: string;
+    amount?: number;
+    currency?: string;
+    webhook?: {
+      chargeRefundedListenerCount: number;
+      configuredOk: boolean;
+      delivered: boolean;
+      deliveredAt: string | null;
+      eventId: string | null;
+      endpoints: Array<{
+        url: string;
+        status: string;
+        listensForChargeRefunded: boolean;
+      }>;
+    };
+    error?: string;
+    requiresConfirmation?: boolean;
+  } | null>(null);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [mySubmissions, setMySubmissions] = useState<MySubmission[]>([]);
   const [myRecipes, setMyRecipes] = useState<MyRecipe[]>([]);
@@ -143,6 +168,28 @@ export default function ProfileScreen() {
   }, []);
 
   const runningNative = isNative();
+
+  const handleTestCharge = async (confirmTestMode = false) => {
+    setTestChargeLoading(true);
+    setTestChargeResult(null);
+    try {
+      const res = await fetch(`${getBaseUrl()}api/payments/admin/test-charge`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmTestMode }),
+      });
+      const data = (await res.json()) as Exclude<typeof testChargeResult, null>;
+      setTestChargeResult({ ...data, ok: res.ok && data.ok !== false });
+    } catch (e) {
+      setTestChargeResult({
+        ok: false,
+        error: (e as Error).message ?? "Network error",
+      });
+    } finally {
+      setTestChargeLoading(false);
+    }
+  };
 
   const handleManageBilling = async () => {
     setPortalLoading(true);
@@ -750,6 +797,154 @@ export default function ProfileScreen() {
                   </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                 </button>
+              </li>
+              {/* Go-live verification: charges 1 SEK against the admin's
+                  saved card and immediately refunds it. Used to confirm
+                  Stripe live mode and webhook delivery in seconds rather
+                  than walking through the full checkout flow manually
+                  (LAUNCH_CHECKLIST §6.4). */}
+              <li className="px-5 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                    <CreditCard className="h-4 w-4 text-primary" />
+                    Test live charge
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="admin-test-charge"
+                    onClick={() => handleTestCharge(false)}
+                    disabled={testChargeLoading}
+                    data-touch-target
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-60"
+                  >
+                    {testChargeLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    Charge 1 SEK + refund
+                  </button>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Charges your saved card 1 SEK and refunds it immediately.
+                  Use after key rotation or domain change to verify live mode.
+                </p>
+                {testChargeResult && (
+                  <div
+                    data-testid="admin-test-charge-result"
+                    className={`mt-3 rounded-2xl border p-3 text-xs ${
+                      testChargeResult.ok
+                        ? "border-green-200 bg-green-50/60 text-foreground"
+                        : "border-destructive/30 bg-red-50/60 text-foreground"
+                    }`}
+                  >
+                    {testChargeResult.ok ? (
+                      <>
+                        <p className="flex items-center gap-1.5 font-semibold text-green-700">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Charged & refunded ·{" "}
+                          {testChargeResult.livemode ? "LIVE mode" : "TEST mode"}
+                        </p>
+                        <dl className="mt-2 space-y-1 font-mono text-[11px] text-muted-foreground">
+                          {testChargeResult.chargeId && (
+                            <div className="flex gap-2">
+                              <dt className="shrink-0">charge:</dt>
+                              <dd
+                                className="truncate text-foreground"
+                                data-testid="admin-test-charge-id"
+                              >
+                                {testChargeResult.chargeId}
+                              </dd>
+                            </div>
+                          )}
+                          {testChargeResult.refundId && (
+                            <div className="flex gap-2">
+                              <dt className="shrink-0">refund:</dt>
+                              <dd
+                                className="truncate text-foreground"
+                                data-testid="admin-test-refund-id"
+                              >
+                                {testChargeResult.refundId} ·{" "}
+                                {testChargeResult.refundStatus}
+                              </dd>
+                            </div>
+                          )}
+                          {testChargeResult.paymentIntentId && (
+                            <div className="flex gap-2">
+                              <dt className="shrink-0">intent:</dt>
+                              <dd className="truncate text-foreground">
+                                {testChargeResult.paymentIntentId}
+                              </dd>
+                            </div>
+                          )}
+                        </dl>
+                        {testChargeResult.webhook && (
+                          <div className="mt-2 space-y-1.5 border-t border-green-200/60 pt-2">
+                            {/* End-to-end delivery — the real go/no-go signal. */}
+                            <p
+                              data-testid="admin-test-charge-webhook-delivered"
+                              className={`flex items-center gap-1.5 font-semibold ${
+                                testChargeResult.webhook.delivered
+                                  ? "text-green-700"
+                                  : "text-amber-700"
+                              }`}
+                            >
+                              {testChargeResult.webhook.delivered ? (
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              ) : (
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                              )}
+                              {testChargeResult.webhook.delivered
+                                ? `Webhook delivered (${testChargeResult.webhook.eventId ?? "evt"})`
+                                : "Webhook NOT delivered within 10s — check Stripe Dashboard"}
+                            </p>
+                            {/* Configuration sanity check — secondary. */}
+                            <p className="text-[11px] text-muted-foreground">
+                              Config:{" "}
+                              {
+                                testChargeResult.webhook
+                                  .chargeRefundedListenerCount
+                              }{" "}
+                              endpoint(s) listening for charge.refunded
+                            </p>
+                            {testChargeResult.webhook.endpoints.length > 0 && (
+                              <ul className="space-y-0.5 font-mono text-[11px] text-muted-foreground">
+                                {testChargeResult.webhook.endpoints.map((e) => (
+                                  <li key={e.url} className="truncate">
+                                    {e.status === "enabled" ? "✓" : "✗"} {e.url}{" "}
+                                    {e.listensForChargeRefunded
+                                      ? ""
+                                      : "(no charge.refunded)"}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className="flex items-center gap-1.5 font-semibold text-destructive">
+                          <XCircle className="h-3.5 w-3.5" />
+                          {testChargeResult.error ?? "Test charge failed"}
+                        </p>
+                        {testChargeResult.requiresConfirmation && (
+                          <button
+                            type="button"
+                            onClick={() => handleTestCharge(true)}
+                            disabled={testChargeLoading}
+                            data-touch-target
+                            data-testid="admin-test-charge-confirm-test-mode"
+                            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+                          >
+                            <AlertTriangle className="h-3 w-3" />
+                            Charge test-mode card anyway
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </li>
             </>
           )}

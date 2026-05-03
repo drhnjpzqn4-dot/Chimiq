@@ -6,7 +6,29 @@ import type Stripe from "stripe";
 // .update(...).set(...).where(...) — the where call resolves the promise.
 const setCalls: Array<unknown> = [];
 const whereCalls: Array<unknown> = [];
+const updateTables: Array<unknown> = [];
 let lastUpdateTable: unknown = null;
+
+// Test-controllable result of the audit-row UPDATE (#107). Tests can set
+// this to simulate a matched audit row, which the webhook handler then
+// uses as a signal to skip downgrading.
+let auditUpdateReturn: Array<{ paymentIntentId: string }> = [];
+
+const usersTableMock = {
+  id: { name: "id" },
+  stripeCustomerId: { name: "stripeCustomerId" },
+};
+const paymentTestChargesTableMock = {
+  paymentIntentId: { name: "paymentIntentId" },
+  chargeId: { name: "chargeId" },
+  webhookReceivedAt: { name: "webhookReceivedAt" },
+  webhookEventId: { name: "webhookEventId" },
+};
+
+// Filter helper for tests that only care about writes to the user record.
+function userSetCalls(): Array<unknown> {
+  return setCalls.filter((_v, i) => updateTables[i] === usersTableMock);
+}
 
 vi.mock("@workspace/db", () => {
   return {
@@ -16,22 +38,25 @@ vi.mock("@workspace/db", () => {
         return {
           set(values: unknown) {
             setCalls.push(values);
+            updateTables.push(lastUpdateTable);
             return {
               where(clause: unknown) {
                 whereCalls.push(clause);
-                return Promise.resolve();
+                // Mirror drizzle's chained `.returning()` API for the
+                // audit-update path.
+                const promise = Promise.resolve() as Promise<unknown> & {
+                  returning?: () => Promise<Array<{ paymentIntentId: string }>>;
+                };
+                promise.returning = () => Promise.resolve(auditUpdateReturn);
+                return promise;
               },
             };
           },
         };
       },
     },
-    usersTable: {
-      // Symbolic markers so eq(usersTable.x, ...) returns something
-      // distinguishable. We don't assert on the exact clause shape.
-      id: { name: "id" },
-      stripeCustomerId: { name: "stripeCustomerId" },
-    },
+    usersTable: usersTableMock,
+    paymentTestChargesTable: paymentTestChargesTableMock,
   };
 });
 
@@ -55,7 +80,9 @@ function ev<T>(type: string, object: T, id = "evt_test"): Stripe.Event {
 beforeEach(() => {
   setCalls.length = 0;
   whereCalls.length = 0;
+  updateTables.length = 0;
   lastUpdateTable = null;
+  auditUpdateReturn = [];
   vi.clearAllMocks();
 });
 
@@ -241,10 +268,11 @@ describe("applyStripeEventToUser", () => {
         }),
         noopLogger,
       );
-      expect(setCalls[0]).toEqual({
-        plan: "free",
-        stripeSubscriptionId: null,
-      });
+      // The handler probes the audit table first (no match → continues
+      // to the downgrade write on usersTable).
+      expect(userSetCalls()).toEqual([
+        { plan: "free", stripeSubscriptionId: null },
+      ]);
     });
 
     it("ignores partial refunds (does NOT touch user.plan)", async () => {
@@ -257,7 +285,7 @@ describe("applyStripeEventToUser", () => {
         }),
         noopLogger,
       );
-      expect(setCalls).toHaveLength(0);
+      expect(userSetCalls()).toHaveLength(0);
     });
 
     it("ignores refunds with no customer", async () => {
@@ -273,6 +301,42 @@ describe("applyStripeEventToUser", () => {
       expect(setCalls).toHaveLength(0);
     });
 
+    it("matches the audit row for a go-live test charge and skips downgrade (#107)", async () => {
+      // Simulate the admin button having inserted an audit row before
+      // refunding: the UPDATE on payment_test_charges returns one row,
+      // which is the handler's signal that this is a verification ping.
+      auditUpdateReturn = [{ paymentIntentId: "pi_test" }];
+      await applyStripeEventToUser(
+        ev("charge.refunded", {
+          id: "ch_test_charge",
+          customer: "cus_admin",
+          payment_intent: "pi_test",
+          amount: 100,
+          amount_refunded: 100,
+        }),
+        noopLogger,
+      );
+      // Audit-row write happened, but no usersTable write.
+      expect(userSetCalls()).toHaveLength(0);
+      expect(updateTables).toContain(paymentTestChargesTableMock);
+    });
+
+    it("falls back to charge.metadata.purpose when audit row is missing (#107)", async () => {
+      auditUpdateReturn = [];
+      await applyStripeEventToUser(
+        ev("charge.refunded", {
+          id: "ch_test_charge",
+          customer: "cus_admin",
+          payment_intent: "pi_test",
+          amount: 100,
+          amount_refunded: 100,
+          metadata: { purpose: "go_live_test_charge" },
+        }),
+        noopLogger,
+      );
+      expect(userSetCalls()).toHaveLength(0);
+    });
+
     it("treats over-refund (rounding edge) as full refund", async () => {
       await applyStripeEventToUser(
         ev("charge.refunded", {
@@ -283,10 +347,9 @@ describe("applyStripeEventToUser", () => {
         }),
         noopLogger,
       );
-      expect(setCalls[0]).toEqual({
-        plan: "free",
-        stripeSubscriptionId: null,
-      });
+      expect(userSetCalls()).toEqual([
+        { plan: "free", stripeSubscriptionId: null },
+      ]);
     });
   });
 
