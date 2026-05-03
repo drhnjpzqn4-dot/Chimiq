@@ -52,7 +52,7 @@ Every ingredient list you contribute earns you progress toward free Premium — 
 • Full routine cross-check beyond 2 products
 • Personalised "what to use instead" suggestions
 
-Subscribe at app.chimiq.com. Manage or cancel any time at the same address.
+Subscribe at app.chimiq.app. Manage or cancel any time at the same address.
 
 **Privacy first**
 
@@ -70,7 +70,7 @@ https://chimiq.com/support
 
 ## Marketing URL
 
-https://app.chimiq.com
+https://app.chimiq.app
 
 ## Privacy policy URL
 
@@ -96,6 +96,6 @@ No objectionable content. Camera permission is requested only when scanning a la
 
 ## In-app purchases
 
-**None.** Premium is sold and managed exclusively on the web at app.chimiq.com. The mobile app reads entitlement from the user's account.
+**None.** Premium is sold and managed exclusively on the web at app.chimiq.app. The mobile app reads entitlement from the user's account.
 
 This is a reader app per Apple App Store Review Guideline §3.1.3(a) and Google Play's external billing exception for digital content sold outside the app.

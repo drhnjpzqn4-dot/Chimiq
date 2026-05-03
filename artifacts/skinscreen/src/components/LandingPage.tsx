@@ -121,6 +121,14 @@ function StickySubNav({ visible }: { visible: boolean }) {
         >
           {t("nav.earnFreePremium")}
         </a>
+        <a
+          href="#download"
+          tabIndex={visible ? 0 : -1}
+          onClick={(e) => { e.preventDefault(); smoothScrollTo("download"); }}
+          className="text-[14px] font-medium text-primary-strong no-underline hover:underline transition-colors hidden sm:inline"
+        >
+          {t("nav.download")}
+        </a>
       </div>
     </nav>
   );
@@ -977,6 +985,79 @@ export function LandingPage({ config }: LandingPageProps) {
             </div>
           </FadeIn>
         </div>
+      </section>
+
+      {/* 9b. DOWNLOAD THE APP — Coming soon (iOS / Android) */}
+      <section
+        id="download"
+        className="py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-t border-border/50"
+        aria-labelledby="download-heading"
+      >
+        <FadeIn>
+          <div className="text-center max-w-2xl mx-auto">
+            <p className="text-sm font-semibold text-primary-strong tracking-wider uppercase mb-3">
+              {t("download.kicker")}
+            </p>
+            <h2
+              id="download-heading"
+              className="text-4xl sm:text-5xl font-serif font-semibold text-foreground mb-5"
+            >
+              {t("download.title")}
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed mb-10">
+              {t("download.subtitle")}
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
+              {/* App Store — disabled until live */}
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                title={t("download.comingSoon")}
+                className="inline-flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-[#1C1C1E] text-white opacity-60 cursor-not-allowed min-w-[200px] justify-center"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M17.05 12.04c-.03-3.02 2.47-4.47 2.58-4.54-1.41-2.06-3.6-2.34-4.38-2.37-1.86-.19-3.64 1.1-4.59 1.1-.95 0-2.41-1.07-3.97-1.04-2.04.03-3.93 1.19-4.98 3.02-2.13 3.69-.54 9.13 1.51 12.13 1.02 1.47 2.23 3.11 3.83 3.05 1.55-.06 2.13-.99 4-.99 1.86 0 2.39.99 4.02.96 1.66-.03 2.71-1.49 3.72-2.97 1.18-1.7 1.66-3.36 1.68-3.45-.04-.02-3.21-1.23-3.24-4.9zM14.04 3.4c.84-1.02 1.41-2.44 1.25-3.85-1.21.05-2.68.81-3.55 1.83-.78.9-1.46 2.34-1.28 3.73 1.35.1 2.74-.69 3.58-1.71z"/>
+                </svg>
+                <div className="text-left leading-tight">
+                  <div className="text-[10px] uppercase tracking-wider opacity-80">{t("download.comingSoon")}</div>
+                  <div className="text-base font-semibold">{t("download.appStore")}</div>
+                </div>
+              </button>
+
+              {/* Google Play — disabled until live */}
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                title={t("download.comingSoon")}
+                className="inline-flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-[#1C1C1E] text-white opacity-60 cursor-not-allowed min-w-[200px] justify-center"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M3.6 1.2c-.4.4-.6.9-.6 1.5v18.6c0 .6.2 1.2.6 1.5l10.8-10.8L3.6 1.2zm12.6 9.3l2.8 2.8 3.7-2.1c1.1-.6 1.1-2.4 0-3.1l-3.6-2.1-2.9 2.8 0 1.7zm-1.4 1.4L4.6 22.6c.5.1 1 0 1.5-.3l11.6-6.7-3.5-3.7zM4.6 1.4l9.9 9.9 3.5-3.7L6.1 1c-.5-.3-1-.4-1.5-.3l0 .7z"/>
+                </svg>
+                <div className="text-left leading-tight">
+                  <div className="text-[10px] uppercase tracking-wider opacity-80">{t("download.comingSoon")}</div>
+                  <div className="text-base font-semibold">{t("download.googlePlay")}</div>
+                </div>
+              </button>
+            </div>
+
+            {!isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => login()}
+                className="text-sm font-medium text-primary-strong hover:underline"
+              >
+                {t("download.notifyMe")}
+              </button>
+            )}
+            <p className="text-xs text-muted-foreground mt-3">
+              {t("download.notifyHint")}
+            </p>
+          </div>
+        </FadeIn>
       </section>
 
       {/* 10. FOOTER */}

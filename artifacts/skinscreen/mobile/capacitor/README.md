@@ -202,7 +202,7 @@ Same as above. For iOS you must sign with your Apple Developer team in Xcode →
 - **"Pod install failed"** — make sure you're on macOS, run `cd ios/App && pod install --repo-update`.
 - **"Gradle build failed: SDK location not found"** — set `ANDROID_HOME` (e.g., `export ANDROID_HOME=$HOME/Library/Android/sdk`).
 - **Camera permission denied on iOS** — confirm `NSCameraUsageDescription` is set in `Info.plist` (Capacitor writes it from `capacitor.config.ts → plugins.Camera.permissions.camera`).
-- **Sign-in returns to web instead of the app** — confirm the deep-link scheme is registered in both platforms (see above) and that `MANAGE_SUBSCRIPTION_WEB_URL` in `src/lib/native.ts` points at `https://app.chimiq.com`.
+- **Sign-in returns to web instead of the app** — confirm the deep-link scheme is registered in both platforms (see above) and that `MANAGE_SUBSCRIPTION_WEB_URL` in `src/lib/native.ts` points at `https://app.chimiq.app`.
 
 ---
 
@@ -219,10 +219,10 @@ Why two `package.json`s? `cap sync` reads the package.json next to `capacitor.co
 The current wiring is the **v1 shared-cookie** approach:
 
 1. App calls `useAuth().login()` → opens the system browser at
-   `https://app.chimiq.com/api/login?returnTo=skinscreen://auth/callback`.
+   `https://app.chimiq.app/api/login?returnTo=skinscreen://auth/callback`.
 2. Server's `getSafeReturnTo()` allows this exact URL via
    `NATIVE_RETURN_TO_ALLOWLIST` in `artifacts/api-server/src/routes/auth.ts`.
-3. After OIDC completes, server sets the session cookie on `app.chimiq.com`
+3. After OIDC completes, server sets the session cookie on `app.chimiq.app`
    and 302s to `skinscreen://auth/callback`.
 4. The OS routes that URL into the app, fires `appUrlOpen`, the in-app
    browser closes, and the SPA re-fetches `/api/auth/user`.
@@ -245,4 +245,4 @@ here.
 
 ## API base URL on native
 
-The Capacitor WebView loads bundled assets from `capacitor://localhost` (iOS) or `https://localhost` (Android). Any `fetch("/api/...")` call would otherwise hit that local origin and fail. `src/lib/native.ts` exports `installNativeFetchInterceptor()` (called once from `src/main.tsx`) which transparently rewrites relative `/api/*` requests to `https://app.chimiq.com/api/*` whenever the app is running natively. **If you change the production backend host, update `NATIVE_API_BASE_URL` in `src/lib/native.ts`.**
+The Capacitor WebView loads bundled assets from `capacitor://localhost` (iOS) or `https://localhost` (Android). Any `fetch("/api/...")` call would otherwise hit that local origin and fail. `src/lib/native.ts` exports `installNativeFetchInterceptor()` (called once from `src/main.tsx`) which transparently rewrites relative `/api/*` requests to `https://app.chimiq.app/api/*` whenever the app is running natively. **If you change the production backend host, update `NATIVE_API_BASE_URL` in `src/lib/native.ts`.**

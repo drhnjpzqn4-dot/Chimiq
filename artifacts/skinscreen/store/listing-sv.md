@@ -51,7 +51,7 @@ Varje ingredienslista du bidrar med ger dig framsteg mot gratis Premium — 30 g
 • Hela rutin-granskningen utöver 2 produkter
 • Personliga förslag på "vad du kan använda istället"
 
-Prenumerera på app.chimiq.com. Hantera eller avsluta när som helst på samma adress.
+Prenumerera på app.chimiq.app. Hantera eller avsluta när som helst på samma adress.
 
 **Integritet först**
 
@@ -69,7 +69,7 @@ https://chimiq.com/support
 
 ## Marknadsförings-URL
 
-https://app.chimiq.com
+https://app.chimiq.app
 
 ## Sekretesspolicy-URL
 

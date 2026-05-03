@@ -16,13 +16,13 @@ Password: chimiq-review-2026
 The account already has Premium enabled so reviewers can exercise every feature. Reviewers do **not** need a Stripe test card.
 
 A reviewer-only deep link to a pre-loaded shelf with sample scans:
-`https://app.chimiq.com/app/shelf?demo=review`
+`https://app.chimiq.app/app/shelf?demo=review`
 
 ---
 
 ## Apple App Store — Review notes
 
-> Chimiq is a **reader app** per Guideline §3.1.3(a). All Premium subscriptions are sold and managed exclusively on the web at https://app.chimiq.com/pricing. The iOS app:
+> Chimiq is a **reader app** per Guideline §3.1.3(a). All Premium subscriptions are sold and managed exclusively on the web at https://app.chimiq.app/pricing. The iOS app:
 >
 > * Contains **no in-app purchase**.
 > * Contains **no buttons, links, language, or call-to-action** that direct users to a non-IAP purchase mechanism within the app itself.
@@ -49,9 +49,9 @@ A reviewer-only deep link to a pre-loaded shelf with sample scans:
 
 ## Google Play — Review notes
 
-> Chimiq is a "reader app" — all Premium subscriptions are sold on the web at https://app.chimiq.com/pricing. The Android app contains no in-app purchase and uses no Play Billing APIs.
+> Chimiq is a "reader app" — all Premium subscriptions are sold on the web at https://app.chimiq.app/pricing. The Android app contains no in-app purchase and uses no Play Billing APIs.
 >
-> Per Google Play's External Offers / Reader App program, the app does not show any UI inside the Android app that links to or describes the web-only purchase flow. The Profile screen has a single "Manage subscription on the web" row that opens https://app.chimiq.com/pricing in a Custom Tab — this is permitted because the user has *already* subscribed and is managing an existing entitlement.
+> Per Google Play's External Offers / Reader App program, the app does not show any UI inside the Android app that links to or describes the web-only purchase flow. The Profile screen has a single "Manage subscription on the web" row that opens https://app.chimiq.app/pricing in a Custom Tab — this is permitted because the user has *already* subscribed and is managing an existing entitlement.
 >
 > Authentication uses Replit Auth via Chrome Custom Tabs (`@capacitor/browser`), then returns to the app via the `skinscreen://auth/callback` deep link registered in `AndroidManifest.xml`.
 >
