@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Ticket, AlertTriangle, Plus, Sparkles, History } from "lucide-react";
+import { Loader2, Ticket, AlertTriangle, Plus, Sparkles, History, Mail } from "lucide-react";
 
 interface TesterPromo {
   code: string;
@@ -10,7 +10,13 @@ interface TesterPromo {
   promoMaxRedemptions: number | null;
   remaining: number | null;
   couponName: string | null;
+  alertedThresholds: number[];
 }
+
+// Thresholds the alert job watches for. Kept in sync with the server-side
+// list in `testerPromoAlert.ts` so the widget can show "not yet sent" for
+// thresholds that haven't fired (rather than only showing the ones that did).
+const ALERT_THRESHOLDS = [80, 100] as const;
 
 interface PromoChange {
   id: number;
@@ -275,6 +281,11 @@ export function TesterPromoAdmin() {
               </div>
             )}
 
+            <AlertStatus
+              alertedThresholds={data.alertedThresholds}
+              hasCap={data.maxRedemptions != null}
+            />
+
             {flash && (
               <div className="text-xs px-3 py-2 rounded-lg bg-green-50 text-green-700 border border-green-200">
                 {flash}
@@ -435,6 +446,65 @@ export function TesterPromoAdmin() {
         )}
       </div>
     </section>
+  );
+}
+
+function AlertStatus({
+  alertedThresholds,
+  hasCap,
+}: {
+  alertedThresholds: number[];
+  hasCap: boolean;
+}) {
+  // Alerts are only sent for capped promos — show a one-line note for
+  // the uncapped case so Pia isn't left wondering whether the job is broken.
+  if (!hasCap) {
+    return (
+      <div className="pt-3 border-t border-border/40">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Email alerts
+          </h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          No cap set, so no usage alerts will be sent.
+        </p>
+      </div>
+    );
+  }
+
+  const sent = new Set(alertedThresholds);
+  return (
+    <div className="pt-3 border-t border-border/40">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Email alerts
+        </h3>
+      </div>
+      <ul className="flex flex-wrap gap-1.5">
+        {ALERT_THRESHOLDS.map((threshold) => {
+          const wasSent = sent.has(threshold);
+          return (
+            <li
+              key={threshold}
+              className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full font-semibold ${
+                wasSent
+                  ? "bg-green-100 text-green-700"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              <span aria-hidden>{wasSent ? "✓" : "○"}</span>
+              {threshold}% alert {wasSent ? "sent" : "not sent"}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-1.5 text-[11px] text-muted-foreground">
+        Resets when you raise the cap or mint a new code.
+      </p>
+    </div>
   );
 }
 

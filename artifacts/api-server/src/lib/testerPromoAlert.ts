@@ -1,7 +1,13 @@
 import type { Logger } from "pino";
 import sgMail from "@sendgrid/mail";
 import { getUncachableStripeClient } from "../stripeClient";
-import { COUPON_ID, fetchPromoFromStripe } from "./testerPromo";
+import {
+  ALERTED_PROMO_ID_KEY,
+  ALERTED_THRESHOLDS_KEY,
+  COUPON_ID,
+  fetchPromoFromStripe,
+  parseAlertedThresholds,
+} from "./testerPromo";
 
 // Thresholds (percent of cap consumed) at which Pia gets a heads-up.
 // Each threshold fires at most once per active promotion code — when a
@@ -17,8 +23,8 @@ const ALERT_THRESHOLDS = [80, 100] as const;
 // When the active promotion code id changes (raise-cap or mint both
 // create a new id), the recorded id no longer matches, so the slate
 // resets automatically and Pia gets fresh alerts on the new code.
-const ALERTED_PROMO_ID_KEY = "alerted_promo_id";
-const ALERTED_THRESHOLDS_KEY = "alerted_thresholds";
+// Keys + parser are defined in `./testerPromo` so the admin payload can
+// surface this state to the widget without a circular import.
 
 // How often the scheduled job runs. 15 minutes is a good balance: long
 // enough to keep Stripe API calls negligible, short enough that Pia gets
@@ -55,16 +61,6 @@ async function getSendGridCredentials(): Promise<SendGridCreds | null> {
   const settings = data.items?.[0]?.settings;
   if (!settings?.api_key || !settings.from_email) return null;
   return { apiKey: settings.api_key, fromEmail: settings.from_email };
-}
-
-function parseAlertedThresholds(value: string | undefined | null): Set<number> {
-  if (!value) return new Set();
-  return new Set(
-    value
-      .split(",")
-      .map((s) => Number(s.trim()))
-      .filter((n) => Number.isFinite(n)),
-  );
 }
 
 function escapeHtml(s: string): string {
@@ -171,10 +167,11 @@ export async function checkAndAlertTesterPromo(log: Logger): Promise<void> {
   // / mint both create a new id), so Pia gets a fresh 80% / 100% alert
   // on the new code instead of inheriting state from the old one.
   const recordedPromoId = coupon.metadata?.[ALERTED_PROMO_ID_KEY] ?? null;
-  const alreadyAlerted =
+  const alreadyAlerted = new Set<number>(
     recordedPromoId === promo.id
       ? parseAlertedThresholds(coupon.metadata?.[ALERTED_THRESHOLDS_KEY])
-      : new Set<number>();
+      : [],
+  );
 
   const newlyTriggered = ALERT_THRESHOLDS.filter(
     (t) => usagePct >= t && !alreadyAlerted.has(t),
