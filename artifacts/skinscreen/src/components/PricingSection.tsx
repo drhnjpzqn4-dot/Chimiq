@@ -11,7 +11,7 @@ import { getFreeFeatures, getPremiumFeatures } from "@/lib/pricing-features";
 export function PricingSection() {
   const [, navigate] = useLocation();
   const { t } = useTranslation();
-  const { plan, isLoading } = useUserPlan();
+  const { plan, isLoading, trialEligible, trialDays } = useUserPlan();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
@@ -191,15 +191,17 @@ export function PricingSection() {
                 >
                   {loading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />{t("pricing.redirecting")}</>
+                  ) : trialEligible ? (
+                    <>{t("pricing.startTrialCta", { days: trialDays })}</>
                   ) : (
-                    <>{t("pricing.startTrialCta", { days: 14 })}</>
+                    <>{billing === "yearly" ? t("pricing.getPremiumYr") : t("pricing.getPremiumMo")}</>
                   )}
                 </button>
               )}
-              {plan !== "premium" && (
+              {plan !== "premium" && trialEligible && (
                 <p className="text-[11px] text-primary/80 text-center mt-2 font-medium">
                   {t("pricing.trialFinePrint", {
-                    days: 14,
+                    days: trialDays,
                     price: billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo",
                   })}
                 </p>

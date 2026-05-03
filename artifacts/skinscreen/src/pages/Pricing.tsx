@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import {
   Check, X, Zap, ShieldCheck, MessageCircle, FileText, Layers,
@@ -15,30 +15,11 @@ import { getFreeFeatures, getPremiumFeatures } from "@/lib/pricing-features";
 export default function Pricing() {
   const [, navigate] = useLocation();
   const { t } = useTranslation();
-  const { plan, isLoading: planLoading } = useUserPlan();
+  const { plan, isLoading: planLoading, trialEligible, trialDays } = useUserPlan();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
-  // Server-checked: did this user already use their trial? Defaults to
-  // "true (eligible)" for non-signed-in visitors so the landing CTA reads
-  // the same; once authenticated we re-check via /payments/trial-eligible.
-  const [trialEligible, setTrialEligible] = useState(true);
-  const [trialDays, setTrialDays] = useState(14);
-
-  useEffect(() => {
-    fetch(`${getBaseUrl()}api/payments/trial-eligible`, {
-      credentials: "include",
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!d) return;
-        const data = d as { eligible?: boolean; trialDays?: number };
-        if (typeof data.eligible === "boolean") setTrialEligible(data.eligible);
-        if (typeof data.trialDays === "number") setTrialDays(data.trialDays);
-      })
-      .catch(() => {});
-  }, []);
 
   const FREE_FEATURES = useMemo(() => getFreeFeatures(t), [t]);
   const PREMIUM_FEATURES = useMemo(

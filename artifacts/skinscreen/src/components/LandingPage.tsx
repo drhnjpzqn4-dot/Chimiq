@@ -36,6 +36,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@/lib/i18n";
+import { useUserPlan } from "@/hooks/useUserPlan";
 import {
   ScanLine, ShieldCheck,
   AlertTriangle, HelpCircle, ShieldOff, XCircle, FlaskConical,
@@ -199,6 +200,7 @@ export function LandingPage({ config }: LandingPageProps) {
   const { t } = useTranslation();
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
+  const { trialEligible, trialDays } = useUserPlan();
   const goToSignup = () => navigate("/signup");
   const goToLogin = () => navigate("/login");
   const [scannerSeed, setScannerSeed] = useState<ScannerSeed | null>(null);
@@ -469,7 +471,9 @@ export function LandingPage({ config }: LandingPageProps) {
                   onClick={goToSignup}
                   className="inline-flex items-center justify-center gap-2.5 bg-primary-strong hover:bg-primary-strong/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(53,110,53,0.35)] hover:shadow-[0_0_60px_rgba(53,110,53,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
                 >
-                  {t("nav.signInGetStarted")}
+                  {trialEligible
+                    ? t("pricing.startTrialCta", { days: trialDays })
+                    : t("nav.signInGetStarted")}
                 </button>
               )}
               <a
@@ -480,6 +484,14 @@ export function LandingPage({ config }: LandingPageProps) {
                 {t("nav.seeHowItWorks")}
               </a>
             </div>
+            {!isAuthenticated && trialEligible && (
+              <p className="mt-4 text-center text-xs text-white/60 max-w-md mx-auto">
+                {t("pricing.trialFinePrint", {
+                  days: trialDays,
+                  price: "49 SEK/mo",
+                })}
+              </p>
+            )}
           </FadeIn>
 
         </div>

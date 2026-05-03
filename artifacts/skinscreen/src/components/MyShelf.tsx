@@ -440,6 +440,7 @@ interface UpgradeCardProps {
 
 function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
   const { t } = useTranslation();
+  const { trialEligible, trialDays } = useUserPlan();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
@@ -544,14 +545,25 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
       >
         {loading
           ? t("myShelf.startingCheckout")
-          : t("myShelf.upgradePriceFmt").replace("{price}", billing === "yearly" ? t("myShelf.priceYearly") : t("myShelf.priceMonthly"))}
+          : trialEligible
+            ? t("pricing.startTrialCta", { days: trialDays })
+            : t("myShelf.upgradePriceFmt").replace("{price}", billing === "yearly" ? t("myShelf.priceYearly") : t("myShelf.priceMonthly"))}
       </button>
       {error && (
         <p className="text-[11px] text-red-600 text-center mt-2">{error}</p>
       )}
-      <p className="text-[10px] text-muted-foreground/60 text-center mt-2">
-        {t("myShelf.contributeAlt")}
-      </p>
+      {trialEligible ? (
+        <p className="text-[10px] text-primary/80 text-center mt-2 font-medium">
+          {t("pricing.trialFinePrint", {
+            days: trialDays,
+            price: billing === "yearly" ? t("myShelf.priceYearly") : t("myShelf.priceMonthly"),
+          })}
+        </p>
+      ) : (
+        <p className="text-[10px] text-muted-foreground/60 text-center mt-2">
+          {t("myShelf.contributeAlt")}
+        </p>
+      )}
     </div>
   );
 }

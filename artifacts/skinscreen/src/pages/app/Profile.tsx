@@ -68,7 +68,7 @@ interface MyRecipe {
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
-  const { plan, isPremium, isLoading } = useUserPlan();
+  const { plan, isPremium, isLoading, trialEligible, trialDays } = useUserPlan();
   const [, navigate] = useLocation();
   const { t, locale, setLocale } = useTranslation();
   const [stats, setStats] = useState<ContributeStats | null>(null);
@@ -383,7 +383,9 @@ export default function ProfileScreen() {
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
               >
                 <Crown className="h-4 w-4" />
-                {t("profileCard.upgradeToPremium")}
+                {trialEligible
+                  ? t("pricing.startTrialCta", { days: trialDays })
+                  : t("profileCard.upgradeToPremium")}
               </button>
             )}
           </div>

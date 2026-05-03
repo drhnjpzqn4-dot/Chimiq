@@ -17,7 +17,32 @@ router.get("/payments/status", async (req: Request, res: Response) => {
     return;
   }
   const plan = await getUserPlan(req.user.id);
-  res.json({ plan });
+  // Surface trial eligibility on the same call the UI already makes for
+  // `plan`, so every paywall/upsell can branch copy without an extra
+  // round-trip per render. Anonymous visitors default to eligible on the
+  // client; this endpoint is the authoritative answer for signed-in users.
+  let trialEligible = false;
+  try {
+    const [user] = await db
+      .select({ stripeCustomerId: usersTable.stripeCustomerId })
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.id));
+    if (user) {
+      // Premium users are not "eligible" for a trial offer in the UI sense —
+      // they already have access. Skip the Stripe call and report false.
+      if (plan === "premium") {
+        trialEligible = false;
+      } else {
+        const stripe = await getUncachableStripeClient();
+        trialEligible = await isTrialEligible(user.stripeCustomerId, stripe);
+      }
+    }
+  } catch (err) {
+    req.log.error({ err }, "trial-eligible check failed in /payments/status");
+    // Fail closed — never wrongly promise a free trial.
+    trialEligible = false;
+  }
+  res.json({ plan, trialEligible, trialDays: TRIAL_DAYS });
 });
 
 /**
