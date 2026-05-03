@@ -1107,6 +1107,15 @@ const en: Dict = {
   "feedbackPrompt.cta": "Share feedback",
   "feedbackPrompt.dismiss": "Not now",
   "feedbackPrompt.close": "Close",
+  "feedbackPrompt.messagePlaceholder": "Tell us what's working and what could be better…",
+  "feedbackPrompt.messageLabel": "Your feedback",
+  "feedbackPrompt.emailPlaceholder": "Your email (optional, if you'd like a reply)",
+  "feedbackPrompt.emailLabel": "Email (optional)",
+  "feedbackPrompt.submit": "Send feedback",
+  "feedbackPrompt.submitting": "Sending…",
+  "feedbackPrompt.cancel": "Cancel",
+  "feedbackPrompt.thanks": "Thanks! We've received your feedback.",
+  "feedbackPrompt.error": "Couldn't send feedback. Please try again.",
 
   // ───── Branded signup landing ─────
   "signup.badge": "Free to start · No credit card",
@@ -2254,6 +2263,15 @@ const sv: Dict = {
   "feedbackPrompt.cta": "Lämna feedback",
   "feedbackPrompt.dismiss": "Inte nu",
   "feedbackPrompt.close": "Stäng",
+  "feedbackPrompt.messagePlaceholder": "Berätta vad som funkar och vad som kan bli bättre…",
+  "feedbackPrompt.messageLabel": "Din feedback",
+  "feedbackPrompt.emailPlaceholder": "Din e-post (valfri, om du vill ha svar)",
+  "feedbackPrompt.emailLabel": "E-post (valfri)",
+  "feedbackPrompt.submit": "Skicka feedback",
+  "feedbackPrompt.submitting": "Skickar…",
+  "feedbackPrompt.cancel": "Avbryt",
+  "feedbackPrompt.thanks": "Tack! Vi har tagit emot din feedback.",
+  "feedbackPrompt.error": "Kunde inte skicka feedback. Försök igen.",
 
   // ───── Branded signup landing ─────
   "signup.badge": "Gratis att börja · Inget kort",
@@ -3391,6 +3409,15 @@ const fr: Dict = {
   "feedbackPrompt.cta": "Donner mon avis",
   "feedbackPrompt.dismiss": "Pas maintenant",
   "feedbackPrompt.close": "Fermer",
+  "feedbackPrompt.messagePlaceholder": "Dites-nous ce qui fonctionne et ce qui pourrait être mieux…",
+  "feedbackPrompt.messageLabel": "Votre avis",
+  "feedbackPrompt.emailPlaceholder": "Votre e-mail (facultatif, si vous souhaitez une réponse)",
+  "feedbackPrompt.emailLabel": "E-mail (facultatif)",
+  "feedbackPrompt.submit": "Envoyer",
+  "feedbackPrompt.submitting": "Envoi…",
+  "feedbackPrompt.cancel": "Annuler",
+  "feedbackPrompt.thanks": "Merci ! Nous avons bien reçu votre avis.",
+  "feedbackPrompt.error": "Impossible d'envoyer votre avis. Veuillez réessayer.",
 
   // ───── Branded signup landing ─────
   "signup.badge": "Gratuit pour commencer · Sans carte",
@@ -4528,6 +4555,15 @@ const es: Dict = {
   "feedbackPrompt.cta": "Dar opinión",
   "feedbackPrompt.dismiss": "Ahora no",
   "feedbackPrompt.close": "Cerrar",
+  "feedbackPrompt.messagePlaceholder": "Cuéntanos qué funciona y qué podríamos mejorar…",
+  "feedbackPrompt.messageLabel": "Tu opinión",
+  "feedbackPrompt.emailPlaceholder": "Tu correo (opcional, si quieres respuesta)",
+  "feedbackPrompt.emailLabel": "Correo (opcional)",
+  "feedbackPrompt.submit": "Enviar opinión",
+  "feedbackPrompt.submitting": "Enviando…",
+  "feedbackPrompt.cancel": "Cancelar",
+  "feedbackPrompt.thanks": "¡Gracias! Hemos recibido tu opinión.",
+  "feedbackPrompt.error": "No se pudo enviar tu opinión. Inténtalo de nuevo.",
 
   // ───── Branded signup landing ─────
   "signup.badge": "Gratis para empezar · Sin tarjeta",

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { MessageSquareHeart, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { getBaseUrl } from "@/lib/base-url";
+import { trackEvent } from "@/lib/analytics";
 
 const STATE_KEY = "skinscreen.feedbackPrompt.v1";
 const DELAY_MS = 60_000;
 const SUPPRESS_MS = 7 * 24 * 60 * 60 * 1000;
-const FEEDBACK_URL = "mailto:hello@chimiq.com?subject=Chimiq%20feedback";
 
 interface PersistedState {
   shownAt?: number;
@@ -44,9 +45,16 @@ function shouldSuppress(state: PersistedState): boolean {
   return now - last < SUPPRESS_MS;
 }
 
+type Mode = "intro" | "form" | "thanks";
+
 export function FeedbackPrompt() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [visible, setVisible] = useState(false);
+  const [mode, setMode] = useState<Mode>("intro");
+  const [message, setMessage] = useState("");
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -57,6 +65,7 @@ export function FeedbackPrompt() {
       if (shouldSuppress(fresh)) return;
       writeState({ ...fresh, shownAt: Date.now() });
       setVisible(true);
+      trackEvent("feedback_prompt_shown");
     }, DELAY_MS);
 
     return () => window.clearTimeout(timer);
@@ -64,18 +73,55 @@ export function FeedbackPrompt() {
 
   if (!visible) return null;
 
-  const dismiss = () => {
-    writeState({ ...readState(), dismissedAt: Date.now() });
+  const close = () => {
     setVisible(false);
   };
 
-  const act = () => {
-    writeState({ ...readState(), actedAt: Date.now() });
-    setVisible(false);
+  const dismiss = () => {
+    writeState({ ...readState(), dismissedAt: Date.now() });
+    trackEvent("feedback_prompt_dismiss", { mode });
+    close();
+  };
+
+  const openForm = () => {
+    setMode("form");
+    setError(null);
+    trackEvent("feedback_prompt_open_form");
+  };
+
+  const submit = async () => {
+    const trimmed = message.trim();
+    if (!trimmed || submitting) return;
+    setSubmitting(true);
+    setError(null);
     try {
-      window.open(FEEDBACK_URL, "_blank", "noopener,noreferrer");
+      const res = await fetch(`${getBaseUrl()}api/feedback`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: trimmed,
+          email: email.trim() || undefined,
+          locale,
+          pageUrl:
+            typeof window !== "undefined"
+              ? window.location.href.slice(0, 2000)
+              : undefined,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      writeState({ ...readState(), actedAt: Date.now() });
+      trackEvent("feedback_prompt_submit", { hasEmail: !!email.trim() });
+      setMode("thanks");
+      window.setTimeout(() => {
+        setVisible(false);
+      }, 2500);
     } catch {
-      window.location.href = FEEDBACK_URL;
+      setError(t("feedbackPrompt.error"));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -101,32 +147,109 @@ export function FeedbackPrompt() {
           >
             {t("feedbackPrompt.title")}
           </p>
-          <p
-            id="feedback-prompt-body"
-            className="mt-0.5 text-[12px] leading-snug text-muted-foreground"
-          >
-            {t("feedbackPrompt.body")}
-          </p>
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={act}
-              className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-primary/90"
+
+          {mode === "intro" && (
+            <>
+              <p
+                id="feedback-prompt-body"
+                className="mt-0.5 text-[12px] leading-snug text-muted-foreground"
+              >
+                {t("feedbackPrompt.body")}
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openForm}
+                  className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-primary/90"
+                >
+                  {t("feedbackPrompt.cta")}
+                </button>
+                <button
+                  type="button"
+                  onClick={dismiss}
+                  className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+                >
+                  {t("feedbackPrompt.dismiss")}
+                </button>
+              </div>
+            </>
+          )}
+
+          {mode === "form" && (
+            <form
+              className="mt-2 space-y-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit();
+              }}
             >
-              {t("feedbackPrompt.cta")}
-            </button>
-            <button
-              type="button"
-              onClick={dismiss}
-              className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+              <label className="sr-only" htmlFor="feedback-prompt-message">
+                {t("feedbackPrompt.messageLabel")}
+              </label>
+              <textarea
+                id="feedback-prompt-message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={t("feedbackPrompt.messagePlaceholder")}
+                rows={3}
+                maxLength={4000}
+                required
+                autoFocus
+                className="w-full resize-none rounded-lg border border-border bg-white px-2.5 py-1.5 text-[12px] leading-snug text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/40"
+              />
+              <label className="sr-only" htmlFor="feedback-prompt-email">
+                {t("feedbackPrompt.emailLabel")}
+              </label>
+              <input
+                id="feedback-prompt-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t("feedbackPrompt.emailPlaceholder")}
+                maxLength={320}
+                className="w-full rounded-lg border border-border bg-white px-2.5 py-1.5 text-[12px] leading-snug text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/40"
+              />
+              {error && (
+                <p
+                  role="alert"
+                  className="text-[11px] font-medium text-destructive"
+                >
+                  {error}
+                </p>
+              )}
+              <div className="flex items-center gap-2 pt-0.5">
+                <button
+                  type="submit"
+                  disabled={submitting || message.trim().length === 0}
+                  className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitting
+                    ? t("feedbackPrompt.submitting")
+                    : t("feedbackPrompt.submit")}
+                </button>
+                <button
+                  type="button"
+                  onClick={dismiss}
+                  className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+                >
+                  {t("feedbackPrompt.cancel")}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {mode === "thanks" && (
+            <p
+              id="feedback-prompt-body"
+              className="mt-1 text-[12px] leading-snug text-muted-foreground"
             >
-              {t("feedbackPrompt.dismiss")}
-            </button>
-          </div>
+              {t("feedbackPrompt.thanks")}
+            </p>
+          )}
         </div>
         <button
           type="button"
-          onClick={dismiss}
+          onClick={mode === "thanks" ? close : dismiss}
           aria-label={t("feedbackPrompt.close")}
           className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
         >

@@ -21,6 +21,7 @@ import tipsRouter from "./tips";
 import discoverRatingsRouter from "./discover-ratings";
 import ingredientsRouter from "./ingredients";
 import adminUsersRouter from "./admin-users";
+import feedbackRouter from "./feedback";
 
 const router: IRouter = Router();
 
@@ -46,5 +47,6 @@ router.use(tipsRouter);
 router.use(discoverRatingsRouter);
 router.use(ingredientsRouter);
 router.use(adminUsersRouter);
+router.use(feedbackRouter);
 
 export default router;

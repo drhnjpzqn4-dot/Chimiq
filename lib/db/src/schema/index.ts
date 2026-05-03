@@ -32,3 +32,4 @@ export * from "./product-ratings";
 export * from "./daily-scan-counts";
 export * from "./legal-consents";
 export * from "./payment-test-charges";
+export * from "./feedback-submissions";
