@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { notifyUnseenRecipesChanged } from "@/hooks/useUnseenRecipeCount";
 import { getBaseUrl } from "@/lib/base-url";
 import { isNative, openExternal, MANAGE_SUBSCRIPTION_WEB_URL } from "@/lib/native";
@@ -72,7 +73,7 @@ export default function ProfileScreen() {
   const { t, locale, setLocale } = useTranslation();
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin } = useIsAdmin();
   const [testChargeLoading, setTestChargeLoading] = useState(false);
   const [testChargeResult, setTestChargeResult] = useState<{
     ok: boolean;
@@ -130,10 +131,6 @@ export default function ProfileScreen() {
     fetch("/api/contribute/stats", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setStats(d as ContributeStats))
-      .catch(() => {});
-    fetch("/api/admin/check", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { isAdmin: false }))
-      .then((d) => setIsAdmin(!!(d as { isAdmin?: boolean }).isAdmin))
       .catch(() => {});
     fetch("/api/badges/me", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { badges: [] }))
