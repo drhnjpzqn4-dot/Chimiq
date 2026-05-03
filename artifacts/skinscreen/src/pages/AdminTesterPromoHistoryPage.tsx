@@ -130,17 +130,47 @@ function formatDateTime(iso: string): string {
   });
 }
 
-// Parse the bookmarkable filter params out of the current URL. We only
-// round-trip `actionFilter`, `q`, and `page` so Pia can refresh, share a
-// link, or use the back button without losing her view. Date-range
-// filters are intentionally session-local for now.
+// Strict YYYY-MM-DD shape check so a malformed `?from=garbage` URL doesn't
+// silently propagate into the date inputs (which would render blank but
+// still mark the preset as "custom"). We accept the value only if it
+// also parses to a real calendar date.
+function isValidDateParam(value: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return false;
+  const [, y, mo, day] = m;
+  const d = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return false;
+  // Reject overflow dates like 2026-02-31 that JS would otherwise
+  // silently normalize to a different calendar day.
+  return (
+    d.getFullYear() === Number(y) &&
+    d.getMonth() + 1 === Number(mo) &&
+    d.getDate() === Number(day)
+  );
+}
+
+// Parse the bookmarkable filter params out of the current URL. We
+// round-trip `actionFilter`, `q`, `page`, and the date-range controls
+// (`preset`, `from`, `to`) so Pia can refresh, share a link, or use the
+// back button without losing her view — including a quarter or custom
+// range scoped view.
 function readFiltersFromUrl(): {
   actionFilter: ActionFilter;
   q: string;
   page: number;
+  datePreset: DatePreset;
+  fromDate: string;
+  toDate: string;
 } {
   if (typeof window === "undefined") {
-    return { actionFilter: "all", q: "", page: 1 };
+    return {
+      actionFilter: "all",
+      q: "",
+      page: 1,
+      datePreset: "all",
+      fromDate: "",
+      toDate: "",
+    };
   }
   const params = new URLSearchParams(window.location.search);
   const rawAction = params.get("action");
@@ -149,7 +179,36 @@ function readFiltersFromUrl(): {
   const q = params.get("q") ?? "";
   const rawPage = Number.parseInt(params.get("page") ?? "1", 10);
   const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
-  return { actionFilter, q, page };
+
+  const rawPreset = params.get("preset");
+  const rawFrom = params.get("from") ?? "";
+  const rawTo = params.get("to") ?? "";
+  const fromValid = rawFrom && isValidDateParam(rawFrom);
+  const toValid = rawTo && isValidDateParam(rawTo);
+
+  let datePreset: DatePreset = "all";
+  let fromDate = "";
+  let toDate = "";
+  if (
+    rawPreset === "30d" ||
+    rawPreset === "quarter" ||
+    rawPreset === "ytd"
+  ) {
+    // For named presets we recompute the range from "today" rather than
+    // trusting whatever from/to happen to be in the URL — that way a
+    // bookmarked "?preset=quarter" link always means *this* quarter, not
+    // the quarter that was current when the link was copied.
+    datePreset = rawPreset;
+    const resolved = resolvePreset(rawPreset);
+    fromDate = resolved.from;
+    toDate = resolved.to;
+  } else if (rawPreset === "custom" || fromValid || toValid) {
+    datePreset = "custom";
+    if (fromValid) fromDate = rawFrom;
+    if (toValid) toDate = rawTo;
+  }
+
+  return { actionFilter, q, page, datePreset, fromDate, toDate };
 }
 
 function AdminTesterPromoHistoryPageInner() {
@@ -168,12 +227,14 @@ function AdminTesterPromoHistoryPageInner() {
   const [page, setPage] = useState(initialFilters.page);
   const [searchInput, setSearchInput] = useState(initialFilters.q);
   const [debouncedSearch, setDebouncedSearch] = useState(initialFilters.q);
-  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [datePreset, setDatePreset] = useState<DatePreset>(
+    initialFilters.datePreset,
+  );
   // YYYY-MM-DD strings bound to the date inputs. We keep the strings (not
   // Date objects) so the inputs render exactly what the user picked even
   // if their locale's formatting differs from ours.
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
+  const [fromDate, setFromDate] = useState<string>(initialFilters.fromDate);
+  const [toDate, setToDate] = useState<string>(initialFilters.toDate);
 
   const dateRangeInvalid = Boolean(fromDate && toDate && fromDate > toDate);
 
@@ -315,13 +376,22 @@ function AdminTesterPromoHistoryPageInner() {
     else params.delete("q");
     if (page > 1) params.set("page", String(page));
     else params.delete("page");
+    // Date range: persist the preset name so a "?preset=quarter" link
+    // always recomputes against today, and persist explicit from/to only
+    // for custom ranges so the inputs come back exactly as Pia left them.
+    if (datePreset !== "all") params.set("preset", datePreset);
+    else params.delete("preset");
+    if (datePreset === "custom" && fromDate) params.set("from", fromDate);
+    else params.delete("from");
+    if (datePreset === "custom" && toDate) params.set("to", toDate);
+    else params.delete("to");
     const qs = params.toString();
     const next = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`;
     const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (next !== current) {
       window.history.replaceState(window.history.state, "", next);
     }
-  }, [actionFilter, debouncedSearch, page]);
+  }, [actionFilter, debouncedSearch, page, datePreset, fromDate, toDate]);
 
   const handlePresetClick = useCallback((preset: DatePreset) => {
     setDatePreset(preset);
