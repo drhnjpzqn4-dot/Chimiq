@@ -6,10 +6,12 @@ import {
   isUpdateAvailable,
   onSwUpdate,
 } from "@/lib/register-sw";
+import { useTranslation } from "@/lib/i18n";
 
 const DISMISS_KEY = "skinscreen:update-dismissed-token";
 
 export function UpdateBanner() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [reloading, setReloading] = useState(false);
 
@@ -66,10 +68,10 @@ export function UpdateBanner() {
         <RefreshCw className="h-4 w-4 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold leading-tight text-foreground">
-            New version available
+            {t("updateBanner.title")}
           </p>
           <p className="text-[11px] leading-tight text-muted-foreground">
-            Refresh to get the latest improvements.
+            {t("updateBanner.body")}
           </p>
         </div>
         <button
@@ -78,12 +80,12 @@ export function UpdateBanner() {
           disabled={reloading}
           className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
-          {reloading ? "Refreshing…" : "Refresh"}
+          {reloading ? t("updateBanner.refreshing") : t("updateBanner.refresh")}
         </button>
         <button
           type="button"
           onClick={handleDismiss}
-          aria-label="Dismiss update notice"
+          aria-label={t("updateBanner.dismiss")}
           className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
         >
           <X className="h-4 w-4" />

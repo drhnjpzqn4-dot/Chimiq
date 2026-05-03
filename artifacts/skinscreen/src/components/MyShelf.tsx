@@ -20,6 +20,7 @@ import {
 import { FadeIn } from "@/components/FadeIn";
 import { cn } from "@/lib/utils";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { useTranslation } from "@/lib/i18n";
 
 type RoutineSlot = "morning" | "evening" | "both";
 
@@ -29,6 +30,7 @@ interface AddProductFormProps {
 }
 
 function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [productName, setProductName] = useState("");
   const [ingredients, setIngredients] = useState("");
@@ -74,7 +76,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
   return (
     <div className="bg-white rounded-2xl border border-border/60 shadow-lg p-6">
       <div className="flex items-center justify-between mb-5">
-        <h3 className="font-serif text-lg font-semibold text-foreground">Add a product</h3>
+        <h3 className="font-serif text-lg font-semibold text-foreground">{t("myShelf.addProduct")}</h3>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
           <X className="w-5 h-5" />
         </button>
@@ -91,7 +93,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {m === "search" ? "Search product" : "Paste ingredients"}
+            {m === "search" ? t("myShelf.searchProduct") : t("myShelf.pasteIngredients")}
           </button>
         ))}
       </div>
@@ -102,7 +104,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="e.g. CeraVe Moisturising Cream"
+              placeholder={t("myShelf.searchPlaceholder")}
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
@@ -110,7 +112,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
           </div>
 
           {lookupQuery.isFetching && (
-            <p className="text-xs text-muted-foreground mt-2 ml-1">Searching…</p>
+            <p className="text-xs text-muted-foreground mt-2 ml-1">{t("myShelf.searching")}</p>
           )}
 
           {lookupQuery.data?.found && (
@@ -126,7 +128,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
                   onClick={handleSearchSelect}
                   className="shrink-0 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                 >
-                  Use this
+                  {t("myShelf.useThis")}
                 </button>
               </div>
             </div>
@@ -134,13 +136,13 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
 
           {lookupQuery.data && !lookupQuery.data.found && search.length > 2 && !lookupQuery.isFetching && (
             <p className="text-xs text-muted-foreground mt-2 ml-1">
-              Product not found — try pasting the ingredient list manually.
+              {t("myShelf.productNotFound")}
             </p>
           )}
 
           {productName && (
             <div className="mt-3">
-              <p className="text-xs font-medium text-muted-foreground mb-1">Product name</p>
+              <p className="text-xs font-medium text-muted-foreground mb-1">{t("myShelf.productName")}</p>
               <input
                 type="text"
                 value={productName}
@@ -155,19 +157,19 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
       {mode === "manual" && (
         <div className="mb-4 space-y-3">
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Product name</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">{t("myShelf.productName")}</label>
             <input
               type="text"
-              placeholder="e.g. Cetaphil Gentle Cleanser"
+              placeholder={t("myShelf.manualPlaceholder")}
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Ingredient list</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">{t("myShelf.ingredientList")}</label>
             <textarea
-              placeholder="Paste the full ingredient list here…"
+              placeholder={t("myShelf.ingredientsPlaceholder")}
               value={ingredients}
               onChange={(e) => setIngredients(e.target.value)}
               rows={4}
@@ -178,7 +180,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
       )}
 
       <div className="mb-5">
-        <p className="text-xs font-medium text-muted-foreground mb-2">Routine</p>
+        <p className="text-xs font-medium text-muted-foreground mb-2">{t("myShelf.routine")}</p>
         <div className="flex gap-2">
           {(["morning", "evening", "both"] as RoutineSlot[]).map((slot) => (
             <button
@@ -193,7 +195,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
               {slot === "morning" && <Sun className="w-3 h-3" />}
               {slot === "evening" && <Moon className="w-3 h-3" />}
               {slot === "both" && <Layers className="w-3 h-3" />}
-              {slot.charAt(0).toUpperCase() + slot.slice(1)}
+              {t(`myShelf.slot.${slot}`)}
             </button>
           ))}
         </div>
@@ -204,13 +206,14 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
         disabled={!productName.trim() || !ingredients.trim() || addMutation.isPending}
         className="w-full py-3 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {addMutation.isPending ? "Adding…" : "Add to shelf"}
+        {addMutation.isPending ? t("myShelf.adding") : t("myShelf.addToShelf")}
       </button>
     </div>
   );
 }
 
 function ConflictCard({ conflict, delay }: { conflict: RoutineConflict; delay?: number }) {
+  const { t } = useTranslation();
   const isHighRisk = conflict.severity === "HIGH_RISK";
   return (
     <FadeIn delay={delay} fullWidth>
@@ -232,9 +235,9 @@ function ConflictCard({ conflict, delay }: { conflict: RoutineConflict; delay?: 
             isHighRisk ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700",
           )}>
             {isHighRisk ? (
-              <><ShieldOff className="w-3 h-3" /> HIGH RISK</>
+              <><ShieldOff className="w-3 h-3" /> {t("myShelf.severityHighRisk")}</>
             ) : (
-              <><AlertTriangle className="w-3 h-3" /> CAUTION</>
+              <><AlertTriangle className="w-3 h-3" /> {t("myShelf.severityCaution")}</>
             )}
           </span>
         </div>
@@ -267,6 +270,7 @@ interface RoutineCheckPanelProps {
 }
 
 function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: RoutineCheckPanelProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
 
   if (analysisState.status === "idle") {
@@ -278,7 +282,7 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all duration-200 bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20"
         >
           <Zap className="w-4 h-4" />
-          Check my routine
+          {t("myShelf.checkMyRoutine")}
         </button>
       </div>
     );
@@ -289,7 +293,7 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
       <div className="px-4 pb-4 border-t border-border/30 pt-3">
         <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/5 border border-primary/20 text-primary/70 text-sm">
           <Loader2 className="w-4 h-4 animate-spin" />
-          Analysing your routine…
+          {t("myShelf.analysing")}
         </div>
       </div>
     );
@@ -300,13 +304,13 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
       <div className="px-4 pb-4 border-t border-border/30 pt-3 space-y-2">
         <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
           <AlertTriangle className="w-4 h-4" />
-          Analysis failed. Please try again.
+          {t("myShelf.analysisFailed")}
         </div>
         <button
           onClick={onRun}
           className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          Retry
+          {t("myShelf.retry")}
         </button>
       </div>
     );
@@ -331,19 +335,21 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
           )}
           <span className="text-sm font-medium text-foreground">
             {overallSafe
-              ? "Routine check: all clear"
-              : `${highRiskCount + cautionCount} conflict${highRiskCount + cautionCount !== 1 ? "s" : ""} found`}
+              ? t("myShelf.routineAllClear")
+              : (highRiskCount + cautionCount === 1
+                  ? t("myShelf.oneConflict")
+                  : t("myShelf.manyConflictsFmt").replace("{count}", String(highRiskCount + cautionCount)))}
           </span>
           {!overallSafe && (
             <div className="flex items-center gap-1">
               {highRiskCount > 0 && (
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold">
-                  {highRiskCount} HIGH
+                  {highRiskCount} {t("myShelf.high")}
                 </span>
               )}
               {cautionCount > 0 && (
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
-                  {cautionCount} CAUTION
+                  {cautionCount} {t("myShelf.cautionShort")}
                 </span>
               )}
             </div>
@@ -354,9 +360,9 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
             onClick={onClear}
             className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors px-1"
           >
-            Clear
+            {t("myShelf.clear")}
           </button>
-          <button onClick={() => setOpen((v) => !v)} aria-label={open ? "Collapse" : "Expand"}>
+          <button onClick={() => setOpen((v) => !v)} aria-label={open ? t("myShelf.collapse") : t("myShelf.expand")}>
             {open ? (
               <ChevronUp className="w-4 h-4 text-muted-foreground/60" />
             ) : (
@@ -372,9 +378,9 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-green-50 border border-green-200">
               <ShieldCheck className="w-5 h-5 text-[#22C55E] shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-[#16A34A]">No conflicts found</p>
+                <p className="text-sm font-semibold text-[#16A34A]">{t("myShelf.noConflicts")}</p>
                 <p className="text-xs text-[#16A34A]/70 mt-0.5">
-                  Your routine looks good! No documented harmful interactions detected across your products.
+                  {t("myShelf.routineLooksGood")}
                 </p>
               </div>
             </div>
@@ -393,7 +399,7 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
             onClick={onClear}
             className="mt-3 w-full text-xs text-muted-foreground/60 hover:text-muted-foreground py-1.5 transition-colors"
           >
-            Re-check after changes
+            {t("myShelf.recheck")}
           </button>
         </div>
       )}
@@ -433,14 +439,15 @@ interface UpgradeCardProps {
 }
 
 function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
   const benefits = [
-    "Unlimited products on your shelf",
-    "Full routine analysis (AM + PM)",
-    "Downloadable PDF safety report",
-    "Personalised skin profile alerts",
+    t("myShelf.benefit1"),
+    t("myShelf.benefit2"),
+    t("myShelf.benefit3"),
+    t("myShelf.benefit4"),
   ];
 
   const handleClick = async () => {
@@ -465,7 +472,7 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
         onUpgrade();
       }
     } catch {
-      setError("Could not start checkout. Please try again.");
+      setError(t("myShelf.errCheckout"));
       setLoading(false);
     }
   };
@@ -492,7 +499,7 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Monthly
+          {t("myShelf.monthly")}
         </button>
         <button
           type="button"
@@ -503,7 +510,7 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Yearly
+          {t("myShelf.yearly")}
           <span
             className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
               billing === "yearly"
@@ -511,16 +518,16 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
                 : "bg-primary/15 text-primary"
             }`}
           >
-            Save 98 SEK
+            {t("myShelf.saveBadge")}
           </span>
         </button>
       </div>
 
       <p className="text-sm text-muted-foreground mb-4">
         <span className="font-bold text-foreground">
-          {billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo"}
+          {billing === "yearly" ? t("myShelf.priceYearly") : t("myShelf.priceMonthly")}
         </span>
-        {billing === "yearly" ? " · ≈ 41 SEK/mo" : ""} — cancel anytime.
+        {billing === "yearly" ? t("myShelf.yearlyDetail") : ""}{t("myShelf.cancelAnytime")}
       </p>
       <ul className="space-y-1.5 mb-4">
         {benefits.map((b) => (
@@ -536,20 +543,21 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
         className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading
-          ? "Starting checkout…"
-          : `Upgrade — ${billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo"}`}
+          ? t("myShelf.startingCheckout")
+          : t("myShelf.upgradePriceFmt").replace("{price}", billing === "yearly" ? t("myShelf.priceYearly") : t("myShelf.priceMonthly"))}
       </button>
       {error && (
         <p className="text-[11px] text-red-600 text-center mt-2">{error}</p>
       )}
       <p className="text-[10px] text-muted-foreground/60 text-center mt-2">
-        Or contribute 30 new products to earn a free month
+        {t("myShelf.contributeAlt")}
       </p>
     </div>
   );
 }
 
 function LockedSlotCard({ index, onUpgrade }: { index: number; onUpgrade: () => void }) {
+  const { t } = useTranslation();
   return (
     <button
       onClick={onUpgrade}
@@ -559,16 +567,17 @@ function LockedSlotCard({ index, onUpgrade }: { index: number; onUpgrade: () => 
         <Lock className="w-3 h-3 text-primary" />
       </div>
       <span className="text-sm text-muted-foreground flex-1 min-w-0">
-        Slot {index} — locked
+        {t("myShelf.slotLockedFmt").replace("{index}", String(index))}
       </span>
       <span className="text-[10px] font-semibold text-primary uppercase tracking-wide bg-primary/10 px-2 py-0.5 rounded-full shrink-0 group-hover:bg-primary/15 transition-colors">
-        Premium
+        {t("myShelf.premium")}
       </span>
     </button>
   );
 }
 
 export function MyShelf({ displayName }: MyShelfProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<ShelfTab>("morning");
   const [showAddForm, setShowAddForm] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
@@ -641,7 +650,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
     <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
       <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
         <div>
-          <span className="font-serif text-lg font-semibold text-foreground">My Shelf</span>
+          <span className="font-serif text-lg font-semibold text-foreground">{t("myShelf.title")}</span>
           {displayName && (
             <span className="ml-2 text-sm text-muted-foreground">— {displayName}</span>
           )}
@@ -716,10 +725,10 @@ export function MyShelf({ displayName }: MyShelfProps) {
                   ) : (
                     <Zap className="w-3 h-3" />
                   )}
-                  {loadingDemo ? "Loading…" : "Load example routine"}
+                  {loadingDemo ? t("myShelf.loading") : t("myShelf.loadExample")}
                 </button>
                 <p className="text-[11px] text-muted-foreground/50 mt-1.5">
-                  3 real products with documented conflicts
+                  {t("myShelf.threeRealProducts")}
                 </p>
               </div>
             ) : (
@@ -744,7 +753,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
                   onClick={() => handleRemove(product.id)}
                   disabled={removeMutation.isPending}
                   className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-red-400 transition-all ml-1"
-                  aria-label="Remove product"
+                  aria-label={t("myShelf.removeProduct")}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -812,8 +821,8 @@ export function MyShelf({ displayName }: MyShelfProps) {
             <FileText className="w-4 h-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground leading-tight">Download PDF Safety Report</p>
-            <p className="text-xs text-muted-foreground/70 mt-0.5">Full routine analysis — share with your dermatologist</p>
+            <p className="text-sm font-medium text-foreground leading-tight">{t("myShelf.downloadPdf")}</p>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">{t("myShelf.downloadPdfHint")}</p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0 bg-primary/10 text-primary px-2.5 py-1 rounded-full">
             <Lock className="w-3 h-3" />

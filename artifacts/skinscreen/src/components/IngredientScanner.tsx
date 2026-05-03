@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/FadeIn";
 import { StepHeader, VerdictCard } from "@/components/scanner/ScannerStep";
+import { useTranslation } from "@/lib/i18n";
 import {
   Loader2,
   FlaskConical,
@@ -42,22 +43,22 @@ const PLACEHOLDER_SINGLE = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, C
 const PLACEHOLDER_1 = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, Cetearyl Alcohol, Phenoxyethanol, Sodium Hyaluronate, Butylene Glycol, Carbomer`;
 const PLACEHOLDER_2 = `Aqua, Ascorbic Acid (Vitamin C 20%), Glycolic Acid, Propylene Glycol, Tocopherol, Ferulic Acid, Sodium Hydroxide, Panthenol`;
 
-const SKIN_PROFILES: { value: SkinProfile; label: string; emoji: string }[] = [
-  { value: "sensitive", label: "Sensitive", emoji: "🌸" },
-  { value: "young", label: "Young skin", emoji: "✨" },
-  { value: "mature", label: "Mature skin", emoji: "🍃" },
-  { value: "pregnant", label: "Pregnant", emoji: "🤱" },
+const SKIN_PROFILES: { value: SkinProfile; labelKey: string; emoji: string }[] = [
+  { value: "sensitive", labelKey: "scanner.skinType.sensitive", emoji: "🌸" },
+  { value: "young", labelKey: "scanner.skinType.young", emoji: "✨" },
+  { value: "mature", labelKey: "scanner.skinType.mature", emoji: "🍃" },
+  { value: "pregnant", labelKey: "scanner.skinType.pregnant", emoji: "🤱" },
 ];
 
-const FLAG_CATEGORY_LABELS: Record<string, string> = {
-  ENDOCRINE_DISRUPTOR: "Endocrine disruptor",
-  FORMALDEHYDE_RELEASER: "Formaldehyde releaser",
-  FRAGRANCE: "Fragrance",
-  HARSH_PRESERVATIVE: "Harsh preservative",
-  PHOTOSENSITISER: "Photosensitiser",
-  KNOWN_ALLERGEN: "Known allergen",
-  NANOPARTICLE: "Nanoparticle",
-  CAUTION: "Caution",
+const FLAG_CATEGORY_KEYS: Record<string, string> = {
+  ENDOCRINE_DISRUPTOR: "scanner.flagCategory.endocrineDisruptor",
+  FORMALDEHYDE_RELEASER: "scanner.flagCategory.formaldehydeReleaser",
+  FRAGRANCE: "scanner.flagCategory.fragrance",
+  HARSH_PRESERVATIVE: "scanner.flagCategory.harshPreservative",
+  PHOTOSENSITISER: "scanner.flagCategory.photosensitiser",
+  KNOWN_ALLERGEN: "scanner.flagCategory.knownAllergen",
+  NANOPARTICLE: "scanner.flagCategory.nanoparticle",
+  CAUTION: "scanner.flagCategory.caution",
 };
 
 function SkinProfileSelector({
@@ -67,9 +68,10 @@ function SkinProfileSelector({
   value: SkinProfile | undefined;
   onChange: (v: SkinProfile | undefined) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm font-semibold text-foreground mb-2">Your skin type</p>
+      <p className="text-sm font-semibold text-foreground mb-2">{t("scanner.yourSkinType")}</p>
       <div className="flex flex-wrap gap-2">
         {SKIN_PROFILES.map((p) => (
           <button
@@ -86,7 +88,7 @@ function SkinProfileSelector({
             data-touch-target
             style={value === p.value ? { backgroundColor: "hsl(var(--primary))", color: "#fff", borderColor: "hsl(var(--primary))" } : {}}
           >
-            {p.label}
+            {t(p.labelKey)}
           </button>
         ))}
       </div>
@@ -100,6 +102,7 @@ interface ProductSearchProps {
 }
 
 function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
+  const { t } = useTranslation();
   const [inputVal, setInputVal] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [autoFilled, setAutoFilled] = useState<string | null>(null);
@@ -143,14 +146,14 @@ function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
         <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
           <p className="text-xs font-medium text-primary truncate flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-            Auto-filled from: {autoFilled}
+            {t("scanner.autoFilledFmt").replace("{name}", autoFilled)}
           </p>
           <button
             type="button"
             onClick={clear}
             className="shrink-0 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
           >
-            Clear
+            {t("scanner.clear")}
           </button>
         </div>
       ) : (
@@ -160,7 +163,7 @@ function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
             type="text"
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            placeholder="Search product name to auto-fill ingredients..."
+            placeholder={t("scanner.searchPlaceholder")}
             disabled={disabled}
             data-touch-target
             className={cn(
@@ -184,7 +187,7 @@ function ProductSearch({ onIngredients, disabled }: ProductSearchProps) {
           )}
           {!isFetching && debouncedQ.length >= 3 && data && !data.found && (
             <p className="mt-1.5 text-[11px] text-muted-foreground px-1 animate-fade-up">
-              Not found — paste the ingredient list manually below
+              {t("scanner.notFoundManual")}
             </p>
           )}
         </div>
@@ -202,6 +205,7 @@ interface ProductTextAreaProps {
 }
 
 function ProductTextArea({ label, index, value, onChange, placeholder }: ProductTextAreaProps) {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [scanError, setScanError] = useState<string | null>(null);
 
@@ -216,7 +220,7 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
           ?.data?.error;
         setScanError(
           apiError ??
-            "Couldn't read the label. Try a clearer photo of the ingredients panel, or type manually.",
+            t("scanner.errReadLabel"),
         );
       },
     },
@@ -227,11 +231,11 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
     if (!file) return;
     setScanError(null);
     const reader = new FileReader();
-    reader.onerror = () => setScanError("Couldn't read the image file. Please try a different photo.");
+    reader.onerror = () => setScanError(t("scanner.errReadFile"));
     reader.onload = () => {
       const dataUrl = reader.result as string;
       const img = new Image();
-      img.onerror = () => setScanError("Couldn't decode the image. Please try a clearer photo or different format.");
+      img.onerror = () => setScanError(t("scanner.errDecode"));
       img.onload = () => {
         const MAX_EDGE = 1500;
         let { width, height } = img;
@@ -242,7 +246,7 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
         const canvas = document.createElement("canvas");
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext("2d");
-        if (!ctx) { setScanError("Image processing failed. Please enter ingredients manually."); return; }
+        if (!ctx) { setScanError(t("scanner.errImgProcessing")); return; }
         ctx.drawImage(img, 0, 0, width, height);
         const base64 = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
         scanLabel.mutate({ data: { imageBase64: base64, mimeType: "image/jpeg" } });
@@ -279,7 +283,7 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={scanLabel.isPending}
-          title="Scan label photo"
+          title={t("scanner.scanLabelPhoto")}
           data-touch-target
           className={cn(
             "absolute top-2.5 right-2.5 w-10 h-10 flex items-center justify-center rounded-2xl",
@@ -307,7 +311,7 @@ function ProductTextArea({ label, index, value, onChange, placeholder }: Product
           className="text-[11px] text-primary hover:text-primary transition-colors flex items-center gap-1 disabled:opacity-50"
         >
           <Camera className="w-3 h-3" />
-          Snap a photo of the label
+          {t("scanner.snapLabel")}
         </button>
         <div className="flex items-center gap-2 shrink-0">
           {scanError && <p className="text-[11px] text-destructive leading-snug">{scanError}</p>}
@@ -327,6 +331,7 @@ function FlagCard({
   delay?: number;
   onOpenProfile?: () => void;
 }) {
+  const { t } = useTranslation();
   const isHighRisk = flag.severity === "HIGH_RISK";
   // High-risk flags expand by default so users can't miss the explanation.
   // Caution flags collapse by default to keep the results list scannable on
@@ -360,17 +365,17 @@ function FlagCard({
                 variant={isHighRisk ? "destructive" : "warning"}
                 className="shrink-0 text-[10px] font-sans tracking-wide uppercase"
               >
-                {isHighRisk ? "HIGH RISK" : "CAUTION"}
+                {isHighRisk ? t("scanner.highRisk") : t("scanner.caution")}
               </Badge>
             </div>
             <span className={cn(
               "inline-block mt-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
               isHighRisk ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700",
             )}>
-              {FLAG_CATEGORY_LABELS[flag.category] ?? flag.category}
+              {FLAG_CATEGORY_KEYS[flag.category] ? t(FLAG_CATEGORY_KEYS[flag.category]) : flag.category}
             </span>
             {!open && (
-              <p className="mt-2 text-xs text-muted-foreground">Tap to see why and view the source.</p>
+              <p className="mt-2 text-xs text-muted-foreground">{t("scanner.tapToSeeWhy")}</p>
             )}
           </div>
           <ChevronRight
@@ -401,7 +406,7 @@ function FlagCard({
                     : "text-amber-700 hover:text-amber-800",
                 )}
               >
-                See full ingredient profile →
+                {t("scanner.seeFullProfile")}
               </button>
             )}
             <div className="pt-3 border-t border-border/40">
@@ -413,7 +418,7 @@ function FlagCard({
               >
                 <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
                 <span className="italic leading-snug">
-                  <span className="font-semibold not-italic text-muted-foreground">Source: </span>
+                  <span className="font-semibold not-italic text-muted-foreground">{t("scanner.source")}</span>
                   {flag.citation}
                 </span>
               </a>
@@ -426,6 +431,7 @@ function FlagCard({
 }
 
 function SafeCard({ result, delay }: { result: ConflictResult; delay?: number }) {
+  const { t } = useTranslation();
   return (
     <FadeIn delay={delay} fullWidth>
       <div className="flex flex-col justify-between h-full p-6 sm:p-8 bg-white rounded-3xl border border-green-200 shadow-sm">
@@ -436,7 +442,7 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
             </h3>
             <Badge className="shrink-0 bg-green-100 text-green-700 border-green-200 hover:bg-green-100 font-sans tracking-wide uppercase text-[10px]">
               <ShieldCheck className="w-3 h-3 mr-1" />
-              SAFE
+              {t("scanner.safe")}
             </Badge>
           </div>
           <p className="text-muted-foreground leading-relaxed mb-6">{result.explanation}</p>
@@ -450,7 +456,7 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
           >
             <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
             <span className="italic leading-snug">
-              <span className="font-semibold not-italic text-muted-foreground">Source: </span>
+              <span className="font-semibold not-italic text-muted-foreground">{t("scanner.source")}</span>
               {result.citation}
             </span>
           </a>
@@ -461,6 +467,7 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
 }
 
 function AlternativeCard({ alt, delay }: { alt: AlternativeSuggestion; delay?: number }) {
+  const { t } = useTranslation();
   return (
     <FadeIn delay={delay} fullWidth>
       <div className="flex flex-col h-full p-5 rounded-3xl border border-primary/20 bg-primary/[0.03] shadow-sm">
@@ -471,7 +478,7 @@ function AlternativeCard({ alt, delay }: { alt: AlternativeSuggestion; delay?: n
           </div>
           <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
             <ShieldCheck className="w-3 h-3" />
-            Safer pick
+            {t("scanner.saferPick")}
           </span>
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed mb-3 flex-1">{alt.whySafer}</p>
@@ -490,6 +497,7 @@ function AlternativesSection({
   ingredients: string;
   flaggedIngredients: string[];
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const suggestMutation = useSuggestAlternatives({ mutation: {} });
 
@@ -517,7 +525,7 @@ function AlternativesSection({
           <div className="flex items-center gap-2.5">
             <Sparkles className="w-4 h-4 text-primary shrink-0" />
             <span className="text-sm font-semibold text-foreground">
-              What to use instead
+              {t("scanner.whatToUse")}
               {inferredType && <span className="font-normal text-muted-foreground ml-1">· {inferredType}</span>}
             </span>
             {isLoading && <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />}
@@ -545,13 +553,13 @@ function AlternativesSection({
 
             {isError && (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Could not load suggestions right now.
+                {t("scanner.altsLoadFailed")}
               </p>
             )}
 
             {!isLoading && !isError && alternatives.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No suggestions available.
+                {t("scanner.noAlts")}
               </p>
             )}
 
@@ -564,7 +572,7 @@ function AlternativesSection({
             )}
 
             <p className="text-[10px] text-muted-foreground text-center mt-4">
-              Suggestions are for informational purposes only · No affiliate links · Chimiq has no brand partnerships
+              {t("scanner.altsDisclaimer")}
             </p>
           </div>
         )}
@@ -853,6 +861,7 @@ export function IngredientScanner({
       (recents / get-started) for the next interaction. */
   onSeedConsumed?: () => void;
 } = {}) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<"single" | "compare">("single");
   // Persist the user's last skin-type choice so returning users don't have to
   // re-pick it on every scan. Stored in localStorage; gracefully ignores any
@@ -1093,7 +1102,7 @@ export function IngredientScanner({
       {/* ── STEP 1: Skin type ── */}
       <StepHeader
         index={1}
-        title="Select your skin type"
+        title={t("scanner.selectSkinType")}
         description="Optional — personalises flagging and risk levels."
       >
         <SkinProfileSelector value={skinProfile} onChange={setSkinProfile} />
@@ -1102,7 +1111,7 @@ export function IngredientScanner({
       {/* ── STEP 2: Select products ── */}
       <StepHeader
         index={2}
-        title="Select products to scan"
+        title={t("scanner.selectProducts")}
         description="Scan one product for flags, or compare two for conflicts."
       >
 
@@ -1149,8 +1158,8 @@ export function IngredientScanner({
                 A
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">Use a preloaded sample</h4>
-                <p className="text-xs text-muted-foreground mb-3">Load a real-world example — then hit Analyze.</p>
+                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.useSample")}</h4>
+                <p className="text-xs text-muted-foreground mb-3">{t("scanner.useSampleHint")}</p>
                 <div className={cn("grid gap-3", presets.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-sm")}>
                   {presets.map((preset) => (
                     <button
@@ -1195,8 +1204,8 @@ export function IngredientScanner({
                 B
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">Choose a popular product</h4>
-                <p className="text-xs text-muted-foreground mb-3">Pick from a curated list with product images.</p>
+                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.choosePopular")}</h4>
+                <p className="text-xs text-muted-foreground mb-3">{t("scanner.choosePopularHint")}</p>
                 {mode === "single" ? (
                   <QuickStartDropdown
                     key={quickStartResetKey}
@@ -1241,8 +1250,8 @@ export function IngredientScanner({
                 C
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">Scan your own product</h4>
-                <p className="text-xs text-muted-foreground mb-3">Search by name, scan a barcode, or paste the ingredient list.</p>
+                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.scanOwn")}</h4>
+                <p className="text-xs text-muted-foreground mb-3">{t("scanner.scanOwnHint")}</p>
                 {mode === "single" ? (
                   <div>
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -1337,7 +1346,7 @@ export function IngredientScanner({
       {/* ── STEP 3: Analyze ── */}
       <StepHeader
         index={3}
-        title="Analyze"
+        title={t("scanner.analyze")}
         description={
           mode === "single"
             ? "Paste or load your ingredient list above, then scan."
@@ -1355,7 +1364,7 @@ export function IngredientScanner({
             className="w-full sm:w-auto min-w-[200px] gap-2 text-base py-3 px-8 rounded-2xl active:animate-tap-bounce"
           >
             {isPending ? (
-              <><Loader2 className="w-4 h-4 animate-spin" />Analysing…</>
+              <><Loader2 className="w-4 h-4 animate-spin" />{t("scanner.analysing")}</>
             ) : (
               <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? "Scan Ingredients") : (ctaLabel?.compare ?? "Check Compatibility")}</>
             )}

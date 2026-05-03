@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { ContributeModal } from "@/components/ContributeModal";
 import { isNative } from "@/lib/native";
 import { BarcodeScanner, BarcodeFormat } from "@capacitor-mlkit/barcode-scanning";
+import { useTranslation } from "@/lib/i18n";
 
 interface BarcodeScanButtonProps {
   onResult: (ingredients: string, productName: string, barcode?: string) => void;
@@ -42,6 +43,7 @@ export function BarcodeScanButton({
   triggerClassName,
   triggerContent,
 }: BarcodeScanButtonProps) {
+  const { t } = useTranslation();
   const [state, setState] = useState<ScanState>(
     typeof window !== "undefined" && (isNative() || "BarcodeDetector" in window)
       ? "idle"
@@ -108,7 +110,7 @@ export function BarcodeScanButton({
         };
 
         if (data.found && data.ingredients) {
-          const name = [data.brand, data.productName].filter(Boolean).join(" ") || "Scanned product";
+          const name = [data.brand, data.productName].filter(Boolean).join(" ") || t("contribute.scannedProductFallback");
           setScannedProduct(name);
           setState("success");
           setTimeout(() => {
@@ -124,7 +126,7 @@ export function BarcodeScanButton({
           setState("not_found");
         }
       } catch {
-        setErrorMsg("Lookup failed. Check your connection and try again.");
+        setErrorMsg(t("barcodeScan.errLookup"));
         setState("error");
       }
     },
@@ -175,7 +177,7 @@ export function BarcodeScanButton({
           setErrorMsg(
             err instanceof Error
               ? err.message
-              : "Native scanner unavailable. Please type the ingredients manually.",
+              : t("barcodeScan.errNativeUnavail"),
           );
           return;
         }
@@ -226,8 +228,8 @@ export function BarcodeScanButton({
       setState("error");
       setErrorMsg(
         err instanceof Error && err.name === "NotAllowedError"
-          ? "Camera permission denied. Allow camera access and try again."
-          : "Could not access camera.",
+          ? t("barcodeScan.errCameraDenied")
+          : t("barcodeScan.errCameraAccess"),
       );
     }
   }, [handleBarcodeFound]);
@@ -245,7 +247,7 @@ export function BarcodeScanButton({
   const defaultTrigger = (
     <>
       <Barcode className="w-3.5 h-3.5" />
-      Scan barcode
+      {t("barcodeScan.scanBarcode")}
     </>
   );
 
@@ -275,7 +277,7 @@ export function BarcodeScanButton({
               <div className="flex items-center gap-2.5">
                 <Barcode className="w-4 h-4 text-white" />
                 <p className="text-white font-semibold text-sm">
-                  {state === "not_found" ? "Product Not Found" : "Scan Product Barcode"}
+                  {state === "not_found" ? t("barcodeScan.notFound") : t("barcodeScan.title")}
                 </p>
               </div>
               <button
@@ -315,7 +317,7 @@ export function BarcodeScanButton({
                     )}
                   </div>
                   <p className="text-sm text-center text-muted-foreground">
-                    Point your camera at a product barcode (EAN-13, UPC-A, etc.)
+                    {t("barcodeScan.pointCamera")}
                   </p>
                 </>
               )}
@@ -323,7 +325,7 @@ export function BarcodeScanButton({
               {state === "loading" && (
                 <div className="flex flex-col items-center gap-4 py-8">
                   <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                  <p className="text-sm text-muted-foreground">Looking up product ingredients…</p>
+                  <p className="text-sm text-muted-foreground">{t("barcodeScan.lookingUp")}</p>
                 </div>
               )}
 
@@ -334,7 +336,7 @@ export function BarcodeScanButton({
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-foreground">{scannedProduct}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Ingredients loaded ✓</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("barcodeScan.ingredientsLoaded")}</p>
                   </div>
                 </div>
               )}
@@ -349,7 +351,7 @@ export function BarcodeScanButton({
                     onClick={close}
                     className="text-sm font-medium text-primary hover:underline"
                   >
-                    Enter manually
+                    {t("barcodeScan.enterManually")}
                   </button>
                 </div>
               )}
@@ -358,22 +360,22 @@ export function BarcodeScanButton({
                 <div className="flex flex-col items-center gap-4 py-6">
                   <p className="text-sm text-center text-muted-foreground">
                     {prefillName
-                      ? `"${prefillName}" is missing its ingredient list.`
-                      : "This barcode isn't in our database yet."}
+                      ? t("barcodeScan.missingIngredientsFmt").replace("{name}", prefillName)
+                      : t("barcodeScan.notInDatabase")}
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowContribute(true)}
                     className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
                   >
-                    Add ingredients & earn Premium
+                    {t("barcodeScan.addAndEarn")}
                   </button>
                   <button
                     type="button"
                     onClick={close}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    Skip — I'll paste manually
+                    {t("barcodeScan.skipPaste")}
                   </button>
                 </div>
               )}

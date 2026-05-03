@@ -3,18 +3,19 @@ import { MessageCircle, X, Send, Loader2, Bot, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useGetShelf } from "@workspace/api-client-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
-const STARTER_QUESTIONS = [
-  "Is it safe to use retinol and vitamin C together?",
-  "My skin is purging — is that normal?",
-  "What ingredients should I avoid if I'm pregnant?",
-  "Can I use niacinamide and AHA on the same day?",
-];
+const STARTER_QUESTION_KEYS = [
+  "chatPanel.starter1",
+  "chatPanel.starter2",
+  "chatPanel.starter3",
+  "chatPanel.starter4",
+] as const;
 
 function TypingDots() {
   return (
@@ -31,6 +32,7 @@ function TypingDots() {
 }
 
 export function ChatPanel() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -93,7 +95,7 @@ export function ChatPanel() {
       const data = (await response.json()) as { reply: string };
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("chatPanel.errSend"));
     } finally {
       setLoading(false);
     }
@@ -111,7 +113,7 @@ export function ChatPanel() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Open Chimiq AI assistant"
+        aria-label={t("chatPanel.openAssistant")}
         aria-expanded={open}
         aria-controls="chat-panel-dialog"
         style={{ bottom: "calc(var(--tab-bar-height, 64px) + var(--safe-bottom, 0px) + 18px)" }}
@@ -145,14 +147,14 @@ export function ChatPanel() {
               <Bot className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p id="chat-panel-title" className="text-white font-semibold text-sm leading-tight">Ask Chimiq</p>
-              <p className="text-white/80 text-xs">AI skincare safety assistant</p>
+              <p id="chat-panel-title" className="text-white font-semibold text-sm leading-tight">{t("chatPanel.askChimiq")}</p>
+              <p className="text-white/80 text-xs">{t("chatPanel.aiAssistant")}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Close chat"
+            aria-label={t("chatPanel.close")}
             className="text-white hover:text-white transition-colors p-2 rounded-lg hover:bg-white/15"
           >
             <X className="w-4 h-4" aria-hidden="true" />
@@ -168,29 +170,32 @@ export function ChatPanel() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-foreground leading-relaxed">
-                    Hi{user?.firstName ? `, ${user.firstName}` : ""}! I'm here to help you understand ingredient safety, combination risks, and skincare science.
-                    {shelfContext ? " I can see your current shelf products." : ""}
+                    {t("chatPanel.greetingFmt").replace("{name}", user?.firstName ? `, ${user.firstName}` : "")}
+                    {shelfContext ? t("chatPanel.shelfNote") : ""}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    I don't diagnose conditions or recommend specific products.
+                    {t("chatPanel.disclaimer")}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Try asking
+                  {t("chatPanel.tryAsking")}
                 </p>
-                {STARTER_QUESTIONS.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => sendMessage(q)}
-                    className="w-full text-left text-sm px-3 py-2.5 rounded-xl bg-[#F5F5F7] hover:bg-primary/5 hover:text-primary text-foreground transition-colors leading-snug border border-transparent hover:border-primary/20"
-                  >
-                    {q}
-                  </button>
-                ))}
+                {STARTER_QUESTION_KEYS.map((key) => {
+                  const q = t(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => sendMessage(q)}
+                      className="w-full text-left text-sm px-3 py-2.5 rounded-xl bg-[#F5F5F7] hover:bg-primary/5 hover:text-primary text-foreground transition-colors leading-snug border border-transparent hover:border-primary/20"
+                    >
+                      {q}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -246,7 +251,7 @@ export function ChatPanel() {
         <div className="shrink-0 px-3 pb-3 pt-2 border-t border-border/30">
           <div className="flex items-end gap-2 bg-[#F5F5F7] rounded-2xl px-3 py-2">
             <label htmlFor="chat-message-input" className="sr-only">
-              Type your skincare question
+              {t("chatPanel.typeQuestion")}
             </label>
             <textarea
               id="chat-message-input"
@@ -254,7 +259,7 @@ export function ChatPanel() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about ingredient safety..."
+              placeholder={t("chatPanel.placeholder")}
               rows={1}
               disabled={loading}
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none min-h-[24px] max-h-[96px] py-0.5"
@@ -269,7 +274,7 @@ export function ChatPanel() {
               type="button"
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || loading}
-              aria-label={loading ? "Sending message" : "Send message"}
+              aria-label={loading ? t("chatPanel.sending") : t("chatPanel.send")}
               className={cn(
                 "w-8 h-8 rounded-xl flex items-center justify-center transition-all shrink-0",
                 input.trim() && !loading
@@ -285,7 +290,7 @@ export function ChatPanel() {
             </button>
           </div>
           <p className="text-[11px] text-muted-foreground text-center mt-1.5">
-            Not medical advice · Consult a dermatologist for diagnosis
+            {t("chatPanel.notMedical")}
           </p>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, Loader2, CheckCircle2, Gift, Star, X, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 interface ContributeModalProps {
   barcode?: string;
@@ -54,6 +55,7 @@ export function ContributeModal({
   onSuccess,
   onClose,
 }: ContributeModalProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("front-photo");
   const [productName, setProductName] = useState(initialProductName);
   const [brand, setBrand] = useState(initialBrand);
@@ -90,7 +92,7 @@ export function ContributeModal({
       const b64 = await resizeImageBase64(file);
       setFrontImageBase64(b64);
     } catch {
-      setError("Could not read the photo. Please try again.");
+      setError(t("contribute.errReadPhoto"));
     }
     setProcessingFront(false);
   }, []);
@@ -106,7 +108,7 @@ export function ContributeModal({
       setIngredientsPreviewUrl(dataUrl);
       setIngredientsImageBase64(await resizeImageBase64(file));
     } catch {
-      setError("Could not read the photo. Please try again.");
+      setError(t("contribute.errReadPhoto"));
     }
     setProcessingIngredients(false);
   }, []);
@@ -114,15 +116,15 @@ export function ContributeModal({
   const handleFrontPhotoNext = useCallback(async () => {
     setError(null);
     if (!frontImageBase64) {
-      setError("Please add a clear photo of the front of the product.");
+      setError(t("contribute.errFrontPhoto"));
       return;
     }
     if (!productName.trim()) {
-      setError("Please enter the product name.");
+      setError(t("contribute.errProductName"));
       return;
     }
     if (!barcodeInput.trim()) {
-      setError("Please enter or scan the product barcode.");
+      setError(t("contribute.errBarcode"));
       return;
     }
     if (submissionId) {
@@ -150,7 +152,7 @@ export function ContributeModal({
       setSubmissionId(data.submissionId);
       setStep("ingredients");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error. Please try again.");
+      setError(err instanceof Error ? err.message : t("contribute.errNetwork"));
     }
   }, [barcodeInput, productName, brand, frontImageBase64, submissionId]);
 
@@ -183,7 +185,7 @@ export function ContributeModal({
     const hasImages = frontImageBase64 || ingredientsImageBase64;
     const hasText = trimmedText.length > 5;
     if (!hasImages && !hasText) {
-      setError("Please add at least one photo or paste the ingredient list.");
+      setError(t("contribute.errAddPhotoOrText"));
       return;
     }
     // Reject obvious non-ingredient input whenever the user has typed text — independent
@@ -196,9 +198,7 @@ export function ContributeModal({
       const tokens = trimmedText.split(/[,\n;]+/).map((t) => t.trim()).filter(Boolean);
       const tooFewTokens = tokens.length < 3;
       if (looksLikeCode || tooShortOrNoCommas || tooFewTokens) {
-        setError(
-          "That doesn't look like an ingredient list. Paste the comma-separated INCI list from the product label (e.g. 'Aqua, Glycerin, Niacinamide…').",
-        );
+        setError(t("contribute.errInvalidIngredients"));
         return;
       }
     }
@@ -226,22 +226,22 @@ export function ContributeModal({
       setStep("success");
 
       if (data.extractedIngredients && onSuccess) {
-        const name = [brand.trim(), productName.trim()].filter(Boolean).join(" ") || "Scanned product";
+        const name = [brand.trim(), productName.trim()].filter(Boolean).join(" ") || t("contribute.scannedProductFallback");
         setTimeout(() => {
           onSuccess(data.extractedIngredients!, name);
         }, 2400);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed. Please try again.");
+      setError(err instanceof Error ? err.message : t("contribute.errSubmissionFailed"));
       setStep("ingredients");
     }
   }, [submissionId, frontImageBase64, ingredientsImageBase64, ingredientsText, onSuccess, brand, productName]);
 
   const stepLabel: Record<Step, string> = {
-    "front-photo": "Step 1 of 2 — Product photo",
-    "ingredients": "Step 2 of 2 — Ingredient list",
-    "submitting": "Processing…",
-    "success": "Submitted!",
+    "front-photo": t("contribute.step1Photo"),
+    "ingredients": t("contribute.step2Ingredients"),
+    "submitting": t("contribute.processingShort"),
+    "success": t("contribute.thanks"),
   };
 
   return (
@@ -254,7 +254,7 @@ export function ContributeModal({
             {step === "ingredients" && (
               <button
                 onClick={() => setStep("front-photo")}
-                aria-label="Back"
+                aria-label={t("contribute.back")}
                 className="text-muted-foreground hover:text-foreground transition-colors -ml-1"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -264,19 +264,19 @@ export function ContributeModal({
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 {step === "submitting" || step === "success"
                   ? stepLabel[step]
-                  : "Help us add this product"}
+                  : t("contribute.helpUsAddProduct")}
               </p>
               <p className="font-serif text-lg font-semibold leading-tight text-foreground mt-0.5">
-                {step === "front-photo" && "Step 1 of 2 · Photo"}
-                {step === "ingredients" && "Step 2 of 2 · Ingredients"}
-                {step === "submitting" && "Submitting…"}
-                {step === "success" && "Thanks!"}
+                {step === "front-photo" && t("contribute.step1Photo")}
+                {step === "ingredients" && t("contribute.step2Ingredients")}
+                {step === "submitting" && t("contribute.submittingTitle")}
+                {step === "success" && t("contribute.thanks")}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("contribute.close")}
             className="shrink-0 rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" />
@@ -288,8 +288,7 @@ export function ContributeModal({
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 mb-5">
               <Gift className="w-4 h-4 text-amber-600 shrink-0" />
               <p className="text-xs text-amber-700 font-medium leading-snug">
-                Contribute 30 new products to earn 1 month of free Premium.
-                Each must include name, barcode, front photo & ingredients.
+                {t("contribute.banner")}
               </p>
             </div>
           )}
@@ -298,12 +297,12 @@ export function ContributeModal({
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-semibold text-foreground mb-1">
-                  Snap the front of the product bottle
+                  {t("contribute.snapFront")}
                 </p>
                 <p className="text-xs text-muted-foreground mb-4">
                   {barcode
-                    ? `Barcode ${barcode} isn't in our database yet. A photo helps our AI identify the product automatically.`
-                    : "A clear photo of the label helps our AI identify the product name and brand."}
+                    ? t("contribute.frontHelpBarcodeFmt").replace("{barcode}", barcode)
+                    : t("contribute.frontHelpDefault")}
                 </p>
               </div>
 
@@ -329,12 +328,12 @@ export function ContributeModal({
                       disabled={processingFront}
                       className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-white/90 text-xs font-medium text-foreground shadow hover:bg-white transition-colors border border-border/40"
                     >
-                      Retake
+                      {t("contribute.retake")}
                     </button>
                   </div>
                   <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                    Photo captured — AI will read the label
+                    {t("contribute.photoCaptured")}
                   </p>
                 </div>
               ) : (
@@ -350,28 +349,28 @@ export function ContributeModal({
                     <Camera className="w-7 h-7" />
                   )}
                   <span className="text-sm font-medium">
-                    {processingFront ? "Processing…" : "Take photo"}
+                    {processingFront ? t("contribute.processingShort") : t("contribute.takePhoto")}
                   </span>
                   <span className="text-xs text-muted-foreground/60">
-                    Point camera at the front of the bottle
+                    {t("contribute.pointCamera")}
                   </span>
                 </button>
               )}
 
               <div className="border-t border-border/30 pt-3 space-y-3">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                  Required details
+                  {t("contribute.requiredDetails")}
                 </p>
                 <input
                   type="text"
-                  placeholder="Product name *"
+                  placeholder={t("contribute.productNamePlaceholder")}
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
                 />
                 <input
                   type="text"
-                  placeholder="Brand (optional)"
+                  placeholder={t("contribute.brandPlaceholder")}
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
@@ -380,7 +379,7 @@ export function ContributeModal({
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  placeholder="Barcode (6–14 digits) *"
+                  placeholder={t("contribute.barcodePlaceholder")}
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value.replace(/\D/g, ""))}
                   disabled={!!barcode}
@@ -390,13 +389,13 @@ export function ContributeModal({
 
               <div className="rounded-xl bg-[#FAFAF8] border border-border/40 px-3 py-2.5 space-y-1">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                  Required for milestone credit
+                  {t("contribute.requiredForCredit")}
                 </p>
                 {[
-                  { label: "Front photo", ok: !!frontImageBase64 },
-                  { label: "Product name", ok: !!productName.trim() },
-                  { label: "Barcode", ok: !!barcodeInput.trim() },
-                  { label: "Ingredient list (next step)", ok: false, neutral: true },
+                  { label: t("contribute.checklist.frontPhoto"), ok: !!frontImageBase64 },
+                  { label: t("contribute.checklist.productName"), ok: !!productName.trim() },
+                  { label: t("contribute.checklist.barcode"), ok: !!barcodeInput.trim() },
+                  { label: t("contribute.checklist.ingredientList"), ok: false, neutral: true },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-2 text-xs">
                     <CheckCircle2
@@ -429,7 +428,7 @@ export function ContributeModal({
                 }
                 className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Next — add ingredient list
+                {t("contribute.nextAddIngredients")}
               </button>
 
               <button
@@ -437,7 +436,7 @@ export function ContributeModal({
                 onClick={onClose}
                 className="w-full text-sm text-muted-foreground hover:text-foreground text-center py-1 transition-colors"
               >
-                Cancel
+                {t("contribute.cancel")}
               </button>
             </div>
           )}
@@ -446,10 +445,10 @@ export function ContributeModal({
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-semibold text-foreground mb-1">
-                  Now add the ingredient list
+                  {t("contribute.nowAddIngredients")}
                 </p>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Take a photo of the back label, or paste the text directly. Our AI will extract the ingredients.
+                  {t("contribute.addIngredientsHint")}
                 </p>
               </div>
 
@@ -475,12 +474,12 @@ export function ContributeModal({
                       disabled={processingIngredients}
                       className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-white/90 text-xs font-medium text-foreground shadow hover:bg-white transition-colors border border-border/40"
                     >
-                      Retake
+                      {t("contribute.retake")}
                     </button>
                   </div>
                   <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                    Ingredient photo captured
+                    {t("contribute.ingredientPhotoCaptured")}
                   </p>
                 </div>
               ) : (
@@ -499,19 +498,19 @@ export function ContributeModal({
                     <Camera className="w-4 h-4 shrink-0" />
                   )}
                   <span>
-                    {processingIngredients ? "Processing photo…" : "Snap a photo of the ingredient list"}
+                    {processingIngredients ? t("contribute.processingPhoto") : t("contribute.snapIngredientPhoto")}
                   </span>
                 </button>
               )}
 
               <div className="flex items-center gap-2 text-muted-foreground/40 text-[11px]">
                 <div className="flex-1 h-px bg-border/50" />
-                or type/paste manually
+                {t("contribute.orPaste")}
                 <div className="flex-1 h-px bg-border/50" />
               </div>
 
               <textarea
-                placeholder="Paste the full ingredient list from the back of the product…"
+                placeholder={t("contribute.ingredientsPlaceholder")}
                 value={ingredientsText}
                 onChange={(e) => setIngredientsText(e.target.value)}
                 rows={4}
@@ -526,7 +525,7 @@ export function ContributeModal({
                 disabled={(!ingredientsImageBase64 && !ingredientsText.trim())}
                 className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Submit contribution
+                {t("contribute.submit")}
               </button>
 
               <button
@@ -534,7 +533,7 @@ export function ContributeModal({
                 onClick={onClose}
                 className="w-full text-sm text-muted-foreground hover:text-foreground text-center py-1 transition-colors"
               >
-                Cancel
+                {t("contribute.cancel")}
               </button>
             </div>
           )}
@@ -543,8 +542,8 @@ export function ContributeModal({
             <div className="flex flex-col items-center gap-5 py-10">
               <Loader2 className="w-10 h-10 text-primary animate-spin" />
               <div className="text-center">
-                <p className="font-semibold text-foreground">Processing your contribution…</p>
-                <p className="text-sm text-muted-foreground mt-1">AI is reviewing the photos and ingredient list</p>
+                <p className="font-semibold text-foreground">{t("contribute.processing")}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t("contribute.processingHint")}</p>
               </div>
             </div>
           )}
@@ -556,7 +555,7 @@ export function ContributeModal({
               </div>
               <div className="text-center">
                 <p className="font-semibold text-foreground text-lg">
-                  {result.status === "approved" ? "Added to database!" : "Submission received!"}
+                  {result.status === "approved" ? t("contribute.added") : t("contribute.received")}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">{result.message}</p>
               </div>
@@ -568,16 +567,16 @@ export function ContributeModal({
                       <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="font-bold text-amber-700 text-base">Premium unlocked!</p>
+                  <p className="font-bold text-amber-700 text-base">{t("contribute.premiumUnlocked")}</p>
                   <p className="text-xs text-amber-600 mt-1">
-                    You've contributed 30 new products — enjoy 1 month of free Premium.
+                    {t("contribute.premiumThanks")}
                   </p>
                 </div>
               )}
 
               {!result.premiumUnlocked && result.extractedIngredients && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Ingredients loaded for scanning — closing shortly.
+                  {t("contribute.loadedClosing")}
                 </p>
               )}
 
@@ -587,7 +586,7 @@ export function ContributeModal({
                   onClick={onClose}
                   className="px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
                 >
-                  Done
+                  {t("contribute.done")}
                 </button>
               )}
             </div>

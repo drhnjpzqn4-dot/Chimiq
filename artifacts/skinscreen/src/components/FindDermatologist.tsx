@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MapPin, Loader2, Search, ExternalLink } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import { useTranslation } from "@/lib/i18n";
 
 type State = "idle" | "locating" | "found" | "error";
 
@@ -31,6 +32,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 }
 
 export function FindDermatologist() {
+  const { t } = useTranslation();
   const [state, setState] = useState<State>("idle");
   const [location, setLocation] = useState<Location | null>(null);
   const [manualCity, setManualCity] = useState("");
@@ -38,7 +40,7 @@ export function FindDermatologist() {
 
   const handleLocate = () => {
     if (!navigator.geolocation) {
-      setErrorMsg("Geolocation is not supported by your browser.");
+      setErrorMsg(t("derm.errNotSupported"));
       setState("error");
       return;
     }
@@ -52,7 +54,7 @@ export function FindDermatologist() {
         setState("found");
       },
       () => {
-        setErrorMsg("Location access denied. Enter your city below to search manually.");
+        setErrorMsg(t("derm.errDenied"));
         setState("error");
       },
       { timeout: 8000 },
@@ -83,13 +85,13 @@ export function FindDermatologist() {
         <FadeIn>
           <div className="text-center mb-12">
             <span className="inline-block py-1 px-3 rounded-full bg-primary/10 text-primary text-sm font-medium tracking-wide mb-4">
-              Expert care
+              {t("derm.expertCare")}
             </span>
             <h2 className="text-3xl md:text-5xl font-serif mb-4">
-              Find a Dermatologist Near You
+              {t("derm.findDermatologist")}
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Chimiq flags the risks — but for medical concerns, a licensed dermatologist is your best resource. Find rated clinics near you in seconds.
+              {t("derm.subtitle")}
             </p>
           </div>
         </FadeIn>
@@ -102,13 +104,13 @@ export function FindDermatologist() {
                 className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-full font-medium text-sm hover:bg-primary/90 transition-colors shadow-md hover:shadow-lg"
               >
                 <MapPin className="w-4 h-4" />
-                Use my location
+                {t("derm.useMyLocation")}
               </button>
-              <span className="text-muted-foreground text-sm">or</span>
+              <span className="text-muted-foreground text-sm">{t("derm.or")}</span>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Enter city or postcode"
+                  placeholder={t("derm.cityPlaceholder")}
                   value={manualCity}
                   onChange={(e) => setManualCity(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
@@ -128,7 +130,7 @@ export function FindDermatologist() {
           {state === "locating" && (
             <div className="flex flex-col items-center gap-3 py-8">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              <p className="text-sm text-muted-foreground">Finding your location…</p>
+              <p className="text-sm text-muted-foreground">{t("derm.findingLocation")}</p>
             </div>
           )}
 
@@ -138,7 +140,7 @@ export function FindDermatologist() {
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Enter city or postcode"
+                  placeholder={t("derm.cityPlaceholder")}
                   value={manualCity}
                   onChange={(e) => setManualCity(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
@@ -160,15 +162,15 @@ export function FindDermatologist() {
               <div className="flex items-center justify-between mb-4 px-1">
                 <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-primary" />
-                  Dermatologists near{" "}
-                  <span className="text-primary font-semibold">{location.city || "your location"}</span>
+                  {t("derm.dermsNear")}{" "}
+                  <span className="text-primary font-semibold">{location.city || t("derm.yourLocation")}</span>
                 </p>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => { setState("idle"); setLocation(null); setManualCity(""); }}
                     className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    Change location
+                    {t("derm.changeLocation")}
                   </button>
                   <a
                     href={googleMapsUrl}
@@ -176,7 +178,7 @@ export function FindDermatologist() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
                   >
-                    Open in Google Maps
+                    {t("derm.openInMaps")}
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
@@ -189,14 +191,14 @@ export function FindDermatologist() {
                   height="100%"
                   frameBorder={0}
                   scrolling="no"
-                  title="Dermatologists near you"
+                  title={t("derm.mapTitle")}
                   className="w-full h-full"
                   loading="lazy"
                 />
               </div>
 
               <p className="text-xs text-muted-foreground/60 text-center mt-3">
-                Ratings, reviews, and clinic details shown by Google. Always verify qualifications before booking.
+                {t("derm.disclaimer")}
               </p>
             </div>
           )}
