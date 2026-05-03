@@ -1,18 +1,30 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useLoginWithConsent } from "@/components/ConsentGate";
-import { ChatPanel } from "@/components/ChatPanel";
-import ScanScreen from "@/pages/app/Scan";
-import ShelfScreen from "@/pages/app/Shelf";
-import BrowseScreen from "@/pages/app/Browse";
-import BrowseDetailScreen from "@/pages/app/BrowseDetail";
-import DiscoverScreen from "@/pages/app/Discover";
-import ProfileScreen from "@/pages/app/Profile";
-import RecipeSubmitScreen from "@/pages/app/RecipeSubmit";
-import ProblemsScreen from "@/pages/app/Problems";
-import LeaderboardScreen from "@/pages/app/Leaderboard";
-import RewardsScreen from "@/pages/app/Rewards";
+import { ChatPanelLauncher } from "@/components/ChatPanelLauncher";
+
+const ScanScreen = lazy(() => import("@/pages/app/Scan"));
+const ShelfScreen = lazy(() => import("@/pages/app/Shelf"));
+const BrowseScreen = lazy(() => import("@/pages/app/Browse"));
+const BrowseDetailScreen = lazy(() => import("@/pages/app/BrowseDetail"));
+const DiscoverScreen = lazy(() => import("@/pages/app/Discover"));
+const ProfileScreen = lazy(() => import("@/pages/app/Profile"));
+const RecipeSubmitScreen = lazy(() => import("@/pages/app/RecipeSubmit"));
+const ProblemsScreen = lazy(() => import("@/pages/app/Problems"));
+const LeaderboardScreen = lazy(() => import("@/pages/app/Leaderboard"));
+const RewardsScreen = lazy(() => import("@/pages/app/Rewards"));
+
+function AppRouteFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-10 w-40 rounded-lg skeleton" />
+        <div className="h-4 w-24 rounded-full skeleton" />
+      </div>
+    </div>
+  );
+}
 
 export default function AppPage() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -26,35 +38,30 @@ export default function AppPage() {
   }, [isLoading, isAuthenticated, base, requestLogin]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-40 rounded-lg skeleton" />
-          <div className="h-4 w-24 rounded-full skeleton" />
-        </div>
-      </div>
-    );
+    return <AppRouteFallback />;
   }
 
   if (!isAuthenticated) return null;
 
   return (
     <>
-      <Switch>
-        <Route path="/app" component={() => <Redirect to="/app/scan" />} />
-        <Route path="/app/scan" component={ScanScreen} />
-        <Route path="/app/browse" component={BrowseScreen} />
-        <Route path="/app/browse/:barcode" component={BrowseDetailScreen} />
-        <Route path="/app/problems" component={ProblemsScreen} />
-        <Route path="/app/shelf" component={ShelfScreen} />
-        <Route path="/app/discover" component={DiscoverScreen} />
-        <Route path="/app/profile" component={ProfileScreen} />
-        <Route path="/app/recipes/new" component={RecipeSubmitScreen} />
-        <Route path="/app/leaderboard" component={LeaderboardScreen} />
-        <Route path="/app/rewards" component={RewardsScreen} />
-        <Route component={() => <Redirect to="/app/scan" />} />
-      </Switch>
-      <ChatPanel />
+      <Suspense fallback={<AppRouteFallback />}>
+        <Switch>
+          <Route path="/app" component={() => <Redirect to="/app/scan" />} />
+          <Route path="/app/scan" component={ScanScreen} />
+          <Route path="/app/browse" component={BrowseScreen} />
+          <Route path="/app/browse/:barcode" component={BrowseDetailScreen} />
+          <Route path="/app/problems" component={ProblemsScreen} />
+          <Route path="/app/shelf" component={ShelfScreen} />
+          <Route path="/app/discover" component={DiscoverScreen} />
+          <Route path="/app/profile" component={ProfileScreen} />
+          <Route path="/app/recipes/new" component={RecipeSubmitScreen} />
+          <Route path="/app/leaderboard" component={LeaderboardScreen} />
+          <Route path="/app/rewards" component={RewardsScreen} />
+          <Route component={() => <Redirect to="/app/scan" />} />
+        </Switch>
+      </Suspense>
+      <ChatPanelLauncher />
     </>
   );
 }

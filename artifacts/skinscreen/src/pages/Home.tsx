@@ -1,11 +1,14 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useLoginWithConsent } from "@/components/ConsentGate";
 import { ScanLine, Sparkles } from "lucide-react";
-import { LandingPage } from "@/components/LandingPage";
 import { generalConfig } from "@/lib/landing-config";
 import { useTranslation } from "@/lib/i18n";
+
+const LandingPage = lazy(() =>
+  import("@/components/LandingPage").then((m) => ({ default: m.LandingPage })),
+);
 
 function isStandaloneDisplay(): boolean {
   if (typeof window === "undefined") return false;
@@ -83,5 +86,9 @@ export default function Home() {
     return <StandaloneWelcome />;
   }
 
-  return <LandingPage config={generalConfig} />;
+  return (
+    <Suspense fallback={null}>
+      <LandingPage config={generalConfig} />
+    </Suspense>
+  );
 }

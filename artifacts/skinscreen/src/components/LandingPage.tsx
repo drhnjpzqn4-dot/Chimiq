@@ -1,16 +1,35 @@
-import { useState, useEffect, useRef } from "react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
+import { ChatPanelLauncher } from "@/components/ChatPanelLauncher";
+import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { FadeIn } from "@/components/FadeIn";
 import { DangerCard } from "@/components/DangerCard";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { DangerVisual } from "@/components/DangerVisual";
-import { SpiralSection } from "@/components/SpiralSection";
-import { IngredientScanner } from "@/components/IngredientScanner";
 import type { ScannerSeed } from "@/components/IngredientScanner";
-import { SCANNER_SEED_STORAGE_KEY } from "@/lib/discover-content";
-import { SocialProof } from "@/components/SocialProof";
-import { MyShelf, MyShelfSection } from "@/components/MyShelf";
-import { ChatPanel } from "@/components/ChatPanel";
-import { PricingSection } from "@/components/PricingSection";
+
+// Inlined to avoid pulling the heavy `discover-content` module (curated
+// article data, ~22 kB raw) into the marketing landing first-load. Must
+// stay in sync with `SCANNER_SEED_STORAGE_KEY` in `@/lib/discover-content`.
+const SCANNER_SEED_STORAGE_KEY = "skinscreen:scanner-seed";
+
+const SpiralSection = lazy(() =>
+  import("@/components/SpiralSection").then((m) => ({ default: m.SpiralSection })),
+);
+const IngredientScanner = lazy(() =>
+  import("@/components/IngredientScanner").then((m) => ({ default: m.IngredientScanner })),
+);
+const SocialProof = lazy(() =>
+  import("@/components/SocialProof").then((m) => ({ default: m.SocialProof })),
+);
+const MyShelf = lazy(() =>
+  import("@/components/MyShelf").then((m) => ({ default: m.MyShelf })),
+);
+const MyShelfSection = lazy(() =>
+  import("@/components/MyShelf").then((m) => ({ default: m.MyShelfSection })),
+);
+const PricingSection = lazy(() =>
+  import("@/components/PricingSection").then((m) => ({ default: m.PricingSection })),
+);
 import type { LandingConfig } from "@/lib/landing-config";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useLoginWithConsent } from "@/components/ConsentGate";
@@ -604,7 +623,11 @@ export function LandingPage({ config }: LandingPageProps) {
               boxShadow: "0 4px 32px rgba(0,0,0,0.05)",
             }}
           >
-            <IngredientScanner ctaLabel={scannerCtaLabel} seed={scannerSeed} />
+            <LazyOnVisible minHeight={320}>
+              <Suspense fallback={<div style={{ minHeight: 320 }} />}>
+                <IngredientScanner ctaLabel={scannerCtaLabel} seed={scannerSeed} />
+              </Suspense>
+            </LazyOnVisible>
           </div>
         </div>
       </section>
@@ -762,12 +785,20 @@ export function LandingPage({ config }: LandingPageProps) {
       </section>
 
       {/* 5. SOCIAL PROOF */}
-      <SocialProof style={config.socialProofStyle} />
+      <LazyOnVisible minHeight={240}>
+        <Suspense fallback={null}>
+          <SocialProof style={config.socialProofStyle} />
+        </Suspense>
+      </LazyOnVisible>
 
       {/* 6. SKINCARE SPIRAL */}
       <section id="spiral" className="py-24 bg-[#F5F5F7]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SpiralSection />
+          <LazyOnVisible minHeight={400}>
+            <Suspense fallback={null}>
+              <SpiralSection />
+            </Suspense>
+          </LazyOnVisible>
         </div>
       </section>
 
@@ -824,11 +855,19 @@ export function LandingPage({ config }: LandingPageProps) {
 
             <FadeIn direction="left" delay={0.15}>
               {isAuthenticated && user ? (
-                <MyShelf userId={user.id} displayName={displayName} />
+                <LazyOnVisible minHeight={400}>
+                  <Suspense fallback={null}>
+                    <MyShelf userId={user.id} displayName={displayName} />
+                  </Suspense>
+                </LazyOnVisible>
               ) : (
                 <div className="relative">
                   <div className="pointer-events-none opacity-60">
-                    <MyShelfSection />
+                    <LazyOnVisible minHeight={400}>
+                      <Suspense fallback={null}>
+                        <MyShelfSection />
+                      </Suspense>
+                    </LazyOnVisible>
                   </div>
                   <div className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-white/70 backdrop-blur-sm">
                     <div className="text-center px-6">
@@ -859,7 +898,11 @@ export function LandingPage({ config }: LandingPageProps) {
 
       {/* 8. PRICING */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white border-t border-border/50">
-        <PricingSection />
+        <LazyOnVisible minHeight={500}>
+          <Suspense fallback={null}>
+            <PricingSection />
+          </Suspense>
+        </LazyOnVisible>
       </section>
 
       {/* 9. EARN FREE PREMIUM */}
@@ -1004,7 +1047,7 @@ export function LandingPage({ config }: LandingPageProps) {
       </footer>
 
       {/* FLOATING AI CHAT */}
-      <ChatPanel />
+      <ChatPanelLauncher />
     </main>
   );
 }

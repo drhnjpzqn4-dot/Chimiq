@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,24 +7,30 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import { onOfflineReady } from "@/lib/register-sw";
 import { useToast } from "@/hooks/use-toast";
 import Home from "@/pages/Home";
-import HomeA from "@/pages/HomeA";
-import HomeB from "@/pages/HomeB";
-import Pricing from "@/pages/Pricing";
-import AppPage from "@/pages/AppPage";
-import AdminPage from "@/pages/AdminPage";
-import AdminRecipesPage from "@/pages/AdminRecipesPage";
-import RecipesPage from "@/pages/Recipes";
-import RecipeDetailPage from "@/pages/RecipeDetail";
-import Discover from "@/pages/Discover";
-import { MistakeDetail, WorryDetail } from "@/pages/DiscoverDetail";
-import NotFound from "@/pages/not-found";
-import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
-import TermsOfService from "@/pages/legal/TermsOfService";
-import MedicalDisclaimer from "@/pages/legal/MedicalDisclaimer";
 import { useNativeAuthDeepLink } from "@/hooks/useNativeAuthDeepLink";
 import { AUTH_REFRESH_EVENT } from "@workspace/replit-auth-web";
 import { I18nProvider } from "@/lib/i18n";
 import { ConsentGateProvider } from "@/components/ConsentGate";
+
+const HomeA = lazy(() => import("@/pages/HomeA"));
+const HomeB = lazy(() => import("@/pages/HomeB"));
+const Pricing = lazy(() => import("@/pages/Pricing"));
+const AppPage = lazy(() => import("@/pages/AppPage"));
+const AdminPage = lazy(() => import("@/pages/AdminPage"));
+const AdminRecipesPage = lazy(() => import("@/pages/AdminRecipesPage"));
+const RecipesPage = lazy(() => import("@/pages/Recipes"));
+const RecipeDetailPage = lazy(() => import("@/pages/RecipeDetail"));
+const Discover = lazy(() => import("@/pages/Discover"));
+const MistakeDetail = lazy(() =>
+  import("@/pages/DiscoverDetail").then((m) => ({ default: m.MistakeDetail })),
+);
+const WorryDetail = lazy(() =>
+  import("@/pages/DiscoverDetail").then((m) => ({ default: m.WorryDetail })),
+);
+const NotFound = lazy(() => import("@/pages/not-found"));
+const PrivacyPolicy = lazy(() => import("@/pages/legal/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("@/pages/legal/TermsOfService"));
+const MedicalDisclaimer = lazy(() => import("@/pages/legal/MedicalDisclaimer"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,27 +41,40 @@ const queryClient = new QueryClient({
   },
 });
 
+function RouteFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-10 w-40 rounded-lg skeleton" />
+        <div className="h-4 w-24 rounded-full skeleton" />
+      </div>
+    </div>
+  );
+}
+
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/a" component={HomeA} />
-      <Route path="/b" component={HomeB} />
-      <Route path="/pricing" component={Pricing} />
-      <Route path="/app" component={AppPage} />
-      <Route path="/app/:rest*" component={AppPage} />
-      <Route path="/discover" component={Discover} />
-      <Route path="/recipes" component={RecipesPage} />
-      <Route path="/recipes/:id" component={RecipeDetailPage} />
-      <Route path="/discover/mistakes/:slug" component={MistakeDetail} />
-      <Route path="/discover/worries/:slug" component={WorryDetail} />
-      <Route path="/admin/submissions" component={AdminPage} />
-      <Route path="/admin/recipes" component={AdminRecipesPage} />
-      <Route path="/legal/privacy" component={PrivacyPolicy} />
-      <Route path="/legal/terms" component={TermsOfService} />
-      <Route path="/legal/medical-disclaimer" component={MedicalDisclaimer} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<RouteFallback />}>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/a" component={HomeA} />
+        <Route path="/b" component={HomeB} />
+        <Route path="/pricing" component={Pricing} />
+        <Route path="/app" component={AppPage} />
+        <Route path="/app/:rest*" component={AppPage} />
+        <Route path="/discover" component={Discover} />
+        <Route path="/recipes" component={RecipesPage} />
+        <Route path="/recipes/:id" component={RecipeDetailPage} />
+        <Route path="/discover/mistakes/:slug" component={MistakeDetail} />
+        <Route path="/discover/worries/:slug" component={WorryDetail} />
+        <Route path="/admin/submissions" component={AdminPage} />
+        <Route path="/admin/recipes" component={AdminRecipesPage} />
+        <Route path="/legal/privacy" component={PrivacyPolicy} />
+        <Route path="/legal/terms" component={TermsOfService} />
+        <Route path="/legal/medical-disclaimer" component={MedicalDisclaimer} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

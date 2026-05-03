@@ -31,9 +31,9 @@ function TypingDots() {
   );
 }
 
-export function ChatPanel() {
+export function ChatPanel({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
