@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 import { onOfflineReady } from "@/lib/register-sw";
 import { useToast } from "@/hooks/use-toast";
 import Home from "@/pages/Home";
@@ -140,6 +141,7 @@ function App() {
             </WouterRouter>
             <Toaster />
             <UpdateBanner />
+            <FeedbackPrompt />
             <OfflineReadyNotifier />
             <AnalyticsBootstrap />
             {!isNative() && <CookieBanner />}

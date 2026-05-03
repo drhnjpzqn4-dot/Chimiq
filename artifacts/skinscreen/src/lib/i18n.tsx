@@ -1099,6 +1099,12 @@ const en: Dict = {
   "profileCard.contactSupport": "Contact support",
   "profileCard.logout": "Log out",
   "profileCard.footerPlanFmt": "Chimiq · Plan: {plan}",
+
+  "feedbackPrompt.title": "Share your feedback",
+  "feedbackPrompt.body": "How is Chimiq working for you so far? We'd love to hear what's good and what could be better.",
+  "feedbackPrompt.cta": "Share feedback",
+  "feedbackPrompt.dismiss": "Not now",
+  "feedbackPrompt.close": "Close",
 };
 
 const sv: Dict = {
@@ -2187,6 +2193,12 @@ const sv: Dict = {
   "profileCard.contactSupport": "Kontakta support",
   "profileCard.logout": "Logga ut",
   "profileCard.footerPlanFmt": "Chimiq · Plan: {plan}",
+
+  "feedbackPrompt.title": "Dela din feedback",
+  "feedbackPrompt.body": "Hur funkar Chimiq för dig hittills? Vi vill gärna höra vad som är bra och vad som kan bli bättre.",
+  "feedbackPrompt.cta": "Lämna feedback",
+  "feedbackPrompt.dismiss": "Inte nu",
+  "feedbackPrompt.close": "Stäng",
 };
 
 const fr: Dict = {
@@ -3265,6 +3277,12 @@ const fr: Dict = {
   "profileCard.contactSupport": "Contacter le support",
   "profileCard.logout": "Se déconnecter",
   "profileCard.footerPlanFmt": "Chimiq · Plan : {plan}",
+
+  "feedbackPrompt.title": "Partagez votre avis",
+  "feedbackPrompt.body": "Comment se passe Chimiq jusqu'ici ? Dites-nous ce qui fonctionne et ce qui pourrait être mieux.",
+  "feedbackPrompt.cta": "Donner mon avis",
+  "feedbackPrompt.dismiss": "Pas maintenant",
+  "feedbackPrompt.close": "Fermer",
 };
 
 const es: Dict = {
@@ -4343,6 +4361,12 @@ const es: Dict = {
   "profileCard.contactSupport": "Contactar con soporte",
   "profileCard.logout": "Cerrar sesión",
   "profileCard.footerPlanFmt": "Chimiq · Plan: {plan}",
+
+  "feedbackPrompt.title": "Comparte tu opinión",
+  "feedbackPrompt.body": "¿Cómo te está yendo con Chimiq? Nos encantaría saber qué funciona y qué podríamos mejorar.",
+  "feedbackPrompt.cta": "Dar opinión",
+  "feedbackPrompt.dismiss": "Ahora no",
+  "feedbackPrompt.close": "Cerrar",
 };
 
 const DICTS: Record<Locale, Dict> = { en, sv, fr, es };
