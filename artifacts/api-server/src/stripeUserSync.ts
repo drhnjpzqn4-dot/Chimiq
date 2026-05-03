@@ -64,12 +64,27 @@ export async function applyStripeEventToUser(
         typeof sub.customer === "string" ? sub.customer : sub.customer.id;
       // active or trialing => keep / grant premium; anything else => downgrade
       const isActive = sub.status === "active" || sub.status === "trialing";
+      // Always mirror Stripe's status + trial end onto the user row so the
+      // admin Users dashboard can show "trial / paid / past_due / etc"
+      // without a per-row Stripe API call.
+      const trialEndsAt =
+        typeof sub.trial_end === "number" ? new Date(sub.trial_end * 1000) : null;
       await db
         .update(usersTable)
         .set(
           isActive
-            ? { plan: "premium", stripeSubscriptionId: sub.id }
-            : { plan: "free", stripeSubscriptionId: null },
+            ? {
+                plan: "premium",
+                stripeSubscriptionId: sub.id,
+                subscriptionStatus: sub.status,
+                trialEndsAt,
+              }
+            : {
+                plan: "free",
+                stripeSubscriptionId: null,
+                subscriptionStatus: sub.status,
+                trialEndsAt,
+              },
         )
         .where(eq(usersTable.stripeCustomerId, customerId));
       log.info(
@@ -85,7 +100,12 @@ export async function applyStripeEventToUser(
         typeof sub.customer === "string" ? sub.customer : sub.customer.id;
       await db
         .update(usersTable)
-        .set({ plan: "free", stripeSubscriptionId: null })
+        .set({
+          plan: "free",
+          stripeSubscriptionId: null,
+          subscriptionStatus: sub.status,
+          trialEndsAt: null,
+        })
         .where(eq(usersTable.stripeCustomerId, customerId));
       log.info(
         { customerId, subscriptionId: sub.id },
@@ -175,7 +195,15 @@ export async function applyStripeEventToUser(
       }
       await db
         .update(usersTable)
-        .set({ plan: "free", stripeSubscriptionId: null })
+        .set({
+          plan: "free",
+          stripeSubscriptionId: null,
+          // Clear mirrored Stripe state so the admin Users dashboard
+          // bucket logic doesn't misclassify a refunded user as still
+          // "active"/"trialing" until the next subscription.* event.
+          subscriptionStatus: "canceled",
+          trialEndsAt: null,
+        })
         .where(eq(usersTable.stripeCustomerId, customerId));
       log.info(
         { customerId, chargeId: charge.id },

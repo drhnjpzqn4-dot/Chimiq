@@ -17,6 +17,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 
 interface AiVerdict {
   riskLevel: "safe" | "caution" | "high_risk";
@@ -91,6 +92,14 @@ interface EditDraft {
 }
 
 export default function AdminRecipesPage() {
+  return (
+    <AdminRouteGuard>
+      <AdminRecipesPageInner />
+    </AdminRouteGuard>
+  );
+}
+
+function AdminRecipesPageInner() {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const [recipes, setRecipes] = useState<RecipeRow[]>([]);
   const [loading, setLoading] = useState(true);

@@ -157,6 +157,8 @@ describe("applyStripeEventToUser", () => {
       expect(setCalls[0]).toEqual({
         plan: "premium",
         stripeSubscriptionId: "sub_1",
+        subscriptionStatus: "active",
+        trialEndsAt: null,
       });
     });
 
@@ -166,12 +168,15 @@ describe("applyStripeEventToUser", () => {
           id: "sub_1",
           customer: "cus_1",
           status: "trialing",
+          trial_end: 1_700_000_000,
         }),
         noopLogger,
       );
       expect(setCalls[0]).toEqual({
         plan: "premium",
         stripeSubscriptionId: "sub_1",
+        subscriptionStatus: "trialing",
+        trialEndsAt: new Date(1_700_000_000 * 1000),
       });
     });
 
@@ -187,6 +192,8 @@ describe("applyStripeEventToUser", () => {
       expect(setCalls[0]).toEqual({
         plan: "free",
         stripeSubscriptionId: null,
+        subscriptionStatus: "past_due",
+        trialEndsAt: null,
       });
     });
 
@@ -202,6 +209,8 @@ describe("applyStripeEventToUser", () => {
       expect(setCalls[0]).toEqual({
         plan: "free",
         stripeSubscriptionId: null,
+        subscriptionStatus: "canceled",
+        trialEndsAt: null,
       });
     });
 
@@ -217,6 +226,8 @@ describe("applyStripeEventToUser", () => {
       expect(setCalls[0]).toEqual({
         plan: "free",
         stripeSubscriptionId: null,
+        subscriptionStatus: "incomplete_expired",
+        trialEndsAt: null,
       });
     });
 
@@ -235,6 +246,8 @@ describe("applyStripeEventToUser", () => {
       expect(setCalls[0]).toEqual({
         plan: "premium",
         stripeSubscriptionId: "sub_1",
+        subscriptionStatus: "active",
+        trialEndsAt: null,
       });
       expect(whereCalls).toHaveLength(1);
     });
@@ -253,6 +266,8 @@ describe("applyStripeEventToUser", () => {
       expect(setCalls[0]).toEqual({
         plan: "free",
         stripeSubscriptionId: null,
+        subscriptionStatus: "canceled",
+        trialEndsAt: null,
       });
     });
   });
@@ -271,7 +286,12 @@ describe("applyStripeEventToUser", () => {
       // The handler probes the audit table first (no match → continues
       // to the downgrade write on usersTable).
       expect(userSetCalls()).toEqual([
-        { plan: "free", stripeSubscriptionId: null },
+        {
+          plan: "free",
+          stripeSubscriptionId: null,
+          subscriptionStatus: "canceled",
+          trialEndsAt: null,
+        },
       ]);
     });
 
@@ -348,7 +368,12 @@ describe("applyStripeEventToUser", () => {
         noopLogger,
       );
       expect(userSetCalls()).toEqual([
-        { plan: "free", stripeSubscriptionId: null },
+        {
+          plan: "free",
+          stripeSubscriptionId: null,
+          subscriptionStatus: "canceled",
+          trialEndsAt: null,
+        },
       ]);
     });
   });

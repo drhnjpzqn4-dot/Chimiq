@@ -798,6 +798,23 @@ export default function ProfileScreen() {
                   <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                 </button>
               </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+                    window.location.href = `${base}/admin/users`;
+                  }}
+                  data-touch-target
+                  className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    Users
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+                </button>
+              </li>
               {/* Go-live verification: charges 1 SEK against the admin's
                   saved card and immediately refunds it. Used to confirm
                   Stripe live mode and webhook delivery in seconds rather

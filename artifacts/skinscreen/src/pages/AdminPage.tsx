@@ -11,6 +11,7 @@ import {
   Clock,
 } from "lucide-react";
 import { DiscoverRatingsAdmin } from "@/components/admin/DiscoverRatingsAdmin";
+import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 
 interface Submission {
   id: string;
@@ -55,6 +56,14 @@ function statusBadge(status: string): { label: string; className: string } {
 }
 
 export default function AdminPage() {
+  return (
+    <AdminRouteGuard>
+      <AdminPageInner />
+    </AdminRouteGuard>
+  );
+}
+
+function AdminPageInner() {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);

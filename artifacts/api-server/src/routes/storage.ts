@@ -2,15 +2,12 @@ import { Router, type IRouter } from "express";
 import { gcsClient } from "../lib/objectStorage";
 import { db, userSubmittedProductsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { isRequestAdmin } from "../lib/admin";
 
 const router: IRouter = Router();
 
 function isAdmin(req: { user?: { email?: string } }): boolean {
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean);
-  return !!req.user?.email && adminEmails.includes(req.user.email);
+  return isRequestAdmin(req as { user?: { email?: string | null } });
 }
 
 router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
