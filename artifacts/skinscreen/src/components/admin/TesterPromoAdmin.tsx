@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Ticket, AlertTriangle, Plus, Sparkles } from "lucide-react";
+import { Loader2, Ticket, AlertTriangle, Plus, Sparkles, History } from "lucide-react";
 
 interface TesterPromo {
   code: string;
@@ -12,12 +12,27 @@ interface TesterPromo {
   couponName: string | null;
 }
 
+interface PromoChange {
+  id: number;
+  action: "raise_cap" | "mint" | string;
+  adminEmail: string;
+  oldCode: string | null;
+  oldMaxRedemptions: number | null;
+  oldPromotionCodeId: string | null;
+  newCode: string;
+  newMaxRedemptions: number | null;
+  newPromotionCodeId: string;
+  createdAt: string;
+}
+
 type Mode = "idle" | "raise" | "mint";
 
 export function TesterPromoAdmin() {
   const [data, setData] = useState<TesterPromo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<PromoChange[] | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const [mode, setMode] = useState<Mode>("idle");
   const [newCap, setNewCap] = useState("");
@@ -48,8 +63,27 @@ export function TesterPromoAdmin() {
     }
   };
 
+  const loadHistory = async () => {
+    setHistoryError(null);
+    try {
+      const res = await fetch("/api/admin/tester-promo/history", {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        setHistoryError(body.error ?? "Failed to load history.");
+        return;
+      }
+      const body = (await res.json()) as { changes: PromoChange[] };
+      setHistory(body.changes);
+    } catch {
+      setHistoryError("Network error loading history.");
+    }
+  };
+
   useEffect(() => {
     void load();
+    void loadHistory();
   }, []);
 
   const resetForms = () => {
@@ -86,6 +120,7 @@ export function TesterPromoAdmin() {
       setData(body as TesterPromo);
       setFlash(`Cap raised to ${value.toLocaleString()}.`);
       resetForms();
+      void loadHistory();
     } catch {
       setActionError("Network error.");
     } finally {
@@ -126,6 +161,7 @@ export function TesterPromoAdmin() {
       setData(body as TesterPromo);
       setFlash(`Minted ${(body as TesterPromo).code}.`);
       resetForms();
+      void loadHistory();
     } catch {
       setActionError("Network error.");
     } finally {
@@ -389,11 +425,129 @@ export function TesterPromoAdmin() {
                 </form>
               )}
             </div>
+
+            <RecentChanges
+              history={history}
+              error={historyError}
+              currentCode={data.code}
+            />
           </div>
         )}
       </div>
     </section>
   );
+}
+
+function RecentChanges({
+  history,
+  error,
+  currentCode,
+}: {
+  history: PromoChange[] | null;
+  error: string | null;
+  currentCode: string;
+}) {
+  return (
+    <div className="pt-3 border-t border-border/40">
+      <div className="flex items-center gap-1.5 mb-2">
+        <History className="w-3.5 h-3.5 text-muted-foreground" />
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Recent changes
+        </h3>
+      </div>
+      {error && <p className="text-xs text-red-700">{error}</p>}
+      {!error && history === null && (
+        <p className="text-xs text-muted-foreground">Loading…</p>
+      )}
+      {!error && history !== null && history.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          No cap raises or mints recorded yet. New changes will appear here.
+        </p>
+      )}
+      {!error && history && history.length > 0 && (
+        <ol className="space-y-2">
+          {history.map((c) => (
+            <li
+              key={c.id}
+              className="text-xs rounded-lg border border-border/40 bg-muted/10 px-3 py-2"
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide ${
+                      c.action === "mint"
+                        ? "bg-violet-100 text-violet-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {c.action === "mint" ? "Mint" : "Raise cap"}
+                  </span>
+                  <span className="font-mono text-foreground">
+                    {c.newCode}
+                    {c.newCode === currentCode && (
+                      <span className="ml-1 text-[10px] text-muted-foreground font-sans">
+                        (current)
+                      </span>
+                    )}
+                  </span>
+                </span>
+                <time
+                  dateTime={c.createdAt}
+                  className="text-muted-foreground tabular-nums"
+                  title={new Date(c.createdAt).toLocaleString()}
+                >
+                  {formatRelative(c.createdAt)}
+                </time>
+              </div>
+              <p className="mt-1 text-muted-foreground">
+                {c.action === "mint" ? (
+                  <>
+                    Replaced{" "}
+                    <span className="font-mono">
+                      {c.oldCode ?? "—"}
+                    </span>
+                    {c.oldMaxRedemptions != null && (
+                      <> (cap {c.oldMaxRedemptions.toLocaleString()})</>
+                    )}{" "}
+                    with{" "}
+                    <span className="font-mono">{c.newCode}</span>
+                    {c.newMaxRedemptions != null && (
+                      <> (cap {c.newMaxRedemptions.toLocaleString()})</>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    Cap raised
+                    {c.oldMaxRedemptions != null && (
+                      <> from {c.oldMaxRedemptions.toLocaleString()}</>
+                    )}
+                    {c.newMaxRedemptions != null && (
+                      <> to {c.newMaxRedemptions.toLocaleString()}</>
+                    )}
+                  </>
+                )}{" "}
+                · by {c.adminEmail}
+              </p>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diffSec = Math.round((Date.now() - then) / 1000);
+  if (diffSec < 60) return "just now";
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  if (diffDay < 30) return `${diffDay}d ago`;
+  return new Date(iso).toLocaleDateString();
 }
 
 function Stat({

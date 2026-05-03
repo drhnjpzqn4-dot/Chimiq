@@ -1,7 +1,9 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import type Stripe from "stripe";
+import { db, testerPromoChangesTable } from "@workspace/db";
+import { desc } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient";
-import { isRequestAdmin } from "../lib/admin";
+import { isRequestAdmin, getRequestEmail } from "../lib/admin";
 import {
   ACTIVE_PROMO_METADATA_KEY,
   COUPON_ID,
@@ -147,6 +149,12 @@ router.post("/admin/tester-promo/raise-cap", async (req: Request, res: Response)
 
     const payload = buildPayload(newPromo, updatedCoupon);
     cached = { payload, fetchedAt: Date.now() };
+    await recordPromoChange({
+      action: "raise_cap",
+      adminEmail: getRequestEmail(req as { user?: { email?: string | null } }),
+      oldPromo: currentPromo,
+      newPromo,
+    });
     res.json({ ...payload, cached: false, cachedAgeMs: 0 });
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -223,6 +231,12 @@ router.post("/admin/tester-promo/mint", async (req: Request, res: Response) => {
 
     const payload = buildPayload(newPromo, updatedCoupon);
     cached = { payload, fetchedAt: Date.now() };
+    await recordPromoChange({
+      action: "mint",
+      adminEmail: getRequestEmail(req as { user?: { email?: string | null } }),
+      oldPromo: currentPromo,
+      newPromo,
+    });
     res.json({ ...payload, cached: false, cachedAgeMs: 0 });
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -236,6 +250,71 @@ router.post("/admin/tester-promo/mint", async (req: Request, res: Response) => {
       return;
     }
     res.status(502).json({ error: "Failed to mint new code in Stripe." });
+  }
+});
+
+// Persist a row describing the swap from the previous active promo to the
+// newly created one. We do this *after* Stripe has accepted the change so
+// the audit log only records confirmed mutations. Logged-but-not-thrown:
+// a DB failure must not roll back a successful Stripe operation, since
+// the promo is already live for testers — we'd rather lose the audit row
+// than confuse the founder with a 502 after a real change.
+async function recordPromoChange(opts: {
+  action: "raise_cap" | "mint";
+  adminEmail: string | null;
+  oldPromo: Stripe.PromotionCode | null;
+  newPromo: Stripe.PromotionCode;
+}): Promise<void> {
+  try {
+    await db.insert(testerPromoChangesTable).values({
+      action: opts.action,
+      adminEmail: opts.adminEmail ?? "unknown",
+      oldCode: opts.oldPromo?.code ?? null,
+      oldMaxRedemptions: opts.oldPromo?.max_redemptions ?? null,
+      oldPromotionCodeId: opts.oldPromo?.id ?? null,
+      newCode: opts.newPromo.code,
+      newMaxRedemptions: opts.newPromo.max_redemptions ?? null,
+      newPromotionCodeId: opts.newPromo.id,
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[admin/tester-promo] failed to write history row", err);
+  }
+}
+
+// GET /admin/tester-promo/history
+//
+// Returns the most recent admin-driven promo changes (raise cap / mint).
+// The widget calls this to render a "Recent changes" list under the
+// stats. We cap at 20 to keep the payload tiny — older history is still
+// in the DB for ad-hoc queries if Pia ever needs it.
+router.get("/admin/tester-promo/history", async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    const rows = await db
+      .select()
+      .from(testerPromoChangesTable)
+      .orderBy(desc(testerPromoChangesTable.createdAt))
+      .limit(20);
+    res.json({
+      changes: rows.map((r) => ({
+        id: r.id,
+        action: r.action,
+        adminEmail: r.adminEmail,
+        oldCode: r.oldCode,
+        oldMaxRedemptions: r.oldMaxRedemptions,
+        oldPromotionCodeId: r.oldPromotionCodeId,
+        newCode: r.newCode,
+        newMaxRedemptions: r.newMaxRedemptions,
+        newPromotionCodeId: r.newPromotionCodeId,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[admin/tester-promo] failed to load history", err);
+    res.status(500).json({ error: "Failed to load promo history." });
   }
 });
 
