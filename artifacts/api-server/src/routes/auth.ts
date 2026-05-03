@@ -6,7 +6,8 @@ import {
   ExchangeMobileAuthorizationCodeResponse,
   LogoutMobileSessionResponse,
 } from "@workspace/api-zod";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, legalConsentsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import {
   clearSession,
   getOidcConfig,
@@ -105,6 +106,84 @@ router.get("/me", (req: Request, res: Response) => {
     return;
   }
   res.json(req.user);
+});
+
+// #101 — server-side legal-consent audit trail. The client posts here
+// immediately after the consent modal's "Agree & continue" tap, before
+// redirecting to login. We accept any non-empty version string so the
+// schema isn't a deploy-coupling bottleneck — what matters is that we
+// have a defensible row stored when the user said yes.
+const CURRENT_TERMS_VERSION = "1.0";
+
+router.post("/legal/consent", async (req: Request, res: Response) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Sign in first." });
+    return;
+  }
+  const userId = req.user.id;
+  // The version is server-authoritative: a client can only ever record
+  // acceptance of the version we are currently serving, never a forged or
+  // future one. Any client-supplied version is ignored for the audit row.
+  const version = CURRENT_TERMS_VERSION;
+
+  // `req.ip` is populated from the Express trust-proxy chain (see app.ts),
+  // so it reflects the real client when behind the Replit edge and is
+  // resistant to header spoofing from arbitrary upstream callers.
+  const ip = req.ip ? req.ip.slice(0, 64) : null;
+  const userAgent =
+    typeof req.headers["user-agent"] === "string"
+      ? req.headers["user-agent"].slice(0, 1000)
+      : null;
+
+  try {
+    const now = new Date();
+    await db.insert(legalConsentsTable).values({
+      userId,
+      termsVersion: version,
+      acceptedAt: now,
+      ip,
+      userAgent,
+    });
+    await db
+      .update(usersTable)
+      .set({ acceptedTermsVersion: version, acceptedTermsAt: now })
+      .where(eq(usersTable.id, userId));
+    res.json({ ok: true, acceptedVersion: version, acceptedAt: now.toISOString() });
+  } catch (err) {
+    req.log?.error?.({ err }, "Failed to record legal consent");
+    res.status(500).json({ error: "Could not record consent." });
+  }
+});
+
+router.get("/legal/consent", async (req: Request, res: Response) => {
+  if (!req.isAuthenticated()) {
+    res.json({
+      acceptedVersion: null,
+      currentVersion: CURRENT_TERMS_VERSION,
+      acceptedAt: null,
+    });
+    return;
+  }
+  try {
+    const [row] = await db
+      .select({
+        acceptedTermsVersion: usersTable.acceptedTermsVersion,
+        acceptedTermsAt: usersTable.acceptedTermsAt,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.id))
+      .limit(1);
+    res.json({
+      acceptedVersion: row?.acceptedTermsVersion ?? null,
+      currentVersion: CURRENT_TERMS_VERSION,
+      acceptedAt: row?.acceptedTermsAt
+        ? new Date(row.acceptedTermsAt).toISOString()
+        : null,
+    });
+  } catch (err) {
+    req.log?.error?.({ err }, "Failed to load legal consent");
+    res.status(500).json({ error: "Could not load consent." });
+  }
 });
 
 router.get("/auth/user", (req: Request, res: Response) => {

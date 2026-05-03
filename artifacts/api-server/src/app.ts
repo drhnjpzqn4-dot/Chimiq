@@ -11,6 +11,12 @@ import type Stripe from "stripe";
 
 const app: Express = express();
 
+// Trust the Replit edge proxy so `req.ip` and `req.protocol` reflect the
+// real client, and so we don't blindly trust raw `x-forwarded-for` headers
+// from the public internet (audit-trail integrity for #101 + general
+// hardening). "1" = trust exactly one hop in front of us.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,

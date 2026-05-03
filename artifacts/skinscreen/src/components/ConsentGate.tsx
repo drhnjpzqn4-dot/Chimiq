@@ -13,6 +13,9 @@ import { useTranslation } from "@/lib/i18n";
 import {
   hasAcceptedCurrentTerms,
   saveConsent,
+  postServerConsent,
+  fetchServerConsent,
+  TERMS_VERSION,
 } from "@/lib/legal-consent";
 
 interface ConsentGateContext {
@@ -53,8 +56,42 @@ export function ConsentGateProvider({ children }: ProviderProps) {
 
   // Re-check storage when the auth state flips (covers the case where the
   // user already accepted earlier on this device and is signing back in).
+  // For authed users we *also* check the server record (#101) so consent
+  // survives clearing browser storage or moving devices, and we mirror any
+  // server-confirmed acceptance into localStorage so the gate stays quiet
+  // on the next page load.
   useEffect(() => {
     setHasConsented(hasAcceptedCurrentTerms());
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    void (async () => {
+      const status = await fetchServerConsent();
+      if (cancelled) return;
+      if (status?.acceptedVersion === TERMS_VERSION) {
+        // Server says yes — promote to local so future loads skip the modal.
+        if (!hasAcceptedCurrentTerms()) saveConsent();
+        setHasConsented(true);
+        return;
+      }
+      // Reconciliation: user has consented locally (likely from the
+      // pre-login modal) but the server has no record yet — typically
+      // because the POST in `onAccept` happened while still anonymous and
+      // 401'd. Now that we're authenticated, replay it and re-fetch so
+      // the audit row is guaranteed to exist before the user does anything
+      // meaningful in the app.
+      if (hasAcceptedCurrentTerms()) {
+        await postServerConsent();
+        if (cancelled) return;
+        const recheck = await fetchServerConsent();
+        if (cancelled) return;
+        if (recheck?.acceptedVersion === TERMS_VERSION) {
+          setHasConsented(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated]);
 
   const proceed = useCallback(
@@ -90,6 +127,11 @@ export function ConsentGateProvider({ children }: ProviderProps) {
   const onAccept = useCallback(() => {
     if (!checked) return;
     saveConsent();
+    // Fire-and-forget audit-trail POST. If the user is already signed in
+    // this records immediately; otherwise the server endpoint just 401s
+    // and the next call after the OIDC callback completes will succeed
+    // (re-triggered by the auth-flip effect above).
+    void postServerConsent();
     setHasConsented(true);
     setOpen(false);
     const target = pendingReturnToRef.current;

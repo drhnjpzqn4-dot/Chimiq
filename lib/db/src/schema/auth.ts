@@ -26,6 +26,11 @@ export const usersTable = pgTable("users", {
   premiumUntil: timestamp("premium_until", { withTimezone: true }),
   emailVerified: boolean("email_verified").notNull().default(false),
   recipesSeenAt: timestamp("recipes_seen_at", { withTimezone: true }),
+  // Latest legal-terms version this user accepted, mirrored from
+  // legal_consents for cheap server-side gating (#101). Null for users who
+  // signed up before consent was tracked server-side.
+  acceptedTermsVersion: varchar("accepted_terms_version", { length: 32 }),
+  acceptedTermsAt: timestamp("accepted_terms_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

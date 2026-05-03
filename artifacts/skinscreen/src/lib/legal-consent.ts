@@ -39,3 +39,46 @@ export function saveConsent(): ConsentRecord {
 export function hasAcceptedCurrentTerms(): boolean {
   return getStoredConsent() !== null;
 }
+
+/**
+ * Best-effort POST to the server so we have an audit trail of acceptance
+ * (#101). Fire-and-forget — we don't block the UI on the network call,
+ * because we already wrote the local record before this runs. Errors are
+ * swallowed so a flaky network never traps the user behind the consent
+ * modal after they've accepted.
+ */
+export async function postServerConsent(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    await fetch("/api/legal/consent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ version: TERMS_VERSION }),
+    });
+  } catch {
+    // ignore — local consent already persisted
+  }
+}
+
+export interface ServerConsentStatus {
+  acceptedVersion: string | null;
+  currentVersion: string;
+  acceptedAt: string | null;
+}
+
+/**
+ * Read the server's record of consent for the current user. Returns null when
+ * unauthenticated or on network failure — the caller should fall back to the
+ * device-local check.
+ */
+export async function fetchServerConsent(): Promise<ServerConsentStatus | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const r = await fetch("/api/legal/consent", { credentials: "include" });
+    if (!r.ok) return null;
+    return (await r.json()) as ServerConsentStatus;
+  } catch {
+    return null;
+  }
+}
