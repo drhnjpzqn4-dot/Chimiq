@@ -4359,6 +4359,27 @@ function isLocale(v: string | null | undefined): v is Locale {
   return v === "en" || v === "sv" || v === "fr" || v === "es";
 }
 
+/**
+ * Resolve the user's locale BEFORE the first React render so there is no
+ * flash of wrong-language content.
+ *
+ * Priority order:
+ *   1. `?lang=xx` URL override (lets us force a language for QA / shared
+ *      links — `?lang=en` is the safest demo URL for US jurors).
+ *   2. Saved choice in localStorage (sticky once a user picks from the
+ *      Profile language switcher).
+ *   3. Browser language prefix match (`navigator.language`):
+ *        sv-* → sv, fr-* → fr, es-* → es, en-* → en.
+ *      We intentionally only inspect `navigator.language` (the primary
+ *      preference), NOT `navigator.languages` — a US/UK browser with
+ *      `en-US` first should always land in English even if Swedish
+ *      appears later in the preference list.
+ *   4. Anything else (German, Japanese, empty, malformed, SSR) → en.
+ *
+ * IMPORTANT: English is the default fallback. Do not change the final
+ * `return "en"` to anything else — US visitors with `en-US` browsers and
+ * users with unsupported languages must both land on the English copy.
+ */
 function detectInitialLocale(): Locale {
   if (typeof window === "undefined") return "en";
   try {
@@ -4378,7 +4399,8 @@ function detectInitialLocale(): Locale {
   if (nav.startsWith("sv")) return "sv";
   if (nav.startsWith("fr")) return "fr";
   if (nav.startsWith("es")) return "es";
-  return "en";
+  if (nav.startsWith("en")) return "en"; // explicit for clarity
+  return "en"; // unsupported language → English (NEVER Swedish)
 }
 
 function format(str: string, vars?: Record<string, string | number>): string {
