@@ -4,6 +4,7 @@ import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { FadeIn } from "@/components/FadeIn";
 import { DangerCard } from "@/components/DangerCard";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { DangerVisual } from "@/components/DangerVisual";
 import type { ScannerSeed } from "@/components/IngredientScanner";
 
@@ -342,7 +343,8 @@ export function LandingPage({ config }: LandingPageProps) {
               style={{ height: 32, width: "auto", objectFit: "contain" }}
             />
           </a>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <LanguageSelector />
             {authLoading ? (
               <div className="h-8 w-20 rounded-full bg-border/40 animate-pulse" />
             ) : isAuthenticated ? (

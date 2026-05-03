@@ -114,6 +114,7 @@ const en: Dict = {
   "download.useWebApp": "Use the web app now →",
   "download.installHint": "Already a PWA — on your phone, tap “Add to Home Screen” (iOS Safari) or “Install app” (Android Chrome) to get the Chimiq icon on your home screen today.",
   "download.webDivider": "Or, while you wait:",
+  "nav.languageSelectorAria": "Change language",
   "nav.myShelf": "My Shelf",
   "nav.signInGetStarted": "Sign in / Get started free",
   "nav.tryItNowArrow": "Try it now →",
@@ -1253,6 +1254,7 @@ const sv: Dict = {
   "download.useWebApp": "Använd webbappen nu →",
   "download.installHint": "Redan en PWA — på din telefon, tryck på ”Lägg till på hemskärmen” (iOS Safari) eller ”Installera app” (Android Chrome) för att få Chimiq-ikonen på hemskärmen redan idag.",
   "download.webDivider": "Eller, medan du väntar:",
+  "nav.languageSelectorAria": "Byt språk",
   "nav.myShelf": "Min hylla",
   "nav.signInGetStarted": "Logga in / Kom igång gratis",
   "nav.tryItNowArrow": "Testa nu →",
@@ -2398,6 +2400,7 @@ const fr: Dict = {
   "download.useWebApp": "Utiliser l'app web maintenant →",
   "download.installHint": "Déjà une PWA — sur votre téléphone, touchez « Sur l'écran d'accueil » (iOS Safari) ou « Installer l'application » (Android Chrome) pour avoir l'icône Chimiq sur votre écran d'accueil dès aujourd'hui.",
   "download.webDivider": "Ou, en attendant :",
+  "nav.languageSelectorAria": "Changer de langue",
   "nav.myShelf": "Mon étagère",
   "nav.signInGetStarted": "Se connecter / Commencer gratuitement",
   "nav.tryItNowArrow": "Essayer maintenant →",
@@ -3534,6 +3537,7 @@ const es: Dict = {
   "download.useWebApp": "Usar la web app ahora →",
   "download.installHint": "Ya es una PWA — en tu teléfono, toca «Añadir a la pantalla de inicio» (iOS Safari) o «Instalar app» (Android Chrome) para tener el icono de Chimiq hoy mismo.",
   "download.webDivider": "O, mientras esperas:",
+  "nav.languageSelectorAria": "Cambiar idioma",
   "nav.myShelf": "Mi estante",
   "nav.signInGetStarted": "Inicia sesión / Empieza gratis",
   "nav.tryItNowArrow": "Pruébalo ahora →",
@@ -4605,17 +4609,15 @@ function isLocale(v: string | null | undefined): v is Locale {
  *      links — `?lang=en` is the safest demo URL for US jurors).
  *   2. Saved choice in localStorage (sticky once a user picks from the
  *      Profile language switcher).
- *   3. Browser language prefix match (`navigator.language`):
- *        sv-* → sv, fr-* → fr, es-* → es, en-* → en.
- *      We intentionally only inspect `navigator.language` (the primary
- *      preference), NOT `navigator.languages` — a US/UK browser with
- *      `en-US` first should always land in English even if Swedish
- *      appears later in the preference list.
- *   4. Anything else (German, Japanese, empty, malformed, SSR) → en.
+ *   3. Default → en. We intentionally do NOT read `navigator.language`
+ *      anymore: first-time visitors must always land in English so the
+ *      marketing copy a US juror sees matches the demo, and so the
+ *      landing-nav language selector (Task #111) is the explicit, sole
+ *      mechanism for opting in to a non-English experience. Geo/IP-based
+ *      auto-detection is tracked separately under Task #109.
  *
  * IMPORTANT: English is the default fallback. Do not change the final
- * `return "en"` to anything else — US visitors with `en-US` browsers and
- * users with unsupported languages must both land on the English copy.
+ * `return "en"` to anything else.
  */
 function detectInitialLocale(): Locale {
   if (typeof window === "undefined") return "en";
@@ -4632,12 +4634,7 @@ function detectInitialLocale(): Locale {
   } catch {
     // ignore
   }
-  const nav = window.navigator?.language?.toLowerCase() ?? "";
-  if (nav.startsWith("sv")) return "sv";
-  if (nav.startsWith("fr")) return "fr";
-  if (nav.startsWith("es")) return "es";
-  if (nav.startsWith("en")) return "en"; // explicit for clarity
-  return "en"; // unsupported language → English (NEVER Swedish)
+  return "en";
 }
 
 function format(str: string, vars?: Record<string, string | number>): string {
