@@ -324,7 +324,6 @@ export function LandingPage({ config }: LandingPageProps) {
   return (
     <main className="min-h-screen bg-background overflow-hidden">
       <PWAInstallBanner />
-
       {/* TOP NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-border/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
@@ -369,10 +368,8 @@ export function LandingPage({ config }: LandingPageProps) {
           </div>
         </div>
       </nav>
-
       {/* STICKY SUB-NAV */}
       <StickySubNav visible={subNavVisible} />
-
       {/* 1. HERO */}
       <section ref={heroRef} id="hero" className="isolate relative min-h-[92vh] flex flex-col overflow-hidden">
         <img
@@ -486,7 +483,6 @@ export function LandingPage({ config }: LandingPageProps) {
 
         </div>
       </section>
-
       {/* 2. HOW IT WORKS */}
       <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-5xl mx-auto">
@@ -584,7 +580,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </div>
         </div>
       </section>
-
       {/* 3. SCANNER */}
       <section id="scanner" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#F5F5F7]">
         <div className="max-w-5xl mx-auto">
@@ -599,7 +594,7 @@ export function LandingPage({ config }: LandingPageProps) {
                   fontWeight: 600,
                   marginBottom: 12,
                 }}
-              >
+                className="text-[25px] mt-[0px] mb-[17px] font-bold">
                 {t("scannerSection.kicker")}
               </p>
               <h2
@@ -639,7 +634,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </div>
         </div>
       </section>
-
       {/* 4. DANGER COMBINATIONS */}
       <section id="danger-zone" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FAFAF8]">
         <div className="max-w-7xl mx-auto">
@@ -669,7 +663,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </div>
         </div>
       </section>
-
       {/* 4b. DISASTER MIX */}
       <section id="disaster-mix" className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -791,14 +784,12 @@ export function LandingPage({ config }: LandingPageProps) {
           </FadeIn>
         </div>
       </section>
-
       {/* 5. SOCIAL PROOF */}
       <LazyOnVisible minHeight={240}>
         <Suspense fallback={null}>
           <SocialProof style={config.socialProofStyle} />
         </Suspense>
       </LazyOnVisible>
-
       {/* 6. SKINCARE SPIRAL */}
       <section id="spiral" className="py-24 bg-[#F5F5F7]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -809,7 +800,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </LazyOnVisible>
         </div>
       </section>
-
       {/* 7. MY SHELF */}
       <section id="my-shelf" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
@@ -903,7 +893,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </div>
         </div>
       </section>
-
       {/* 8. PRICING */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white border-t border-border/50">
         <LazyOnVisible minHeight={500}>
@@ -912,7 +901,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </Suspense>
         </LazyOnVisible>
       </section>
-
       {/* 9. EARN FREE PREMIUM */}
       <section id="earn-premium" className="py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-t border-border/50">
         <FadeIn>
@@ -986,7 +974,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </FadeIn>
         </div>
       </section>
-
       {/* 9b. DOWNLOAD THE APP — Coming soon (iOS / Android) */}
       <section
         id="download"
@@ -1089,7 +1076,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </div>
         </FadeIn>
       </section>
-
       {/* 10. FOOTER */}
       <footer className="border-t border-border/50" style={{ background: "#F7FAF7", paddingTop: 64, paddingBottom: 40 }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1167,7 +1153,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </div>
         </div>
       </footer>
-
       {/* FLOATING AI CHAT */}
       <ChatPanelLauncher />
     </main>
