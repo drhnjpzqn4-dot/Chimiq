@@ -2,16 +2,14 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import type Stripe from "stripe";
 import { getUncachableStripeClient } from "../stripeClient";
 import { isRequestAdmin } from "../lib/admin";
-
-// Original (bootstrap) promotion code on the TESTER6M coupon. We treat this
-// as a fallback only — once the founder raises the cap or mints a new code
-// from the admin widget, we record the new promotion code's id on the
-// coupon's metadata (`active_promotion_code_id`) and read it back from
-// there. Storing it on the coupon keeps Stripe as the single source of
-// truth so we don't need a separate DB table just for one ID.
-const FALLBACK_PROMOTION_CODE_ID = "promo_1TT4njC02Ie3Okka4fxyFFkx";
-const COUPON_ID = "zsUaJOzp";
-const ACTIVE_PROMO_METADATA_KEY = "active_promotion_code_id";
+import {
+  ACTIVE_PROMO_METADATA_KEY,
+  COUPON_ID,
+  buildPayload,
+  fetchPromoFromStripe,
+  resolveActivePromo,
+  type PromoPayload,
+} from "../lib/testerPromo";
 
 // In-memory cache TTL. Stripe redemption counts don't change
 // second-to-second, so a short window (45s) gives admins a snappy page
@@ -19,17 +17,6 @@ const ACTIVE_PROMO_METADATA_KEY = "active_promotion_code_id";
 // on-demand re-fetch. The raise-cap and mint endpoints also invalidate
 // this so the widget shows the new code immediately after a mutation.
 const CACHE_TTL_MS = 45_000;
-
-interface PromoPayload {
-  code: string | null;
-  promotionCodeId: string;
-  active: boolean;
-  timesRedeemed: number;
-  maxRedemptions: number | null;
-  promoMaxRedemptions: number | null;
-  remaining: number | null;
-  couponName: string | null;
-}
 
 let cached: { payload: PromoPayload; fetchedAt: number } | null = null;
 
@@ -41,76 +28,6 @@ let cached: { payload: PromoPayload; fetchedAt: number } | null = null;
  */
 export function invalidateTesterPromoCache(): void {
   cached = null;
-}
-
-async function getActivePromotionCodeId(coupon: Stripe.Coupon): Promise<string> {
-  const fromMetadata = coupon.metadata?.[ACTIVE_PROMO_METADATA_KEY];
-  if (fromMetadata && typeof fromMetadata === "string" && fromMetadata.trim()) {
-    return fromMetadata.trim();
-  }
-  return FALLBACK_PROMOTION_CODE_ID;
-}
-
-// Resolve the active promotion code, with recovery if the metadata
-// pointer is stale (e.g. the recorded promo was deleted in the Stripe
-// Dashboard). Falls back to the most recently created promotion code on
-// the coupon, then to the bootstrap id.
-async function resolveActivePromo(
-  stripe: Stripe,
-  coupon: Stripe.Coupon,
-): Promise<Stripe.PromotionCode> {
-  const promoId = await getActivePromotionCodeId(coupon);
-  try {
-    return await stripe.promotionCodes.retrieve(promoId);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[admin/tester-promo] active promo ${promoId} unreachable, falling back to coupon listing`,
-      err,
-    );
-    const list = await stripe.promotionCodes.list({ coupon: COUPON_ID, limit: 50 });
-    if (list.data.length === 0) {
-      throw err;
-    }
-    // Prefer an active code; otherwise the most recently created one.
-    const active = list.data.find((p) => p.active);
-    const sorted = [...list.data].sort((a, b) => (b.created ?? 0) - (a.created ?? 0));
-    return active ?? sorted[0];
-  }
-}
-
-function buildPayload(promo: Stripe.PromotionCode, coupon: Stripe.Coupon): PromoPayload {
-  // Stripe stores the per-promotion-code cap on the promotion code, and a
-  // separate (often broader) cap on the coupon. Show whichever is tighter
-  // so the founder sees the real ceiling testers will hit.
-  const promoMax = promo.max_redemptions ?? null;
-  const couponMax = coupon.max_redemptions ?? null;
-  const maxRedemptions =
-    promoMax != null && couponMax != null
-      ? Math.min(promoMax, couponMax)
-      : (promoMax ?? couponMax);
-
-  const timesRedeemed = promo.times_redeemed ?? 0;
-  const remaining =
-    maxRedemptions != null ? Math.max(0, maxRedemptions - timesRedeemed) : null;
-
-  return {
-    code: promo.code,
-    promotionCodeId: promo.id,
-    active: promo.active,
-    timesRedeemed,
-    maxRedemptions,
-    promoMaxRedemptions: promoMax,
-    remaining,
-    couponName: coupon.name ?? null,
-  };
-}
-
-async function fetchPromoFromStripe(): Promise<PromoPayload> {
-  const stripe = await getUncachableStripeClient();
-  const coupon = await stripe.coupons.retrieve(COUPON_ID);
-  const promo = await resolveActivePromo(stripe, coupon);
-  return buildPayload(promo, coupon);
 }
 
 const router: IRouter = Router();
@@ -146,7 +63,7 @@ router.get("/admin/tester-promo", async (req: Request, res: Response) => {
   }
 
   try {
-    const payload = await fetchPromoFromStripe();
+    const { payload } = await fetchPromoFromStripe();
     cached = { payload, fetchedAt: Date.now() };
     res.json({ ...payload, cached: false, cachedAgeMs: 0 });
   } catch (err) {
