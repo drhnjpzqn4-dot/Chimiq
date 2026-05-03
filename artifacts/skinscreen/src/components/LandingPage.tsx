@@ -25,6 +25,19 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+const smoothScrollTo = (id: string, opts?: { block?: ScrollLogicalPosition }) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+    block: opts?.block,
+  });
+};
+
 interface SiteStats {
   analyses: number;
   products: number;
@@ -46,7 +59,11 @@ interface LandingPageProps {
 function StickySubNav({ visible }: { visible: boolean }) {
   const { t } = useTranslation();
   return (
-    <div
+    <nav
+      aria-label={t("nav.howItWorks")}
+      aria-hidden={!visible}
+      // @ts-expect-error inert is a valid HTML attribute; React 19 supports it natively, older types don't.
+      inert={!visible ? "" : undefined}
       className={cn(
         "fixed top-14 left-0 right-0 z-40 bg-white transition-all duration-300",
         "border-b border-[#E8F0E8]",
@@ -56,33 +73,37 @@ function StickySubNav({ visible }: { visible: boolean }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-center gap-6 sm:gap-10">
         <a
           href="#how-it-works"
-          onClick={(e) => { e.preventDefault(); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}
-          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
+          tabIndex={visible ? 0 : -1}
+          onClick={(e) => { e.preventDefault(); smoothScrollTo("how-it-works"); }}
+          className="text-[14px] font-medium text-primary-strong no-underline hover:underline transition-colors"
         >
           {t("nav.howItWorks")}
         </a>
         <a
           href="#scanner"
-          onClick={(e) => { e.preventDefault(); document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }); }}
-          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
+          tabIndex={visible ? 0 : -1}
+          onClick={(e) => { e.preventDefault(); smoothScrollTo("scanner"); }}
+          className="text-[14px] font-medium text-primary-strong no-underline hover:underline transition-colors"
         >
           {t("nav.tryItNow")}
         </a>
         <a
           href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/discover`}
-          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors"
+          tabIndex={visible ? 0 : -1}
+          className="text-[14px] font-medium text-primary-strong no-underline hover:underline transition-colors"
         >
           {t("nav.discover")}
         </a>
         <a
           href="#earn-premium"
-          onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
-          className="text-[14px] font-medium text-[#7BAF7A] no-underline hover:underline transition-colors hidden sm:inline"
+          tabIndex={visible ? 0 : -1}
+          onClick={(e) => { e.preventDefault(); smoothScrollTo("earn-premium"); }}
+          className="text-[14px] font-medium text-primary-strong no-underline hover:underline transition-colors hidden sm:inline"
         >
           {t("nav.earnFreePremium")}
         </a>
       </div>
-    </div>
+    </nav>
   );
 }
 
@@ -105,7 +126,7 @@ function ContactFooterForm() {
   if (submitted) {
     return (
       <div className="flex items-center justify-center h-full min-h-[200px]">
-        <p className="text-sm font-medium text-[#7BAF7A]">{t("footer.thanks")}</p>
+        <p className="text-sm font-medium text-primary-strong">{t("footer.thanks")}</p>
       </div>
     );
   }
@@ -139,7 +160,7 @@ function ContactFooterForm() {
       />
       <button
         type="submit"
-        className="w-full bg-[#7BAF7A] hover:bg-[#6a9e69] text-white py-3 rounded-xl text-sm font-semibold transition-colors"
+        className="w-full bg-primary-strong hover:bg-primary-strong/90 text-white py-3 rounded-xl text-sm font-semibold transition-colors"
       >
         {t("footer.send")}
       </button>
@@ -240,9 +261,7 @@ export function LandingPage({ config }: LandingPageProps) {
       if (parsed && (parsed.mode === "single" || parsed.mode === "compare")) {
         setScannerSeed(parsed);
         requestAnimationFrame(() => {
-          document
-            .getElementById("scanner")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          smoothScrollTo("scanner", { block: "start" });
         });
       }
     } catch {
@@ -267,8 +286,7 @@ export function LandingPage({ config }: LandingPageProps) {
 
   const handleDisasterMixScan = () => {
     setScannerSeed({ ...DISASTER_MIX_SEED });
-    const el = document.getElementById("scanner");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    smoothScrollTo("scanner", { block: "start" });
   };
 
   const scannerCtaLabel = {
@@ -316,7 +334,7 @@ export function LandingPage({ config }: LandingPageProps) {
               <button
                 type="button"
                 onClick={() => login()}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 px-4 py-2 rounded-full transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-primary-strong hover:bg-primary-strong/90 px-4 py-2 rounded-full transition-colors"
               >
                 {t("auth.signIn")}
               </button>
@@ -394,7 +412,7 @@ export function LandingPage({ config }: LandingPageProps) {
                   <a
                     key={ing.name}
                     href="#danger-zone"
-                    onClick={(e) => { e.preventDefault(); document.getElementById("danger-zone")?.scrollIntoView({ behavior: "smooth" }); }}
+                    onClick={(e) => { e.preventDefault(); smoothScrollTo("danger-zone"); }}
                     className={pillClass + " cursor-pointer hover:bg-white/18 transition-colors"}
                     style={pillStyle}
                   >
@@ -415,8 +433,8 @@ export function LandingPage({ config }: LandingPageProps) {
               {isAuthenticated ? (
                 <a
                   href="#scanner"
-                  onClick={(e) => { e.preventDefault(); document.getElementById("scanner")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
+                  onClick={(e) => { e.preventDefault(); smoothScrollTo("scanner"); }}
+                  className="inline-flex items-center justify-center gap-2.5 bg-primary-strong hover:bg-primary-strong/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(53,110,53,0.35)] hover:shadow-[0_0_60px_rgba(53,110,53,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
                 >
                   {t("nav.tryItNowArrow")}
                 </a>
@@ -424,14 +442,14 @@ export function LandingPage({ config }: LandingPageProps) {
                 <button
                   type="button"
                   onClick={() => login()}
-                  className="inline-flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(123,175,122,0.35)] hover:shadow-[0_0_60px_rgba(123,175,122,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
+                  className="inline-flex items-center justify-center gap-2.5 bg-primary-strong hover:bg-primary-strong/90 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-200 shadow-[0_0_40px_rgba(53,110,53,0.35)] hover:shadow-[0_0_60px_rgba(53,110,53,0.5)] hover:-translate-y-0.5 w-full sm:w-auto"
                 >
                   {t("nav.signInGetStarted")}
                 </button>
               )}
               <a
                 href="#how-it-works"
-                onClick={(e) => { e.preventDefault(); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}
+                onClick={(e) => { e.preventDefault(); smoothScrollTo("how-it-works"); }}
                 className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/18 backdrop-blur-sm text-white border border-white/25 px-8 py-4 rounded-full text-base font-medium transition-all duration-200 hover:-translate-y-0.5 w-full sm:w-auto"
               >
                 {t("nav.seeHowItWorks")}
@@ -550,7 +568,7 @@ export function LandingPage({ config }: LandingPageProps) {
                   textTransform: "uppercase",
                   fontSize: 11,
                   letterSpacing: "0.14em",
-                  color: "#7BAF7A",
+                  color: "#356E35",
                   fontWeight: 600,
                   marginBottom: 12,
                 }}
@@ -760,7 +778,7 @@ export function LandingPage({ config }: LandingPageProps) {
 
             <FadeIn direction="right">
               <div>
-                <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary text-sm font-medium tracking-wide mb-6">
+                <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary-strong text-sm font-medium tracking-wide mb-6">
                   {isAuthenticated ? t("myShelfMkt.kickerYour") : t("myShelfMkt.kickerSoon")}
                 </span>
                 <h2 className="text-3xl md:text-5xl font-serif mb-6 leading-tight">
@@ -780,7 +798,7 @@ export function LandingPage({ config }: LandingPageProps) {
                   ].map(({ icon: Icon, text }) => (
                     <li key={text} className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <Icon className="w-4 h-4 text-primary" />
+                        <Icon className="w-4 h-4 text-primary-strong" />
                       </div>
                       <span className="text-foreground leading-snug">{text}</span>
                     </li>
@@ -790,13 +808,13 @@ export function LandingPage({ config }: LandingPageProps) {
                   <button
                     type="button"
                     onClick={() => login()}
-                    className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
+                    className="inline-flex items-center gap-2 text-white bg-primary-strong hover:bg-primary-strong/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                   >
                     {t("myShelfMkt.signInToStart")}
                   </button>
                 )}
                 {isAuthenticated && (
-                  <p className="flex items-center gap-2 text-primary font-medium text-sm">
+                  <p className="flex items-center gap-2 text-primary-strong font-medium text-sm">
                     <CheckCircle2 className="w-4 h-4" />
                     {t("myShelfMkt.signedInAs", { name: displayName ?? "" })}
                   </p>
@@ -815,7 +833,7 @@ export function LandingPage({ config }: LandingPageProps) {
                   <div className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-white/70 backdrop-blur-sm">
                     <div className="text-center px-6">
                       <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                        <User className="w-6 h-6 text-primary" />
+                        <User className="w-6 h-6 text-primary-strong" />
                       </div>
                       <p className="font-serif text-lg font-semibold text-foreground mb-2">
                         {t("myShelfMkt.shelfWaitingTitle")}
@@ -825,7 +843,7 @@ export function LandingPage({ config }: LandingPageProps) {
                       </p>
                       <button
                         onClick={() => login()}
-                        className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-5 py-2.5 rounded-full font-medium text-sm transition-colors"
+                        className="inline-flex items-center gap-2 text-white bg-primary-strong hover:bg-primary-strong/90 px-5 py-2.5 rounded-full font-medium text-sm transition-colors"
                       >
                         {t("myShelfMkt.signInToGetStarted")}
                       </button>
@@ -848,7 +866,7 @@ export function LandingPage({ config }: LandingPageProps) {
       <section id="earn-premium" className="py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-t border-border/50">
         <FadeIn>
           <div className="text-center mb-14">
-            <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary text-sm font-medium tracking-wide mb-5">
+            <span className="inline-block py-1 px-3 rounded-full bg-primary/15 text-primary-strong text-sm font-medium tracking-wide mb-5">
               {t("earnPremium.kicker")}
             </span>
             <h2 className="text-4xl md:text-5xl font-serif text-foreground mb-4 tracking-tight">
@@ -864,7 +882,7 @@ export function LandingPage({ config }: LandingPageProps) {
           <FadeIn direction="right">
             <div className="h-full p-7 rounded-2xl bg-[#F7FAF7] border border-[#E8F0E8]">
               <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
-                <ShieldCheck className="w-5 h-5 text-primary" />
+                <ShieldCheck className="w-5 h-5 text-primary-strong" />
               </div>
               <h3 className="text-2xl font-serif text-foreground mb-3 leading-tight">
                 {t("earnPremium.privateTitle")}
@@ -873,9 +891,9 @@ export function LandingPage({ config }: LandingPageProps) {
                 {t("earnPremium.privateBody")}
               </p>
               <ul className="space-y-2.5 text-sm text-foreground/85">
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>{t("earnPremium.privateBullet1")}</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>{t("earnPremium.privateBullet2")}</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">✓</span><span>{t("earnPremium.privateBullet3")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary-strong mt-0.5">✓</span><span>{t("earnPremium.privateBullet1")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary-strong mt-0.5">✓</span><span>{t("earnPremium.privateBullet2")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary-strong mt-0.5">✓</span><span>{t("earnPremium.privateBullet3")}</span></li>
               </ul>
             </div>
           </FadeIn>
@@ -883,32 +901,32 @@ export function LandingPage({ config }: LandingPageProps) {
           <FadeIn direction="left" delay={0.1}>
             <div className="h-full p-7 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/25">
               <div className="w-11 h-11 rounded-xl bg-primary/20 flex items-center justify-center mb-5">
-                <Plus className="w-5 h-5 text-primary" />
+                <Plus className="w-5 h-5 text-primary-strong" />
               </div>
               <h3 className="text-2xl font-serif text-foreground mb-3 leading-tight">
-                {t("earnPremium.contribTitlePart1")} <span className="text-primary">{t("earnPremium.contribTitlePart2")}</span>
+                {t("earnPremium.contribTitlePart1")} <span className="text-primary-strong">{t("earnPremium.contribTitlePart2")}</span>
               </h3>
               <p className="text-muted-foreground mb-5 leading-relaxed">
                 {t("earnPremium.contribBody")}
               </p>
               <ul className="space-y-2.5 text-sm text-foreground/85 mb-6">
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet1Bold")}</strong> {t("earnPremium.contribBullet1Rest")}</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet2Bold")}</strong> {t("earnPremium.contribBullet2Rest")}</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet3Bold")}</strong> {t("earnPremium.contribBullet3Rest")}</span></li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet4Bold")}</strong> {t("earnPremium.contribBullet4Rest")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary-strong mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet1Bold")}</strong> {t("earnPremium.contribBullet1Rest")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary-strong mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet2Bold")}</strong> {t("earnPremium.contribBullet2Rest")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary-strong mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet3Bold")}</strong> {t("earnPremium.contribBullet3Rest")}</span></li>
+                <li className="flex items-start gap-2"><span className="text-primary-strong mt-0.5">•</span><span><strong>{t("earnPremium.contribBullet4Bold")}</strong> {t("earnPremium.contribBullet4Rest")}</span></li>
               </ul>
               {!isAuthenticated ? (
                 <button
                   type="button"
                   onClick={() => login()}
-                  className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 text-white bg-primary-strong hover:bg-primary-strong/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                 >
                   {t("earnPremium.signInToContribute")}
                 </button>
               ) : (
                 <a
                   href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/app`}
-                  className="inline-flex items-center gap-2 text-white bg-primary hover:bg-primary/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 text-white bg-primary-strong hover:bg-primary-strong/90 px-6 py-3 rounded-full font-medium text-sm transition-colors shadow-md hover:-translate-y-0.5"
                 >
                   {t("earnPremium.startContributing")}
                 </a>

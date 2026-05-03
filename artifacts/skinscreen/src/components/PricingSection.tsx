@@ -101,7 +101,7 @@ export function PricingSection() {
               {FREE_FEATURES.map((f) => (
                 <div key={f.label} className="flex items-center gap-2.5">
                   {f.included ? (
-                    <Check className="w-3.5 h-3.5 text-[#22C55E] shrink-0" />
+                    <Check className="w-3.5 h-3.5 text-[#15803D] shrink-0" aria-hidden="true" />
                   ) : (
                     <X className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0" />
                   )}
@@ -162,7 +162,7 @@ export function PricingSection() {
                   <span className={cn(
                     "px-1.5 py-0.5 rounded-full text-[9px] font-bold",
                     billing === "yearly"
-                      ? "bg-primary text-white"
+                      ? "bg-primary-strong text-white"
                       : "bg-primary/30 text-primary",
                   )}>
                     {t("pricing.save98")}
@@ -206,7 +206,7 @@ export function PricingSection() {
                 <button
                   onClick={handleUpgrade}
                   disabled={loading || isLoading}
-                  className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-white text-[#1A1A2E] text-sm font-semibold hover:bg-white/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />{t("pricing.redirecting")}</>

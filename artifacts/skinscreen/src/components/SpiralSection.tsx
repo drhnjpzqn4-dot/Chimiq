@@ -112,7 +112,7 @@ export function SpiralSection() {
                   step.isFinal ? "bg-destructive/60" : isVisible ? "bg-primary" : "bg-muted"
                 }`}
               />
-              <p className="text-xs font-medium text-primary/60 uppercase tracking-wider mb-0.5">{step.step}</p>
+              <p className="text-xs font-medium text-primary-strong uppercase tracking-wider mb-0.5">{step.step}</p>
               <p className={`text-base sm:text-lg font-medium ${step.isFinal ? "text-destructive font-serif text-xl" : "text-foreground"}`}>
                 {step.text}
               </p>
@@ -127,7 +127,7 @@ export function SpiralSection() {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="pt-4"
         >
-          <p className="text-2xl font-serif text-primary italic mb-8">Chimiq breaks the cycle.</p>
+          <p className="text-2xl font-serif text-primary-strong italic mb-8">Chimiq breaks the cycle.</p>
 
           {/* Outcome mini-cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
