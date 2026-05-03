@@ -33,9 +33,12 @@ interface HistoryResponse {
   pageSize: number;
   action: "raise_cap" | "mint" | null;
   q: string | null;
+  from: string | null;
+  to: string | null;
 }
 
 type ActionFilter = "all" | "raise_cap" | "mint";
+type DatePreset = "all" | "30d" | "quarter" | "ytd" | "custom";
 
 const PAGE_SIZE = 50;
 
@@ -44,6 +47,64 @@ const ACTION_FILTERS: { value: ActionFilter; label: string }[] = [
   { value: "raise_cap", label: "Raise cap" },
   { value: "mint", label: "Mint" },
 ];
+
+const DATE_PRESETS: { value: DatePreset; label: string }[] = [
+  { value: "all", label: "All time" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "quarter", label: "This quarter" },
+  { value: "ytd", label: "Year to date" },
+  { value: "custom", label: "Custom" },
+];
+
+// Format a Date as YYYY-MM-DD in the user's local timezone, suitable for
+// an <input type="date"> value. We deliberately avoid toISOString() here
+// because that converts to UTC and would shift the displayed day for
+// anyone west of UTC (Pia is in CET so it would actually round forward,
+// but we want consistency for everyone).
+function toDateInputValue(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Resolve a preset into concrete YYYY-MM-DD `from` / `to` strings. The
+// returned values feed both the date inputs (when the user switches into
+// custom) and the URL params we send to the API.
+function resolvePreset(preset: DatePreset): { from: string; to: string } {
+  const today = new Date();
+  const to = toDateInputValue(today);
+  if (preset === "30d") {
+    const from = new Date(today);
+    from.setDate(from.getDate() - 29);
+    return { from: toDateInputValue(from), to };
+  }
+  if (preset === "quarter") {
+    const q = Math.floor(today.getMonth() / 3);
+    const from = new Date(today.getFullYear(), q * 3, 1);
+    return { from: toDateInputValue(from), to };
+  }
+  if (preset === "ytd") {
+    const from = new Date(today.getFullYear(), 0, 1);
+    return { from: toDateInputValue(from), to };
+  }
+  return { from: "", to: "" };
+}
+
+// Convert a YYYY-MM-DD input into a precise instant for the API. `from`
+// snaps to start-of-day local time; `to` snaps to end-of-day local time
+// so a same-day range like 2025-04-01..2025-04-01 captures every change
+// from that whole day, not just midnight.
+function dayStartIso(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(`${value}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+function dayEndIso(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(`${value}T23:59:59.999`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -68,6 +129,14 @@ function AdminTesterPromoHistoryPageInner() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  // YYYY-MM-DD strings bound to the date inputs. We keep the strings (not
+  // Date objects) so the inputs render exactly what the user picked even
+  // if their locale's formatting differs from ours.
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+
+  const dateRangeInvalid = Boolean(fromDate && toDate && fromDate > toDate);
 
   // Debounce typing → query, mirroring AdminUsersPage's 300ms window so
   // Pia gets the same snappy-but-not-chatty feel across admin tools.
@@ -79,7 +148,24 @@ function AdminTesterPromoHistoryPageInner() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // Build the date params shared between the JSON fetch and the CSV
+  // download link, so both views always agree about the active range.
+  const dateParams = useMemo(() => {
+    const params: { from?: string; to?: string } = {};
+    if (dateRangeInvalid) return params;
+    const fromIso = dayStartIso(fromDate);
+    const toIso = dayEndIso(toDate);
+    if (fromIso) params.from = fromIso;
+    if (toIso) params.to = toIso;
+    return params;
+  }, [fromDate, toDate, dateRangeInvalid]);
+
   const fetchHistory = useCallback(async () => {
+    if (dateRangeInvalid) {
+      setError("End date can't be before start date.");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -89,6 +175,8 @@ function AdminTesterPromoHistoryPageInner() {
       });
       if (actionFilter !== "all") params.set("action", actionFilter);
       if (debouncedSearch) params.set("q", debouncedSearch);
+      if (dateParams.from) params.set("from", dateParams.from);
+      if (dateParams.to) params.set("to", dateParams.to);
       const res = await fetch(
         `/api/admin/tester-promo/history?${params.toString()}`,
         { credentials: "include" },
@@ -105,11 +193,40 @@ function AdminTesterPromoHistoryPageInner() {
       setError("Network error loading history.");
     }
     setLoading(false);
-  }, [page, actionFilter, debouncedSearch]);
+  }, [page, actionFilter, debouncedSearch, dateParams, dateRangeInvalid]);
 
   useEffect(() => {
     void fetchHistory();
   }, [fetchHistory]);
+
+  const handlePresetClick = useCallback((preset: DatePreset) => {
+    setDatePreset(preset);
+    setPage(1);
+    if (preset === "all") {
+      setFromDate("");
+      setToDate("");
+      return;
+    }
+    if (preset === "custom") {
+      // Keep whatever's already in the inputs so the admin can tweak the
+      // current range; nothing to compute.
+      return;
+    }
+    const { from, to } = resolvePreset(preset);
+    setFromDate(from);
+    setToDate(to);
+  }, []);
+
+  // Build the CSV download URL with the same filters as the table view.
+  const csvHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (actionFilter !== "all") params.set("action", actionFilter);
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (dateParams.from) params.set("from", dateParams.from);
+    if (dateParams.to) params.set("to", dateParams.to);
+    const qs = params.toString();
+    return `/api/admin/tester-promo/history.csv${qs ? `?${qs}` : ""}`;
+  }, [actionFilter, debouncedSearch, dateParams]);
 
   const totalPages = useMemo(() => {
     if (!data || data.total === 0) return 1;
@@ -204,19 +321,83 @@ function AdminTesterPromoHistoryPageInner() {
             );
           })}
           <a
-            href={`/api/admin/tester-promo/history.csv${
-              actionFilter !== "all" ? `?action=${actionFilter}` : ""
+            href={csvHref}
+            className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-border/60 bg-white text-foreground hover:border-primary/40 hover:bg-muted/30 transition-colors ${
+              dateRangeInvalid ? "pointer-events-none opacity-40" : ""
             }`}
-            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-border/60 bg-white text-foreground hover:border-primary/40 hover:bg-muted/30 transition-colors"
-            title={
-              actionFilter === "all"
-                ? "Download all rows as CSV"
-                : `Download ${actionFilter === "mint" ? "mint" : "raise-cap"} rows as CSV`
-            }
+            aria-disabled={dateRangeInvalid || undefined}
+            title="Download the rows matching the current filters as CSV"
           >
             <Download className="w-3.5 h-3.5" />
             Download CSV
           </a>
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-border/60 bg-white p-3 sm:p-4">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mr-1">
+              Date range
+            </span>
+            {DATE_PRESETS.map((p) => {
+              const active = datePreset === p.value;
+              return (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => handlePresetClick(p.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                    active
+                      ? "bg-primary text-white border-primary"
+                      : "bg-white text-muted-foreground border-border/60 hover:border-primary/40 hover:text-foreground"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+              From
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setDatePreset("custom");
+                  setPage(1);
+                }}
+                className="mt-1 px-3 py-1.5 rounded-lg border border-border/60 text-sm font-normal normal-case text-foreground tracking-normal focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+              />
+            </label>
+            <label className="flex flex-col text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+              To
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setDatePreset("custom");
+                  setPage(1);
+                }}
+                className="mt-1 px-3 py-1.5 rounded-lg border border-border/60 text-sm font-normal normal-case text-foreground tracking-normal focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+              />
+            </label>
+            {(fromDate || toDate) && (
+              <button
+                type="button"
+                onClick={() => handlePresetClick("all")}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 mb-1.5"
+              >
+                Clear
+              </button>
+            )}
+            {dateRangeInvalid && (
+              <span className="text-xs text-red-600 mb-1.5">
+                End date must be on or after the start date.
+              </span>
+            )}
+          </div>
         </div>
 
         {error && (

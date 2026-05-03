@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import type Stripe from "stripe";
 import { db, testerPromoChangesTable } from "@workspace/db";
-import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient";
 import { isRequestAdmin, getRequestEmail } from "../lib/admin";
 import {
@@ -33,6 +33,18 @@ export function invalidateTesterPromoCache(): void {
 }
 
 const router: IRouter = Router();
+
+// Parse a `from` / `to` query string into a Date. Accepts anything the
+// JS Date constructor accepts (ISO timestamps, YYYY-MM-DD). Returns
+// `null` when the param is absent and the sentinel `"invalid"` when the
+// caller passed something we couldn't parse, so the route can surface a
+// 400 instead of silently dropping the filter.
+function parseDateParam(value: unknown): Date | null | "invalid" {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") return "invalid";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "invalid" : d;
+}
 
 function requireAdmin(req: Request, res: Response): boolean {
   if (!req.isAuthenticated()) {
@@ -316,9 +328,22 @@ router.get("/admin/tester-promo/history", async (req: Request, res: Response) =>
   // chars is well above any realistic promo code or email length.
   const qFilter = qRaw.length > 0 ? qRaw.slice(0, 200) : null;
 
+  const fromDate = parseDateParam(req.query.from);
+  const toDate = parseDateParam(req.query.to);
+  if (fromDate === "invalid" || toDate === "invalid") {
+    res.status(400).json({ error: "Invalid date range." });
+    return;
+  }
+
   const whereParts: SQL[] = [];
   if (actionFilter) {
     whereParts.push(eq(testerPromoChangesTable.action, actionFilter));
+  }
+  if (fromDate) {
+    whereParts.push(gte(testerPromoChangesTable.createdAt, fromDate));
+  }
+  if (toDate) {
+    whereParts.push(lte(testerPromoChangesTable.createdAt, toDate));
   }
   if (qFilter) {
     // Escape LIKE wildcards in the user input so e.g. "%" or "_" is
@@ -373,6 +398,8 @@ router.get("/admin/tester-promo/history", async (req: Request, res: Response) =>
       pageSize,
       action: actionFilter,
       q: qFilter,
+      from: fromDate ? fromDate.toISOString() : null,
+      to: toDate ? toDate.toISOString() : null,
     });
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -405,9 +432,42 @@ router.get("/admin/tester-promo/history.csv", async (req: Request, res: Response
   const actionFilter =
     actionParam === "raise_cap" || actionParam === "mint" ? actionParam : null;
 
-  const whereClause = actionFilter
-    ? eq(testerPromoChangesTable.action, actionFilter)
-    : undefined;
+  const fromDate = parseDateParam(req.query.from);
+  const toDate = parseDateParam(req.query.to);
+  if (fromDate === "invalid" || toDate === "invalid") {
+    res.status(400).json({ error: "Invalid date range." });
+    return;
+  }
+
+  const qRaw = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const qFilter = qRaw.length > 0 ? qRaw.slice(0, 200) : null;
+
+  const whereParts: SQL[] = [];
+  if (actionFilter) {
+    whereParts.push(eq(testerPromoChangesTable.action, actionFilter));
+  }
+  if (fromDate) {
+    whereParts.push(gte(testerPromoChangesTable.createdAt, fromDate));
+  }
+  if (toDate) {
+    whereParts.push(lte(testerPromoChangesTable.createdAt, toDate));
+  }
+  if (qFilter) {
+    const escaped = qFilter.replace(/[\\%_]/g, (c) => `\\${c}`);
+    const pattern = `%${escaped}%`;
+    const orClause = or(
+      ilike(testerPromoChangesTable.newCode, pattern),
+      ilike(testerPromoChangesTable.oldCode, pattern),
+      ilike(testerPromoChangesTable.adminEmail, pattern),
+    );
+    if (orClause) whereParts.push(orClause);
+  }
+  const whereClause =
+    whereParts.length === 0
+      ? undefined
+      : whereParts.length === 1
+        ? whereParts[0]
+        : and(...whereParts);
 
   try {
     const rows = await db
@@ -416,13 +476,21 @@ router.get("/admin/tester-promo/history.csv", async (req: Request, res: Response
       .where(whereClause)
       .orderBy(desc(testerPromoChangesTable.createdAt));
 
-    // Embed today's date (UTC YYYY-MM-DD) so saving multiple exports to
-    // the same folder doesn't overwrite the previous one and Pia can tell
-    // at a glance which quarter a file represents. When the page grows a
-    // date-range filter, swap this for the chosen range.
-    const exportDate = new Date().toISOString().slice(0, 10);
+    // Embed the chosen date range (or today, if unfiltered) into the
+    // filename so saving multiple exports to the same folder doesn't
+    // overwrite the previous one and Pia can tell at a glance which
+    // quarter a file represents.
+    const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+    const rangePart =
+      fromDate && toDate
+        ? `${isoDay(fromDate)}_to_${isoDay(toDate)}`
+        : fromDate
+          ? `from-${isoDay(fromDate)}`
+          : toDate
+            ? `until-${isoDay(toDate)}`
+            : isoDay(new Date());
     const filenameSuffix = actionFilter ? `-${actionFilter}` : "";
-    const filename = `tester-promo-history-${exportDate}${filenameSuffix}.csv`;
+    const filename = `tester-promo-history-${rangePart}${filenameSuffix}.csv`;
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
