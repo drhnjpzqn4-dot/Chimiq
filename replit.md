@@ -244,3 +244,30 @@ git --no-optional-locks push \
   configure a credential helper. Use the inline URL form above.
 - The `subrepl-0vdlt063` remote already points to the GitHub repo but
   has no auth configured, so the inline URL form is the reliable path.
+
+## Web analytics (chimiq.com only)
+
+GDPR-compliant analytics stack added. Scripts only load AFTER the user
+opts in via the cookie banner; until then nothing third-party runs.
+
+**Optional environment variables** (set in deployment secrets when ready):
+- `VITE_GA_MEASUREMENT_ID` — Google Analytics 4 measurement ID
+  (`G-XXXXXXXXXX`). Without it, the analytics category in the banner
+  still appears but loads no script.
+- `VITE_META_PIXEL_ID` — Meta (Facebook) Pixel ID (a numeric string).
+  Without it, the marketing category in the banner still appears but
+  loads no script.
+
+Both are `VITE_`-prefixed so they're inlined at build time. Both values
+are public-by-design (visible in the browser to anyone who inspects),
+so no secret leakage concerns.
+
+**Files:**
+- `src/lib/cookie-consent.ts` — versioned localStorage record, three
+  categories (necessary always-on, analytics, marketing), reopen event.
+- `src/lib/analytics.ts` — idempotent GA4 + Meta Pixel loaders gated on
+  consent. Exposes `trackEvent()` and `trackMetaStandard()` helpers.
+- `src/components/CookieBanner.tsx` — bottom-of-screen banner, opens
+  on first visit and via "Cookie settings" footer link.
+- Privacy Policy section 1.5 documents the three categories.
+- i18n keys `cookies.*` translated in en/sv/fr/es.

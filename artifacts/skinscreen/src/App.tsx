@@ -11,6 +11,9 @@ import { useNativeAuthDeepLink } from "@/hooks/useNativeAuthDeepLink";
 import { AUTH_REFRESH_EVENT } from "@workspace/replit-auth-web";
 import { I18nProvider } from "@/lib/i18n";
 import { ConsentGateProvider } from "@/components/ConsentGate";
+import { CookieBanner } from "@/components/CookieBanner";
+import { startAnalyticsLoader } from "@/lib/analytics";
+import { isNative } from "@/lib/native";
 
 const HomeA = lazy(() => import("@/pages/HomeA"));
 const HomeB = lazy(() => import("@/pages/HomeB"));
@@ -117,6 +120,14 @@ function OfflineReadyNotifier() {
   return null;
 }
 
+function AnalyticsBootstrap() {
+  useEffect(() => {
+    if (isNative()) return;
+    return startAnalyticsLoader();
+  }, []);
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -130,6 +141,8 @@ function App() {
             <Toaster />
             <UpdateBanner />
             <OfflineReadyNotifier />
+            <AnalyticsBootstrap />
+            {!isNative() && <CookieBanner />}
           </TooltipProvider>
         </ConsentGateProvider>
       </I18nProvider>

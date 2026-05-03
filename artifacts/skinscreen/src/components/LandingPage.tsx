@@ -1150,6 +1150,17 @@ export function LandingPage({ config }: LandingPageProps) {
                 >
                   {t("footer.legalDisclaimer")}
                 </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void import("@/lib/cookie-consent").then((m) =>
+                      m.reopenCookieBanner(),
+                    );
+                  }}
+                  className="hover:text-foreground underline-offset-2 hover:underline"
+                >
+                  {t("cookies.settings")}
+                </button>
               </nav>
             </div>
 

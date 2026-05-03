@@ -632,6 +632,26 @@ const en: Dict = {
   "consent.continue": "Agree & continue",
   "consent.cancel": "Cancel",
 
+  // ───── Cookie consent banner ─────
+  "cookies.title": "Your privacy choices",
+  "cookies.intro":
+    "We use essential cookies to keep Chimiq running. With your permission we also use analytics and marketing cookies to understand how the site is used and to measure our ads. You can change your choice anytime from the footer.",
+  "cookies.privacyLink": "Read our Privacy Policy",
+  "cookies.acceptAll": "Accept all",
+  "cookies.rejectAll": "Reject all",
+  "cookies.customize": "Customize",
+  "cookies.savePrefs": "Save my choices",
+  "cookies.necessaryTitle": "Strictly necessary",
+  "cookies.necessaryDesc":
+    "Required for sign-in, your shelf, and core features. Always on.",
+  "cookies.analyticsTitle": "Analytics",
+  "cookies.analyticsDesc":
+    "Google Analytics — helps us understand which features are used so we can improve the app.",
+  "cookies.marketingTitle": "Marketing",
+  "cookies.marketingDesc":
+    "Meta Pixel — helps us measure the effectiveness of ads and reach people who'd benefit from Chimiq.",
+  "cookies.settings": "Cookie settings",
+
   // ───── Footer legal links ─────
   "footer.legalHeading": "Legal",
   "footer.legalPrivacy": "Privacy Policy",
@@ -1700,6 +1720,26 @@ const sv: Dict = {
   "consent.continue": "Godkänn & fortsätt",
   "consent.cancel": "Avbryt",
 
+  // ───── Cookie consent banner ─────
+  "cookies.title": "Dina integritetsval",
+  "cookies.intro":
+    "Vi använder nödvändiga cookies för att Chimiq ska fungera. Med ditt samtycke använder vi även analys- och marknadsföringscookies för att förstå hur webbplatsen används och mäta våra annonser. Du kan ändra ditt val när som helst i sidfoten.",
+  "cookies.privacyLink": "Läs vår integritetspolicy",
+  "cookies.acceptAll": "Acceptera alla",
+  "cookies.rejectAll": "Avvisa alla",
+  "cookies.customize": "Anpassa",
+  "cookies.savePrefs": "Spara mina val",
+  "cookies.necessaryTitle": "Nödvändiga",
+  "cookies.necessaryDesc":
+    "Krävs för inloggning, din hylla och grundfunktioner. Alltid på.",
+  "cookies.analyticsTitle": "Analys",
+  "cookies.analyticsDesc":
+    "Google Analytics — hjälper oss förstå vilka funktioner som används så att vi kan förbättra appen.",
+  "cookies.marketingTitle": "Marknadsföring",
+  "cookies.marketingDesc":
+    "Meta Pixel — hjälper oss mäta annonsers effekt och nå personer som har nytta av Chimiq.",
+  "cookies.settings": "Cookieinställningar",
+
   // ───── Footer legal links ─────
   "footer.legalHeading": "Juridik",
   "footer.legalPrivacy": "Integritetspolicy",
@@ -2758,6 +2798,26 @@ const fr: Dict = {
   "consent.continue": "Accepter & continuer",
   "consent.cancel": "Annuler",
 
+  // ───── Cookie consent banner ─────
+  "cookies.title": "Vos choix de confidentialité",
+  "cookies.intro":
+    "Nous utilisons des cookies essentiels pour faire fonctionner Chimiq. Avec votre permission, nous utilisons aussi des cookies d'analyse et de marketing pour comprendre comment le site est utilisé et mesurer nos publicités. Vous pouvez modifier votre choix à tout moment depuis le pied de page.",
+  "cookies.privacyLink": "Lire notre politique de confidentialité",
+  "cookies.acceptAll": "Tout accepter",
+  "cookies.rejectAll": "Tout refuser",
+  "cookies.customize": "Personnaliser",
+  "cookies.savePrefs": "Enregistrer mes choix",
+  "cookies.necessaryTitle": "Strictement nécessaires",
+  "cookies.necessaryDesc":
+    "Requis pour la connexion, votre étagère et les fonctions principales. Toujours actif.",
+  "cookies.analyticsTitle": "Analyse",
+  "cookies.analyticsDesc":
+    "Google Analytics — nous aide à comprendre quelles fonctions sont utilisées pour améliorer l'application.",
+  "cookies.marketingTitle": "Marketing",
+  "cookies.marketingDesc":
+    "Meta Pixel — nous aide à mesurer l'efficacité des publicités et à toucher les personnes qui pourraient bénéficier de Chimiq.",
+  "cookies.settings": "Paramètres des cookies",
+
   // ───── Footer legal links ─────
   "footer.legalHeading": "Mentions légales",
   "footer.legalPrivacy": "Politique de confidentialité",
@@ -3815,6 +3875,26 @@ const es: Dict = {
   "consent.checkboxSuffix": ".",
   "consent.continue": "Aceptar y continuar",
   "consent.cancel": "Cancelar",
+
+  // ───── Cookie consent banner ─────
+  "cookies.title": "Tus opciones de privacidad",
+  "cookies.intro":
+    "Usamos cookies esenciales para que Chimiq funcione. Con tu permiso, también usamos cookies de análisis y marketing para entender cómo se usa el sitio y medir nuestros anuncios. Puedes cambiar tu elección en cualquier momento desde el pie de página.",
+  "cookies.privacyLink": "Lee nuestra política de privacidad",
+  "cookies.acceptAll": "Aceptar todo",
+  "cookies.rejectAll": "Rechazar todo",
+  "cookies.customize": "Personalizar",
+  "cookies.savePrefs": "Guardar mis opciones",
+  "cookies.necessaryTitle": "Estrictamente necesarias",
+  "cookies.necessaryDesc":
+    "Requeridas para iniciar sesión, tu estantería y funciones principales. Siempre activas.",
+  "cookies.analyticsTitle": "Analítica",
+  "cookies.analyticsDesc":
+    "Google Analytics — nos ayuda a entender qué funciones se usan para mejorar la aplicación.",
+  "cookies.marketingTitle": "Marketing",
+  "cookies.marketingDesc":
+    "Meta Pixel — nos ayuda a medir la eficacia de los anuncios y llegar a personas que se beneficiarían de Chimiq.",
+  "cookies.settings": "Configuración de cookies",
 
   // ───── Footer legal links ─────
   "footer.legalHeading": "Legal",

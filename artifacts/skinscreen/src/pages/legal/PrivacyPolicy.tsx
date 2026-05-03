@@ -67,7 +67,36 @@ export default function PrivacyPolicy() {
       <p>
         We collect standard server logs (IP address, user agent, request
         path, timestamps) for security, abuse prevention, and debugging.
-        We do not run third-party advertising trackers.
+      </p>
+      <h3>1.5 Cookies and similar technologies</h3>
+      <p>
+        Chimiq uses three categories of cookies and browser storage:
+      </p>
+      <ul>
+        <li>
+          <strong>Strictly necessary</strong> — required for sign-in
+          sessions, your saved shelf, language preference, and the
+          terms-of-service consent record. These are always on; without
+          them the Service does not function.
+        </li>
+        <li>
+          <strong>Analytics (optional)</strong> — when you opt in, we
+          load <strong>Google Analytics 4</strong> to measure aggregate,
+          de-identified usage (pages visited, features used) so we can
+          improve Chimiq. IP addresses are anonymized.
+        </li>
+        <li>
+          <strong>Marketing (optional)</strong> — when you opt in, we
+          load the <strong>Meta Pixel</strong> (Facebook/Instagram) to
+          measure ad effectiveness and reach people who would benefit
+          from Chimiq.
+        </li>
+      </ul>
+      <p>
+        We ask for your consent on your first visit via a cookie banner
+        and never load analytics or marketing scripts before you accept
+        them. You can change or withdraw your choice at any time using
+        the <strong>Cookie settings</strong> link in the footer.
       </p>
 
       <h2>2. How we use your information</h2>
