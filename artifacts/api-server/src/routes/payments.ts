@@ -156,6 +156,12 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
+      // Allow customers to enter a Stripe promotion code (e.g. TESTER6M) on
+      // the hosted checkout page. Stripe applies the discount before payment
+      // and shows it in the order summary. For trial-eligible users, Stripe
+      // handles both trial_period_days and a promo code together: the trial
+      // runs first, then the promo discount applies on the first paid cycle.
+      allow_promotion_codes: true,
       success_url: `${baseUrl}/?upgraded=true`,
       cancel_url: `${baseUrl}/pricing`,
       metadata: { userId: user.id, plan },
