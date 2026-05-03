@@ -151,18 +151,12 @@ router.get("/recipes/mine", async (req, res) => {
       .where(eq(recipesTable.submitterId, req.user.id))
       .orderBy(desc(recipesTable.updatedAt))
       .limit(50);
-    // Unseen review count powers the notification dot on Profile (#70).
-    // A recipe is "unseen" when it's been reviewed by an admin AFTER the
-    // user last opened the My-recipes section. First-ever load (when
-    // recipesSeenAt is null) treats every reviewed row as unseen.
-    // We count separately from `rows` because rows is capped at 50, and
-    // a user with >50 recipes could otherwise miss feedback on an older one.
-    const userRows = await db
-      .select({ recipesSeenAt: usersTable.recipesSeenAt })
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user.id))
-      .limit(1);
-    const seenAt = userRows[0]?.recipesSeenAt ?? null;
+    // Unseen review count powers the notification banner + bottom-tab dot
+    // (#70). A recipe is "unseen" iff it has been reviewed by an admin
+    // AND its per-recipe reviewSeenAt is either NULL or strictly older
+    // than reviewedAt. Counted separately from `rows` because rows is
+    // capped at 50 and a user with >50 recipes could otherwise miss
+    // feedback on an older one.
     const unseenCountRows = await db
       .select({ c: sql<number>`count(*)::int` })
       .from(recipesTable)
@@ -170,9 +164,8 @@ router.get("/recipes/mine", async (req, res) => {
         and(
           eq(recipesTable.submitterId, req.user.id),
           sql`${recipesTable.reviewedAt} IS NOT NULL`,
-          seenAt
-            ? sql`${recipesTable.reviewedAt} > ${seenAt.toISOString()}`
-            : sql`TRUE`,
+          sql`(${recipesTable.reviewSeenAt} IS NULL
+                OR ${recipesTable.reviewSeenAt} < ${recipesTable.reviewedAt})`,
         ),
       );
     const unseenCount = unseenCountRows[0]?.c ?? 0;
@@ -183,23 +176,126 @@ router.get("/recipes/mine", async (req, res) => {
   }
 });
 
-// Mark all current review feedback on the user's recipes as "seen". Called
-// when the Profile -> Your DIY recipes section becomes visible. (#70)
-router.post("/recipes/mine/seen", async (req, res) => {
+/**
+ * GET /recipes/mine/unseen-count — lightweight count for the bottom tab
+ * bar dot (#70). Polled from BottomTabBar without fetching the full list,
+ * so it's cheap to call on every navigation.
+ */
+router.get("/recipes/mine/unseen-count", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.json({ unseenCount: 0 });
+    return;
+  }
+  try {
+    const [row] = await db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(recipesTable)
+      .where(
+        and(
+          eq(recipesTable.submitterId, req.user.id),
+          sql`${recipesTable.reviewedAt} IS NOT NULL`,
+          sql`(${recipesTable.reviewSeenAt} IS NULL
+                OR ${recipesTable.reviewSeenAt} < ${recipesTable.reviewedAt})`,
+        ),
+      );
+    res.json({ unseenCount: row?.c ?? 0 });
+  } catch (err) {
+    req.log.error({ err }, "GET /recipes/mine/unseen-count failed");
+    res.status(500).json({ error: "Failed to load unseen count." });
+  }
+});
+
+/**
+ * GET /recipes/mine/notifications — list of unseen reviewed recipes for
+ * the contributor notification banner (#70). Each entry carries the data
+ * the UI needs to render the banner row (title, status, admin note) and
+ * the deep-link target (RecipeDetail for approved, edit form otherwise).
+ */
+router.get("/recipes/mine/notifications", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.json({ notifications: [] });
+    return;
+  }
+  try {
+    const rows = await db
+      .select({
+        id: recipesTable.id,
+        title: recipesTable.title,
+        status: recipesTable.status,
+        adminNote: recipesTable.adminNote,
+        reviewedAt: recipesTable.reviewedAt,
+      })
+      .from(recipesTable)
+      .where(
+        and(
+          eq(recipesTable.submitterId, req.user.id),
+          sql`${recipesTable.reviewedAt} IS NOT NULL`,
+          sql`(${recipesTable.reviewSeenAt} IS NULL
+                OR ${recipesTable.reviewSeenAt} < ${recipesTable.reviewedAt})`,
+          // Rejected recipes can't be edited or viewed publicly, so a
+          // tap on a rejected notification would land on a non-editable
+          // error screen. Filter them out — the rejection note is still
+          // visible in the My Recipes list further down on Profile.
+          inArray(recipesTable.status, ["approved", "changes_requested"]),
+        ),
+      )
+      .orderBy(desc(recipesTable.reviewedAt))
+      .limit(20);
+    res.json({ notifications: rows });
+  } catch (err) {
+    req.log.error({ err }, "GET /recipes/mine/notifications failed");
+    res.status(500).json({ error: "Failed to load notifications." });
+  }
+});
+
+/**
+ * POST /recipes/mine/:id/seen — acknowledge ONE recipe's review
+ * feedback (#70). Called when the user taps the notification banner
+ * entry, opens RecipeDetail, or opens the edit form for that recipe.
+ * Per-recipe ack means we never silently clear feedback for recipes
+ * the user never looked at (e.g. older than the 8-row Profile preview).
+ */
+router.post("/recipes/mine/:id/seen", async (req, res) => {
   if (!req.user?.id) {
     res.status(401).json({ error: "Sign in first." });
     return;
   }
+  const id = String(req.params.id ?? "");
+  if (!UUID_RE.test(id)) {
+    res.status(400).json({ error: "Invalid recipe ID." });
+    return;
+  }
   try {
-    await db
-      .update(usersTable)
-      .set({ recipesSeenAt: new Date() })
-      .where(eq(usersTable.id, req.user.id));
+    const result = await db
+      .update(recipesTable)
+      .set({ reviewSeenAt: new Date() })
+      .where(
+        and(
+          eq(recipesTable.id, id),
+          eq(recipesTable.submitterId, req.user.id),
+        ),
+      )
+      .returning({ id: recipesTable.id });
+    if (!result.length) {
+      res.status(404).json({ error: "Recipe not found." });
+      return;
+    }
     res.json({ ok: true });
   } catch (err) {
-    req.log.error({ err }, "POST /recipes/mine/seen failed");
-    res.status(500).json({ error: "Failed to mark recipes as seen." });
+    req.log.error({ err }, "POST /recipes/mine/:id/seen failed");
+    res.status(500).json({ error: "Failed to mark recipe as seen." });
   }
+});
+
+// Legacy endpoint kept as a no-op success for forward compatibility;
+// callers have moved to per-recipe acks but we don't want stale clients
+// to error. (#70)
+router.post("/recipes/mine/seen", (req, res) => {
+  if (!req.user?.id) {
+    res.status(401).json({ error: "Sign in first." });
+    return;
+  }
+  res.json({ ok: true, deprecated: true });
 });
 
 /**
@@ -863,22 +959,59 @@ router.post("/admin/recipes/bulk", async (req, res) => {
   }
 
   const reviewerId = req.user?.id ?? null;
+  let updated: { id: string; submitterId: string; title: string }[];
   try {
-    const updated = await db
+    updated = await db
       .update(recipesTable)
       .set({
         status,
         adminNote: note,
         reviewedById: reviewerId,
         reviewedAt: new Date(),
+        // Reset per-recipe ack so the new review surfaces a fresh
+        // notification even if the user previously seen older feedback.
+        reviewSeenAt: null,
       })
       .where(inArray(recipesTable.id, parsed.data.ids))
-      .returning({ id: recipesTable.id });
-    res.json({ updated: updated.length, ids: updated.map((u) => u.id) });
+      .returning({
+        id: recipesTable.id,
+        submitterId: recipesTable.submitterId,
+        title: recipesTable.title,
+      });
   } catch (err) {
     req.log.error({ err }, "admin recipe bulk action failed");
     res.status(500).json({ error: "Failed to apply bulk action." });
+    return;
   }
+  // Log-only transactional "email" — separated from the moderation
+  // transaction so a logging / lookup failure can never roll back or
+  // 500 the (already committed) status change. Replace with a real
+  // provider when one is wired up (#70).
+  if (updated.length) {
+    try {
+      const submitterIds = Array.from(new Set(updated.map((u) => u.submitterId)));
+      const submitters = await db
+        .select({ id: usersTable.id, email: usersTable.email })
+        .from(usersTable)
+        .where(inArray(usersTable.id, submitterIds));
+      const emailById = new Map(submitters.map((s) => [s.id, s.email]));
+      for (const row of updated) {
+        req.log.info(
+          {
+            event: "recipe.notify",
+            recipeId: row.id,
+            submitterId: row.submitterId,
+            submitterEmail: emailById.get(row.submitterId) ?? null,
+            status,
+          },
+          `recipe ${row.id} ${status} (bulk) — would send transactional email`,
+        );
+      }
+    } catch (notifyErr) {
+      req.log.warn({ err: notifyErr }, "bulk recipe notify log failed (non-fatal)");
+    }
+  }
+  res.json({ updated: updated.length, ids: updated.map((u) => u.id) });
 });
 
 async function adminUpdateStatus(
@@ -926,6 +1059,9 @@ async function adminUpdateStatus(
         adminNote: note,
         reviewedById: reviewerId,
         reviewedAt: new Date(),
+        // Reset per-recipe ack so the new review surfaces a fresh
+        // notification even if the user previously acked older feedback.
+        reviewSeenAt: null,
       })
       .where(eq(recipesTable.id, id))
       .returning();
@@ -934,6 +1070,30 @@ async function adminUpdateStatus(
       return;
     }
     res.json({ recipe: updated });
+    // Fire-and-forget log-only notification (#70). Done AFTER the
+    // response so a logging or lookup failure can never roll back or
+    // 500 the moderation action that has already committed.
+    void (async () => {
+      try {
+        const [submitter] = await db
+          .select({ email: usersTable.email })
+          .from(usersTable)
+          .where(eq(usersTable.id, updated.submitterId))
+          .limit(1);
+        req.log.info(
+          {
+            event: "recipe.notify",
+            recipeId: updated.id,
+            submitterId: updated.submitterId,
+            submitterEmail: submitter?.email ?? null,
+            status,
+          },
+          `recipe ${updated.id} ${status} — would send transactional email`,
+        );
+      } catch (notifyErr) {
+        req.log.warn({ err: notifyErr }, "recipe notify log failed (non-fatal)");
+      }
+    })();
   } catch (err) {
     req.log.error({ err }, `admin recipe ${status} failed`);
     res.status(500).json({ error: "Failed to update recipe." });

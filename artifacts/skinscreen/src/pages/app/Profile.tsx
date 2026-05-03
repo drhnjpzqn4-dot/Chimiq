@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { notifyUnseenRecipesChanged } from "@/hooks/useUnseenRecipeCount";
 import { getBaseUrl } from "@/lib/base-url";
 import { isNative, openExternal, MANAGE_SUBSCRIPTION_WEB_URL } from "@/lib/native";
 import { useTranslation, LOCALES, type Locale } from "@/lib/i18n";
@@ -76,6 +77,29 @@ export default function ProfileScreen() {
   const [mySubmissions, setMySubmissions] = useState<MySubmission[]>([]);
   const [myRecipes, setMyRecipes] = useState<MyRecipe[]>([]);
   const [unseenRecipeCount, setUnseenRecipeCount] = useState(0);
+  const [recipeNotifications, setRecipeNotifications] = useState<
+    {
+      id: string;
+      title: string;
+      status: "pending" | "approved" | "changes_requested" | "rejected";
+      adminNote: string | null;
+      reviewedAt: string | null;
+    }[]
+  >([]);
+
+  // Per-recipe ack (#70) — called when the user taps a notification entry
+  // or opens a recipe via its inline action button. Updates local state
+  // optimistically and asks the BottomTabBar to refetch its dot count.
+  const ackRecipe = (recipeId: string) => {
+    setRecipeNotifications((prev) => prev.filter((n) => n.id !== recipeId));
+    setUnseenRecipeCount((c) => Math.max(0, c - 1));
+    fetch(`/api/recipes/mine/${recipeId}/seen`, {
+      method: "POST",
+      credentials: "include",
+    })
+      .then(() => notifyUnseenRecipesChanged())
+      .catch(() => {});
+  };
 
   useEffect(() => {
     fetch("/api/contribute/stats", { credentials: "include" })
@@ -103,20 +127,18 @@ export default function ProfileScreen() {
       .then((d) => {
         const data = d as { recipes?: MyRecipe[]; unseenCount?: number };
         setMyRecipes(data.recipes ?? []);
-        const unseen = data.unseenCount ?? 0;
-        setUnseenRecipeCount(unseen);
-        // Mark the review feedback as seen ~2s after the Profile renders
-        // so the dot stays visible long enough to register, then disappears
-        // on the next visit. (#70)
-        if (unseen > 0) {
-          setTimeout(() => {
-            fetch("/api/recipes/mine/seen", {
-              method: "POST",
-              credentials: "include",
-            }).catch(() => {});
-          }, 2000);
-        }
+        setUnseenRecipeCount(data.unseenCount ?? 0);
       })
+      .catch(() => {});
+    // Notification banner entries — only the recipes that are *still*
+    // unseen, so the user actively dismisses each one by tapping. (#70)
+    fetch("/api/recipes/mine/notifications", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : { notifications: [] }))
+      .then((d) =>
+        setRecipeNotifications(
+          (d as { notifications?: typeof recipeNotifications }).notifications ?? [],
+        ),
+      )
       .catch(() => {});
   }, []);
 
@@ -181,6 +203,73 @@ export default function ProfileScreen() {
           </div>
         </div>
       </section>
+
+      {/* Notification banner — surfaces unseen review feedback for the
+          submitter and deep-links each entry to the right destination
+          (RecipeDetail for approved, edit form otherwise). Tapping any
+          row acks just that recipe so the dot/banner clear only for
+          notifications the user actually looked at. (#70) */}
+      {recipeNotifications.length > 0 && (
+        <section className="mb-5" data-testid="recipe-notifications">
+          <div className="rounded-3xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm">
+            <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-amber-800">
+              <Sparkles className="h-3.5 w-3.5" />
+              {t("myRecipes.heading")} · {recipeNotifications.length}
+            </p>
+            <ul className="space-y-2">
+              {recipeNotifications.map((n) => {
+                const isApproved = n.status === "approved";
+                const isChanges = n.status === "changes_requested";
+                const isRejected = n.status === "rejected";
+                const label = isApproved
+                  ? t("myRecipes.status.approved")
+                  : isChanges
+                    ? t("myRecipes.status.changesRequested")
+                    : isRejected
+                      ? t("myRecipes.status.rejected")
+                      : n.status;
+                const target =
+                  isApproved
+                    ? `/recipes/${n.id}`
+                    : `/app/recipes/new?edit=${n.id}`;
+                return (
+                  <li key={n.id}>
+                    <button
+                      type="button"
+                      data-testid={`recipe-notification-${n.id}`}
+                      data-touch-target
+                      onClick={() => {
+                        ackRecipe(n.id);
+                        navigate(target);
+                      }}
+                      className="flex w-full items-start gap-3 rounded-2xl border border-amber-200/70 bg-white p-3 text-left transition-colors hover:bg-amber-50"
+                    >
+                      <span className="mt-0.5 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-foreground">
+                          {n.title}
+                        </span>
+                        <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                          {label}
+                        </span>
+                        {n.adminNote && (
+                          <span className="mt-1 block text-xs text-muted-foreground line-clamp-2">
+                            <span className="font-semibold text-foreground/80">
+                              {t("myRecipes.reviewerNote")}{" "}
+                            </span>
+                            {n.adminNote}
+                          </span>
+                        )}
+                      </span>
+                      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* Plan card */}
       <section className="mb-5">
@@ -475,7 +564,10 @@ export default function ProfileScreen() {
                     {isChanges && (
                       <button
                         type="button"
-                        onClick={() => navigate(`/app/recipes/new?edit=${r.id}`)}
+                        onClick={() => {
+                          ackRecipe(r.id);
+                          navigate(`/app/recipes/new?edit=${r.id}`);
+                        }}
                         data-touch-target
                         className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90"
                       >
@@ -486,11 +578,11 @@ export default function ProfileScreen() {
                     {(isPending || isApproved) && (
                       <button
                         type="button"
-                        onClick={() =>
-                          isApproved
-                            ? navigate(`/recipes/${r.id}`)
-                            : navigate(`/app/recipes/new?edit=${r.id}`)
-                        }
+                        onClick={() => {
+                          ackRecipe(r.id);
+                          if (isApproved) navigate(`/recipes/${r.id}`);
+                          else navigate(`/app/recipes/new?edit=${r.id}`);
+                        }}
                         data-touch-target
                         className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
                       >

@@ -2,6 +2,7 @@ import { useLocation, Link } from "wouter";
 import { ScanLine, PackageSearch, Compass, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
+import { useUnseenRecipeCount } from "@/hooks/useUnseenRecipeCount";
 
 const TABS = [
   { id: "scan", labelKey: "tabs.scan", icon: ScanLine, href: "/app/scan" },
@@ -13,6 +14,10 @@ const TABS = [
 export function BottomTabBar() {
   const [location] = useLocation();
   const { t } = useTranslation();
+  // Unseen recipe-review count powers the dot on the Profile tab (#70).
+  // Fetches on mount + on every route change so the dot updates as soon
+  // as the user navigates after an admin reviews their recipe.
+  const unseenRecipes = useUnseenRecipeCount();
 
   return (
     <nav
@@ -27,13 +32,16 @@ export function BottomTabBar() {
         {TABS.map((tab) => {
           const active = location === tab.href || location.startsWith(`${tab.href}/`);
           const Icon = tab.icon;
+          const showDot = tab.id === "profile" && unseenRecipes > 0;
           return (
             <li key={tab.id} className="flex-1">
               <Link href={tab.href}>
                 <a
                   data-touch-target
                   aria-current={active ? "page" : undefined}
-                  aria-label={`${t(tab.labelKey)}${active ? " (current page)" : ""}`}
+                  aria-label={`${t(tab.labelKey)}${active ? " (current page)" : ""}${
+                    showDot ? ` — ${unseenRecipes} new recipe updates` : ""
+                  }`}
                   className={cn(
                     "group relative flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:ring-offset-white",
@@ -42,7 +50,7 @@ export function BottomTabBar() {
                 >
                   <span
                     className={cn(
-                      "flex h-9 w-12 items-center justify-center rounded-2xl transition-all duration-200",
+                      "relative flex h-9 w-12 items-center justify-center rounded-2xl transition-all duration-200",
                       active
                         ? "bg-primary/12 scale-100"
                         : "scale-95 group-hover:bg-muted",
@@ -56,6 +64,13 @@ export function BottomTabBar() {
                       )}
                       strokeWidth={active ? 2.4 : 2}
                     />
+                    {showDot && (
+                      <span
+                        data-testid="tab-bar-recipes-dot"
+                        aria-hidden="true"
+                        className="absolute right-1.5 top-1 inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white"
+                      />
+                    )}
                   </span>
                   <span
                     className={cn(

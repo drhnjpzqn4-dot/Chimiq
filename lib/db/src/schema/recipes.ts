@@ -63,6 +63,13 @@ export const recipesTable = pgTable(
       onDelete: "set null",
     }),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    // Per-recipe acknowledgment for the contributor notification banner
+    // (#70). A reviewed recipe is "unseen" iff reviewSeenAt is NULL or
+    // strictly older than reviewedAt. Tapping the notification entry
+    // (which deep-links to RecipeDetail or the edit form) sets this to
+    // now() for that single recipe — so we never silently clear unread
+    // feedback for recipes the user never looked at.
+    reviewSeenAt: timestamp("review_seen_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
