@@ -11,6 +11,7 @@ import {
   Clock,
 } from "lucide-react";
 import { DiscoverRatingsAdmin } from "@/components/admin/DiscoverRatingsAdmin";
+import { FeedbackAdmin } from "@/components/admin/FeedbackAdmin";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 
 interface Submission {
@@ -269,6 +270,8 @@ function AdminPageInner() {
       </nav>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-12">
+        <FeedbackAdmin />
+
         <DiscoverRatingsAdmin />
 
         <div>
