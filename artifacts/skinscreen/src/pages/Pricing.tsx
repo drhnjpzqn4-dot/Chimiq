@@ -19,7 +19,7 @@ export default function Pricing() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
   const FREE_FEATURES = useMemo(() => getFreeFeatures(t), [t]);
   const PREMIUM_FEATURES = useMemo(
