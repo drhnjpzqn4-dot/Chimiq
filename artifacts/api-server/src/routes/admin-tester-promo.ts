@@ -416,8 +416,13 @@ router.get("/admin/tester-promo/history.csv", async (req: Request, res: Response
       .where(whereClause)
       .orderBy(desc(testerPromoChangesTable.createdAt));
 
+    // Embed today's date (UTC YYYY-MM-DD) so saving multiple exports to
+    // the same folder doesn't overwrite the previous one and Pia can tell
+    // at a glance which quarter a file represents. When the page grows a
+    // date-range filter, swap this for the chosen range.
+    const exportDate = new Date().toISOString().slice(0, 10);
     const filenameSuffix = actionFilter ? `-${actionFilter}` : "";
-    const filename = `tester-promo-history${filenameSuffix}.csv`;
+    const filename = `tester-promo-history-${exportDate}${filenameSuffix}.csv`;
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
