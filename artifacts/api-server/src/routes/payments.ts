@@ -14,6 +14,53 @@ router.get("/payments/status", async (req: Request, res: Response) => {
   res.json({ plan });
 });
 
+/**
+ * A user is eligible for the 14-day free trial only if they've never had a
+ * Stripe subscription before — checked by listing subscriptions on their
+ * Stripe customer (any status). If the user has no Stripe customer yet,
+ * they're trivially eligible. This prevents trial abuse via cancel-and-
+ * re-checkout cycles. Earned-premium time (premiumUntil from
+ * contributions) is ignored — that's a separate reward path.
+ */
+async function isTrialEligible(
+  customerId: string | null | undefined,
+  stripe: Awaited<ReturnType<typeof getUncachableStripeClient>>,
+): Promise<boolean> {
+  if (!customerId) return true;
+  const subs = await stripe.subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 1,
+  });
+  return subs.data.length === 0;
+}
+
+const TRIAL_DAYS = 14;
+
+router.get("/payments/trial-eligible", async (req: Request, res: Response) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const [user] = await db
+      .select({ stripeCustomerId: usersTable.stripeCustomerId })
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.id));
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const stripe = await getUncachableStripeClient();
+    const eligible = await isTrialEligible(user.stripeCustomerId, stripe);
+    res.json({ eligible, trialDays: TRIAL_DAYS });
+  } catch (err) {
+    req.log.error({ err }, "trial-eligible check failed");
+    // Fail open to "not eligible" so we never wrongly promise a free trial.
+    res.json({ eligible: false, trialDays: TRIAL_DAYS });
+  }
+});
+
 router.post("/payments/checkout", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -69,6 +116,10 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
     const host = req.headers.host ?? "";
     const baseUrl = `${protocol}://${host}`;
 
+    // Re-check trial eligibility server-side — never trust the client to
+    // tell us "I'm eligible for the trial". (#trial)
+    const eligible = await isTrialEligible(customerId, stripe);
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
@@ -77,6 +128,19 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
       success_url: `${baseUrl}/?upgraded=true`,
       cancel_url: `${baseUrl}/pricing`,
       metadata: { userId: user.id, plan },
+      ...(eligible
+        ? {
+            subscription_data: {
+              trial_period_days: TRIAL_DAYS,
+              // If the trial ends and the saved card fails, cancel rather
+              // than push the user into past_due — keeps the "no charge
+              // unless you stay" promise honest.
+              trial_settings: {
+                end_behavior: { missing_payment_method: "cancel" },
+              },
+            },
+          }
+        : {}),
     });
 
     res.json({ url: session.url });

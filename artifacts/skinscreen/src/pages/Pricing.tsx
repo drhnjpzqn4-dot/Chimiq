@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import {
   Check, X, Zap, ShieldCheck, MessageCircle, FileText, Layers,
@@ -19,6 +19,25 @@ export default function Pricing() {
   const [error, setError] = useState<string | null>(null);
 
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
+  // Server-checked: did this user already use their trial? Defaults to
+  // "true (eligible)" for non-signed-in visitors so the landing CTA reads
+  // the same; once authenticated we re-check via /payments/trial-eligible.
+  const [trialEligible, setTrialEligible] = useState(true);
+  const [trialDays, setTrialDays] = useState(14);
+
+  useEffect(() => {
+    fetch(`${getBaseUrl()}api/payments/trial-eligible`, {
+      credentials: "include",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        const data = d as { eligible?: boolean; trialDays?: number };
+        if (typeof data.eligible === "boolean") setTrialEligible(data.eligible);
+        if (typeof data.trialDays === "number") setTrialDays(data.trialDays);
+      })
+      .catch(() => {});
+  }, []);
 
   const FREE_FEATURES = useMemo(
     () => [
@@ -253,10 +272,20 @@ export default function Pricing() {
                   >
                     {loading ? (
                       <><Loader2 className="w-4 h-4 animate-spin" />{t("pricing.redirecting")}</>
+                    ) : trialEligible ? (
+                      <>{t("pricing.startTrialCta", { days: trialDays })}</>
                     ) : (
                       <>{billing === "yearly" ? t("pricing.getPremiumYr") : t("pricing.getPremiumMo")}</>
                     )}
                   </button>
+                )}
+                {plan !== "premium" && trialEligible && (
+                  <p className="text-[11px] text-primary/80 text-center mt-3 font-medium">
+                    {t("pricing.trialFinePrint", {
+                      days: trialDays,
+                      price: billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo",
+                    })}
+                  </p>
                 )}
                 <p className="text-[11px] text-white/30 text-center mt-3">
                   {t("pricing.securePayment")}

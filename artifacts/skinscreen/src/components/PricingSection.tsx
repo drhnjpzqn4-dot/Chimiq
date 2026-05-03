@@ -211,9 +211,17 @@ export function PricingSection() {
                   {loading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />{t("pricing.redirecting")}</>
                   ) : (
-                    <>{billing === "yearly" ? t("pricing.getPremiumYr") : t("pricing.getPremiumMo")}</>
+                    <>{t("pricing.startTrialCta", { days: 14 })}</>
                   )}
                 </button>
+              )}
+              {plan !== "premium" && (
+                <p className="text-[11px] text-primary/80 text-center mt-2 font-medium">
+                  {t("pricing.trialFinePrint", {
+                    days: 14,
+                    price: billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo",
+                  })}
+                </p>
               )}
             </div>
           </div>

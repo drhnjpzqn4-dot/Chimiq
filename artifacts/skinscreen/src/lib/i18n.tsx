@@ -323,6 +323,8 @@ const en: Dict = {
   "pricing.getPremiumYr": "Get Premium — 490 SEK/yr",
   "pricing.getPremiumMo": "Get Premium — 49 SEK/mo",
   "pricing.securePayment": "Secure payment via Stripe · Cancel anytime",
+  "pricing.startTrialCta": "Start your {days}-day free trial",
+  "pricing.trialFinePrint": "Free for {days} days, then {price}. Cancel anytime, no charge if you cancel before day {days}.",
   "pricing.secureFooter":
     "Secure payments via Stripe · No subscription lock-in · Cancel in one click",
   "pricing.errorGeneric": "Something went wrong. Please try again.",
@@ -947,6 +949,8 @@ const sv: Dict = {
   "pricing.getPremiumYr": "Skaffa Premium — 490 kr/år",
   "pricing.getPremiumMo": "Skaffa Premium — 49 kr/mån",
   "pricing.securePayment": "Säker betalning via Stripe · Avsluta när du vill",
+  "pricing.startTrialCta": "Starta din {days}-dagars gratis provperiod",
+  "pricing.trialFinePrint": "Gratis i {days} dagar, sedan {price}. Avsluta när du vill — ingen avgift om du avslutar före dag {days}.",
   "pricing.secureFooter":
     "Säkra betalningar via Stripe · Ingen abonnemangsbindning · Säg upp med ett klick",
   "pricing.errorGeneric": "Något gick fel. Försök igen.",
@@ -1573,6 +1577,8 @@ const fr: Dict = {
   "pricing.getPremiumYr": "Passer à Premium — 490 SEK/an",
   "pricing.getPremiumMo": "Passer à Premium — 49 SEK/mois",
   "pricing.securePayment": "Paiement sécurisé via Stripe · Annulable à tout moment",
+  "pricing.startTrialCta": "Démarrer votre essai gratuit de {days} jours",
+  "pricing.trialFinePrint": "Gratuit pendant {days} jours, puis {price}. Annulable à tout moment, sans frais si vous annulez avant le jour {days}.",
   "pricing.secureFooter":
     "Paiements sécurisés via Stripe · Aucun engagement · Annulable en un clic",
   "pricing.errorGeneric": "Une erreur s'est produite. Réessayez.",
