@@ -203,6 +203,26 @@ router.post("/recipes/mine/seen", async (req, res) => {
 });
 
 /**
+ * Eligibility — gates "Submit a recipe" entry point.
+ * (Auth required + IdP-verified email; see #46a.)
+ *
+ * Registered BEFORE `/recipes/:id` so the static path doesn't get matched
+ * by the UUID detail route (which 400s on non-UUID values).
+ */
+router.get("/recipes/eligibility", (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.json({ canSubmit: false, reason: "auth_required", emailVerified: false });
+    return;
+  }
+  const emailVerified = req.user.emailVerified === true;
+  res.json({
+    canSubmit: emailVerified,
+    reason: emailVerified ? null : "email_unverified",
+    emailVerified,
+  });
+});
+
+/**
  * Public detail for a single approved recipe.
  */
 router.get("/recipes/:id", publicReadLimit, async (req, res) => {
@@ -238,23 +258,6 @@ router.get("/recipes/:id", publicReadLimit, async (req, res) => {
     req.log.error({ err }, "public recipe detail failed");
     res.status(500).json({ error: "Failed to load recipe." });
   }
-});
-
-/**
- * Eligibility — gates "Submit a recipe" entry point.
- * (Auth required + IdP-verified email; see #46a.)
- */
-router.get("/recipes/eligibility", (req, res) => {
-  if (!req.isAuthenticated()) {
-    res.json({ canSubmit: false, reason: "auth_required", emailVerified: false });
-    return;
-  }
-  const emailVerified = req.user.emailVerified === true;
-  res.json({
-    canSubmit: emailVerified,
-    reason: emailVerified ? null : "email_unverified",
-    emailVerified,
-  });
 });
 
 /**
@@ -317,7 +320,10 @@ router.post("/recipes", async (req, res) => {
   // cost-amplification abuse without holding a long lock.
   const submitterId = req.user.id;
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [pre] = await db
+  // Unified daily cap: created recipes + edit-resubmits in last 24h. This
+  // matches PUT /recipes/:id so a user can't bypass the limit by mixing
+  // edits and new submissions (#69).
+  const [preCreated] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(recipesTable)
     .where(
@@ -326,10 +332,19 @@ router.post("/recipes", async (req, res) => {
         gte(recipesTable.createdAt, since),
       ),
     );
-  if (pre.count >= 5) {
+  const [preEdits] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(recipeEditEventsTable)
+    .where(
+      and(
+        eq(recipeEditEventsTable.submitterId, submitterId),
+        gte(recipeEditEventsTable.createdAt, since),
+      ),
+    );
+  if (preCreated.count + preEdits.count >= 5) {
     res.status(429).json({
       error:
-        "You've reached today's submission limit (5 per day). Please try again tomorrow.",
+        "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
     });
     return;
   }
@@ -364,7 +379,7 @@ router.post("/recipes", async (req, res) => {
   try {
     const result = await db.transaction(async (tx) => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${submitterId}))`);
-      const [{ count }] = await tx
+      const [{ count: createdToday }] = await tx
         .select({ count: sql<number>`count(*)::int` })
         .from(recipesTable)
         .where(
@@ -373,7 +388,16 @@ router.post("/recipes", async (req, res) => {
             gte(recipesTable.createdAt, since),
           ),
         );
-      if (count >= 5) {
+      const [{ count: editsToday }] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(recipeEditEventsTable)
+        .where(
+          and(
+            eq(recipeEditEventsTable.submitterId, submitterId),
+            gte(recipeEditEventsTable.createdAt, since),
+          ),
+        );
+      if (createdToday + editsToday >= 5) {
         return { rateLimited: true as const };
       }
       const [created] = await tx
@@ -397,7 +421,7 @@ router.post("/recipes", async (req, res) => {
     if (result.rateLimited) {
       res.status(429).json({
         error:
-          "You've reached today's submission limit (5 per day). Please try again tomorrow.",
+          "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
       });
       return;
     }
