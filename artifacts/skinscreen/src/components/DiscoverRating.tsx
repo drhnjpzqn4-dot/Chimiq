@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ThumbsUp, ThumbsDown, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +37,7 @@ export function DiscoverRating({ kind, slug }: DiscoverRatingProps) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedComment, setSavedComment] = useState(false);
+  const [counts, setCounts] = useState<{ ups: number; downs: number } | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -47,6 +48,47 @@ export function DiscoverRating({ kind, slug }: DiscoverRatingProps) {
       // ignore
     }
   }, [voteKey]);
+
+  const refreshCounts = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/discover/ratings/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}`,
+        { credentials: "include" },
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as { ups?: number; downs?: number };
+      setCounts({
+        ups: Number(data.ups ?? 0),
+        downs: Number(data.downs ?? 0),
+      });
+    } catch {
+      // ignore — counts are an enhancement, not critical
+    }
+  }, [kind, slug]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/discover/ratings/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}`,
+          { credentials: "include" },
+        );
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as { ups?: number; downs?: number };
+        if (cancelled) return;
+        setCounts({
+          ups: Number(data.ups ?? 0),
+          downs: Number(data.downs ?? 0),
+        });
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [kind, slug]);
 
   const submitVote = async (rating: Rating) => {
     if (pending) return;
@@ -77,6 +119,7 @@ export function DiscoverRating({ kind, slug }: DiscoverRatingProps) {
       } catch {
         // ignore
       }
+      void refreshCounts();
     } catch {
       setError("Network error. Please try again.");
     }
@@ -125,6 +168,13 @@ export function DiscoverRating({ kind, slug }: DiscoverRatingProps) {
       >
         Was this helpful?
       </h2>
+
+      {counts && counts.ups + counts.downs > 0 && (
+        <p className="text-xs text-muted-foreground mb-3" aria-live="polite">
+          {counts.ups} of {counts.ups + counts.downs}{" "}
+          {counts.ups + counts.downs === 1 ? "reader" : "readers"} found this helpful
+        </p>
+      )}
 
       {!submitted ? (
         <div className="flex flex-wrap items-center gap-3">
