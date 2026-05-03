@@ -148,7 +148,7 @@ export function ContributeModal({
         error?: string;
         alreadyInDatabase?: boolean;
       };
-      if (!res.ok || !data.submissionId) throw new Error(data.error ?? "Failed to start submission");
+      if (!res.ok || !data.submissionId) throw new Error(data.error ?? t("contribute.errStartFailed"));
       setSubmissionId(data.submissionId);
       setStep("ingredients");
     } catch (err) {
@@ -220,7 +220,7 @@ export function ContributeModal({
       });
 
       const data = (await res.json()) as SubmitResult & { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Submission failed");
+      if (!res.ok) throw new Error(data.error ?? t("contribute.errSubmitFailed"));
 
       setResult(data);
       setStep("success");
@@ -320,7 +320,7 @@ export function ContributeModal({
                   <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-muted/10">
                     <img
                       src={frontPreviewUrl}
-                      alt="Product front"
+                      alt={t("contribute.altProductFront")}
                       className="w-full max-h-52 object-contain"
                     />
                     <button
@@ -466,7 +466,7 @@ export function ContributeModal({
                   <div className="relative rounded-2xl overflow-hidden border border-border/60 bg-muted/10">
                     <img
                       src={ingredientsPreviewUrl}
-                      alt="Ingredients label"
+                      alt={t("contribute.altIngredientsLabel")}
                       className="w-full max-h-40 object-contain"
                     />
                     <button

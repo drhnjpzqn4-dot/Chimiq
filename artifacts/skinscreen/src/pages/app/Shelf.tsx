@@ -15,8 +15,10 @@ interface ContributeStats {
 }
 
 function PremiumUnlockedBanner({ premiumUntil }: { premiumUntil: string }) {
+  const { t, locale } = useTranslation();
+  const localeMap: Record<string, string> = { en: "en-GB", sv: "sv-SE", fr: "fr-FR" };
   const expiry = new Date(premiumUntil);
-  const expiryStr = expiry.toLocaleDateString("en-GB", {
+  const expiryStr = expiry.toLocaleDateString(localeMap[locale] ?? "en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -28,9 +30,9 @@ function PremiumUnlockedBanner({ premiumUntil }: { premiumUntil: string }) {
           <Sparkles className="h-6 w-6 text-white" />
         </div>
         <div>
-          <p className="text-lg font-bold leading-tight text-white">Premium unlocked!</p>
+          <p className="text-lg font-bold leading-tight text-white">{t("shelf.premiumUnlockedTitle")}</p>
           <p className="mt-1 text-sm text-white/90">
-            You contributed {PREMIUM_CONTRIBUTION_MILESTONE} products. Premium access until {expiryStr}.
+            {t("shelf.premiumUnlockedFmt", { count: PREMIUM_CONTRIBUTION_MILESTONE, date: expiryStr })}
           </p>
           <div className="mt-2 flex items-center gap-1">
             {[...Array(STARS_DISPLAYED)].map((_, i) => (
@@ -44,6 +46,7 @@ function PremiumUnlockedBanner({ premiumUntil }: { premiumUntil: string }) {
 }
 
 function ContributionBadge({ count }: { count: number }) {
+  const { t } = useTranslation();
   if (count === 0) return null;
   const nextMilestone = Math.ceil(count / PREMIUM_CONTRIBUTION_MILESTONE) * PREMIUM_CONTRIBUTION_MILESTONE;
   const remaining = nextMilestone - count;
@@ -58,9 +61,11 @@ function ContributionBadge({ count }: { count: number }) {
       <Gift className="h-4 w-4 shrink-0 text-amber-600" />
       <div className="min-w-0 flex-1">
         <p className="text-xs font-semibold text-amber-700">
-          {count} product{count !== 1 ? "s" : ""} contributed
+          {count === 1
+            ? t("shelf.productContributedOneFmt", { count })
+            : t("shelf.productContributedManyFmt", { count })}
           {remaining > 0 && (
-            <span className="font-normal text-amber-600"> · {remaining} more for 1 month free Premium</span>
+            <span className="font-normal text-amber-600">{t("shelf.moreForFreeMonthFmt", { remaining })}</span>
           )}
         </p>
       </div>
@@ -90,7 +95,7 @@ export default function ShelfScreen() {
   }, [isAuthenticated]);
 
   if (!user) return null;
-  const displayName = user.firstName ?? user.email?.split("@")[0] ?? "there";
+  const displayName = user.firstName ?? user.email?.split("@")[0] ?? t("common.greetingFallback");
 
   return (
     <AppShell

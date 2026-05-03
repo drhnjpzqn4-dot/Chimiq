@@ -169,8 +169,8 @@ export default function ProfileScreen() {
   };
 
   if (!user) return null;
-  const displayName = user.firstName ?? user.email?.split("@")[0] ?? "there";
-  const initials = (user.firstName ?? user.email ?? "U").slice(0, 1).toUpperCase();
+  const displayName = user.firstName ?? user.email?.split("@")[0] ?? t("common.greetingFallback");
+  const initials = (user.firstName ?? user.email ?? t("common.initialFallback")).slice(0, 1).toUpperCase();
 
   const milestone = 30;
   const contributed = stats?.acceptedContributions ?? 0;
@@ -283,27 +283,27 @@ export default function ProfileScreen() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                Current plan
+                {t("profileCard.currentPlan")}
               </span>
               <p className="mt-1 flex items-center gap-2 font-serif text-2xl font-semibold text-foreground">
                 {isPremium ? (
                   <>
                     <Crown className="h-5 w-5 text-amber-500" />
-                    Premium
+                    {t("profileCard.premium")}
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="h-5 w-5 text-primary-strong" />
-                    <span className="text-primary-strong">Free</span>
+                    <span className="text-primary-strong">{t("profileCard.free")}</span>
                   </>
                 )}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {isLoading
-                  ? "Checking your plan…"
+                  ? t("profileCard.checkingPlan")
                   : isPremium
-                    ? "Unlimited shelf, AI chat, full routine cross-check."
-                    : "2 shelf products, single + compare scans, dermatologist finder."}
+                    ? t("profileCard.descPremium")
+                    : t("profileCard.descFree")}
               </p>
             </div>
           </div>
@@ -321,7 +321,7 @@ export default function ProfileScreen() {
                 ) : (
                   <CreditCard className="h-4 w-4" />
                 )}
-                Manage billing
+                {t("profileCard.manageBilling")}
               </button>
             ) : runningNative ? (
               // Reader-app compliance: native shells must not display
@@ -329,8 +329,7 @@ export default function ProfileScreen() {
               // flow. We show a neutral status message instead and let
               // already-subscribed users sign in.
               <div className="flex-1 rounded-2xl border border-border/60 bg-muted/40 px-4 py-3 text-center text-xs text-muted-foreground">
-                Premium is available to existing subscribers — sign in with the
-                account you upgraded on the web.
+                {t("profileCard.nativePremiumNotice")}
               </div>
             ) : (
               <button
@@ -340,7 +339,7 @@ export default function ProfileScreen() {
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
               >
                 <Crown className="h-4 w-4" />
-                Upgrade to Premium
+                {t("profileCard.upgradeToPremium")}
               </button>
             )}
           </div>
@@ -353,13 +352,13 @@ export default function ProfileScreen() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                Contributions
+                {t("profileCard.contributions")}
               </p>
               <p className="mt-1 font-serif text-2xl font-semibold text-foreground">
-                {contributed} <span className="text-base text-muted-foreground">products</span>
+                {contributed} <span className="text-base text-muted-foreground">{t("profileCard.products")}</span>
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {remaining} more for 1 month free Premium.
+                {t("profileCard.moreForFreeMonthFmt", { remaining })}
               </p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
@@ -380,7 +379,7 @@ export default function ProfileScreen() {
         <section className="mb-5">
           <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-              Your recent submissions
+              {t("profileCard.recentSubmissions")}
             </p>
             <ul className="space-y-3">
               {mySubmissions.slice(0, 5).map((s) => {
@@ -391,11 +390,11 @@ export default function ProfileScreen() {
                   s.status === "needs_admin" ||
                   s.status === "ai_reviewing";
                 const label = isApproved
-                  ? "Approved"
+                  ? t("profileCard.statusApproved")
                   : isRejected
-                  ? "Rejected"
+                  ? t("profileCard.statusRejected")
                   : isPending
-                  ? "Under review"
+                  ? t("profileCard.statusUnderReview")
                   : s.status;
                 const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
                 const iconClass = isApproved
@@ -421,7 +420,7 @@ export default function ProfileScreen() {
                           <p className="truncate text-xs text-muted-foreground">{s.brand}</p>
                         )}
                         <p className="mt-1 text-[11px] text-muted-foreground">
-                          Submitted {new Date(s.submittedAt).toLocaleDateString()}
+                          {t("profileCard.submittedFmt", { date: new Date(s.submittedAt).toLocaleDateString(locale) })}
                         </p>
                       </div>
                       <span
@@ -439,7 +438,7 @@ export default function ProfileScreen() {
                     </div>
                     {isRejected && s.reviewNote && (
                       <p className="mt-2 rounded-lg bg-white/80 p-2 text-xs text-destructive">
-                        <span className="font-semibold">Reviewer note: </span>
+                        <span className="font-semibold">{t("profileCard.reviewerNote")}</span>
                         {s.reviewNote}
                       </p>
                     )}
@@ -537,7 +536,7 @@ export default function ProfileScreen() {
                           )}
                           <span aria-hidden>·</span>
                           <span>
-                            {new Date(r.updatedAt).toLocaleDateString()}
+                            {new Date(r.updatedAt).toLocaleDateString(locale)}
                           </span>
                         </p>
                       </div>
@@ -613,7 +612,7 @@ export default function ProfileScreen() {
           <div className="mb-3 flex items-center justify-between">
             <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               <Trophy className="h-3.5 w-3.5 text-amber-500" />
-              Badges
+              {t("profileCard.badges")}
             </p>
             <button
               type="button"
@@ -622,12 +621,12 @@ export default function ProfileScreen() {
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
             >
               <Info className="h-3 w-3" />
-              How rewards work
+              {t("profileCard.howRewardsWork")}
             </button>
           </div>
           {badges.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Earn your first badge by submitting a missing product to the database.
+              {t("profileCard.earnFirstBadge")}
             </p>
           ) : (
             <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
@@ -662,7 +661,7 @@ export default function ProfileScreen() {
             >
               <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Trophy className="h-4 w-4 text-amber-500" />
-                Leaderboard
+                {t("profileCard.leaderboard")}
               </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </button>
@@ -676,7 +675,7 @@ export default function ProfileScreen() {
             >
               <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Layers className="h-4 w-4 text-primary" />
-                My shelf & routine check
+                {t("profileCard.shelfRoutine")}
               </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </button>
@@ -689,7 +688,7 @@ export default function ProfileScreen() {
                 data-touch-target
                 className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
               >
-                <span className="text-sm font-medium text-foreground">Pricing & plans</span>
+                <span className="text-sm font-medium text-foreground">{t("profileCard.pricingPlans")}</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
               </button>
             </li>
@@ -701,7 +700,7 @@ export default function ProfileScreen() {
               data-touch-target
               className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
             >
-              <span className="text-sm font-medium text-foreground">Share a DIY recipe</span>
+              <span className="text-sm font-medium text-foreground">{t("profileCard.shareRecipe")}</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </button>
           </li>
@@ -712,7 +711,7 @@ export default function ProfileScreen() {
               data-touch-target
               className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
             >
-              <span className="text-sm font-medium text-foreground">Browse DIY recipes</span>
+              <span className="text-sm font-medium text-foreground">{t("profileCard.browseRecipes")}</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </button>
           </li>
@@ -730,7 +729,7 @@ export default function ProfileScreen() {
                 >
                   <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                     <ShieldCheck className="h-4 w-4 text-primary" />
-                    Submission queue
+                    {t("profileCard.submissionQueue")}
                   </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                 </button>
@@ -747,7 +746,7 @@ export default function ProfileScreen() {
                 >
                   <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                     <ShieldCheck className="h-4 w-4 text-primary" />
-                    Recipe queue
+                    {t("profileCard.recipeQueue")}
                   </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                 </button>
@@ -767,7 +766,7 @@ export default function ProfileScreen() {
               >
                 <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <CreditCard className="h-4 w-4 text-primary" />
-                  Manage subscription on the web
+                  {t("profileCard.manageSubWeb")}
                 </span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
               </button>
@@ -804,7 +803,7 @@ export default function ProfileScreen() {
               data-touch-target
               className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
             >
-              <span className="text-sm font-medium text-foreground">Contact support</span>
+              <span className="text-sm font-medium text-foreground">{t("profileCard.contactSupport")}</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </a>
           </li>
@@ -817,7 +816,7 @@ export default function ProfileScreen() {
             >
               <span className="flex items-center gap-2 text-sm font-medium">
                 <LogOut className="h-4 w-4" />
-                Log out
+                {t("profileCard.logout")}
               </span>
               <ChevronRight className="h-4 w-4 text-destructive/60" />
             </button>
@@ -850,7 +849,7 @@ export default function ProfileScreen() {
       </nav>
 
       <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground/40">
-        Chimiq · Plan: {plan}
+        {t("profileCard.footerPlanFmt", { plan: isPremium ? t("profileCard.premium") : t("profileCard.free") })}
       </p>
     </AppShell>
   );

@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 export interface IngredientDetailFlag {
   severity: "HIGH_RISK" | "CAUTION" | "SAFE" | string;
@@ -41,6 +42,7 @@ export function IngredientDetailSheet({
   ingredient: string | null;
   flag?: IngredientDetailFlag | null;
 }) {
+  const { t } = useTranslation();
   const [data, setData] = useState<LookupResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export function IngredientDetailSheet({
       .then((d) => setData(d))
       .catch((e: unknown) => {
         if ((e as { name?: string })?.name === "AbortError") return;
-        setError("Couldn't load ingredient details.");
+        setError(t("ingredient.errLoad"));
       })
       .finally(() => setLoading(false));
     return () => ctrl.abort();
@@ -94,18 +96,18 @@ export function IngredientDetailSheet({
                 variant={isHighRisk ? "destructive" : "warning"}
                 className="shrink-0 text-[10px] font-sans tracking-wide uppercase"
               >
-                {isHighRisk ? "HIGH RISK" : "CAUTION"}
+                {isHighRisk ? t("ingredient.highRisk") : t("ingredient.caution")}
               </Badge>
             )}
             {!flagged && data?.hasData === false && (
               <Badge variant="secondary" className="shrink-0 text-[10px] font-sans uppercase">
-                No flags
+                {t("ingredient.noFlags")}
               </Badge>
             )}
           </div>
           {data?.iupacName && data.iupacName.toLowerCase() !== ingredient?.toLowerCase() && (
             <SheetDescription className="text-xs italic text-muted-foreground">
-              IUPAC: {data.iupacName}
+              {t("ingredient.iupacFmt", { name: data.iupacName })}
             </SheetDescription>
           )}
         </SheetHeader>
@@ -129,7 +131,7 @@ export function IngredientDetailSheet({
                   )}
                 />
                 <p className="text-[13px] font-semibold text-foreground">
-                  {isHighRisk ? "Why it's high risk" : "Why to use with caution"}
+                  {isHighRisk ? t("ingredient.whyHighRisk") : t("ingredient.whyCaution")}
                 </p>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -144,7 +146,7 @@ export function IngredientDetailSheet({
                 >
                   <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
                   <span className="italic leading-snug">
-                    <span className="font-semibold not-italic">Source: </span>
+                    <span className="font-semibold not-italic">{t("ingredient.sourceLabel")}</span>
                     {flag.citation}
                   </span>
                 </a>
@@ -156,7 +158,7 @@ export function IngredientDetailSheet({
           {data?.functions && (
             <section className="rounded-2xl border border-border/50 bg-white p-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">
-                What it does
+                {t("ingredient.whatItDoes")}
               </p>
               <p className="text-sm text-foreground leading-relaxed">
                 {data.functions}
@@ -168,7 +170,7 @@ export function IngredientDetailSheet({
           {data?.regulatoryStatus && (
             <section className="rounded-2xl border border-border/50 bg-white p-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">
-                EU regulatory status
+                {t("ingredient.euRegStatus")}
               </p>
               <p className="text-sm text-foreground leading-relaxed">
                 {data.regulatoryStatus}
@@ -191,7 +193,7 @@ export function IngredientDetailSheet({
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
                 <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-amber-700">
-                  PubChem safety flags
+                  {t("ingredient.pubchemFlags")}
                 </p>
               </div>
               <ul className="space-y-1">
@@ -208,15 +210,14 @@ export function IngredientDetailSheet({
           {loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Loading details…
+              {t("ingredient.loading")}
             </div>
           )}
           {!loading && !error && data && !data.hasData && !flagged && (
             <div className="flex items-start gap-2 rounded-2xl border border-green-200 bg-green-50/50 p-4">
               <ShieldCheck className="w-4 h-4 mt-0.5 text-green-600 shrink-0" />
               <p className="text-sm text-foreground leading-relaxed">
-                No conflicts or safety concerns flagged in our database for this
-                ingredient.
+                {t("ingredient.noDbConflicts")}
               </p>
             </div>
           )}
@@ -232,7 +233,7 @@ export function IngredientDetailSheet({
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
-              View on PubChem
+              {t("ingredient.viewPubchem")}
             </a>
           )}
         </div>

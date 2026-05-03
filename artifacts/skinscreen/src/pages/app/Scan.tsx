@@ -83,13 +83,17 @@ function readRecent(): RecentScan[] {
   }
 }
 
-function relativeWhen(at: number): string {
+function relativeWhen(
+  at: number,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  locale: string,
+): string {
   const diffMs = Date.now() - at;
   const diffMin = Math.round(diffMs / 60000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 1) return t("scan.justNow");
+  if (diffMin < 60) return t("scan.minAgoFmt", { n: diffMin });
   const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return diffHr === 1 ? "1h ago" : `${diffHr}h ago`;
+  if (diffHr < 24) return diffHr === 1 ? t("scan.hourAgoOne") : t("scan.hoursAgoFmt", { n: diffHr });
   const d = new Date(at);
   const today = new Date();
   if (
@@ -97,7 +101,7 @@ function relativeWhen(at: number): string {
     d.getMonth() === today.getMonth() &&
     d.getDate() === today.getDate()
   ) {
-    return "today";
+    return t("scan.todayLabel");
   }
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
@@ -106,9 +110,9 @@ function relativeWhen(at: number): string {
     d.getMonth() === yesterday.getMonth() &&
     d.getDate() === yesterday.getDate()
   ) {
-    return "yesterday";
+    return t("scan.yesterdayLabel");
   }
-  return d.toLocaleDateString(undefined, { weekday: "short" });
+  return d.toLocaleDateString(locale, { weekday: "short" });
 }
 
 export default function ScanScreen() {
@@ -117,13 +121,13 @@ export default function ScanScreen() {
     { mode: "single"; ingredients: string; productName?: string; autoRun: true } | null
   >(null);
   const [seedLoading, setSeedLoading] = useState(false);
-  const [seedError, setSeedError] = useState<string | null>(null);
+  const [seedErrorKey, setSeedErrorKey] = useState<string | null>(null);
   const [seedProductName, setSeedProductName] = useState<string | null>(null);
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [scansToday, setScansToday] = useState<number>(() => readScanCount());
   const [recent, setRecent] = useState<RecentScan[]>(() => readRecent());
   const { isPremium } = useUserPlan();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   // Pull the authoritative per-user count from the server. Falls back to
   // the localStorage estimate while loading or for anon users.
@@ -219,7 +223,7 @@ export default function ScanScreen() {
     if (!parsed.barcode) return;
 
     setSeedLoading(true);
-    setSeedError(null);
+    setSeedErrorKey(null);
     setSeedProductName(parsed.productName ?? null);
 
     fetch(`/api/barcode/${encodeURIComponent(parsed.barcode)}`, {
@@ -250,11 +254,11 @@ export default function ScanScreen() {
                 ?.scrollIntoView({ behavior: "smooth", block: "start" });
             }, 50);
           } else {
-            setSeedError("This product's ingredient list isn't available right now.");
+            setSeedErrorKey("scan.errIngredientsUnavail");
           }
         },
       )
-      .catch(() => setSeedError("Could not load that product. Try again."))
+      .catch(() => setSeedErrorKey("scan.errLoadFailed"))
       .finally(() => setSeedLoading(false));
   }, []);
 
@@ -289,12 +293,12 @@ export default function ScanScreen() {
       <section className="mb-6 animate-pop-in">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-            Scan Product
+            {t("scan.heading")}
           </p>
           {isPremium ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-primary to-amber-400 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
               <Sparkles className="h-3 w-3" />
-              Premium
+              {t("scan.premiumBadge")}
             </span>
           ) : (
             <button
@@ -306,11 +310,11 @@ export default function ScanScreen() {
                   ? "bg-amber-100 text-amber-900 hover:bg-amber-200"
                   : "bg-muted/60 text-muted-foreground hover:bg-muted"
               }`}
-              aria-label={`${scansToday} of ${FREE_DAILY_LIMIT} free scans used today`}
+              aria-label={t("scan.freeScansAriaFmt", { used: scansToday, total: FREE_DAILY_LIMIT })}
             >
               {overLimit
-                ? "Daily limit reached · Go Premium"
-                : `${remaining} of ${FREE_DAILY_LIMIT} free scans left`}
+                ? t("scan.dailyLimitGoPremium")
+                : t("scan.freeScansLeftFmt", { remaining, total: FREE_DAILY_LIMIT })}
             </button>
           )}
         </div>
@@ -334,12 +338,12 @@ export default function ScanScreen() {
                 </div>
                 {/* Hint copy (Variant B) */}
                 <div className="absolute bottom-4 left-0 right-0 text-center text-[13px] font-medium text-white/95">
-                  Point at a barcode or ingredient list
+                  {t("scan.viewfinderHint")}
                 </div>
                 {/* Tap hint top-right */}
                 <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
                   <Camera className="h-3 w-3" />
-                  Tap
+                  {t("scan.tap")}
                 </div>
               </div>
             }
@@ -351,11 +355,11 @@ export default function ScanScreen() {
             onClick={() => navigate("/app/browse")}
             data-touch-target
             className="flex w-full items-center gap-3 border-t border-border/60 px-4 py-3 text-left transition-colors hover:bg-muted/40"
-            aria-label="Search products by name"
+            aria-label={t("scan.searchByName")}
           >
             <Search className="h-5 w-5 text-muted-foreground" />
             <span className="flex-1 text-[15px] text-muted-foreground">
-              Or type product name…
+              {t("scan.orTypeProduct")}
             </span>
             <PackageSearch className="h-5 w-5 text-muted-foreground" />
           </button>
@@ -363,7 +367,7 @@ export default function ScanScreen() {
       </section>
 
       {/* Seed banner: a Browse-tapped product is auto-loading */}
-      {(seedLoading || seedError) && (
+      {(seedLoading || seedErrorKey) && (
         <div className="mb-3 flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
           {seedLoading ? (
             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
@@ -371,7 +375,11 @@ export default function ScanScreen() {
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
           )}
           <span className="min-w-0 flex-1">
-            {seedLoading ? `Loading ${seedProductName ?? "product"}…` : seedError}
+            {seedLoading
+              ? t("scan.loadingFmt", { name: seedProductName ?? t("scan.productFallback") })
+              : seedErrorKey
+                ? t(seedErrorKey)
+                : null}
           </span>
         </div>
       )}
@@ -380,7 +388,7 @@ export default function ScanScreen() {
       {!seed && recent.length > 0 && (
         <section className="mb-6">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-            Recent Scans
+            {t("scan.recentScans")}
           </p>
           <div className="overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm">
             {recent.map((r, i) => (
@@ -405,7 +413,7 @@ export default function ScanScreen() {
                     {r.name}
                   </p>
                   <p className="mt-0.5 text-[13px] text-muted-foreground">
-                    {relativeWhen(r.at)}
+                    {relativeWhen(r.at, t, locale)}
                   </p>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground/60" />
@@ -419,7 +427,7 @@ export default function ScanScreen() {
       {!seed && recent.length === 0 && (
         <section className="mb-6">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-            Get Started
+            {t("scan.getStarted")}
           </p>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -430,10 +438,10 @@ export default function ScanScreen() {
             >
               <PackageSearch className="h-5 w-5 text-primary" />
               <span className="text-[14px] font-semibold text-foreground">
-                Browse products
+                {t("scan.browseProducts")}
               </span>
               <span className="text-[12px] text-muted-foreground">
-                See what others scanned
+                {t("scan.browseHint")}
               </span>
             </button>
             <button
@@ -444,10 +452,10 @@ export default function ScanScreen() {
             >
               <Compass className="h-5 w-5 text-primary" />
               <span className="text-[14px] font-semibold text-foreground">
-                Discover articles
+                {t("scan.discoverArticles")}
               </span>
               <span className="text-[12px] text-muted-foreground">
-                Dermatology research
+                {t("scan.discoverHint")}
               </span>
             </button>
           </div>
@@ -464,14 +472,16 @@ export default function ScanScreen() {
         >
           <span>
             <span className="font-semibold text-foreground">
-              {scansToday} {scansToday === 1 ? "scan" : "scans"} today
+              {scansToday === 1
+                ? t("scan.scansTodayOneFmt", { count: scansToday })
+                : t("scan.scansTodayManyFmt", { count: scansToday })}
             </span>
-            <span> · {FREE_DAILY_LIMIT} free scans per day</span>
+            <span> · {t("scan.freeScansPerDayFmt", { total: FREE_DAILY_LIMIT })}</span>
           </span>
           {overLimit ? (
-            <span className="font-semibold text-amber-700">Limit reached</span>
+            <span className="font-semibold text-amber-700">{t("scan.limitReached")}</span>
           ) : (
-            <span>{remaining} left</span>
+            <span>{t("scan.leftFmt", { count: remaining })}</span>
           )}
         </div>
       )}
@@ -489,12 +499,12 @@ export default function ScanScreen() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[11px] font-bold uppercase tracking-widest text-amber-700">
-              Earn 1 free month
+              {t("scan.earnFreeMonth")}
             </span>
             <span className="block text-sm font-medium text-foreground">
-              {milestoneProgress.inCycle} of {MILESTONE} contributions —{" "}
+              {t("scan.contributionsProgressFmt", { current: milestoneProgress.inCycle, total: MILESTONE })}{" "}
               <span className="text-muted-foreground">
-                {milestoneProgress.remaining} to go
+                {t("scan.toGoFmt", { remaining: milestoneProgress.remaining })}
               </span>
             </span>
             <span className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-amber-100">

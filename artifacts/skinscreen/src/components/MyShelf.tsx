@@ -482,11 +482,11 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="w-4 h-4 text-primary" />
         <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
-          Premium
+          {t("myShelf.premium")}
         </p>
       </div>
       <p className="font-serif text-xl font-semibold text-foreground leading-tight mb-3">
-        Unlock your whole shelf
+        {t("myShelf.upgradeUnlock")}
       </p>
 
       <div className="inline-flex items-center bg-white/70 border border-primary/20 rounded-full p-0.5 mb-3">
@@ -659,36 +659,40 @@ export function MyShelf({ displayName }: MyShelfProps) {
           {analysisData && (
             analysisData.overallSafe ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-[#16A34A] text-[10px] font-bold">
-                <ShieldCheck className="w-3 h-3" /> All clear
+                <ShieldCheck className="w-3 h-3" /> {t("myShelf.allClear")}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold">
                 <ShieldOff className="w-3 h-3" />
-                {analysisData.highRiskCount + analysisData.cautionCount} conflict{(analysisData.highRiskCount + analysisData.cautionCount) !== 1 ? "s" : ""}
+                {(analysisData.highRiskCount + analysisData.cautionCount) === 1
+                  ? t("myShelf.oneConflictBadge")
+                  : t("myShelf.manyConflictsBadgeFmt").replace("{count}", String(analysisData.highRiskCount + analysisData.cautionCount))}
               </span>
             )
           )}
           <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">
-            {allProducts.length} product{allProducts.length !== 1 ? "s" : ""}
+            {allProducts.length === 1
+              ? t("myShelf.oneProductCount")
+              : t("myShelf.manyProductsCountFmt").replace("{count}", String(allProducts.length))}
           </span>
         </div>
       </div>
 
       <div className="flex border-b border-border/30">
-        {(["morning", "evening", "both"] as ShelfTab[]).map((t) => (
+        {(["morning", "evening", "both"] as ShelfTab[]).map((tabKey) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabKey}
+            onClick={() => setTab(tabKey)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-semibold uppercase tracking-widest transition-colors ${
-              tab === t
+              tab === tabKey
                 ? "text-foreground border-b-2 border-primary"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "morning" && <Sun className="w-3.5 h-3.5 text-[#F59E0B]" />}
-            {t === "evening" && <Moon className="w-3.5 h-3.5 text-primary" />}
-            {t === "both" && <Layers className="w-3.5 h-3.5 text-primary" />}
-            {t}
+            {tabKey === "morning" && <Sun className="w-3.5 h-3.5 text-[#F59E0B]" />}
+            {tabKey === "evening" && <Moon className="w-3.5 h-3.5 text-primary" />}
+            {tabKey === "both" && <Layers className="w-3.5 h-3.5 text-primary" />}
+            {tabKey === "morning" ? t("myShelf.morning") : tabKey === "evening" ? t("myShelf.evening") : t("myShelf.tabBoth")}
           </button>
         ))}
       </div>
@@ -710,7 +714,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
               )}
             </div>
             <p className="text-sm text-muted-foreground">
-              No {tab} products yet
+              {tab === "morning" ? t("myShelf.emptyMorning") : tab === "evening" ? t("myShelf.emptyEvening") : t("myShelf.emptyBoth")}
             </p>
             {shelfQuery.isSuccess && allProducts.length === 0 ? (
               <div className="mt-3">
@@ -733,7 +737,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
               </div>
             ) : (
               <p className="text-xs text-muted-foreground/70 mt-1">
-                Add your first {tab} product below
+                {tab === "morning" ? t("myShelf.addFirstMorning") : tab === "evening" ? t("myShelf.addFirstEvening") : t("myShelf.addFirstBoth")}
               </p>
             )}
           </div>
@@ -789,7 +793,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-colors duration-200"
             >
               <Plus className="w-4 h-4" />
-              Add product
+              {t("myShelf.addProductBtn")}
             </button>
           )}
           <button
@@ -797,7 +801,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-200 bg-amber-50/50 text-amber-700 text-xs font-medium hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200"
           >
             <PackagePlus className="w-3.5 h-3.5" />
-            Contribute a new product — 30 = 1 month free Premium
+            {t("myShelf.contributeCta")}
           </button>
         </div>
       )}
@@ -826,7 +830,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
           </div>
           <div className="flex items-center gap-1.5 shrink-0 bg-primary/10 text-primary px-2.5 py-1 rounded-full">
             <Lock className="w-3 h-3" />
-            <span className="text-[11px] font-semibold uppercase tracking-wide">Premium</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide">{t("myShelf.premium")}</span>
           </div>
         </div>
       </div>
@@ -835,18 +839,19 @@ export function MyShelf({ displayName }: MyShelfProps) {
 }
 
 export function MyShelfSection() {
+  const { t } = useTranslation();
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
       <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
-        <span className="font-serif text-lg font-semibold text-foreground">My Shelf</span>
-        <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">5 products</span>
+        <span className="font-serif text-lg font-semibold text-foreground">{t("myShelf.title")}</span>
+        <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{t("myShelf.manyProductsCountFmt").replace("{count}", "5")}</span>
       </div>
 
       <div className="p-6 space-y-6">
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Sun className="w-4 h-4 text-[#F59E0B]" />
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Morning</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("myShelf.morning")}</span>
           </div>
           <div className="space-y-2">
             {["Vitamin C Serum", "Hyaluronic Acid", "SPF 50 Sunscreen"].map((p) => (
@@ -861,7 +866,7 @@ export function MyShelfSection() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Moon className="w-4 h-4 text-[#7BAF7A]" />
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Evening</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("myShelf.evening")}</span>
           </div>
           <div className="space-y-2">
             {["Retinol 0.5%", "Niacinamide Serum"].map((p) => (
@@ -873,14 +878,14 @@ export function MyShelfSection() {
             <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-red-50 border border-red-200">
               <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
               <span className="text-sm text-red-700">Glycolic Acid Toner</span>
-              <span className="ml-auto text-[10px] font-semibold text-red-500 uppercase tracking-wide">Conflict</span>
+              <span className="ml-auto text-[10px] font-semibold text-red-500 uppercase tracking-wide">{t("myShelf.severityConflictShort")}</span>
             </div>
           </div>
         </div>
 
         <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-colors duration-200">
           <Plus className="w-4 h-4" />
-          Add product
+          {t("myShelf.addProductBtn")}
         </button>
       </div>
     </div>

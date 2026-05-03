@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Camera, Check, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 interface GapsResponse {
   barcode: string;
@@ -21,10 +22,10 @@ interface GapsResponse {
 
 type FieldKey = "productName" | "brand" | "frontImage";
 
-const FIELD_LABELS: Record<FieldKey, string> = {
-  productName: "Product name",
-  brand: "Brand",
-  frontImage: "Front-of-bottle photo",
+const FIELD_LABEL_KEYS: Record<FieldKey, string> = {
+  productName: "gapFill.fieldProductName",
+  brand: "gapFill.fieldBrand",
+  frontImage: "gapFill.fieldFrontImage",
 };
 
 /**
@@ -42,6 +43,7 @@ export function InlineGapFill({
   productName?: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const [gaps, setGaps] = useState<GapsResponse | null>(null);
   const [activeField, setActiveField] = useState<FieldKey | null>(null);
   const [value, setValue] = useState("");
@@ -91,10 +93,10 @@ export function InlineGapFill({
       );
       if (!r.ok) {
         const j = (await r.json().catch(() => ({}))) as { error?: string };
-        toast.error(j.error ?? "Couldn't save your contribution.");
+        toast.error(j.error ?? t("gapFill.errSaveFailed"));
         return;
       }
-      toast.success("Thanks — sent for quick review.");
+      toast.success(t("gapFill.thanks"));
       setCompleted((s) => new Set(s).add(field));
       setActiveField(null);
       setValue("");
@@ -105,7 +107,7 @@ export function InlineGapFill({
 
   const onPickPhoto = (file: File) => {
     if (file.size > 6_000_000) {
-      toast.error("Photo is too large (max 6 MB).");
+      toast.error(t("gapFill.errPhotoTooLarge"));
       return;
     }
     const reader = new FileReader();
@@ -128,7 +130,7 @@ export function InlineGapFill({
       <div className="flex items-center gap-2">
         <Plus className="w-3.5 h-3.5 text-muted-foreground" />
         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-          Help complete this product
+          {t("gapFill.title")}
         </p>
       </div>
 
@@ -144,7 +146,7 @@ export function InlineGapFill({
                 onClick={() => fileRef.current?.click()}
                 disabled={submitting}
               >
-                <Camera className="w-3 h-3" /> Add {FIELD_LABELS[f].toLowerCase()}
+                <Camera className="w-3 h-3" /> {t("gapFill.addFmt", { field: t(FIELD_LABEL_KEYS[f]).toLowerCase() })}
               </Button>
             ) : (
               <Button
@@ -158,7 +160,7 @@ export function InlineGapFill({
                 }}
                 disabled={submitting}
               >
-                + {FIELD_LABELS[f]}
+                {t("gapFill.plusFmt", { field: t(FIELD_LABEL_KEYS[f]) })}
               </Button>
             ),
           )}
@@ -181,7 +183,7 @@ export function InlineGapFill({
             autoFocus
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder={`Enter ${FIELD_LABELS[activeField].toLowerCase()}…`}
+            placeholder={t("gapFill.enterPlaceholderFmt", { field: t(FIELD_LABEL_KEYS[activeField]).toLowerCase() })}
             className="h-8 text-sm"
             disabled={submitting}
             onKeyDown={(e) => {
@@ -215,7 +217,7 @@ export function InlineGapFill({
               setValue("");
             }}
           >
-            Cancel
+            {t("gapFill.cancel")}
           </Button>
         </div>
       )}

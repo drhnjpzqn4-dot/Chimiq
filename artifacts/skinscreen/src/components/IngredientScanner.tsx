@@ -699,6 +699,7 @@ function QuickStartDropdown({
   onSelect: (ingredients: string, productName: string, imageUrl: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<typeof QUICK_START_PRODUCTS[0] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -743,7 +744,7 @@ function QuickStartDropdown({
           </div>
         )}
         <span className={cn("flex-1 text-left truncate", selected ? "text-foreground font-medium" : "text-muted-foreground")}>
-          {selected ? selected.name : "— Select a product —"}
+          {selected ? selected.name : t("scanner.selectProduct")}
         </span>
         {open ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
       </button>
@@ -809,9 +810,9 @@ interface ScannerPreset {
 const COMPARE_PRESETS: ScannerPreset[] = [
   {
     label: "Neutrogena BP Wash + RoC Retinol",
-    badge: "HIGH RISK",
+    badge: "shareCanvas.highRisk",
     badgeColor: "red",
-    description: "Benzoyl peroxide destroys retinol on contact",
+    description: "scanner.presetBpRetinolDesc",
     seed: {
       mode: "compare",
       product1: NEUTROGENA_BP_INGREDIENTS,
@@ -823,9 +824,9 @@ const COMPARE_PRESETS: ScannerPreset[] = [
   },
   {
     label: "CeraVe SA Cleanser + Paula's Choice AHA",
-    badge: "CAUTION",
+    badge: "shareCanvas.caution",
     badgeColor: "amber",
-    description: "Layering Salicylic Acid + Glycolic Acid",
+    description: "scanner.presetSaAhaDesc",
     seed: {
       mode: "compare",
       product1: CERAVE_SA_INGREDIENTS,
@@ -839,9 +840,9 @@ const COMPARE_PRESETS: ScannerPreset[] = [
 
 const SINGLE_PRESET: ScannerPreset = {
   label: "CeraVe Moisturising Cream",
-  badge: "Scan ingredients",
+  badge: "scanner.scanIngredientsBadge",
   badgeColor: "green",
-  description: "Popular moisturiser — what's really in it?",
+  description: "scanner.presetCeravePremiumDesc",
   seed: {
     mode: "single",
     ingredients: CERAVE_MOISTURISER_INGREDIENTS,
@@ -982,12 +983,12 @@ export function IngredientScanner({
         body: JSON.stringify({ hash }),
       });
       if (res.ok) {
-        toast.success("Thanks — we'll re-check this result soon.");
+        toast.success(t("scanner.flagThanks"));
       } else {
-        toast.error("Could not flag this result. Please try again.");
+        toast.error(t("scanner.flagFailed"));
       }
     } catch {
-      toast.error("Could not flag this result. Please try again.");
+      toast.error(t("scanner.flagFailed"));
     }
   };
 
@@ -1103,7 +1104,7 @@ export function IngredientScanner({
       <StepHeader
         index={1}
         title={t("scanner.selectSkinType")}
-        description="Optional — personalises flagging and risk levels."
+        description={t("scanner.stepSkinTypeDesc")}
       >
         <SkinProfileSelector value={skinProfile} onChange={setSkinProfile} />
       </StepHeader>
@@ -1112,7 +1113,7 @@ export function IngredientScanner({
       <StepHeader
         index={2}
         title={t("scanner.selectProducts")}
-        description="Scan one product for flags, or compare two for conflicts."
+        description={t("scanner.stepSelectDesc")}
       >
 
           {/* 1 or 2 products toggle */}
@@ -1129,7 +1130,7 @@ export function IngredientScanner({
               )}
             >
               <Zap className="w-3.5 h-3.5" />
-              1 product
+              {t("scanner.oneProduct")}
             </button>
             <button
               type="button"
@@ -1143,7 +1144,7 @@ export function IngredientScanner({
               )}
             >
               <ArrowLeftRight className="w-3.5 h-3.5" />
-              2 products
+              {t("scanner.twoProducts")}
             </button>
           </div>
 
@@ -1176,12 +1177,12 @@ export function IngredientScanner({
                           preset.badgeColor === "amber" && "bg-amber-100 text-amber-700",
                           preset.badgeColor === "green" && "bg-primary/10 text-primary",
                         )}>
-                          {preset.badge}
+                          {t(preset.badge)}
                         </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">{preset.description}</span>
+                      <span className="text-xs text-muted-foreground">{t(preset.description)}</span>
                       <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                        Load example →
+                        {t("scanner.loadExample")}
                       </span>
                     </button>
                   ))}
@@ -1192,7 +1193,7 @@ export function IngredientScanner({
             {/* divider */}
             <div className="flex items-center gap-3 pl-10">
               <div className="flex-1 border-t border-border/40" />
-              <span className="text-[11px] text-muted-foreground shrink-0">or</span>
+              <span className="text-[11px] text-muted-foreground shrink-0">{t("scanner.or")}</span>
               <div className="flex-1 border-t border-border/40" />
             </div>
 
@@ -1215,7 +1216,7 @@ export function IngredientScanner({
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-primary">Product 1</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-primary">{t("scanner.product1")}</p>
                       <QuickStartDropdown
                         key={`p1-${quickStartResetKey}`}
                         onSelect={(ings, name, img) => { setProduct1(ings); setProduct1Name(name); setProduct1Image(img); resetResults(); }}
@@ -1223,7 +1224,7 @@ export function IngredientScanner({
                       />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-amber-700">Product 2</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-amber-700">{t("scanner.product2")}</p>
                       <QuickStartDropdown
                         key={`p2-${quickStartResetKey}`}
                         onSelect={(ings, name, img) => { setProduct2(ings); setProduct2Name(name); setProduct2Image(img); resetResults(); }}
@@ -1238,7 +1239,7 @@ export function IngredientScanner({
             {/* divider */}
             <div className="flex items-center gap-3 pl-10">
               <div className="flex-1 border-t border-border/40" />
-              <span className="text-[11px] text-muted-foreground shrink-0">or</span>
+              <span className="text-[11px] text-muted-foreground shrink-0">{t("scanner.or")}</span>
               <div className="flex-1 border-t border-border/40" />
             </div>
 
@@ -1272,7 +1273,7 @@ export function IngredientScanner({
                       </div>
                     )}
                     <ProductTextArea
-                      label="Ingredient List"
+                      label={t("scanner.ingredientList")}
                       index={1}
                       value={ingredients}
                       onChange={(val) => { setIngredients(val); setProductName(""); setProductImage(""); setProductBarcode(""); resetResults(); }}
@@ -1282,7 +1283,7 @@ export function IngredientScanner({
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-primary">Product 1</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-primary">{t("scanner.product1")}</p>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex-1 min-w-0">
                           <ProductSearch
@@ -1301,7 +1302,7 @@ export function IngredientScanner({
                         </div>
                       )}
                       <ProductTextArea
-                        label="Product 1 Ingredients"
+                        label={t("scanner.product1Ingredients")}
                         index={1}
                         value={product1}
                         onChange={(val) => { setProduct1(val); setProduct1Name(""); setProduct1Image(""); resetResults(); }}
@@ -1309,7 +1310,7 @@ export function IngredientScanner({
                       />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-amber-700">Product 2</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-1.5 text-amber-700">{t("scanner.product2")}</p>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex-1 min-w-0">
                           <ProductSearch
@@ -1328,7 +1329,7 @@ export function IngredientScanner({
                         </div>
                       )}
                       <ProductTextArea
-                        label="Product 2 Ingredients"
+                        label={t("scanner.product2Ingredients")}
                         index={2}
                         value={product2}
                         onChange={(val) => { setProduct2(val); setProduct2Name(""); setProduct2Image(""); resetResults(); }}
@@ -1349,8 +1350,8 @@ export function IngredientScanner({
         title={t("scanner.analyze")}
         description={
           mode === "single"
-            ? "Paste or load your ingredient list above, then scan."
-            : "Load or paste both products above, then check compatibility."
+            ? t("scanner.stepAnalyzeSingleDesc")
+            : t("scanner.stepAnalyzeCompareDesc")
         }
         active={canSubmit}
         hasConnector={false}
@@ -1366,7 +1367,7 @@ export function IngredientScanner({
             {isPending ? (
               <><Loader2 className="w-4 h-4 animate-spin" />{t("scanner.analysing")}</>
             ) : (
-              <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? "Scan Ingredients") : (ctaLabel?.compare ?? "Check Compatibility")}</>
+              <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? t("scanner.ctaSingle")) : (ctaLabel?.compare ?? t("scanner.ctaCompare"))}</>
             )}
           </Button>
           <button
@@ -1375,7 +1376,7 @@ export function IngredientScanner({
             data-touch-target
             className="text-sm text-muted-foreground hover:text-foreground border border-border/40 hover:border-border/70 px-5 py-2.5 rounded-2xl transition-colors"
           >
-            Start over
+            {t("scanner.startOver")}
           </button>
         </div>
       </StepHeader>
@@ -1385,7 +1386,7 @@ export function IngredientScanner({
         <div className="rounded-3xl bg-destructive/5 border border-destructive/20 p-6 text-center mb-8 animate-fade-up shadow-sm">
           <p className="text-sm font-medium text-destructive">
             {(error as Error & { response?: { data?: { error?: string } } })?.response?.data?.error
-              ?? "Something went wrong. Please try again."}
+              ?? t("scanner.errGeneric")}
           </p>
         </div>
       )}
@@ -1399,7 +1400,7 @@ export function IngredientScanner({
               <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
               <div className="min-w-0 flex-1 space-y-1.5">
                 <h2 className="font-serif text-[22px] font-bold leading-tight text-foreground">
-                  Results for:<br />{productName || "Scanned product"}
+                  {t("scanner.resultsForFmt")}<br />{productName || t("scanner.scannedProductFallback")}
                 </h2>
                 {productBarcode && (
                   <ProductRating
@@ -1457,7 +1458,7 @@ export function IngredientScanner({
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                    Ingredient Analysis
+                    {t("scanner.ingredientAnalysis")}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
                     {(() => {
@@ -1465,7 +1466,9 @@ export function IngredientScanner({
                         .split(",")
                         .map((s) => s.trim())
                         .filter(Boolean).length;
-                      return `${total} ingredient${total === 1 ? "" : "s"}`;
+                      return total === 1
+                        ? t("scanner.ingredientCountOne", { count: total })
+                        : t("scanner.ingredientCountManyFmt", { count: total });
                     })()}
                   </p>
                 </div>
@@ -1502,7 +1505,7 @@ export function IngredientScanner({
                                 : null,
                             })
                           }
-                          aria-label={`See details for ${ing}`}
+                          aria-label={t("scanner.seeDetailsForFmt", { name: ing })}
                           className={cn(
                             "rounded-md px-2 py-0.5 text-[11px] font-medium leading-snug transition-colors cursor-pointer",
                             "hover:brightness-95 active:brightness-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
@@ -1527,7 +1530,7 @@ export function IngredientScanner({
             <div>
               <FadeIn>
                 <h3 className="text-lg font-semibold text-destructive flex items-center gap-2 mb-4">
-                  High-Risk Ingredients
+                  {t("scanner.highRiskIngredients")}
                   <Badge variant="destructive" className="text-[11px] font-sans">{singleHighRisk.length}</Badge>
                 </h3>
               </FadeIn>
@@ -1559,7 +1562,7 @@ export function IngredientScanner({
             <div>
               <FadeIn>
                 <h3 className="text-lg font-semibold text-amber-700 flex items-center gap-2 mb-4">
-                  Use With Caution
+                  {t("scanner.useWithCaution")}
                   <Badge variant="warning" className="text-[11px] font-sans">{singleCaution.length}</Badge>
                 </h3>
               </FadeIn>
@@ -1603,7 +1606,7 @@ export function IngredientScanner({
                 onClick={() => {
                   setMode("compare");
                   setProduct1(ingredients);
-                  setProduct1Name(productName || "Your product");
+                  setProduct1Name(productName || t("scanner.yourProduct"));
                   setProduct1Image(productImage);
                   setIngredients("");
                   setProductName("");
@@ -1615,7 +1618,7 @@ export function IngredientScanner({
                 data-touch-target
                 className="w-full h-[52px] flex items-center justify-center gap-2 text-white font-semibold text-sm rounded-xl bg-primary hover:bg-primary/90 transition-colors animate-fade-up"
               >
-                Compare against another product →
+                {t("scanner.compareAgainst")}
               </button>
 
               <button
@@ -1630,10 +1633,10 @@ export function IngredientScanner({
                   ctx.fillStyle = "#7BAF7A"; ctx.fillRect(0, 0, W, 10);
                   ctx.fillStyle = "#7BAF7A"; ctx.font = "600 28px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText("Chimiq", 80, 90);
                   ctx.fillStyle = "#1A1A1A"; ctx.font = "700 52px Georgia, serif"; ctx.textAlign = "center";
-                  const name = productName || "Scanned product";
+                  const name = productName || t("scanner.scannedProductFallback");
                   ctx.fillText(name.length > 36 ? name.slice(0, 35) + "…" : name, W / 2, 240);
                   const topFlag = singleResult.flags[0];
-                  const riskLevel = singleHighRisk.length > 0 ? "HIGH RISK" : singleResult.flags.length > 0 ? "CAUTION" : "SAFE";
+                  const riskLevel = singleHighRisk.length > 0 ? t("shareCanvas.highRisk") : singleResult.flags.length > 0 ? t("shareCanvas.caution") : t("shareCanvas.safe");
                   const riskColor = singleHighRisk.length > 0 ? "#EF4444" : singleResult.flags.length > 0 ? "#F59E0B" : "#22C55E";
                   ctx.fillStyle = riskColor; ctx.beginPath(); ctx.roundRect?.(W/2 - 90, 290, 180, 50, 25); ctx.fill();
                   ctx.fillStyle = "#fff"; ctx.font = "700 22px Inter, sans-serif"; ctx.textAlign = "center"; ctx.fillText(riskLevel, W / 2, 322);
@@ -1662,7 +1665,7 @@ export function IngredientScanner({
                 data-touch-target
                 className="w-full h-[52px] flex items-center justify-center gap-2 text-sm font-semibold border-2 rounded-xl bg-white border-primary text-primary hover:bg-primary/5 transition-colors"
               >
-                Share your result
+                {t("scanner.shareResult")}
               </button>
 
               <div className="text-center">
@@ -1671,7 +1674,7 @@ export function IngredientScanner({
                   onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
                   className="text-sm font-medium text-primary hover:underline"
                 >
-                  Sign in to save &amp; check your full routine
+                  {t("scanner.signInSaveRoutine")}
                 </a>
               </div>
 
@@ -1685,7 +1688,7 @@ export function IngredientScanner({
                   data-touch-target
                   className="text-sm text-muted-foreground hover:text-foreground border border-border/50 hover:border-border transition-colors px-6 py-2.5 rounded-2xl"
                 >
-                  New scan
+                  {t("scanner.newScan")}
                 </button>
               </div>
             </div>
@@ -1698,14 +1701,14 @@ export function IngredientScanner({
                 onClick={() => flagOutdated((analyzeSingle.data as { cacheHash?: string })?.cacheHash)}
                 className="text-[11px] text-muted-foreground hover:text-muted-foreground transition-colors"
               >
-                Flag as outdated
+                {t("scanner.flagAsOutdated")}
               </button>
             </div>
           </FadeIn>
 
           <FadeIn>
             <p className="text-[11px] text-muted-foreground text-center pb-2">
-              Powered by dermatology research · Results are for informational purposes only · Always consult a board-certified dermatologist for personal advice
+              {t("scanner.footerDisclaimer")}
             </p>
           </FadeIn>
         </div>
@@ -1722,7 +1725,7 @@ export function IngredientScanner({
                   <div className="flex items-center gap-3 flex-1 p-3 rounded-3xl bg-primary/5 border border-primary/20 shadow-sm">
                     <ProductImageThumb src={product1Image || undefined} size={96} radius={12} />
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5 text-primary">Product 1</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5 text-primary">{t("scanner.product1")}</p>
                       <p className="text-[18px] font-extrabold leading-tight tracking-tight text-foreground">{product1Name}</p>
                     </div>
                   </div>
@@ -1731,7 +1734,7 @@ export function IngredientScanner({
                   <div className="flex items-center gap-3 flex-1 p-3 rounded-3xl bg-amber-50 border border-amber-200 shadow-sm">
                     <ProductImageThumb src={product2Image || undefined} size={96} radius={12} />
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5 text-amber-700">Product 2</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide mb-0.5 text-amber-700">{t("scanner.product2")}</p>
                       <p className="text-[18px] font-extrabold leading-tight tracking-tight text-foreground">{product2Name}</p>
                     </div>
                   </div>
@@ -1765,14 +1768,18 @@ export function IngredientScanner({
             }
             title={
               compareResult.overallSafe && compareConflicts.length === 0
-                ? "These products are compatible"
+                ? t("scanner.compatibleTitle")
                 : highRiskConflicts.length > 0
-                  ? `${highRiskConflicts.length} high-risk conflict${highRiskConflicts.length > 1 ? "s" : ""} found`
-                  : `${cautionConflicts.length} caution-level conflict${cautionConflicts.length > 1 ? "s" : ""} found`
+                  ? (highRiskConflicts.length === 1
+                      ? t("scanner.highRiskConflictsFoundOne", { count: highRiskConflicts.length })
+                      : t("scanner.highRiskConflictsFoundManyFmt", { count: highRiskConflicts.length }))
+                  : (cautionConflicts.length === 1
+                      ? t("scanner.cautionConflictsFoundOne", { count: cautionConflicts.length })
+                      : t("scanner.cautionConflictsFoundManyFmt", { count: cautionConflicts.length }))
             }
             summary={
               compareResult.overallSafe && compareConflicts.length === 0
-                ? "No clinically-documented conflicts found between these two products."
+                ? t("scanner.noConflictsSummary")
                 : undefined
             }
           />
@@ -1781,7 +1788,7 @@ export function IngredientScanner({
             <div>
               <FadeIn>
                 <h3 className="text-lg font-semibold text-destructive flex items-center gap-2 mb-4">
-                  High-Risk Conflicts
+                  {t("scanner.highRiskConflicts")}
                   <Badge variant="destructive" className="text-[11px] font-sans">{highRiskConflicts.length}</Badge>
                 </h3>
               </FadeIn>
@@ -1797,7 +1804,7 @@ export function IngredientScanner({
             <div>
               <FadeIn>
                 <h3 className="text-lg font-semibold text-amber-700 flex items-center gap-2 mb-4">
-                  Use With Caution
+                  {t("scanner.useWithCaution")}
                   <Badge variant="warning" className="text-[11px] font-sans">{cautionConflicts.length}</Badge>
                 </h3>
               </FadeIn>
@@ -1813,7 +1820,7 @@ export function IngredientScanner({
             <div>
               <FadeIn>
                 <h3 className="text-lg font-semibold text-green-700 flex items-center gap-2 mb-4">
-                  Commonly Questioned — Safe Together
+                  {t("scanner.commonlySafe")}
                   <Badge className="text-[11px] font-sans bg-green-100 text-green-700 border-green-200 hover:bg-green-100">{safeConflicts.length}</Badge>
                 </h3>
               </FadeIn>
@@ -1838,7 +1845,7 @@ export function IngredientScanner({
                 data-touch-target
                 className="w-full h-[52px] flex items-center justify-center gap-2 text-white font-semibold text-sm rounded-xl bg-primary hover:bg-primary/90 transition-colors animate-fade-up"
               >
-                Scan a single product →
+                {t("scanner.scanSinglePrompt")}
               </button>
 
               <div className="text-center">
@@ -1847,7 +1854,7 @@ export function IngredientScanner({
                   onClick={(e) => { e.preventDefault(); document.getElementById("earn-premium")?.scrollIntoView({ behavior: "smooth" }); }}
                   className="text-sm font-medium text-primary hover:underline"
                 >
-                  Sign in to scan your full routine
+                  {t("scanner.signInScanRoutine")}
                 </a>
               </div>
 
@@ -1863,7 +1870,7 @@ export function IngredientScanner({
                   data-touch-target
                   className="text-sm text-muted-foreground hover:text-foreground border border-border/50 hover:border-border transition-colors px-6 py-2.5 rounded-2xl"
                 >
-                  New comparison
+                  {t("scanner.newComparison")}
                 </button>
               </div>
             </div>
@@ -1876,14 +1883,14 @@ export function IngredientScanner({
                 onClick={() => flagOutdated((analyzeCompare.data as { cacheHash?: string })?.cacheHash)}
                 className="text-[11px] text-muted-foreground hover:text-muted-foreground transition-colors"
               >
-                Flag as outdated
+                {t("scanner.flagAsOutdated")}
               </button>
             </div>
           </FadeIn>
 
           <FadeIn>
             <p className="text-[11px] text-muted-foreground text-center pb-2">
-              Powered by dermatology research · Results are for informational purposes only · Always consult a board-certified dermatologist for personal advice
+              {t("scanner.footerDisclaimer")}
             </p>
           </FadeIn>
         </div>
