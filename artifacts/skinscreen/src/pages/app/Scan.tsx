@@ -125,6 +125,29 @@ export default function ScanScreen() {
   const { isPremium } = useUserPlan();
   const { t } = useTranslation();
 
+  // Pull the authoritative per-user count from the server. Falls back to
+  // the localStorage estimate while loading or for anon users.
+  const refreshServerCount = () => {
+    fetch("/api/stats/scans/today", { credentials: "include" })
+      .then((r) => r.json())
+      .then(
+        (d: {
+          authenticated: boolean;
+          count: number | null;
+        }) => {
+          if (d.authenticated && typeof d.count === "number") {
+            setScansToday(d.count);
+            writeScanCount(d.count);
+          }
+        },
+      )
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshServerCount();
+  }, []);
+
   // Listen for scan completions emitted by IngredientScanner: bump daily
   // counter and capture the recent scan for the lookup-home recents list.
   useEffect(() => {
@@ -132,6 +155,10 @@ export default function ScanScreen() {
       const next = readScanCount() + 1;
       writeScanCount(next);
       setScansToday(next);
+      // Reconcile with server count after the scan finishes. The endpoint
+      // returns authoritative data for signed-in users and a no-op shape
+      // for anon users, so it's always safe to call.
+      refreshServerCount();
 
       const detail = (e as CustomEvent).detail as
         | { productName?: string; verdict?: "safe" | "warning" | "high" }
@@ -425,6 +452,28 @@ export default function ScanScreen() {
             </button>
           </div>
         </section>
+      )}
+
+      {/* Scans-today summary — sits next to the gamification chip so free
+          users always see how many scans they've done today and what the
+          daily cap is. Hidden for premium (unlimited). */}
+      {!isPremium && (
+        <div
+          className="mb-2 flex items-center justify-between text-[12px] text-muted-foreground"
+          aria-live="polite"
+        >
+          <span>
+            <span className="font-semibold text-foreground">
+              {scansToday} {scansToday === 1 ? "scan" : "scans"} today
+            </span>
+            <span> · {FREE_DAILY_LIMIT} free scans per day</span>
+          </span>
+          {overLimit ? (
+            <span className="font-semibold text-amber-700">Limit reached</span>
+          ) : (
+            <span>{remaining} left</span>
+          )}
+        </div>
       )}
 
       {/* Gamification chip */}

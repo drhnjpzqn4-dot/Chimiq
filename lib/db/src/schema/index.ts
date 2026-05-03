@@ -29,3 +29,4 @@ export * from "./recipe-edit-events";
 export * from "./gamification";
 export * from "./discover-ratings";
 export * from "./product-ratings";
+export * from "./daily-scan-counts";

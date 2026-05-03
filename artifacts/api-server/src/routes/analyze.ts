@@ -14,6 +14,13 @@ import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
 import { partitionIngredients } from "../lib/safe-ingredients.js";
 import { getRisksInList, buildMandatoryFlagsBlock } from "../lib/risky-ingredients.js";
 import { getConflicts, buildMandatoryConflictsBlock } from "../lib/conflict-pairs.js";
+import { getUserPlan } from "@workspace/db";
+import {
+  FREE_DAILY_SCAN_LIMIT,
+  claimDailyScanSlot,
+  incrementTodayScanCount,
+  releaseDailyScanSlot,
+} from "../lib/scanQuota.js";
 
 const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).optional();
 
@@ -301,6 +308,61 @@ router.post("/analyze", async (req, res) => {
     req.log.error("Anthropic integration env vars not configured");
     res.status(500).json({ error: "Analysis service is not available. Please try again later." });
     return;
+  }
+
+  // Enforce free-tier daily cap server-side. For free users the counter
+  // is claimed atomically (single SQL UPSERT-with-WHERE) so concurrent
+  // requests cannot both observe `count < limit` and slip past the cap.
+  // If the request later errors out, we release the claimed slot via the
+  // `finish` listener below so the user isn't charged a scan for a
+  // failure response. Premium users have no cap — they get a plain
+  // post-success increment.
+  const userId = req.user?.id;
+  let claimedFreeSlot = false;
+  if (userId) {
+    let plan: "free" | "premium" = "free";
+    try {
+      plan = await getUserPlan(userId);
+    } catch (err) {
+      req.log.warn({ err }, "User plan lookup failed; assuming free tier");
+    }
+
+    if (plan === "free") {
+      try {
+        const newCount = await claimDailyScanSlot(userId, FREE_DAILY_SCAN_LIMIT);
+        if (newCount === null) {
+          res.status(429).json({
+            error: `You've used all ${FREE_DAILY_SCAN_LIMIT} free scans for today. Upgrade to Premium for unlimited scans.`,
+            scansToday: FREE_DAILY_SCAN_LIMIT,
+            limit: FREE_DAILY_SCAN_LIMIT,
+          });
+          return;
+        }
+        claimedFreeSlot = true;
+      } catch (err) {
+        // Soft-fail: allow the request rather than block on a DB hiccup,
+        // and skip the rollback path since nothing was claimed.
+        req.log.warn({ err }, "Daily scan quota claim failed; allowing request");
+      }
+
+      res.on("finish", () => {
+        // Only release on non-2xx — successful responses keep the slot.
+        if (claimedFreeSlot && (res.statusCode < 200 || res.statusCode >= 300)) {
+          releaseDailyScanSlot(userId).catch((err) =>
+            req.log.warn({ err }, "Failed to release scan slot after error"),
+          );
+        }
+      });
+    } else {
+      // Premium: no cap, just count.
+      res.on("finish", () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          incrementTodayScanCount(userId).catch((err) =>
+            req.log.warn({ err }, "Failed to increment scan count"),
+          );
+        }
+      });
+    }
   }
 
   const parseResult = AnalyzeBody.safeParse(req.body);
