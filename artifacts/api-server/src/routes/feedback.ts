@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db, feedbackSubmissionsTable } from "@workspace/db";
 import { ipRateLimit } from "../lib/rateLimit.js";
 import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
+import { notifyNewFeedback } from "../lib/feedbackNotify.js";
 
 const FeedbackBody = z.object({
   message: z.string().trim().min(1).max(4000),
@@ -69,6 +70,22 @@ router.post("/feedback", feedbackIpLimit, async (req, res) => {
       { userId, locale, hasEmail: !!email },
       "Feedback submission received",
     );
+
+    // Non-blocking: fire Slack notification (or no-op when the webhook
+    // env var isn't set). Failures inside notifyNewFeedback are logged
+    // but never propagated, so the user's request always succeeds once
+    // the row is persisted.
+    notifyNewFeedback(
+      {
+        message: safeMessage,
+        email: email && email.length > 0 ? email : null,
+        locale: locale ?? null,
+        pageUrl: pageUrl ?? null,
+        userId,
+      },
+      req.log,
+    );
+
     res.json({ ok: true });
   } catch (err) {
     req.log.error({ err }, "Failed to store feedback submission");
