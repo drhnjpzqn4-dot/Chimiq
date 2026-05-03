@@ -1,8 +1,11 @@
 import { Link } from "wouter";
 import { FadeIn } from "@/components/FadeIn";
+import { useState } from "react";
 import {
   TOP_MISTAKES,
   TOP_WORRIES,
+  getDiscoverImage,
+  type DiscoverItem,
   type MistakeItem,
   type WorryItem,
 } from "@/lib/discover-content";
@@ -11,6 +14,54 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 
 const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+
+/**
+ * Square thumbnail for a Discover card. Uses the article's content-hashed
+ * image URL when available, falls back to a slug-seeded gradient on
+ * missing-asset (404) or when the article has no `image` field set, so
+ * cards never show a broken icon while images are being added.
+ */
+function DiscoverThumb({
+  item,
+  tone,
+}: {
+  item: DiscoverItem;
+  tone: "mistake" | "worry";
+}) {
+  const img = getDiscoverImage(item);
+  const [failed, setFailed] = useState(false);
+  const showImg = img.hasImage && !failed;
+
+  if (showImg) {
+    return (
+      <img
+        src={img.src}
+        alt=""
+        loading="lazy"
+        className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover bg-muted"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  // Slug-seeded hue so each article gets a stable, distinct gradient.
+  let seed = 0;
+  for (let i = 0; i < item.slug.length; i++) seed = (seed * 31 + item.slug.charCodeAt(i)) >>> 0;
+  const hue = seed % 360;
+  const grad =
+    tone === "mistake"
+      ? `linear-gradient(135deg, hsl(${hue} 70% 88%), hsl(${(hue + 40) % 360} 65% 78%))`
+      : `linear-gradient(135deg, hsl(${hue} 60% 90%), hsl(${(hue + 60) % 360} 55% 80%))`;
+  return (
+    <div
+      aria-hidden
+      className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center font-serif font-bold text-2xl text-foreground/60"
+      style={{ background: grad }}
+    >
+      {item.rank}
+    </div>
+  );
+}
 
 function MistakeCard({ item, index }: { item: MistakeItem; index: number }) {
   const { t } = useTranslation();
@@ -28,9 +79,7 @@ function MistakeCard({ item, index }: { item: MistakeItem; index: number }) {
         className="group block h-full p-5 sm:p-6 bg-white rounded-2xl border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
       >
         <div className="flex items-start gap-4">
-          <div className="shrink-0 w-10 h-10 rounded-xl bg-primary/10 text-primary font-serif font-bold text-lg flex items-center justify-center">
-            {item.rank}
-          </div>
+          <DiscoverThumb item={item} tone="mistake" />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3 mb-1.5">
               <h3 className="text-base sm:text-lg font-serif font-semibold text-foreground leading-snug">
@@ -73,9 +122,7 @@ function WorryCard({ item, index }: { item: WorryItem; index: number }) {
         className="group block h-full p-5 sm:p-6 bg-white rounded-2xl border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
       >
         <div className="flex items-start gap-4">
-          <div className="shrink-0 w-10 h-10 rounded-xl bg-primary/10 text-primary font-serif font-bold text-lg flex items-center justify-center">
-            {item.rank}
-          </div>
+          <DiscoverThumb item={item} tone="worry" />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3 mb-1.5">
               <h3 className="text-base sm:text-lg font-serif font-semibold text-foreground leading-snug">

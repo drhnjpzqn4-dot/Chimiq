@@ -3,6 +3,7 @@ import { Link, useRoute } from "wouter";
 import { FadeIn } from "@/components/FadeIn";
 import { DiscoverRating } from "@/components/DiscoverRating";
 import {
+  getDiscoverImage,
   getMistake,
   getWorry,
   SCANNER_SEED_STORAGE_KEY,
@@ -125,6 +126,8 @@ interface DetailViewProps {
 
 function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps) {
   const { t } = useTranslation();
+  const [heroFailed, setHeroFailed] = useState(false);
+  const heroImg = getDiscoverImage(item);
   const sectionLabel =
     kind === "mistakes"
       ? t("discoverDetail.topMistakes")
@@ -166,9 +169,18 @@ function DetailView({ kind, item, tagLabel, tagClass, TagIcon }: DetailViewProps
               {tagLabel}
             </span>
           </div>
-          <p className="text-lg text-muted-foreground leading-relaxed mb-10 italic">
+          <p className="text-lg text-muted-foreground leading-relaxed mb-6 italic">
             {item.hook}
           </p>
+          {heroImg.hasImage && !heroFailed && (
+            <img
+              src={heroImg.src}
+              alt=""
+              loading="lazy"
+              onError={() => setHeroFailed(true)}
+              className="w-full aspect-[16/9] object-cover rounded-2xl border border-border/60 shadow-sm mb-10"
+            />
+          )}
         </FadeIn>
 
         <FadeIn delay={0.05}>

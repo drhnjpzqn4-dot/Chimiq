@@ -94,6 +94,64 @@ export interface DiscoverItem {
   citation?: { text: string; url: string };
   solution: string[];
   cta: DiscoverCta;
+  /**
+   * Optional preview image, relative to `public/images/discover/`
+   * (e.g. `"retinol-plus-acids.jpg"`). When omitted, a generated
+   * gradient placeholder is shown. Use `getDiscoverImage()` to get a
+   * cache-busting URL — it appends a content-hash query string so the
+   * browser/CDN refetches whenever the article body changes.
+   */
+  image?: string;
+}
+
+/**
+ * Tiny stable string hash (FNV-1a 32-bit, base36). Used as a
+ * cache-buster for Discover preview images so an updated article
+ * automatically invalidates its cached thumbnail.
+ */
+function fnv1a(input: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+const DISCOVER_BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+
+export interface DiscoverImage {
+  /** Cache-busted URL safe to drop into <img src>. */
+  src: string;
+  /** Short content hash — exposed for tests / debugging. */
+  hash: string;
+  /** True iff the article opts into a real file (vs. fallback gradient). */
+  hasImage: boolean;
+}
+
+/**
+ * Returns the preview image URL for a Discover article with a content
+ * hash appended as `?v=…`. The hash covers every text field that
+ * contributes to the article's "look" (title, hook, problem, why it
+ * matters, solution steps), so any edit forces a fresh fetch.
+ */
+export function getDiscoverImage(item: DiscoverItem): DiscoverImage {
+  const payload = JSON.stringify([
+    item.title,
+    item.hook,
+    item.problem,
+    item.whyItMatters,
+    item.solution,
+  ]);
+  const hash = fnv1a(payload);
+  if (item.image) {
+    return {
+      src: `${DISCOVER_BASE}/images/discover/${item.image}?v=${hash}`,
+      hash,
+      hasImage: true,
+    };
+  }
+  return { src: "", hash, hasImage: false };
 }
 
 export interface MistakeItem extends DiscoverItem {
