@@ -642,6 +642,60 @@ const en: Dict = {
   "myRecipes.editAndResubmit": "Edit and resubmit",
   "myRecipes.viewPublic": "View public page",
   "myRecipes.editWhilePending": "Edit while pending",
+
+  // ───── #78 i18n sweep: nested components ─────
+  "contribute.back": "Back",
+  "contribute.close": "Close",
+  "contribute.productNamePlaceholder": "Product name *",
+  "contribute.brandPlaceholder": "Brand (optional)",
+  "contribute.barcodePlaceholder": "Barcode (6–14 digits) *",
+  "contribute.ingredientsPlaceholder": "Paste the full ingredient list from the back of the product…",
+  "contribute.processing": "Processing your contribution…",
+  "contribute.processingHint": "AI is reviewing the photos and ingredient list",
+  "contribute.premiumUnlocked": "Premium unlocked!",
+
+  "scanner.yourSkinType": "Your skin type",
+  "scanner.searchPlaceholder": "Search product name to auto-fill ingredients...",
+  "scanner.scanLabelPhoto": "Scan label photo",
+  "scanner.tapToSeeWhy": "Tap to see why and view the source.",
+  "scanner.selectSkinType": "Select your skin type",
+  "scanner.selectProducts": "Select products to scan",
+  "scanner.useSample": "Use a preloaded sample",
+  "scanner.useSampleHint": "Load a real-world example — then hit Analyze.",
+  "scanner.choosePopular": "Choose a popular product",
+  "scanner.choosePopularHint": "Pick from a curated list with product images.",
+  "scanner.scanOwn": "Scan your own product",
+  "scanner.scanOwnHint": "Search by name, scan a barcode, or paste the ingredient list.",
+  "scanner.analyze": "Analyze",
+  "scanner.analysing": "Analysing…",
+
+  "myShelf.addProduct": "Add a product",
+  "myShelf.searching": "Searching…",
+  "myShelf.productName": "Product name",
+  "myShelf.ingredientList": "Ingredient list",
+  "myShelf.ingredientsPlaceholder": "Paste the full ingredient list here…",
+  "myShelf.routine": "Routine",
+  "myShelf.noConflicts": "No conflicts found",
+  "myShelf.title": "My Shelf",
+  "myShelf.removeProduct": "Remove product",
+  "myShelf.downloadPdf": "Download PDF Safety Report",
+  "myShelf.downloadPdfHint": "Full routine analysis — share with your dermatologist",
+  "myShelf.morning": "Morning",
+  "myShelf.evening": "Evening",
+
+  "chatPanel.openAssistant": "Open Chimiq AI assistant",
+  "chatPanel.askChimiq": "Ask Chimiq",
+  "chatPanel.aiAssistant": "AI skincare safety assistant",
+  "chatPanel.close": "Close chat",
+  "chatPanel.placeholder": "Ask about ingredient safety...",
+
+  "derm.cityPlaceholder": "Enter city or postcode",
+  "derm.findingLocation": "Finding your location…",
+  "derm.mapTitle": "Dermatologists near you",
+
+  "barcodeScan.lookingUp": "Looking up product ingredients…",
+
+  "updateBanner.dismiss": "Dismiss update notice",
 };
 
 const sv: Dict = {
@@ -1274,6 +1328,60 @@ const sv: Dict = {
   "myRecipes.editAndResubmit": "Redigera och skicka igen",
   "myRecipes.viewPublic": "Visa publik sida",
   "myRecipes.editWhilePending": "Redigera under granskning",
+
+  // ───── #78 i18n sweep: nested components ─────
+  "contribute.back": "Tillbaka",
+  "contribute.close": "Stäng",
+  "contribute.productNamePlaceholder": "Produktnamn *",
+  "contribute.brandPlaceholder": "Märke (valfritt)",
+  "contribute.barcodePlaceholder": "Streckkod (6–14 siffror) *",
+  "contribute.ingredientsPlaceholder": "Klistra in hela ingredienslistan från produktens baksida…",
+  "contribute.processing": "Behandlar ditt bidrag…",
+  "contribute.processingHint": "AI granskar bilderna och ingredienslistan",
+  "contribute.premiumUnlocked": "Premium upplåst!",
+
+  "scanner.yourSkinType": "Din hudtyp",
+  "scanner.searchPlaceholder": "Sök produktnamn för att fylla i ingredienser...",
+  "scanner.scanLabelPhoto": "Skanna etikettfoto",
+  "scanner.tapToSeeWhy": "Tryck för att se varför och visa källan.",
+  "scanner.selectSkinType": "Välj din hudtyp",
+  "scanner.selectProducts": "Välj produkter att skanna",
+  "scanner.useSample": "Använd ett färdigt exempel",
+  "scanner.useSampleHint": "Ladda ett verkligt exempel — tryck sedan Analysera.",
+  "scanner.choosePopular": "Välj en populär produkt",
+  "scanner.choosePopularHint": "Välj från en kurerad lista med produktbilder.",
+  "scanner.scanOwn": "Skanna din egen produkt",
+  "scanner.scanOwnHint": "Sök efter namn, skanna en streckkod eller klistra in ingredienslistan.",
+  "scanner.analyze": "Analysera",
+  "scanner.analysing": "Analyserar…",
+
+  "myShelf.addProduct": "Lägg till en produkt",
+  "myShelf.searching": "Söker…",
+  "myShelf.productName": "Produktnamn",
+  "myShelf.ingredientList": "Ingredienslista",
+  "myShelf.ingredientsPlaceholder": "Klistra in hela ingredienslistan här…",
+  "myShelf.routine": "Rutin",
+  "myShelf.noConflicts": "Inga konflikter hittades",
+  "myShelf.title": "Min hylla",
+  "myShelf.removeProduct": "Ta bort produkt",
+  "myShelf.downloadPdf": "Ladda ner PDF-säkerhetsrapport",
+  "myShelf.downloadPdfHint": "Fullständig rutinanalys — dela med din hudläkare",
+  "myShelf.morning": "Morgon",
+  "myShelf.evening": "Kväll",
+
+  "chatPanel.openAssistant": "Öppna Chimiq AI-assistent",
+  "chatPanel.askChimiq": "Fråga Chimiq",
+  "chatPanel.aiAssistant": "AI-assistent för hudvårdssäkerhet",
+  "chatPanel.close": "Stäng chatt",
+  "chatPanel.placeholder": "Fråga om ingredienssäkerhet...",
+
+  "derm.cityPlaceholder": "Ange stad eller postnummer",
+  "derm.findingLocation": "Hittar din plats…",
+  "derm.mapTitle": "Hudläkare nära dig",
+
+  "barcodeScan.lookingUp": "Söker produktens ingredienser…",
+
+  "updateBanner.dismiss": "Stäng uppdateringsmeddelandet",
 };
 
 const fr: Dict = {
@@ -1896,6 +2004,60 @@ const fr: Dict = {
   "myRecipes.editAndResubmit": "Modifier et renvoyer",
   "myRecipes.viewPublic": "Voir la page publique",
   "myRecipes.editWhilePending": "Modifier pendant l'examen",
+
+  // ───── #78 i18n sweep: nested components ─────
+  "contribute.back": "Retour",
+  "contribute.close": "Fermer",
+  "contribute.productNamePlaceholder": "Nom du produit *",
+  "contribute.brandPlaceholder": "Marque (facultatif)",
+  "contribute.barcodePlaceholder": "Code-barres (6–14 chiffres) *",
+  "contribute.ingredientsPlaceholder": "Collez la liste complète des ingrédients au dos du produit…",
+  "contribute.processing": "Traitement de votre contribution…",
+  "contribute.processingHint": "L'IA examine les photos et la liste d'ingrédients",
+  "contribute.premiumUnlocked": "Premium débloqué !",
+
+  "scanner.yourSkinType": "Votre type de peau",
+  "scanner.searchPlaceholder": "Rechercher un nom de produit pour pré-remplir les ingrédients...",
+  "scanner.scanLabelPhoto": "Scanner la photo d'étiquette",
+  "scanner.tapToSeeWhy": "Touchez pour voir pourquoi et consulter la source.",
+  "scanner.selectSkinType": "Sélectionnez votre type de peau",
+  "scanner.selectProducts": "Sélectionnez les produits à scanner",
+  "scanner.useSample": "Utiliser un exemple préchargé",
+  "scanner.useSampleHint": "Chargez un exemple réel — puis touchez Analyser.",
+  "scanner.choosePopular": "Choisir un produit populaire",
+  "scanner.choosePopularHint": "Choisissez dans une liste sélectionnée avec photos.",
+  "scanner.scanOwn": "Scannez votre propre produit",
+  "scanner.scanOwnHint": "Recherchez par nom, scannez un code-barres ou collez la liste d'ingrédients.",
+  "scanner.analyze": "Analyser",
+  "scanner.analysing": "Analyse…",
+
+  "myShelf.addProduct": "Ajouter un produit",
+  "myShelf.searching": "Recherche…",
+  "myShelf.productName": "Nom du produit",
+  "myShelf.ingredientList": "Liste d'ingrédients",
+  "myShelf.ingredientsPlaceholder": "Collez la liste complète des ingrédients ici…",
+  "myShelf.routine": "Routine",
+  "myShelf.noConflicts": "Aucun conflit trouvé",
+  "myShelf.title": "Mon étagère",
+  "myShelf.removeProduct": "Retirer le produit",
+  "myShelf.downloadPdf": "Télécharger le rapport de sécurité PDF",
+  "myShelf.downloadPdfHint": "Analyse complète de la routine — partagez avec votre dermatologue",
+  "myShelf.morning": "Matin",
+  "myShelf.evening": "Soir",
+
+  "chatPanel.openAssistant": "Ouvrir l'assistant IA Chimiq",
+  "chatPanel.askChimiq": "Demander à Chimiq",
+  "chatPanel.aiAssistant": "Assistant IA pour la sécurité des soins",
+  "chatPanel.close": "Fermer le chat",
+  "chatPanel.placeholder": "Posez une question sur la sécurité des ingrédients...",
+
+  "derm.cityPlaceholder": "Entrez la ville ou le code postal",
+  "derm.findingLocation": "Recherche de votre position…",
+  "derm.mapTitle": "Dermatologues près de chez vous",
+
+  "barcodeScan.lookingUp": "Recherche des ingrédients du produit…",
+
+  "updateBanner.dismiss": "Ignorer la notification de mise à jour",
 };
 
 const DICTS: Record<Locale, Dict> = { en, sv, fr };
