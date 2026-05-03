@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { MessageSquareHeart, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { getBaseUrl } from "@/lib/base-url";
 import { trackEvent } from "@/lib/analytics";
 
 const STATE_KEY = "skinscreen.feedbackPrompt.v1";
+const SESSION_COUNT_KEY = "skinscreen.feedbackPrompt.sessionCount";
+const SESSION_FLAG_KEY = "skinscreen.feedbackPrompt.sessionStarted";
 const DELAY_MS = 60_000;
 const SUPPRESS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -12,6 +15,32 @@ interface PersistedState {
   shownAt?: number;
   dismissedAt?: number;
   actedAt?: number;
+  engagedAt?: number;
+}
+
+function markEngaged() {
+  const fresh = readState();
+  if (fresh.engagedAt) return;
+  writeState({ ...fresh, engagedAt: Date.now() });
+}
+
+function isReturningSession(): boolean {
+  try {
+    if (sessionStorage.getItem(SESSION_FLAG_KEY)) {
+      const count = parseInt(
+        localStorage.getItem(SESSION_COUNT_KEY) ?? "0",
+        10,
+      );
+      return Number.isFinite(count) && count >= 2;
+    }
+    sessionStorage.setItem(SESSION_FLAG_KEY, "1");
+    const prev = parseInt(localStorage.getItem(SESSION_COUNT_KEY) ?? "0", 10);
+    const next = (Number.isFinite(prev) ? prev : 0) + 1;
+    localStorage.setItem(SESSION_COUNT_KEY, String(next));
+    return next >= 2;
+  } catch {
+    return false;
+  }
 }
 
 function readState(): PersistedState {
@@ -49,27 +78,67 @@ type Mode = "intro" | "form" | "thanks";
 
 export function FeedbackPrompt() {
   const { t, locale } = useTranslation();
+  const [location] = useLocation();
   const [visible, setVisible] = useState(false);
   const [mode, setMode] = useState<Mode>("intro");
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [delayElapsed, setDelayElapsed] = useState(false);
+  const [engaged, setEngaged] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return !!readState().engagedAt;
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (shouldSuppress(readState())) return;
 
+    if (isReturningSession()) {
+      markEngaged();
+      setEngaged(true);
+    }
+
+    const onScan = () => {
+      markEngaged();
+      setEngaged(true);
+    };
+    window.addEventListener(
+      "skinscreen:scan-completed",
+      onScan as EventListener,
+    );
+
     const timer = window.setTimeout(() => {
-      const fresh = readState();
-      if (shouldSuppress(fresh)) return;
-      writeState({ ...fresh, shownAt: Date.now() });
-      setVisible(true);
-      trackEvent("feedback_prompt_shown");
+      setDelayElapsed(true);
     }, DELAY_MS);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(
+        "skinscreen:scan-completed",
+        onScan as EventListener,
+      );
+    };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (engaged) return;
+    if (location.startsWith("/app/discover")) {
+      markEngaged();
+      setEngaged(true);
+    }
+  }, [location, engaged]);
+
+  useEffect(() => {
+    if (!delayElapsed || !engaged || visible) return;
+    const fresh = readState();
+    if (shouldSuppress(fresh)) return;
+    writeState({ ...fresh, shownAt: Date.now() });
+    setVisible(true);
+    trackEvent("feedback_prompt_shown");
+  }, [delayElapsed, engaged, visible]);
 
   if (!visible) return null;
 
