@@ -5,6 +5,14 @@ Store Connect) and `.aab` (Play Console internal testing track) on a developer
 machine. After this, day-to-day rebuilds are just `pnpm build:mobile` + an
 Xcode archive / `npm run build:android`.
 
+> **Android automation**: After the one-time keystore step below, every
+> subsequent `.aab` is built automatically by GitHub Actions on `v*`
+> tag pushes. See [`.github/workflows/README.md`](../../.github/workflows/README.md)
+> for the required secrets (`ANDROID_KEYSTORE_BASE64` etc.) and how to
+> trigger a build. The local `npm run build:android` flow below is still
+> the authoritative reference and is what the CI workflow executes
+> internally.
+
 > The Replit container cannot run Xcode or the Android SDK, so every step
 > below must be executed on a developer machine. macOS 14+ with Xcode 15+ is
 > required for iOS; Android can be built on macOS / Linux / Windows.

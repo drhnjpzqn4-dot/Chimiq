@@ -2,6 +2,19 @@
 
 The store listings need real device screenshots. Capture them on the **demo account** (see `reviewer-notes.md`) so the shelf and scan history look populated.
 
+## Quickest path: scripted capture
+
+```bash
+DEMO_EMAIL=review@chimiq.com DEMO_PASSWORD='chimiq-review-2026' \
+  node artifacts/skinscreen/store/screenshots/capture.mjs
+```
+
+`capture.mjs` logs in as the demo account, renders all 5 screens at the App Store / Play Store viewports, and writes PNGs into `ios/iphone-6.7/`, `ios/iphone-6.5/`, and `android/phone/`. See `HOLD.md` for the full why-and-how.
+
+The Simulator / Emulator workflow below is still the gold standard for marketing-quality shots and is preferred when a Mac is available.
+
+---
+
 ## iOS — App Store Connect requires
 
 Two device classes are mandatory; the rest are optional but improve listing quality.
