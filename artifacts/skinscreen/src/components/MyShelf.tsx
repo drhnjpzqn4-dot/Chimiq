@@ -21,6 +21,7 @@ import { FadeIn } from "@/components/FadeIn";
 import { cn } from "@/lib/utils";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useTranslation } from "@/lib/i18n";
+import { trackEvent } from "@/lib/analytics";
 
 type RoutineSlot = "morning" | "evening" | "both";
 
@@ -70,8 +71,13 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
     await addMutation.mutateAsync({
       data: { productName: productName.trim(), ingredients: ingredients.trim(), routineSlot },
     });
+    trackEvent("product_save", {
+      product_name: productName.trim(),
+      routine_slot: routineSlot,
+      entry_mode: mode,
+    });
     onAdded();
-  }, [productName, ingredients, routineSlot, addMutation, onAdded]);
+  }, [productName, ingredients, routineSlot, addMutation, onAdded, mode]);
 
   return (
     <div className="bg-white rounded-2xl border border-border/60 shadow-lg p-6">

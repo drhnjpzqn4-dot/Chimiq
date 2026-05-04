@@ -271,6 +271,22 @@ Both are `VITE_`-prefixed so they're inlined at build time. Both values
 are public-by-design (visible in the browser to anyone who inspects),
 so no secret leakage concerns.
 
+**Custom events tracked** (via `trackEvent()` from `src/lib/analytics.ts`):
+- `sign_up_complete` — fires once when a user returns authenticated after
+  clicking a **signup** CTA (not login). Uses a `sessionStorage` flag set
+  in `Signup.tsx` and consumed in `AppPage.tsx`. Also fires Meta standard
+  `CompleteRegistration` event. Params: `method`.
+- `login_complete` — fires once when a returning user completes **login**
+  (not new signup). Same sessionStorage mechanism. Params: `method`.
+- `scan_complete` — fires on every successful ingredient scan (single or
+  compare mode). Emitted from `emitScanCompleted()` in
+  `IngredientScanner.tsx`. Params: `scan_mode`, `product_name`, `verdict`.
+- `product_save` — fires when a user adds a product to their shelf via
+  `AddProductForm` in `MyShelf.tsx`. Params: `product_name`,
+  `routine_slot`, `entry_mode`.
+- `signup_page_view` / `signup_cta_click` — pre-existing events on the
+  signup page.
+
 **Files:**
 - `src/lib/cookie-consent.ts` — versioned localStorage record, three
   categories (necessary always-on, analytics, marketing), reopen event.

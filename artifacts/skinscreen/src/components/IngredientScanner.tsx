@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/FadeIn";
 import { StepHeader, VerdictCard } from "@/components/scanner/ScannerStep";
 import { useTranslation } from "@/lib/i18n";
+import { trackEvent } from "@/lib/analytics";
 import {
   Loader2,
   FlaskConical,
@@ -1006,6 +1007,11 @@ export function IngredientScanner({
     extra?: { productName?: string; verdict?: "safe" | "warning" | "high" },
   ) => {
     if (typeof window === "undefined") return;
+    trackEvent("scan_complete", {
+      scan_mode: kind,
+      product_name: extra?.productName,
+      verdict: extra?.verdict,
+    });
     window.dispatchEvent(
       new CustomEvent("skinscreen:scan-completed", {
         detail: { kind, ...extra },

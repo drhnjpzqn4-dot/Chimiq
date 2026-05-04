@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ChatPanelLauncher } from "@/components/ChatPanelLauncher";
+import { trackEvent, trackMetaStandard } from "@/lib/analytics";
 
 const ScanScreen = lazy(() => import("@/pages/app/Scan"));
 const ShelfScreen = lazy(() => import("@/pages/app/Shelf"));
@@ -32,6 +33,20 @@ export default function AppPage() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/signup?next=" + encodeURIComponent("/app/scan"), { replace: true });
+    }
+    if (!isLoading && isAuthenticated) {
+      try {
+        const pending = sessionStorage.getItem("skinscreen.signup_pending");
+        if (pending) {
+          sessionStorage.removeItem("skinscreen.signup_pending");
+          if (pending === "signup") {
+            trackEvent("sign_up_complete", { method: "replit" });
+            trackMetaStandard("CompleteRegistration", { method: "replit" });
+          } else {
+            trackEvent("login_complete", { method: "replit" });
+          }
+        }
+      } catch {}
     }
   }, [isLoading, isAuthenticated, navigate]);
 

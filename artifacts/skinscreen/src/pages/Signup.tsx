@@ -59,6 +59,9 @@ export default function Signup() {
 
   const triggerSignup = (source: string) => {
     trackEvent("signup_cta_click", { source, mode: isLoginMode ? "login" : "signup" });
+    try {
+      sessionStorage.setItem("skinscreen.signup_pending", isLoginMode ? "login" : "signup");
+    } catch {}
     requestLogin(next);
   };
 
