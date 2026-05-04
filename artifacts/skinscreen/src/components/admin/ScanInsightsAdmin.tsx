@@ -6,9 +6,19 @@ import {
   AlertTriangle,
   ShieldAlert,
   BarChart3,
+  CalendarDays,
+  X,
 } from "lucide-react";
+import { format, subDays, startOfDay } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type VerdictFilter = "all" | "safe" | "warning" | "high";
+type DatePreset = "7d" | "30d" | "90d" | "custom" | "all";
 
 interface ProductRow {
   productName: string;
@@ -38,6 +48,32 @@ const VERDICT_TABS: { value: VerdictFilter; label: string }[] = [
   { value: "high", label: "High risk" },
 ];
 
+const DATE_PRESETS: { value: DatePreset; label: string }[] = [
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
+  { value: "all", label: "All time" },
+];
+
+function presetToRange(preset: DatePreset): { from: Date | undefined; to: Date | undefined } {
+  const now = new Date();
+  switch (preset) {
+    case "7d":
+      return { from: startOfDay(subDays(now, 7)), to: now };
+    case "30d":
+      return { from: startOfDay(subDays(now, 30)), to: now };
+    case "90d":
+      return { from: startOfDay(subDays(now, 90)), to: now };
+    default:
+      return { from: undefined, to: undefined };
+  }
+}
+
+function formatDateParam(d: Date | undefined): string | undefined {
+  if (!d) return undefined;
+  return format(d, "yyyy-MM-dd");
+}
+
 function verdictBadge(verdict: VerdictFilter) {
   switch (verdict) {
     case "safe":
@@ -60,6 +96,19 @@ export function ScanInsightsAdmin() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>(undefined);
+  const [customTo, setCustomTo] = useState<Date | undefined>(undefined);
+  const [fromPopoverOpen, setFromPopoverOpen] = useState(false);
+  const [toPopoverOpen, setToPopoverOpen] = useState(false);
+
+  const dateRange = useMemo(() => {
+    if (datePreset === "custom") {
+      return { from: customFrom, to: customTo };
+    }
+    return presetToRange(datePreset);
+  }, [datePreset, customFrom, customTo]);
+
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchInput.trim().toLowerCase()), 300);
     return () => clearTimeout(t);
@@ -70,6 +119,11 @@ export function ScanInsightsAdmin() {
     setError(null);
     try {
       const params = new URLSearchParams({ verdict: verdictFilter, limit: "100" });
+      const fromStr = formatDateParam(dateRange.from);
+      const toStr = formatDateParam(dateRange.to);
+      if (fromStr) params.set("from", fromStr);
+      if (toStr) params.set("to", toStr);
+
       const res = await fetch(`/api/admin/scan-insights?${params.toString()}`, {
         credentials: "include",
       });
@@ -85,7 +139,7 @@ export function ScanInsightsAdmin() {
       setError("Network error loading scan insights.");
     }
     setLoading(false);
-  }, [verdictFilter]);
+  }, [verdictFilter, dateRange.from, dateRange.to]);
 
   useEffect(() => {
     fetchInsights();
@@ -104,6 +158,45 @@ export function ScanInsightsAdmin() {
     [filtered],
   );
 
+  function handlePresetClick(preset: DatePreset) {
+    setDatePreset(preset);
+    if (preset !== "custom") {
+      setCustomFrom(undefined);
+      setCustomTo(undefined);
+    }
+  }
+
+  function handleCustomFromSelect(day: Date | undefined) {
+    setCustomFrom(day);
+    setDatePreset("custom");
+    setFromPopoverOpen(false);
+  }
+
+  function handleCustomToSelect(day: Date | undefined) {
+    setCustomTo(day);
+    setDatePreset("custom");
+    setToPopoverOpen(false);
+  }
+
+  function clearCustomDate(which: "from" | "to") {
+    if (which === "from") setCustomFrom(undefined);
+    else setCustomTo(undefined);
+    if (
+      (which === "from" && !customTo) ||
+      (which === "to" && !customFrom)
+    ) {
+      setDatePreset("all");
+    }
+  }
+
+  const dateLabel = useMemo(() => {
+    if (datePreset !== "custom") return null;
+    const parts: string[] = [];
+    if (customFrom) parts.push(`from ${format(customFrom, "MMM d, yyyy")}`);
+    if (customTo) parts.push(`to ${format(customTo, "MMM d, yyyy")}`);
+    return parts.length > 0 ? parts.join(" ") : null;
+  }, [datePreset, customFrom, customTo]);
+
   return (
     <section aria-labelledby="scan-insights-heading">
       <div className="mb-6">
@@ -116,6 +209,111 @@ export function ScanInsightsAdmin() {
         <p className="text-sm text-muted-foreground">
           See which products are scanned most and which trigger safety warnings.
         </p>
+      </div>
+
+      <div className="mb-5 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+          {DATE_PRESETS.map((p) => {
+            const active = datePreset === p.value;
+            return (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => handlePresetClick(p.value)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  active
+                    ? "bg-primary text-white border-primary"
+                    : "bg-white text-muted-foreground border-border/60 hover:border-primary/40 hover:text-foreground"
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Popover open={fromPopoverOpen} onOpenChange={setFromPopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors ${
+                  customFrom
+                    ? "bg-primary/5 border-primary/30 text-foreground"
+                    : "bg-white border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                {customFrom ? format(customFrom, "MMM d, yyyy") : "From date"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={customFrom}
+                onSelect={handleCustomFromSelect}
+                disabled={{ after: customTo || new Date() }}
+                defaultMonth={customFrom || new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {customFrom && (
+            <button
+              type="button"
+              onClick={() => clearCustomDate("from")}
+              className="p-1 rounded-full hover:bg-muted text-muted-foreground"
+              aria-label="Clear from date"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          <span className="text-xs text-muted-foreground">–</span>
+
+          <Popover open={toPopoverOpen} onOpenChange={setToPopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors ${
+                  customTo
+                    ? "bg-primary/5 border-primary/30 text-foreground"
+                    : "bg-white border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                {customTo ? format(customTo, "MMM d, yyyy") : "To date"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={customTo}
+                onSelect={handleCustomToSelect}
+                disabled={{ before: customFrom, after: new Date() }}
+                defaultMonth={customTo || customFrom || new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {customTo && (
+            <button
+              type="button"
+              onClick={() => clearCustomDate("to")}
+              className="p-1 rounded-full hover:bg-muted text-muted-foreground"
+              aria-label="Clear to date"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {datePreset === "custom" && dateLabel && (
+          <p className="text-xs text-muted-foreground pl-0.5">
+            Showing results {dateLabel}
+          </p>
+        )}
       </div>
 
       {data?.summary && (
