@@ -49,6 +49,7 @@ The project is structured as a pnpm monorepo with distinct `artifacts` for deplo
 - Includes setup for CORS, cookie parsing, authentication middleware, and JSON/urlencoded parsing.
 - Authentication implemented with OIDC config, session management, and specific auth routes.
 - Bundles an allowlist of dependencies with esbuild.
+- **Admin email config**: `SUPER_ADMIN_EMAIL` env var (defaults to `pia@chimiq.com`). Exported from `src/lib/admin.ts` and used by `testerPromoAlert.ts` and tests. Frontend contact email uses `VITE_CONTACT_EMAIL` (same default).
 
 ## Database Layer (`@workspace/db`):
 - Drizzle ORM with PostgreSQL.

@@ -1,10 +1,14 @@
 /**
  * Single source of truth for "is this request the super admin?".
  *
- * Admin access is locked to one human: pia@chimiq.com. Configuration
- * lives in the `ADMIN_EMAILS` env var (comma-separated, normalized to
- * lowercase) but is **strictly validated** against the hardcoded super
- * admin baseline:
+ * The super admin email is read from the `SUPER_ADMIN_EMAIL` env var
+ * (defaults to "pia@chimiq.com" when unset). The frontend contact
+ * form uses a parallel `VITE_CONTACT_EMAIL` env var (same default);
+ * update both when the domain changes.
+ *
+ * Configuration also lives in the `ADMIN_EMAILS` env var
+ * (comma-separated, normalized to lowercase) but is **strictly
+ * validated** against the super admin baseline:
  *
  *   - If ADMIN_EMAILS is unset/empty → admin = [SUPER_ADMIN_EMAIL].
  *   - If every entry in ADMIN_EMAILS normalizes to SUPER_ADMIN_EMAIL →
@@ -15,7 +19,9 @@
  *     loud, observable failure mode (admin pages 403) rather than a
  *     silent privilege escalation.
  */
-const SUPER_ADMIN_EMAIL = "pia@chimiq.com";
+export const SUPER_ADMIN_EMAIL = (
+  process.env.SUPER_ADMIN_EMAIL ?? "pia@chimiq.com"
+).trim().toLowerCase();
 
 let warnedOnce = false;
 

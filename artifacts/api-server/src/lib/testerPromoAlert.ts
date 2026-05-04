@@ -8,6 +8,7 @@ import {
   fetchPromoFromStripe,
   parseAlertedThresholds,
 } from "./testerPromo";
+import { SUPER_ADMIN_EMAIL } from "./admin";
 
 // Thresholds (percent of cap consumed) at which Pia gets a heads-up.
 // Each threshold fires at most once per active promotion code — when a
@@ -30,9 +31,6 @@ const ALERT_THRESHOLDS = [80, 100] as const;
 // enough to keep Stripe API calls negligible, short enough that Pia gets
 // the alert well before the cap is exhausted at typical signup rates.
 const CHECK_INTERVAL_MS = 15 * 60 * 1000;
-
-// Default recipient. Overridable via `TESTER_PROMO_ALERT_TO` for staging.
-const DEFAULT_TO = "pia@chimiq.com";
 
 interface SendGridCreds {
   apiKey: string;
@@ -81,7 +79,7 @@ async function sendAlertEmail(args: {
   log: Logger;
 }): Promise<boolean> {
   const { threshold, code, timesRedeemed, maxRedemptions, remaining, log } = args;
-  const to = process.env.TESTER_PROMO_ALERT_TO || DEFAULT_TO;
+  const to = process.env.TESTER_PROMO_ALERT_TO || SUPER_ADMIN_EMAIL;
 
   const creds = await getSendGridCredentials();
   if (!creds) {

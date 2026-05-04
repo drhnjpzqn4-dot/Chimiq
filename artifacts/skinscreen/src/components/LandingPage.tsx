@@ -148,7 +148,8 @@ function ContactFooterForm() {
     e.preventDefault();
     const subject = encodeURIComponent(t("footer.contactSubject"));
     const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`);
-    window.location.href = `mailto:pia@chimiq.com?subject=${subject}&body=${body}`;
+    const contactEmail = import.meta.env.VITE_CONTACT_EMAIL || "pia@chimiq.com";
+    window.location.href = `mailto:${contactEmail}?subject=${subject}&body=${body}`;
     setSubmitted(true);
     setName(""); setEmail(""); setMessage("");
   };
