@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { format, subDays, startOfDay } from "date-fns";
+import { ScanTrendChart } from "./ScanTrendChart";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -336,6 +337,11 @@ export function ScanInsightsAdmin() {
           />
         </div>
       )}
+
+      <ScanTrendChart
+        from={formatDateParam(dateRange.from)}
+        to={formatDateParam(dateRange.to)}
+      />
 
       <div className="mb-4 space-y-3">
         <div className="flex flex-wrap items-center gap-2">

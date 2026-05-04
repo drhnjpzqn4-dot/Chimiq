@@ -138,4 +138,61 @@ router.get("/admin/scan-insights", async (req, res) => {
   }
 });
 
+router.get("/admin/scan-insights/timeseries", async (req, res) => {
+  if (!isRequestAdmin(req)) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  const from = typeof req.query.from === "string" ? req.query.from : undefined;
+  const to = typeof req.query.to === "string" ? req.query.to : undefined;
+
+  try {
+    const conditions = [];
+
+    if (from) {
+      const fromDate = new Date(from);
+      if (!isNaN(fromDate.getTime())) {
+        conditions.push(gte(scanEventsTable.createdAt, fromDate));
+      }
+    }
+
+    if (to) {
+      const toDate = new Date(to);
+      if (!isNaN(toDate.getTime())) {
+        toDate.setHours(23, 59, 59, 999);
+        conditions.push(lte(scanEventsTable.createdAt, toDate));
+      }
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const rows = await db
+      .select({
+        date: sql<string>`to_char(${scanEventsTable.createdAt}::date, 'YYYY-MM-DD')`.as("date"),
+        total: sql<number>`count(*)`.as("total"),
+        safe: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'safe')`.as("safe"),
+        warning: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'warning')`.as("warning"),
+        high: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'high')`.as("high"),
+      })
+      .from(scanEventsTable)
+      .where(whereClause)
+      .groupBy(sql`${scanEventsTable.createdAt}::date`)
+      .orderBy(sql`${scanEventsTable.createdAt}::date`);
+
+    res.json({
+      series: rows.map((r) => ({
+        date: r.date,
+        total: Number(r.total),
+        safe: Number(r.safe),
+        warning: Number(r.warning),
+        high: Number(r.high),
+      })),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to load scan timeseries");
+    res.status(500).json({ error: "Failed to load scan timeseries." });
+  }
+});
+
 export default router;
