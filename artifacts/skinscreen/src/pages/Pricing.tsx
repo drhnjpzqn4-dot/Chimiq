@@ -151,6 +151,13 @@ export default function Pricing() {
               </div>
               <button
                 onClick={() => {
+                  trackEvent("checkout_recovery_click");
+                  fetch(`${getBaseUrl()}api/checkout-recovery`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ action: "click" }),
+                  }).catch(() => {});
                   setShowCancelledBanner(false);
                   handleUpgrade();
                 }}
@@ -159,7 +166,16 @@ export default function Pricing() {
                 {t("checkoutCancelled.cta")}
               </button>
               <button
-                onClick={() => setShowCancelledBanner(false)}
+                onClick={() => {
+                  trackEvent("checkout_recovery_dismissed");
+                  fetch(`${getBaseUrl()}api/checkout-recovery`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ action: "dismissed" }),
+                  }).catch(() => {});
+                  setShowCancelledBanner(false);
+                }}
                 aria-label={t("checkoutCancelled.dismiss")}
                 className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 transition-colors"
               >

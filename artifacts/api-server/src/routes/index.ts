@@ -26,6 +26,7 @@ import feedbackRouter from "./feedback";
 import scanEventsRouter from "./scan-events";
 import adminFunnelRouter from "./admin-funnel";
 import checkoutAbandonmentRouter from "./checkout-abandonment";
+import checkoutRecoveryRouter from "./checkout-recovery";
 
 const router: IRouter = Router();
 
@@ -56,5 +57,6 @@ router.use(feedbackRouter);
 router.use(scanEventsRouter);
 router.use(adminFunnelRouter);
 router.use(checkoutAbandonmentRouter);
+router.use(checkoutRecoveryRouter);
 
 export default router;

@@ -7,9 +7,10 @@ import {
   shelfProductsTable,
   checkoutEventsTable,
   checkoutAbandonmentEventsTable,
+  checkoutRecoveryEventsTable,
   subscriptionEventsTable,
 } from "@workspace/db";
-import { sql, and, gte, count, countDistinct } from "drizzle-orm";
+import { sql, and, gte, eq, count, countDistinct } from "drizzle-orm";
 import { isRequestAdmin } from "../lib/admin";
 
 const router: IRouter = Router();
@@ -44,7 +45,7 @@ router.get("/admin/funnel", async (req, res) => {
   const since = periodToDate(period);
 
   try {
-    const [signups, scans, shelfSaves, checkouts, checkoutAbandoned, subscriptions] =
+    const [signups, scans, shelfSaves, checkouts, checkoutAbandoned, recoveryClicks, recoveryDismissals, subscriptions] =
       await Promise.all([
         db
           .select({ count: count() })
@@ -81,6 +82,26 @@ router.get("/admin/funnel", async (req, res) => {
           ),
 
         db
+          .select({ count: countDistinct(checkoutRecoveryEventsTable.userId) })
+          .from(checkoutRecoveryEventsTable)
+          .where(
+            and(
+              eq(checkoutRecoveryEventsTable.action, "click"),
+              since ? gte(checkoutRecoveryEventsTable.createdAt, since) : sql`true`,
+            ),
+          ),
+
+        db
+          .select({ count: countDistinct(checkoutRecoveryEventsTable.userId) })
+          .from(checkoutRecoveryEventsTable)
+          .where(
+            and(
+              eq(checkoutRecoveryEventsTable.action, "dismissed"),
+              since ? gte(checkoutRecoveryEventsTable.createdAt, since) : sql`true`,
+            ),
+          ),
+
+        db
           .select({ count: countDistinct(subscriptionEventsTable.userId) })
           .from(subscriptionEventsTable)
           .where(
@@ -99,6 +120,8 @@ router.get("/admin/funnel", async (req, res) => {
       { key: "shelfSaves", label: "Shelf saves", count: Number(shelfSaves[0]?.count ?? 0) },
       { key: "checkouts", label: "Checkout starts", count: Number(checkouts[0]?.count ?? 0) },
       { key: "checkoutAbandoned", label: "Checkout abandoned", count: Number(checkoutAbandoned[0]?.count ?? 0) },
+      { key: "recoveryClicks", label: "Recovery clicks", count: Number(recoveryClicks[0]?.count ?? 0) },
+      { key: "recoveryDismissals", label: "Recovery dismissed", count: Number(recoveryDismissals[0]?.count ?? 0) },
       {
         key: "subscriptions",
         label: "Subscriptions",
@@ -107,16 +130,19 @@ router.get("/admin/funnel", async (req, res) => {
     ];
 
     const checkoutsIdx = steps.findIndex((s) => s.key === "checkouts");
+    const abandonedIdx = steps.findIndex((s) => s.key === "checkoutAbandoned");
+
+    const branchFromCheckouts = new Set(["checkoutAbandoned", "recoveryClicks", "recoveryDismissals", "subscriptions"]);
 
     const funnel = steps.map((step, i) => {
-      const prevStep =
-        step.key === "checkoutAbandoned" || step.key === "subscriptions"
-          ? checkoutsIdx >= 0
-            ? steps[checkoutsIdx]
-            : steps[i - 1]
-          : i === 0
-            ? step
-            : steps[i - 1];
+      let prevStep: typeof step;
+      if (step.key === "recoveryClicks" || step.key === "recoveryDismissals") {
+        prevStep = abandonedIdx >= 0 ? steps[abandonedIdx] : (checkoutsIdx >= 0 ? steps[checkoutsIdx] : steps[i - 1]);
+      } else if (branchFromCheckouts.has(step.key)) {
+        prevStep = checkoutsIdx >= 0 ? steps[checkoutsIdx] : steps[i - 1];
+      } else {
+        prevStep = i === 0 ? step : steps[i - 1];
+      }
       const prev = prevStep.count;
       const rate = prev > 0 ? step.count / prev : 0;
       const overallRate = steps[0].count > 0 ? step.count / steps[0].count : 0;
@@ -162,7 +188,7 @@ router.get("/admin/funnel/trend", async (req, res) => {
     const sinceFilter = (col: Parameters<typeof gte>[0]) =>
       since ? gte(col, since) : sql`true`;
 
-    const [signupRows, scanRows, shelfRows, checkoutRows, abandonedRows, subRows] =
+    const [signupRows, scanRows, shelfRows, checkoutRows, abandonedRows, recoveryClickRows, recoveryDismissalRows, subRows] =
       await Promise.all([
         db
           .select({
@@ -221,6 +247,36 @@ router.get("/admin/funnel/trend", async (req, res) => {
 
         db
           .select({
+            date: bucket(checkoutRecoveryEventsTable.createdAt).as("date"),
+            count: countDistinct(checkoutRecoveryEventsTable.userId),
+          })
+          .from(checkoutRecoveryEventsTable)
+          .where(
+            and(
+              eq(checkoutRecoveryEventsTable.action, "click"),
+              sinceFilter(checkoutRecoveryEventsTable.createdAt),
+            ),
+          )
+          .groupBy(bucketGroup(checkoutRecoveryEventsTable.createdAt))
+          .orderBy(bucketGroup(checkoutRecoveryEventsTable.createdAt)),
+
+        db
+          .select({
+            date: bucket(checkoutRecoveryEventsTable.createdAt).as("date"),
+            count: countDistinct(checkoutRecoveryEventsTable.userId),
+          })
+          .from(checkoutRecoveryEventsTable)
+          .where(
+            and(
+              eq(checkoutRecoveryEventsTable.action, "dismissed"),
+              sinceFilter(checkoutRecoveryEventsTable.createdAt),
+            ),
+          )
+          .groupBy(bucketGroup(checkoutRecoveryEventsTable.createdAt))
+          .orderBy(bucketGroup(checkoutRecoveryEventsTable.createdAt)),
+
+        db
+          .select({
             date: bucket(subscriptionEventsTable.createdAt).as("date"),
             count: countDistinct(subscriptionEventsTable.userId),
           })
@@ -235,8 +291,8 @@ router.get("/admin/funnel/trend", async (req, res) => {
           .orderBy(bucketGroup(subscriptionEventsTable.createdAt)),
       ]);
 
-    type BucketCounts = { signups: number; scans: number; shelfSaves: number; checkouts: number; checkoutAbandoned: number; subscriptions: number };
-    const emptyBucket = (): BucketCounts => ({ signups: 0, scans: 0, shelfSaves: 0, checkouts: 0, checkoutAbandoned: 0, subscriptions: 0 });
+    type BucketCounts = { signups: number; scans: number; shelfSaves: number; checkouts: number; checkoutAbandoned: number; recoveryClicks: number; recoveryDismissals: number; subscriptions: number };
+    const emptyBucket = (): BucketCounts => ({ signups: 0, scans: 0, shelfSaves: 0, checkouts: 0, checkoutAbandoned: 0, recoveryClicks: 0, recoveryDismissals: 0, subscriptions: 0 });
 
     const dateMap = new Map<string, BucketCounts>();
 
@@ -252,6 +308,8 @@ router.get("/admin/funnel/trend", async (req, res) => {
     for (const row of shelfRows) ensureDate(String(row.date)).shelfSaves = Number(row.count);
     for (const row of checkoutRows) ensureDate(String(row.date)).checkouts = Number(row.count);
     for (const row of abandonedRows) ensureDate(String(row.date)).checkoutAbandoned = Number(row.count);
+    for (const row of recoveryClickRows) ensureDate(String(row.date)).recoveryClicks = Number(row.count);
+    for (const row of recoveryDismissalRows) ensureDate(String(row.date)).recoveryDismissals = Number(row.count);
     for (const row of subRows) ensureDate(String(row.date)).subscriptions = Number(row.count);
 
     const observedDates = Array.from(dateMap.keys()).sort();

@@ -9,6 +9,8 @@ import {
   ShoppingBag,
   CreditCard,
   UserX,
+  RefreshCw,
+  XCircle,
   Crown,
   TrendingDown,
   ArrowRight,
@@ -45,6 +47,8 @@ const STEP_ICONS: Record<string, typeof Users> = {
   shelfSaves: ShoppingBag,
   checkouts: CreditCard,
   checkoutAbandoned: UserX,
+  recoveryClicks: RefreshCw,
+  recoveryDismissals: XCircle,
   subscriptions: Crown,
 };
 
@@ -54,6 +58,8 @@ const STEP_COLORS: Record<string, string> = {
   shelfSaves: "#a855f7",
   checkouts: "#d946ef",
   checkoutAbandoned: "#ef4444",
+  recoveryClicks: "#f59e0b",
+  recoveryDismissals: "#f97316",
   subscriptions: "#22c55e",
 };
 
@@ -184,14 +190,23 @@ function AdminFunnelPageInner() {
           </div>
         ) : data ? (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
               {data.funnel.map((step) => {
                 const Icon = STEP_ICONS[step.key] ?? Users;
                 const color = STEP_COLORS[step.key] ?? "#6366f1";
                 return (
                   <div
                     key={step.key}
-                    className="bg-white rounded-2xl border border-border/60 p-4"
+                    className={`bg-white rounded-2xl border p-4 ${
+                      step.key === "recoveryClicks" || step.key === "recoveryDismissals"
+                        ? "border-l-2 border-border/60"
+                        : "border-border/60"
+                    }`}
+                    style={
+                      step.key === "recoveryClicks" || step.key === "recoveryDismissals"
+                        ? { borderLeftColor: color }
+                        : undefined
+                    }
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <div
@@ -200,9 +215,16 @@ function AdminFunnelPageInner() {
                       >
                         <Icon className="w-4 h-4" style={{ color }} />
                       </div>
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold leading-tight">
-                        {step.label}
-                      </p>
+                      <div>
+                        {(step.key === "recoveryClicks" || step.key === "recoveryDismissals") && (
+                          <p className="text-[9px] text-muted-foreground/60 uppercase tracking-wide font-medium leading-none mb-0.5">
+                            ↳ of abandoned
+                          </p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold leading-tight">
+                          {step.label}
+                        </p>
+                      </div>
                     </div>
                     <p className="text-2xl font-serif font-semibold text-foreground tabular-nums">
                       {step.count.toLocaleString()}
@@ -231,10 +253,14 @@ function AdminFunnelPageInner() {
                     3,
                     (step.count / maxCount) * 100,
                   );
+                  const isRecoveryBranch = step.key === "recoveryClicks" || step.key === "recoveryDismissals";
                   return (
                     <div key={step.key}>
-                      <div className="flex items-center gap-3">
+                      <div className={`flex items-center gap-3 ${isRecoveryBranch ? "ml-6 sm:ml-8" : ""}`}>
                         <div className="w-28 sm:w-36 shrink-0 flex items-center gap-2">
+                          {isRecoveryBranch && (
+                            <span className="text-muted-foreground/40 text-xs mr-0.5">↳</span>
+                          )}
                           <Icon
                             className="w-4 h-4 shrink-0"
                             style={{ color }}
@@ -268,12 +294,16 @@ function AdminFunnelPageInner() {
                       </div>
                       {i < data.funnel.length - 1 && (() => {
                         const next = data.funnel[i + 1];
-                        const isBranch = next.key === "checkoutAbandoned" || next.key === "subscriptions";
+                        const isBranch = next.key === "checkoutAbandoned" || next.key === "recoveryClicks" || next.key === "recoveryDismissals" || next.key === "subscriptions";
                         const label = next.key === "checkoutAbandoned"
                           ? `${next.conversionFromPrev}% abandoned`
-                          : next.key === "subscriptions" && step.key === "checkoutAbandoned"
-                            ? `${next.conversionFromPrev}% of checkouts subscribed`
-                            : `${next.conversionFromPrev}% convert`;
+                          : next.key === "recoveryClicks"
+                            ? `${next.conversionFromPrev}% clicked recovery`
+                            : next.key === "recoveryDismissals"
+                              ? `${next.conversionFromPrev}% dismissed`
+                              : next.key === "subscriptions" && (step.key === "checkoutAbandoned" || step.key === "recoveryDismissals")
+                                ? `${next.conversionFromPrev}% of checkouts subscribed`
+                                : `${next.conversionFromPrev}% convert`;
                         return (
                           <div className="flex items-center gap-3 my-1">
                             <div className="w-28 sm:w-36 shrink-0" />
@@ -319,12 +349,15 @@ function AdminFunnelPageInner() {
                   <tbody>
                     {data.funnel.map((step, i) => {
                       const checkoutsStep = data.funnel.find((s) => s.key === "checkouts");
+                      const abandonedStep = data.funnel.find((s) => s.key === "checkoutAbandoned");
                       const prevCount =
-                        step.key === "checkoutAbandoned" || step.key === "subscriptions"
-                          ? checkoutsStep?.count ?? (i === 0 ? step.count : data.funnel[i - 1].count)
-                          : i === 0
-                            ? step.count
-                            : data.funnel[i - 1].count;
+                        step.key === "recoveryClicks" || step.key === "recoveryDismissals"
+                          ? abandonedStep?.count ?? checkoutsStep?.count ?? (i === 0 ? step.count : data.funnel[i - 1].count)
+                          : step.key === "checkoutAbandoned" || step.key === "subscriptions"
+                            ? checkoutsStep?.count ?? (i === 0 ? step.count : data.funnel[i - 1].count)
+                            : i === 0
+                              ? step.count
+                              : data.funnel[i - 1].count;
                       const dropOff = prevCount - step.count;
                       const color = STEP_COLORS[step.key] ?? "#6366f1";
                       return (
@@ -334,6 +367,9 @@ function AdminFunnelPageInner() {
                         >
                           <td className="px-6 py-3">
                             <div className="flex items-center gap-2">
+                              {(step.key === "recoveryClicks" || step.key === "recoveryDismissals") && (
+                                <span className="text-muted-foreground/40 text-xs">↳</span>
+                              )}
                               <div
                                 className="w-2 h-2 rounded-full shrink-0"
                                 style={{ backgroundColor: color }}
@@ -349,11 +385,16 @@ function AdminFunnelPageInner() {
                           <td className="px-6 py-3 text-right tabular-nums text-muted-foreground">
                             {i === 0 ? "—" : (
                               <span title={
-                                step.key === "checkoutAbandoned" || step.key === "subscriptions"
-                                  ? "% of checkout starts"
-                                  : "% of previous step"
+                                step.key === "recoveryClicks" || step.key === "recoveryDismissals"
+                                  ? "% of abandoned"
+                                  : step.key === "checkoutAbandoned" || step.key === "subscriptions"
+                                    ? "% of checkout starts"
+                                    : "% of previous step"
                               }>
                                 {step.conversionFromPrev}%
+                                {(step.key === "recoveryClicks" || step.key === "recoveryDismissals") && (
+                                  <span className="text-[10px] text-muted-foreground/60 block">of abandoned</span>
+                                )}
                                 {(step.key === "checkoutAbandoned" || step.key === "subscriptions") && (
                                   <span className="text-[10px] text-muted-foreground/60 block">of checkouts</span>
                                 )}

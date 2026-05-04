@@ -22,6 +22,8 @@ interface TrendPoint {
   shelfSaves: number;
   checkouts: number;
   checkoutAbandoned: number;
+  recoveryClicks: number;
+  recoveryDismissals: number;
   subscriptions: number;
 }
 
@@ -29,7 +31,7 @@ interface FunnelTrendChartProps {
   period: string;
 }
 
-const STEP_KEYS = ["signups", "scans", "shelfSaves", "checkouts", "checkoutAbandoned", "subscriptions"] as const;
+const STEP_KEYS = ["signups", "scans", "shelfSaves", "checkouts", "checkoutAbandoned", "recoveryClicks", "recoveryDismissals", "subscriptions"] as const;
 
 const chartConfig: ChartConfig = {
   signups: { label: "Sign-ups", color: "#6366f1" },
@@ -37,6 +39,8 @@ const chartConfig: ChartConfig = {
   shelfSaves: { label: "Shelf saves", color: "#a855f7" },
   checkouts: { label: "Checkouts", color: "#d946ef" },
   checkoutAbandoned: { label: "Abandoned", color: "#ef4444" },
+  recoveryClicks: { label: "Recovery clicks", color: "#f59e0b" },
+  recoveryDismissals: { label: "Recovery dismissed", color: "#f97316" },
   subscriptions: { label: "Subscriptions", color: "#22c55e" },
 };
 
