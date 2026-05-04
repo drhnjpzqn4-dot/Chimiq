@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
+import { FunnelTrendChart } from "@/components/admin/FunnelTrendChart";
 
 type Period = "7d" | "30d" | "90d" | "all";
 
@@ -212,6 +213,8 @@ function AdminFunnelPageInner() {
                 );
               })}
             </div>
+
+            <FunnelTrendChart period={period} />
 
             <div className="bg-white rounded-2xl border border-border/60 p-6 mb-8">
               <h2 className="text-lg font-serif font-semibold text-foreground mb-6">
