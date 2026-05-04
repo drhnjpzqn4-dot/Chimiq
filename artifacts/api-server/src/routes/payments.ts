@@ -164,7 +164,7 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
       // runs first, then the promo discount applies on the first paid cycle.
       allow_promotion_codes: true,
       success_url: `${baseUrl}/?upgraded=true`,
-      cancel_url: `${baseUrl}/pricing`,
+      cancel_url: `${baseUrl}/pricing?checkout_cancelled=true`,
       metadata: { userId: user.id, plan },
       ...(eligible
         ? {

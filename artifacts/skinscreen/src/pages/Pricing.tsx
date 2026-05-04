@@ -32,6 +32,28 @@ export default function Pricing() {
     setStoredBillingPreference(billing);
   }, [billing]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout_cancelled") === "true") {
+      let meta: { plan_type?: string; source?: string } = {};
+      try {
+        const raw = localStorage.getItem("skinscreen.checkout_meta");
+        if (raw) {
+          meta = JSON.parse(raw) as { plan_type?: string; source?: string };
+        }
+      } catch {}
+      try { localStorage.removeItem("skinscreen.checkout_meta"); } catch {}
+      trackEvent("checkout_abandoned", {
+        plan_type: meta.plan_type ?? "unknown",
+        source: meta.source ?? "unknown",
+      });
+      params.delete("checkout_cancelled");
+      const qs = params.toString();
+      const cleanUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }, []);
+
   const FREE_FEATURES = useMemo(() => getFreeFeatures(t), [t]);
   const PREMIUM_FEATURES = useMemo(
     () => getPremiumFeatures(t).map((label) => ({ label })),
