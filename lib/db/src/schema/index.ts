@@ -36,4 +36,5 @@ export * from "./feedback-submissions";
 export * from "./tester-promo-changes";
 export * from "./scan-events";
 export * from "./checkout-events";
+export * from "./checkout-abandonment-events";
 export * from "./subscription-events";

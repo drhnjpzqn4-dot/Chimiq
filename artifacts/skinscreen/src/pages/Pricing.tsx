@@ -48,6 +48,15 @@ export default function Pricing() {
         plan_type: meta.plan_type ?? "unknown",
         source: meta.source ?? "unknown",
       });
+      fetch(`${getBaseUrl()}api/checkout-abandonment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          planType: meta.plan_type ?? "unknown",
+          source: meta.source ?? "unknown",
+        }),
+      }).catch(() => {});
       setShowCancelledBanner(true);
       params.delete("checkout_cancelled");
       const qs = params.toString();

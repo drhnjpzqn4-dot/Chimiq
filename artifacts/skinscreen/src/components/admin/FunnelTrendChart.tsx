@@ -21,6 +21,7 @@ interface TrendPoint {
   scans: number;
   shelfSaves: number;
   checkouts: number;
+  checkoutAbandoned: number;
   subscriptions: number;
 }
 
@@ -28,13 +29,14 @@ interface FunnelTrendChartProps {
   period: string;
 }
 
-const STEP_KEYS = ["signups", "scans", "shelfSaves", "checkouts", "subscriptions"] as const;
+const STEP_KEYS = ["signups", "scans", "shelfSaves", "checkouts", "checkoutAbandoned", "subscriptions"] as const;
 
 const chartConfig: ChartConfig = {
   signups: { label: "Sign-ups", color: "#6366f1" },
   scans: { label: "Scans", color: "#8b5cf6" },
   shelfSaves: { label: "Shelf saves", color: "#a855f7" },
   checkouts: { label: "Checkouts", color: "#d946ef" },
+  checkoutAbandoned: { label: "Abandoned", color: "#ef4444" },
   subscriptions: { label: "Subscriptions", color: "#22c55e" },
 };
 

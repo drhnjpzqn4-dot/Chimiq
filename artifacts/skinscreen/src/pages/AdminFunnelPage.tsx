@@ -8,6 +8,7 @@ import {
   ScanLine,
   ShoppingBag,
   CreditCard,
+  UserX,
   Crown,
   TrendingDown,
   ArrowRight,
@@ -43,6 +44,7 @@ const STEP_ICONS: Record<string, typeof Users> = {
   scans: ScanLine,
   shelfSaves: ShoppingBag,
   checkouts: CreditCard,
+  checkoutAbandoned: UserX,
   subscriptions: Crown,
 };
 
@@ -51,6 +53,7 @@ const STEP_COLORS: Record<string, string> = {
   scans: "#8b5cf6",
   shelfSaves: "#a855f7",
   checkouts: "#d946ef",
+  checkoutAbandoned: "#ef4444",
   subscriptions: "#22c55e",
 };
 
@@ -181,7 +184,7 @@ function AdminFunnelPageInner() {
           </div>
         ) : data ? (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
               {data.funnel.map((step) => {
                 const Icon = STEP_ICONS[step.key] ?? Users;
                 const color = STEP_COLORS[step.key] ?? "#6366f1";
@@ -263,19 +266,25 @@ function AdminFunnelPageInner() {
                           </span>
                         </div>
                       </div>
-                      {i < data.funnel.length - 1 && (
-                        <div className="flex items-center gap-3 my-1">
-                          <div className="w-28 sm:w-36 shrink-0" />
-                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                            <TrendingDown className="w-3 h-3" />
-                            <span>
-                              {data.funnel[i + 1].conversionFromPrev}%
-                              convert
-                            </span>
-                            <ArrowRight className="w-3 h-3" />
+                      {i < data.funnel.length - 1 && (() => {
+                        const next = data.funnel[i + 1];
+                        const isBranch = next.key === "checkoutAbandoned" || next.key === "subscriptions";
+                        const label = next.key === "checkoutAbandoned"
+                          ? `${next.conversionFromPrev}% abandoned`
+                          : next.key === "subscriptions" && step.key === "checkoutAbandoned"
+                            ? `${next.conversionFromPrev}% of checkouts subscribed`
+                            : `${next.conversionFromPrev}% convert`;
+                        return (
+                          <div className="flex items-center gap-3 my-1">
+                            <div className="w-28 sm:w-36 shrink-0" />
+                            <div className={`flex items-center gap-1.5 text-[11px] ${isBranch ? "text-muted-foreground/70" : "text-muted-foreground"}`}>
+                              <TrendingDown className="w-3 h-3" />
+                              <span>{label}</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -309,9 +318,14 @@ function AdminFunnelPageInner() {
                   </thead>
                   <tbody>
                     {data.funnel.map((step, i) => {
-                      const prev =
-                        i === 0 ? step.count : data.funnel[i - 1].count;
-                      const dropOff = prev - step.count;
+                      const checkoutsStep = data.funnel.find((s) => s.key === "checkouts");
+                      const prevCount =
+                        step.key === "checkoutAbandoned" || step.key === "subscriptions"
+                          ? checkoutsStep?.count ?? (i === 0 ? step.count : data.funnel[i - 1].count)
+                          : i === 0
+                            ? step.count
+                            : data.funnel[i - 1].count;
+                      const dropOff = prevCount - step.count;
                       const color = STEP_COLORS[step.key] ?? "#6366f1";
                       return (
                         <tr
@@ -333,7 +347,18 @@ function AdminFunnelPageInner() {
                             {step.count.toLocaleString()}
                           </td>
                           <td className="px-6 py-3 text-right tabular-nums text-muted-foreground">
-                            {i === 0 ? "—" : `${step.conversionFromPrev}%`}
+                            {i === 0 ? "—" : (
+                              <span title={
+                                step.key === "checkoutAbandoned" || step.key === "subscriptions"
+                                  ? "% of checkout starts"
+                                  : "% of previous step"
+                              }>
+                                {step.conversionFromPrev}%
+                                {(step.key === "checkoutAbandoned" || step.key === "subscriptions") && (
+                                  <span className="text-[10px] text-muted-foreground/60 block">of checkouts</span>
+                                )}
+                              </span>
+                            )}
                           </td>
                           <td className="px-6 py-3 text-right tabular-nums text-muted-foreground">
                             {i === 0 ? "—" : `${step.conversionFromTop}%`}
