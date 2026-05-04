@@ -3,6 +3,7 @@ import { Switch, Route, Redirect, useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
 import { ChatPanelLauncher } from "@/components/ChatPanelLauncher";
 import { trackEvent, trackMetaStandard } from "@/lib/analytics";
+import { useUserPlan } from "@/hooks/useUserPlan";
 
 const ScanScreen = lazy(() => import("@/pages/app/Scan"));
 const ShelfScreen = lazy(() => import("@/pages/app/Shelf"));
@@ -28,6 +29,7 @@ function AppRouteFallback() {
 
 export default function AppPage() {
   const { isLoading, isAuthenticated } = useAuth();
+  const { isPremium } = useUserPlan();
   const [, navigate] = useLocation();
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function AppPage() {
           <Route component={() => <Redirect to="/app/scan" />} />
         </Switch>
       </Suspense>
-      <ChatPanelLauncher />
+      {isPremium && <ChatPanelLauncher />}
     </>
   );
 }

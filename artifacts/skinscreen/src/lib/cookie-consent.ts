@@ -68,12 +68,23 @@ export function saveCookieConsent(
     } catch {
       // storage may be unavailable (private browsing) — proceed regardless
     }
+    try {
+      window.sessionStorage.setItem(SESSION_DISMISS_KEY, "1");
+    } catch {}
   }
   return record;
 }
 
+const SESSION_DISMISS_KEY = "chimiq.cookie.dismissed";
+
 export function hasMadeCookieChoice(): boolean {
-  return getStoredCookieConsent() !== null;
+  if (getStoredCookieConsent() !== null) return true;
+  if (typeof window !== "undefined") {
+    try {
+      if (window.sessionStorage.getItem(SESSION_DISMISS_KEY)) return true;
+    } catch {}
+  }
+  return false;
 }
 
 export function getCategoryConsent(category: ConsentCategory): boolean {

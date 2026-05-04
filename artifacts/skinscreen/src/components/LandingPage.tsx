@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
-import { ChatPanelLauncher } from "@/components/ChatPanelLauncher";
+
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { FadeIn } from "@/components/FadeIn";
 import { DangerCard } from "@/components/DangerCard";
@@ -1190,8 +1190,6 @@ export function LandingPage({ config }: LandingPageProps) {
           </div>
         </div>
       </footer>
-      {/* FLOATING AI CHAT */}
-      <ChatPanelLauncher />
     </main>
   );
 }
