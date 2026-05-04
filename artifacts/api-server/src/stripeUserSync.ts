@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import type { Logger } from "pino";
 import { eq, or } from "drizzle-orm";
-import { db, usersTable, paymentTestChargesTable } from "@workspace/db";
+import { db, usersTable, paymentTestChargesTable, subscriptionEventsTable } from "@workspace/db";
 
 /**
  * Apply a (already-verified) Stripe webhook event to our internal user state.
@@ -50,6 +50,21 @@ export async function applyStripeEventToUser(
           ...(customerId ? { stripeCustomerId: customerId } : {}),
         })
         .where(eq(usersTable.id, userId));
+
+      if (subscriptionId && customerId) {
+        try {
+          await db.insert(subscriptionEventsTable).values({
+            userId,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            status: "active",
+            eventType: "checkout.session.completed",
+          });
+        } catch (err) {
+          log.warn({ err, userId }, "Failed to record subscription event from checkout");
+        }
+      }
+
       log.info(
         { userId, subscriptionId, customerId },
         "Upgraded user to premium after successful checkout",
@@ -87,6 +102,27 @@ export async function applyStripeEventToUser(
               },
         )
         .where(eq(usersTable.stripeCustomerId, customerId));
+
+      if (isActive) {
+        const [user] = await db
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(eq(usersTable.stripeCustomerId, customerId));
+        if (user) {
+          try {
+            await db.insert(subscriptionEventsTable).values({
+              userId: user.id,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: sub.id,
+              status: sub.status,
+              eventType: event.type,
+            });
+          } catch (err) {
+            log.warn({ err, customerId }, "Failed to record subscription event");
+          }
+        }
+      }
+
       log.info(
         { customerId, subscriptionId: sub.id, status: sub.status, isActive },
         "Synced subscription status to user.plan",

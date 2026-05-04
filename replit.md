@@ -102,7 +102,10 @@ The project is structured as a pnpm monorepo with distinct `artifacts` for deplo
     - `scan_complete`: On every successful ingredient scan (also persisted server-side to `scan_events` table via `POST /api/scan-events`).
     - `product_save`: When adding a product to the shelf.
     - `signup_page_view`, `signup_cta_click`: Pre-existing signup events.
+- `checkout_start`: When starting a Stripe checkout (also persisted server-side to `checkout_events` table via `POST /payments/checkout`).
+- `subscription_activated`: Subscription activations are tracked server-side in the `subscription_events` table, populated by `stripeUserSync.ts` from Stripe webhook events (`checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`).
 - **Scan Insights Admin Panel**: `ScanInsightsAdmin` component on the admin page shows top scanned products by count, filterable by verdict (safe/warning/high). Data from `scan_events` table aggregated via `GET /api/admin/scan-insights`.
+- **Conversion Funnel Admin Dashboard**: `AdminFunnelPage` at `/admin/funnel` shows a 5-step conversion funnel (sign-ups → scans → shelf saves → checkout starts → subscriptions). Filterable by time period (7d, 30d, 90d, all). Data from `GET /api/admin/funnel` aggregating `users`, `scan_events`, `shelf_products`, `checkout_events`, `subscription_events` tables. Includes stat cards, bar visualization, and step-by-step breakdown table with conversion rates and drop-off counts.
 - **Implementation**: `src/lib/cookie-consent.ts` (versioned localStorage, categories), `src/lib/analytics.ts` (idempotent loaders, helpers), `src/components/CookieBanner.tsx` (UI). Privacy Policy section 1.5 documents categories.
 
 # External Dependencies

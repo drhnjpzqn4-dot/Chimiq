@@ -313,6 +313,12 @@ function AdminRecipesPageInner() {
             >
               Products →
             </a>
+            <a
+              href={base + "/admin/funnel"}
+              className="text-xs text-muted-foreground hover:text-foreground hidden sm:inline"
+            >
+              Funnel →
+            </a>
             <span className="flex items-center gap-1.5 text-xs font-medium text-primary px-3 py-1.5 rounded-full bg-primary/10">
               <ShieldCheck className="w-3.5 h-3.5" />
               Admin

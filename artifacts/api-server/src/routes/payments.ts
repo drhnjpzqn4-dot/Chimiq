@@ -4,6 +4,7 @@ import {
   usersTable,
   getUserPlan,
   paymentTestChargesTable,
+  checkoutEventsTable,
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient";
@@ -179,6 +180,16 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
           }
         : {}),
     });
+
+    try {
+      await db.insert(checkoutEventsTable).values({
+        userId: user.id,
+        planType: plan,
+        source: "checkout",
+      });
+    } catch (insertErr) {
+      req.log.warn({ err: insertErr }, "Failed to record checkout event");
+    }
 
     res.json({ url: session.url });
   } catch (err) {
