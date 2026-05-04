@@ -13,6 +13,7 @@ import {
 import { DiscoverRatingsAdmin } from "@/components/admin/DiscoverRatingsAdmin";
 import { FeedbackAdmin } from "@/components/admin/FeedbackAdmin";
 import { TesterPromoAdmin } from "@/components/admin/TesterPromoAdmin";
+import { ScanInsightsAdmin } from "@/components/admin/ScanInsightsAdmin";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 
 interface Submission {
@@ -276,6 +277,8 @@ function AdminPageInner() {
         <FeedbackAdmin />
 
         <DiscoverRatingsAdmin />
+
+        <ScanInsightsAdmin />
 
         <div>
           <div className="mb-6">

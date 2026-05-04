@@ -34,3 +34,4 @@ export * from "./legal-consents";
 export * from "./payment-test-charges";
 export * from "./feedback-submissions";
 export * from "./tester-promo-changes";
+export * from "./scan-events";

@@ -1012,6 +1012,18 @@ export function IngredientScanner({
       product_name: extra?.productName,
       verdict: extra?.verdict,
     });
+    if (extra?.verdict) {
+      fetch("/api/scan-events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          productName: extra.productName,
+          verdict: extra.verdict,
+          scanMode: kind,
+        }),
+      }).catch(() => {});
+    }
     window.dispatchEvent(
       new CustomEvent("skinscreen:scan-completed", {
         detail: { kind, ...extra },

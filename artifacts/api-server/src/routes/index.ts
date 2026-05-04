@@ -23,6 +23,7 @@ import ingredientsRouter from "./ingredients";
 import adminUsersRouter from "./admin-users";
 import adminTesterPromoRouter from "./admin-tester-promo";
 import feedbackRouter from "./feedback";
+import scanEventsRouter from "./scan-events";
 
 const router: IRouter = Router();
 
@@ -50,5 +51,6 @@ router.use(ingredientsRouter);
 router.use(adminUsersRouter);
 router.use(adminTesterPromoRouter);
 router.use(feedbackRouter);
+router.use(scanEventsRouter);
 
 export default router;

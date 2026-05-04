@@ -99,9 +99,10 @@ The project is structured as a pnpm monorepo with distinct `artifacts` for deplo
 - **Custom Events Tracked**:
     - `sign_up_complete`: On successful signup.
     - `login_complete`: On successful login.
-    - `scan_complete`: On every successful ingredient scan.
+    - `scan_complete`: On every successful ingredient scan (also persisted server-side to `scan_events` table via `POST /api/scan-events`).
     - `product_save`: When adding a product to the shelf.
     - `signup_page_view`, `signup_cta_click`: Pre-existing signup events.
+- **Scan Insights Admin Panel**: `ScanInsightsAdmin` component on the admin page shows top scanned products by count, filterable by verdict (safe/warning/high). Data from `scan_events` table aggregated via `GET /api/admin/scan-insights`.
 - **Implementation**: `src/lib/cookie-consent.ts` (versioned localStorage, categories), `src/lib/analytics.ts` (idempotent loaders, helpers), `src/components/CookieBanner.tsx` (UI). Privacy Policy section 1.5 documents categories.
 
 # External Dependencies
