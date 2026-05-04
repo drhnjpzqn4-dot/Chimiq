@@ -44,6 +44,21 @@ export function FunnelTrendChart({ period }: FunnelTrendChartProps) {
   const [series, setSeries] = useState<TrendPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
+
+  const toggleKey = useCallback((key: string) => {
+    setHiddenKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        const visibleCount = STEP_KEYS.length - next.size;
+        if (visibleCount <= 1) return prev;
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
 
   const fetchTrend = useCallback(async () => {
     setLoading(true);
@@ -159,30 +174,41 @@ export function FunnelTrendChart({ period }: FunnelTrendChartProps) {
               />
             }
           />
-          {STEP_KEYS.map((key) => (
-            <Line
-              key={key}
-              type="monotone"
-              dataKey={key}
-              stroke={chartConfig[key].color}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
-          ))}
+          {STEP_KEYS.map((key) =>
+            hiddenKeys.has(key) ? null : (
+              <Line
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stroke={chartConfig[key].color}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            ),
+          )}
         </LineChart>
       </ChartContainer>
 
       <div className="flex items-center justify-center gap-4 mt-3 text-xs flex-wrap">
-        {STEP_KEYS.map((key) => (
-          <span key={key} className="inline-flex items-center gap-1.5">
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: chartConfig[key].color }}
-            />
-            {chartConfig[key].label}
-          </span>
-        ))}
+        {STEP_KEYS.map((key) => {
+          const hidden = hiddenKeys.has(key);
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => toggleKey(key)}
+              className={`inline-flex items-center gap-1.5 transition-opacity ${hidden ? "opacity-35 line-through" : "opacity-100"}`}
+              title={hidden ? `Show ${chartConfig[key].label}` : `Hide ${chartConfig[key].label}`}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: chartConfig[key].color }}
+              />
+              {chartConfig[key].label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
