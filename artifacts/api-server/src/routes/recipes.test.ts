@@ -204,9 +204,9 @@ const verdict = {
   modelVersion: "test-model",
 };
 
-// Admin access is hardcoded to pia@seafari.se in lib/admin.ts (super
+// Admin access is hardcoded to pia@chimiq.com in lib/admin.ts (super
 // admin lock). Tests authenticate as her to exercise admin-only paths.
-const ADMIN_EMAIL = "pia@seafari.se";
+const ADMIN_EMAIL = "pia@chimiq.com";
 
 beforeEach(() => {
   state.selectResults = [];

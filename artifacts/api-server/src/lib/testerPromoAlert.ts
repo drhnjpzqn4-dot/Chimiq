@@ -32,7 +32,7 @@ const ALERT_THRESHOLDS = [80, 100] as const;
 const CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 // Default recipient. Overridable via `TESTER_PROMO_ALERT_TO` for staging.
-const DEFAULT_TO = "pia@seafari.se";
+const DEFAULT_TO = "pia@chimiq.com";
 
 interface SendGridCreds {
   apiKey: string;

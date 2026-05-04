@@ -1,7 +1,7 @@
 /**
  * Single source of truth for "is this request the super admin?".
  *
- * Admin access is locked to one human: pia@seafari.se. Configuration
+ * Admin access is locked to one human: pia@chimiq.com. Configuration
  * lives in the `ADMIN_EMAILS` env var (comma-separated, normalized to
  * lowercase) but is **strictly validated** against the hardcoded super
  * admin baseline:
@@ -15,7 +15,7 @@
  *     loud, observable failure mode (admin pages 403) rather than a
  *     silent privilege escalation.
  */
-const SUPER_ADMIN_EMAIL = "pia@seafari.se";
+const SUPER_ADMIN_EMAIL = "pia@chimiq.com";
 
 let warnedOnce = false;
 
