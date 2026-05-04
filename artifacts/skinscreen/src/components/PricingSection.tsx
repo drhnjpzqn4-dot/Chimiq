@@ -11,6 +11,7 @@ import {
   getStoredBillingPreference,
   setStoredBillingPreference,
 } from "@/lib/billing-preference";
+import { trackEvent } from "@/lib/analytics";
 
 export function PricingSection() {
   const [, navigate] = useLocation();
@@ -48,6 +49,10 @@ export function PricingSection() {
       }
       const data = (await res.json()) as { url?: string; error?: string };
       if (data.url) {
+        trackEvent("checkout_start", { plan_type: billing, source: "pricing_section" });
+        try {
+          localStorage.setItem("skinscreen.checkout_meta", JSON.stringify({ plan_type: billing, source: "pricing_section" }));
+        } catch {}
         window.location.href = data.url;
       } else {
         setError(data.error ?? t("pricing.errorGenericShort"));

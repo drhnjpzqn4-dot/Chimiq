@@ -1,298 +1,121 @@
-# Workspace
+# Overview
 
-## Overview
+This project is a pnpm workspace monorepo utilizing TypeScript, designed for building and deploying a comprehensive web application. The core purpose is to provide a platform with an Express API server, a database layer using PostgreSQL and Drizzle ORM, and various shared libraries and utilities. The project emphasizes a structured approach to development, leveraging monorepo benefits for shared code and consistent tooling.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+# User Preferences
 
-## Stack
+The user wants the entire project mirrored to GitHub for double-save safety.
+- **GitHub Repository**: `https://github.com/drhnjpzqn4-dot/Chimiq` (branch `main`).
+- **Push Command**: `git --no-optional-locks push "https://x-access-token:${GITHUB_TOKEN}@github.com/drhnjpzqn4-dot/Chimiq.git" master:main`
+- **Automatic Push Conditions**:
+    - After every `mark_task_complete` that produces commits.
+    - After any direct commit made outside the task workflow.
+- **On-Demand Push**: If the user explicitly says "push".
+- **Skip Push Conditions**:
+    - No new commits since the last push.
+    - Push fails due to GitHub being down (note and retry next time).
+- **Important Notes**:
+    - Local branch is `master`, GitHub default is `main`; always push `master:main`.
+    - Do not try to configure a credential helper; use the inline URL form for authentication.
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+# System Architecture
 
-## Structure
+The project is structured as a pnpm monorepo with distinct `artifacts` for deployable applications and `lib` for shared libraries. TypeScript is used throughout, with composite projects configured for efficient type-checking and dependency management.
 
-```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
-```
+## Technical Stack:
+- **Monorepo**: pnpm workspaces
+- **Node.js**: 24
+- **TypeScript**: 5.9
+- **API**: Express 5
+- **Database**: PostgreSQL with Drizzle ORM
+- **Validation**: Zod (v4), drizzle-zod
+- **API Codegen**: Orval (from OpenAPI spec)
+- **Bundler**: esbuild (CJS bundle)
 
-## TypeScript & Composite Projects
+## Project Structure:
+- `artifacts/`: Deployable applications (e.g., `api-server`).
+- `lib/`: Shared libraries (e.g., `api-spec`, `api-client-react`, `api-zod`, `db`).
+- `scripts/`: Utility scripts.
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+## TypeScript and Composite Projects:
+- All packages extend `tsconfig.base.json` with `composite: true`.
+- Root `tsconfig.json` lists all packages as project references.
+- Type-checking is performed from the root using `pnpm run typecheck` (`tsc --build --emitDeclarationOnly`) to ensure correct cross-package import resolution.
+- Only `.d.ts` files are emitted during type-checking; esbuild handles actual JS bundling.
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## API Server (`@workspace/api-server`):
+- Express 5 server.
+- Routes in `src/routes/` use `@workspace/api-zod` for validation and `@workspace/db` for persistence.
+- Includes setup for CORS, cookie parsing, authentication middleware, and JSON/urlencoded parsing.
+- Authentication implemented with OIDC config, session management, and specific auth routes.
+- Bundles an allowlist of dependencies with esbuild.
 
-## Root Scripts
+## Database Layer (`@workspace/db`):
+- Drizzle ORM with PostgreSQL.
+- Exports a Drizzle client and schema models.
+- Schema definitions include `drizzle-zod` insert schemas.
+- Migrations are handled by Replit for production, `drizzle-kit` for development (`push` or `push-force`). Explicit SQL migrations are applied in filename order.
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
-- `pnpm run build:mobile` — builds the SkinScreen web bundle for the Capacitor wrapper. Follow with `cd mobile/capacitor && npm run sync`. See `MOBILE.md`.
+## API Specification and Codegen (`@workspace/api-spec`):
+- Manages `openapi.yaml` and `orval.config.ts`.
+- Generates React Query hooks and a fetch client into `lib/api-client-react/src/generated/`.
+- Generates Zod schemas into `lib/api-zod/src/generated/`.
 
-## Mobile (iOS + Android)
+## Generated Zod Schemas (`@workspace/api-zod`):
+- Contains Zod schemas generated from the OpenAPI spec, used for request and response validation in `api-server`.
 
-SkinScreen is shipped to the App Store and Play Store as a **reader-app Capacitor wrapper**:
+## Generated API Client (`@workspace/api-client-react`):
+- Provides React Query hooks and a fetch client generated from the OpenAPI spec.
 
-- `mobile/capacitor/` — Capacitor 6 wrapper (NOT in pnpm workspace; bootstrap with `npm install` on a dev machine).
-- `artifacts/skinscreen/src/lib/native.ts` — runtime `isNative()` adapter; dynamically imports `@capacitor/*` only when running inside the native shell. The web build is unaffected.
-- `artifacts/skinscreen/src/hooks/useNativeAuthDeepLink.ts` — listens for `appUrlOpen` and routes the `skinscreen://auth/callback` deep link back into wouter.
-- `artifacts/skinscreen/store/` — store-submission kit: 1024 icon master, 2732 splash master (light + dark), English + Swedish listings, App Privacy / Data Safety doc, App Review notes with reviewer demo account.
-- `MOBILE.md` — top-level mobile build guide.
+## Replit Authentication (`@workspace/replit-auth-web`):
+- Browser-side helper for Replit Auth, providing `useAuth()` hook for user authentication status, login, and logout functionalities.
+- Redirects to `/api/login` for OIDC flow and `/api/logout`.
 
-All Premium subscriptions remain web-only (Stripe). The native shell reads entitlement via `/api/payments/status` and contains no IAP.
+## OpenAI Integration (`@workspace/integrations-openai-ai-server`):
+- Pre-configured OpenAI SDK client using Replit AI Integration credentials.
+- Used by the API server's `/api/analyze` route for ingredient conflict analysis, specifically `gpt-5.2` with JSON object response format.
 
-## Packages
+## Utility Scripts (`@workspace/scripts`):
+- A package for miscellaneous utility scripts, run via pnpm.
+- Example: `refresh:obf-images` script to re-resolve Open Beauty Facts image URLs.
 
-### `artifacts/api-server` (`@workspace/api-server`)
+## UI/UX and Feature Specifications:
+- **SkinScreen Mobile Integration**: Capacitor wrapper for iOS and Android. Runtime `isNative()` adapter and deep link handling for authentication.
+- **Tap-an-ingredient drawer**: Displays cached CosIng + PubChem data using a Radix bottom sheet.
+- **Product ratings**: 1–5 star ratings stored in `product_ratings` table, with eligibility based on scanned barcode or shelf presence. Rate limits applied per IP and per user.
+- **Product contribution**: `PATCH /api/products/:barcode/contribute` allows additive patching of `cached_products` and inserts into `user_submitted_products`. Photo uploads use base64 to GCS.
+- **Discover ratings rate limit**: Implemented per-IP and per-voter limits for `POST /api/discover/ratings`.
+- **Sanitization audit**: Ensures all user-text routes pass through dedicated sanitization functions.
+- **Discover scanner pre-fills**: CTA payloads carry `seed` data for pre-filling scanner with single or compare modes. Seeds for alternatives CTAs are designed with flagged ingredients.
+- **Marketing page OG previews**: `scripts/build-og.mjs` generates per-page share previews for marketing routes, including PNGs and static HTML with meta tags for bots.
+- **Discover→scanner pre-fill contract test**: Vitest tests ensure data-shape contract for discover CTAs and scanner seeds.
+- **Full Swedish coverage**: Comprehensive i18n support for EN/SV/FR across marketing and in-app pages, driven by `src/lib/i18n.tsx`. Locale resolution prioritizes URL param, then local storage, browser language, and finally English.
+- **Legal pages and Consent Gate**: Added `/legal/privacy`, `/legal/terms`, `/legal/medical-disclaimer` pages with full i18n. A `ConsentGateProvider` intercepts sign-in CTAs with a required-checkbox modal, persisting acceptance in `localStorage` and forcing re-acceptance on `TERMS_VERSION` bump.
+- **PWA icons**: Regenerated icons for various sizes and maskable formats from `public/images/logo-chimiq-long.png`.
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+## Web Analytics (chimiq.com only):
+- GDPR-compliant analytics stack; scripts load only after user opts in via cookie banner.
+- **Environment Variables**: `VITE_GA_MEASUREMENT_ID` for Google Analytics 4, `VITE_META_PIXEL_ID` for Meta (Facebook) Pixel.
+- **Custom Events Tracked**:
+    - `sign_up_complete`: On successful signup.
+    - `login_complete`: On successful login.
+    - `scan_complete`: On every successful ingredient scan.
+    - `product_save`: When adding a product to the shelf.
+    - `signup_page_view`, `signup_cta_click`: Pre-existing signup events.
+- **Implementation**: `src/lib/cookie-consent.ts` (versioned localStorage, categories), `src/lib/analytics.ts` (idempotent loaders, helpers), `src/components/CookieBanner.tsx` (UI). Privacy Policy section 1.5 documents categories.
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS (credentials:true), cookieParser, authMiddleware, JSON/urlencoded parsing, routes at `/api`
-- Auth: `src/lib/auth.ts` (OIDC config, session CRUD), `src/middlewares/authMiddleware.ts` (patches req.user + req.isAuthenticated()), `src/routes/auth.ts` (login/callback/logout/mobile-auth)
-- Routes: `src/routes/index.ts` mounts sub-routers; includes shelf, auth, analyze, scan-label, product-lookup, suggest-alternatives
-- Depends on: `@workspace/db`, `@workspace/api-zod`, `openid-client`, `cookie-parser`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+# External Dependencies
 
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-Explicit SQL migrations (e.g. destructive drops that drizzle-kit would otherwise prompt about) live in `lib/db/migrations/*.sql` and are applied in filename order by `pnpm --filter @workspace/db run migrate`. Applied filenames are tracked in the `__migrations` table. The post-merge script runs `migrate` before `push`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-IMPORTANT: `src/index.ts` only exports from `./generated/api` — do NOT add `export * from "./generated/types"` as it causes duplicate export collisions. Codegen re-adds this line every time; always revert it after running codegen.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `lib/replit-auth-web` (`@workspace/replit-auth-web`)
-
-Browser-side Replit Auth helper. Exports `useAuth()` hook that fetches `/api/auth/user` and provides `login()` / `logout()` functions. Used by `@workspace/skinscreen`.
-
-- `login()` redirects to `/api/login?returnTo=<BASE_URL>` (full OIDC flow)
-- `logout()` redirects to `/api/logout`
-- DO NOT use generated API client hooks for auth — always use this package
-
-### `lib/integrations-openai-ai-server` (`@workspace/integrations-openai-ai-server`)
-
-OpenAI SDK client pre-configured with Replit AI Integration credentials (`AI_INTEGRATIONS_OPENAI_BASE_URL` + `AI_INTEGRATIONS_OPENAI_API_KEY`). Used by the API server's `/api/analyze` route for ingredient conflict analysis.
-
-- Import: `import { openai } from "@workspace/integrations-openai-ai-server";`
-- Model used: `gpt-5.2` with `max_completion_tokens` and `response_format: { type: "json_object" }`
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
-
-- `refresh:obf-images` — re-resolves every Open Beauty Facts front-image URL
-  in `artifacts/skinscreen/src/components/IngredientScanner.tsx`
-  (`QUICK_START_PRODUCTS`, `COMPARE_PRESETS`, `SINGLE_PRESET`, and the
-  `*_PRESET_IMAGE` constants) against the OBF v2 API and rewrites stale
-  `front_<lang>.<rev>.400.jpg` revs in place. Exits non-zero when any URL
-  cannot be resolved or returns non-200, so it can run on a schedule (e.g.
-  weekly cron / CI) to catch silent breakage when contributors re-upload
-  product photos.
-
-## SkinScreen launch features (Apr 2026)
-
-- **Tap-an-ingredient drawer** — `GET /api/ingredients/lookup?name=` returns
-  cached CosIng + PubChem data; `IngredientDetailSheet.tsx` is a Radix bottom
-  sheet wired into the result chip strip.
-- **1–5 star product ratings** — `product_ratings` table keyed by `barcode`
-  + `userId` (UNIQUE). Eligibility = scanned the barcode OR has the product
-  on their shelf. Important: shelf match uses `lower(name) = lower(name)`,
-  never `ILIKE`, to prevent `%` wildcard auth bypass. Per-IP (30/min) +
-  per-user (10/min) rate limit.
-- **Gap-fill PATCH** — `PATCH /api/products/:barcode/contribute` additively
-  patches `cached_products` only on empty columns and inserts a row in
-  `user_submitted_products`. Photo upload uses base64 → `uploadBufferToGcs`.
-- **Discover ratings rate limit (#85)** — `POST /api/discover/ratings` now
-  has per-IP (30/min) + per-voter (15/min) limits.
-- **Sanitization audit (#74)** — all user-text routes confirmed routing
-  through `sanitizeText` / `sanitizeProductName` / `sanitizeBrand` /
-  `sanitizeIngredients`.
-- **Discover scanner pre-fills (#88)** — every non-shelf Discover article
-  CTA in `discover-content.ts` now carries a `seed` payload (single or
-  compare mode, `autoRun: true`). `DiscoverDetail.tsx` writes the seed to
-  `sessionStorage` under `SCANNER_SEED_STORAGE_KEY`; `IngredientScanner.tsx`
-  reads it and calls `applySeed()` on mount. Seeds for `alternatives`-type
-  CTAs are deliberately built with at least one flagged ingredient
-  (fragrance, dye, hydroquinone, etc.) because the alternatives panel only
-  renders when `singleResult.flags.length > 0`. Shelf-type CTAs (3 articles)
-  intentionally have no seed because they navigate to `/app`, not the
-  scanner.
-- **Marketing page OG previews (#87)** — `scripts/build-og.mjs` now also
-  generates per-page share previews for the SPA-only marketing routes:
-  `/pricing`, `/discover`, `/recipes`. Each gets a 1200×630 PNG under
-  `dist/public/og/marketing/<slug>.png` plus a static
-  `dist/public/<slug>/index.html` with per-page `og:*` and `twitter:*`
-  meta tags. Bots fetching these URLs see the right preview; the SPA
-  fallback handles real users. Home (`/`) is left on the site-wide OG in
-  the root `index.html` (the existing `/opengraph.jpg`).
-- **Discover→scanner pre-fill contract test (#89)** — added vitest to the
-  skinscreen artifact (`pnpm --filter @workspace/skinscreen test`) with a
-  standalone `vitest.config.ts` that bypasses the dev-server `PORT`
-  guard. `src/lib/discover-content.test.ts` locks down the data-shape
-  contract: every non-shelf CTA carries a seed, shelf CTAs do not, single
-  seeds have non-empty `ingredients` + `productName`, compare seeds have
-  both products + names, and every `alternatives`-type CTA seeds at
-  least one reliably-flagged ingredient token (fragrance / paraben /
-  hydroquinone / dye / etc.) so the alternatives panel never renders
-  empty. Removing or malforming a seed in the future fails CI.
-- **Full Swedish coverage (Apr 2026)** — every marketing surface
-  (`LandingPage`, `Home`/`StandaloneWelcome`, `Pricing`/`PricingSection`,
-  `Discover`/`DiscoverDetail`, `Recipes`/`RecipeDetail`, not-found) and
-  every in-app page (`Browse`, `BrowseDetail`, `Leaderboard`, `Problems`,
-  `Rewards`, `RecipeSubmit`) is now driven from `src/lib/i18n.tsx` with
-  EN / SV / FR dictionaries kept at strict key parity (~360 keys per
-  locale). Admin pages (`AdminPage`, `AdminRecipesPage`) intentionally
-  remain English-only. Variant-aware hero + scanner copy is now keyed
-  via `landing-config.ts` (`headlineKey`, `subheadKey`,
-  `scannerSubheadKey`, `scannerCtaLabelKey.{single,compare}`) so the
-  three landing variants stay translatable without duplicating React
-  components. `DangerCard` translates the `HIGH RISK` / `CAUTION` badge
-  and the `Source:` label internally so existing call sites stay
-  unchanged. Locale resolution priority is `?lang=` URL param →
-  `localStorage["skinscreen.locale"]` → browser `navigator.language` →
-  `en`; the URL-param hop makes spot-checks (e.g. `/?lang=sv`) trivial.
-- **Launch readiness — legal pages, consent gate, real PWA icons
-  (Apr 30 2026, Task #100)** — added `/legal/privacy`, `/legal/terms`,
-  `/legal/medical-disclaimer` (`src/pages/legal/`) sharing a
-  `LegalLayout` shell, fully i18n'd in en/sv/fr (~30 keys each).
-  Footer of `LandingPage` and the `Profile` page both link to the three
-  pages. A new `ConsentGateProvider` (`src/components/ConsentGate.tsx`)
-  wraps the app, exposes `useLoginWithConsent().requestLogin()`, and
-  intercepts every "Sign in" CTA with a required-checkbox modal before
-  delegating to `useAuth().login()`. Acceptance is persisted in
-  `localStorage` under `skinscreen.legal.consent` keyed by
-  `TERMS_VERSION` (`src/lib/legal-consent.ts`); bumping the constant
-  forces re-acceptance for all returning users. PWA icons (192, 512,
-  512-maskable, apple-touch-icon-180, favicon.ico/svg/96) were
-  regenerated from `public/images/logo-chimiq-long.png` (rose-gold
-  molecule symbol) — 192/maskable/apple use symbol+wordmark, smaller
-  sizes use symbol only. Pre-publish reference: `LAUNCH_CHECKLIST.md`
-  in the skinscreen artifact (covers Stripe live-mode requirements,
-  on-device test plan, Lighthouse, monitoring).
-
-## GitHub Backup (Standing Instruction)
-
-The user wants the entire project mirrored to GitHub for double-save
-safety. Repo: `https://github.com/drhnjpzqn4-dot/Chimiq` (branch `main`).
-
-**Push command** (token from Replit secret `GITHUB_TOKEN`, never written
-to disk):
-
-```bash
-git --no-optional-locks push \
-  "https://x-access-token:${GITHUB_TOKEN}@github.com/drhnjpzqn4-dot/Chimiq.git" \
-  master:main
-```
-
-**When to push automatically:**
-- After every `mark_task_complete` that produces commits (the platform
-  auto-commits at task end, so push immediately after the task is
-  approved/merged).
-- After any direct commit you make outside the task workflow.
-- If the user explicitly says "push", do it on demand.
-
-**Skip push when:**
-- No new commits since the last push (`git log origin/main..master` is
-  empty — but we don't have a tracking ref locally, so just check
-  `git log -1 --format=%H` against the previous push's hash if you
-  remembered it; otherwise just push, it's a no-op when up-to-date).
-- The push fails due to GitHub being down — note it and retry next time.
-
-**Notes:**
-- Local branch is `master`, GitHub default is `main` — always push
-  `master:main`.
-- Replit's git config writes are blocked for the agent; do not try to
-  configure a credential helper. Use the inline URL form above.
-- The `subrepl-0vdlt063` remote already points to the GitHub repo but
-  has no auth configured, so the inline URL form is the reliable path.
-
-## Web analytics (chimiq.com only)
-
-GDPR-compliant analytics stack added. Scripts only load AFTER the user
-opts in via the cookie banner; until then nothing third-party runs.
-
-**Optional environment variables** (set in deployment secrets when ready):
-- `VITE_GA_MEASUREMENT_ID` — Google Analytics 4 measurement ID
-  (`G-XXXXXXXXXX`). Without it, the analytics category in the banner
-  still appears but loads no script.
-- `VITE_META_PIXEL_ID` — Meta (Facebook) Pixel ID (a numeric string).
-  Without it, the marketing category in the banner still appears but
-  loads no script.
-
-Both are `VITE_`-prefixed so they're inlined at build time. Both values
-are public-by-design (visible in the browser to anyone who inspects),
-so no secret leakage concerns.
-
-**Custom events tracked** (via `trackEvent()` from `src/lib/analytics.ts`):
-- `sign_up_complete` — fires once when a user returns authenticated after
-  clicking a **signup** CTA (not login). Uses a `sessionStorage` flag set
-  in `Signup.tsx` and consumed in `AppPage.tsx`. Also fires Meta standard
-  `CompleteRegistration` event. Params: `method`.
-- `login_complete` — fires once when a returning user completes **login**
-  (not new signup). Same sessionStorage mechanism. Params: `method`.
-- `scan_complete` — fires on every successful ingredient scan (single or
-  compare mode). Emitted from `emitScanCompleted()` in
-  `IngredientScanner.tsx`. Params: `scan_mode`, `product_name`, `verdict`.
-- `product_save` — fires when a user adds a product to their shelf via
-  `AddProductForm` in `MyShelf.tsx`. Params: `product_name`,
-  `routine_slot`, `entry_mode`.
-- `signup_page_view` / `signup_cta_click` — pre-existing events on the
-  signup page.
-
-**Files:**
-- `src/lib/cookie-consent.ts` — versioned localStorage record, three
-  categories (necessary always-on, analytics, marketing), reopen event.
-- `src/lib/analytics.ts` — idempotent GA4 + Meta Pixel loaders gated on
-  consent. Exposes `trackEvent()` and `trackMetaStandard()` helpers.
-- `src/components/CookieBanner.tsx` — bottom-of-screen banner, opens
-  on first visit and via "Cookie settings" footer link.
-- Privacy Policy section 1.5 documents the three categories.
-- i18n keys `cookies.*` translated in en/sv/fr/es.
+- **Database**: PostgreSQL
+- **ORM**: Drizzle ORM
+- **API Generation**: Orval (from OpenAPI spec)
+- **Authentication**: `openid-client`
+- **Cookie Handling**: `cookie-parser`
+- **AI Integration**: OpenAI SDK (configured with Replit AI Integration credentials)
+- **Cloud Storage**: Google Cloud Storage (for photo uploads via `uploadBufferToGcs`)
+- **Payment Processing**: Stripe (for Premium subscriptions)
+- **Mobile Development**: Capacitor 6 (for iOS/Android wrapper)
+- **Analytics**: Google Analytics 4, Meta (Facebook) Pixel
+- **UI Components**: Radix (e.g., `IngredientDetailSheet.tsx`)
+- **Internationalization**: `i18n.tsx` with EN/SV/FR/ES dictionaries
+- **Testing**: Vitest

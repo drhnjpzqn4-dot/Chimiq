@@ -45,6 +45,7 @@ import {
   Skull, ExternalLink, Share2, ArrowDown, FileText, MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -267,6 +268,18 @@ export function LandingPage({ config }: LandingPageProps) {
     const params = new URLSearchParams(window.location.search);
     if (params.get("upgraded") === "true") {
       upgradedToastShown.current = true;
+      let checkoutMeta: { plan_type?: string; source?: string } = {};
+      try {
+        const raw = localStorage.getItem("skinscreen.checkout_meta");
+        if (raw) {
+          checkoutMeta = JSON.parse(raw) as typeof checkoutMeta;
+          localStorage.removeItem("skinscreen.checkout_meta");
+        }
+      } catch {}
+      trackEvent("subscription_activated", {
+        plan_type: checkoutMeta.plan_type ?? "unknown",
+        source: checkoutMeta.source ?? "unknown",
+      });
       toast({
         title: t("toast.welcomePremium"),
         description: t("toast.welcomePremiumDesc"),

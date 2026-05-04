@@ -468,12 +468,15 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
         body: JSON.stringify({ plan: billing }),
       });
       if (!res.ok) {
-        // Fallback to pricing page if checkout endpoint fails (e.g. not configured)
         onUpgrade();
         return;
       }
       const data = (await res.json()) as { url?: string };
       if (data.url) {
+        trackEvent("checkout_start", { plan_type: billing, source: "shelf_upsell" });
+        try {
+          localStorage.setItem("skinscreen.checkout_meta", JSON.stringify({ plan_type: billing, source: "shelf_upsell" }));
+        } catch {}
         window.location.href = data.url;
       } else {
         onUpgrade();
