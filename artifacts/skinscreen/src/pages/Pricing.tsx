@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import {
   Check, X, Zap, ShieldCheck, MessageCircle, FileText, Layers,
@@ -24,6 +24,25 @@ export default function Pricing() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCancelledBanner, setShowCancelledBanner] = useState(false);
+  const [bannerFadingOut, setBannerFadingOut] = useState(false);
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const BANNER_AUTO_DISMISS_MS = 15_000;
+  const BANNER_FADE_DURATION_MS = 700;
+
+  const dismissBanner = useCallback(() => {
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
+    }
+    setBannerFadingOut(true);
+    fadeTimerRef.current = setTimeout(() => {
+      setShowCancelledBanner(false);
+      setBannerFadingOut(false);
+      fadeTimerRef.current = null;
+    }, BANNER_FADE_DURATION_MS);
+  }, []);
 
   const [billing, setBilling] = useState<"monthly" | "yearly">(
     getStoredBillingPreference,
@@ -64,6 +83,24 @@ export default function Pricing() {
       window.history.replaceState({}, "", cleanUrl);
     }
   }, []);
+
+  useEffect(() => {
+    if (!showCancelledBanner || bannerFadingOut) return;
+    bannerTimerRef.current = setTimeout(() => {
+      trackEvent("checkout_recovery_auto_dismissed");
+      dismissBanner();
+    }, BANNER_AUTO_DISMISS_MS);
+    return () => {
+      if (bannerTimerRef.current) {
+        clearTimeout(bannerTimerRef.current);
+        bannerTimerRef.current = null;
+      }
+      if (fadeTimerRef.current) {
+        clearTimeout(fadeTimerRef.current);
+        fadeTimerRef.current = null;
+      }
+    };
+  }, [showCancelledBanner, bannerFadingOut, dismissBanner]);
 
   const FREE_FEATURES = useMemo(() => getFreeFeatures(t), [t]);
   const PREMIUM_FEATURES = useMemo(
@@ -139,50 +176,58 @@ export default function Pricing() {
         </button>
 
         {showCancelledBanner && (
-          <FadeIn>
-            <div className="mb-8 max-w-3xl mx-auto rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4 flex items-center gap-4">
-              <div className="shrink-0 w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <RefreshCw className="w-4.5 h-4.5 text-primary" />
+          <div
+            style={{
+              opacity: bannerFadingOut ? 0 : 1,
+              transform: bannerFadingOut ? "translate3d(0, -8px, 0)" : "translate3d(0, 0, 0)",
+              transition: `opacity ${BANNER_FADE_DURATION_MS}ms cubic-bezier(0.21, 0.47, 0.32, 0.98), transform ${BANNER_FADE_DURATION_MS}ms cubic-bezier(0.21, 0.47, 0.32, 0.98)`,
+            }}
+          >
+            <FadeIn>
+              <div className="mb-8 max-w-3xl mx-auto rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4 flex items-center gap-4">
+                <div className="shrink-0 w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <RefreshCw className="w-4.5 h-4.5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground font-medium">
+                    {t("checkoutCancelled.message")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    trackEvent("checkout_recovery_click");
+                    fetch(`${getBaseUrl()}api/checkout-recovery`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({ action: "click" }),
+                    }).catch(() => {});
+                    dismissBanner();
+                    handleUpgrade();
+                  }}
+                  className="shrink-0 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  {t("checkoutCancelled.cta")}
+                </button>
+                <button
+                  onClick={() => {
+                    trackEvent("checkout_recovery_dismissed");
+                    fetch(`${getBaseUrl()}api/checkout-recovery`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({ action: "dismissed" }),
+                    }).catch(() => {});
+                    dismissBanner();
+                  }}
+                  aria-label={t("checkoutCancelled.dismiss")}
+                  className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground font-medium">
-                  {t("checkoutCancelled.message")}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  trackEvent("checkout_recovery_click");
-                  fetch(`${getBaseUrl()}api/checkout-recovery`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ action: "click" }),
-                  }).catch(() => {});
-                  setShowCancelledBanner(false);
-                  handleUpgrade();
-                }}
-                className="shrink-0 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
-              >
-                {t("checkoutCancelled.cta")}
-              </button>
-              <button
-                onClick={() => {
-                  trackEvent("checkout_recovery_dismissed");
-                  fetch(`${getBaseUrl()}api/checkout-recovery`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ action: "dismissed" }),
-                  }).catch(() => {});
-                  setShowCancelledBanner(false);
-                }}
-                aria-label={t("checkoutCancelled.dismiss")}
-                className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </FadeIn>
+            </FadeIn>
+          </div>
         )}
 
         <FadeIn>
