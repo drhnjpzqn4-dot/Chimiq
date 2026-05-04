@@ -25,11 +25,13 @@ export default function Pricing() {
   const [error, setError] = useState<string | null>(null);
   const [showCancelledBanner, setShowCancelledBanner] = useState(false);
   const [bannerFadingOut, setBannerFadingOut] = useState(false);
-  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const BANNER_AUTO_DISMISS_MS = 15_000;
   const BANNER_FADE_DURATION_MS = 700;
+
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bannerTimerStartRef = useRef<number>(0);
+  const bannerRemainingRef = useRef<number>(BANNER_AUTO_DISMISS_MS);
 
   const dismissBanner = useCallback(() => {
     if (bannerTimerRef.current) {
@@ -86,6 +88,8 @@ export default function Pricing() {
 
   useEffect(() => {
     if (!showCancelledBanner || bannerFadingOut) return;
+    bannerRemainingRef.current = BANNER_AUTO_DISMISS_MS;
+    bannerTimerStartRef.current = Date.now();
     bannerTimerRef.current = setTimeout(() => {
       trackEvent("checkout_recovery_auto_dismissed");
       dismissBanner();
@@ -101,6 +105,28 @@ export default function Pricing() {
       }
     };
   }, [showCancelledBanner, bannerFadingOut, dismissBanner]);
+
+  const pauseBannerTimer = useCallback(() => {
+    if (!bannerTimerRef.current) return;
+    clearTimeout(bannerTimerRef.current);
+    bannerTimerRef.current = null;
+    const elapsed = Date.now() - bannerTimerStartRef.current;
+    bannerRemainingRef.current = Math.max(bannerRemainingRef.current - elapsed, 0);
+  }, []);
+
+  const resumeBannerTimer = useCallback(() => {
+    if (bannerTimerRef.current || bannerFadingOut || !showCancelledBanner) return;
+    if (bannerRemainingRef.current <= 0) {
+      trackEvent("checkout_recovery_auto_dismissed");
+      dismissBanner();
+      return;
+    }
+    bannerTimerStartRef.current = Date.now();
+    bannerTimerRef.current = setTimeout(() => {
+      trackEvent("checkout_recovery_auto_dismissed");
+      dismissBanner();
+    }, bannerRemainingRef.current);
+  }, [bannerFadingOut, showCancelledBanner, dismissBanner]);
 
   const FREE_FEATURES = useMemo(() => getFreeFeatures(t), [t]);
   const PREMIUM_FEATURES = useMemo(
@@ -177,6 +203,8 @@ export default function Pricing() {
 
         {showCancelledBanner && (
           <div
+            onMouseEnter={pauseBannerTimer}
+            onMouseLeave={resumeBannerTimer}
             style={{
               opacity: bannerFadingOut ? 0 : 1,
               transform: bannerFadingOut ? "translate3d(0, -8px, 0)" : "translate3d(0, 0, 0)",
