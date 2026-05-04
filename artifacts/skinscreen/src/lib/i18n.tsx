@@ -1161,6 +1161,11 @@ const en: Dict = {
   "signup.finalCtaBody": "Use Chimiq to scan smarter, spend less, and protect your skin barrier.",
   "signup.finalCtaFinePrint": "Free forever. Upgrade only if you want to.",
 
+  // ───── Checkout cancelled banner ─────
+  "checkoutCancelled.message": "Changed your mind? No worries — your free trial is still waiting.",
+  "checkoutCancelled.cta": "Pick up where you left off",
+  "checkoutCancelled.dismiss": "Dismiss",
+
   // ───── Exit-intent rescue popup ─────
   "exitPopup.title": "Wait — it's free, and it takes 30 seconds.",
   "exitPopup.body": "Before you go: you can scan what's already in your bathroom and find out what's working against your skin. Most people delete two or three products after their first scan.",
@@ -2317,6 +2322,11 @@ const sv: Dict = {
   "signup.finalCtaBody": "Använd Chimiq för att skanna smartare, spendera mindre och skydda din hudbarriär.",
   "signup.finalCtaFinePrint": "Gratis för alltid. Uppgradera bara om du vill.",
 
+  // ───── Checkout cancelled banner ─────
+  "checkoutCancelled.message": "Ändrade dig? Ingen fara — din gratis provperiod väntar fortfarande.",
+  "checkoutCancelled.cta": "Fortsätt där du slutade",
+  "checkoutCancelled.dismiss": "Stäng",
+
   // ───── Exit-intent rescue popup ─────
   "exitPopup.title": "Vänta — det är gratis och tar 30 sekunder.",
   "exitPopup.body": "Innan du går: du kan skanna det som redan står i ditt badrum och se vad som motarbetar din hud. De flesta tar bort två eller tre produkter efter sin första skanning.",
@@ -3463,6 +3473,11 @@ const fr: Dict = {
   "signup.finalCtaBody": "Utilisez Chimiq pour scanner mieux, dépenser moins et protéger votre barrière cutanée.",
   "signup.finalCtaFinePrint": "Gratuit pour toujours. Passez à Premium uniquement si vous le souhaitez.",
 
+  // ───── Checkout cancelled banner ─────
+  "checkoutCancelled.message": "Vous avez changé d'avis ? Pas de souci — votre essai gratuit vous attend toujours.",
+  "checkoutCancelled.cta": "Reprendre là où vous en étiez",
+  "checkoutCancelled.dismiss": "Fermer",
+
   // ───── Exit-intent rescue popup ─────
   "exitPopup.title": "Attendez — c'est gratuit, et ça prend 30 secondes.",
   "exitPopup.body": "Avant de partir : vous pouvez scanner ce qu'il y a déjà dans votre salle de bain et découvrir ce qui sabote votre peau. La plupart des gens retirent deux ou trois produits après leur premier scan.",
@@ -4608,6 +4623,11 @@ const es: Dict = {
   "signup.finalCtaTitle": "Tu barrera cutánea llamó. Quiere su rutina de vuelta.",
   "signup.finalCtaBody": "Usa Chimiq para escanear mejor, gastar menos y proteger tu barrera cutánea.",
   "signup.finalCtaFinePrint": "Gratis para siempre. Mejora solo si quieres.",
+
+  // ───── Checkout cancelled banner ─────
+  "checkoutCancelled.message": "¿Cambiaste de opinión? No pasa nada — tu prueba gratuita sigue esperándote.",
+  "checkoutCancelled.cta": "Retomar donde lo dejaste",
+  "checkoutCancelled.dismiss": "Cerrar",
 
   // ───── Exit-intent rescue popup ─────
   "exitPopup.title": "Espera — es gratis y solo te llevará 30 segundos.",

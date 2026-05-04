@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import {
   Check, X, Zap, ShieldCheck, MessageCircle, FileText, Layers,
-  ArrowLeft, Loader2,
+  ArrowLeft, Loader2, RefreshCw,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { useUserPlan } from "@/hooks/useUserPlan";
@@ -23,6 +23,7 @@ export default function Pricing() {
   const { plan, isLoading: planLoading, trialEligible, trialDays } = useUserPlan();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCancelledBanner, setShowCancelledBanner] = useState(false);
 
   const [billing, setBilling] = useState<"monthly" | "yearly">(
     getStoredBillingPreference,
@@ -47,6 +48,7 @@ export default function Pricing() {
         plan_type: meta.plan_type ?? "unknown",
         source: meta.source ?? "unknown",
       });
+      setShowCancelledBanner(true);
       params.delete("checkout_cancelled");
       const qs = params.toString();
       const cleanUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
@@ -126,6 +128,37 @@ export default function Pricing() {
           <ArrowLeft className="w-4 h-4" />
           {t("pricing.backToChimiq")}
         </button>
+
+        {showCancelledBanner && (
+          <FadeIn>
+            <div className="mb-8 max-w-3xl mx-auto rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4 flex items-center gap-4">
+              <div className="shrink-0 w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <RefreshCw className="w-4.5 h-4.5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground font-medium">
+                  {t("checkoutCancelled.message")}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowCancelledBanner(false);
+                  handleUpgrade();
+                }}
+                className="shrink-0 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+              >
+                {t("checkoutCancelled.cta")}
+              </button>
+              <button
+                onClick={() => setShowCancelledBanner(false)}
+                aria-label={t("checkoutCancelled.dismiss")}
+                className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </FadeIn>
+        )}
 
         <FadeIn>
           <div className="text-center mb-14">
