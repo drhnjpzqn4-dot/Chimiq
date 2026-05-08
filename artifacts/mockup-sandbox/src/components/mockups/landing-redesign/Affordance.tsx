@@ -110,7 +110,6 @@ export default function Affordance() {
         }
         .float-bob { animation: float-bob 3s ease-in-out infinite; }
       `}</style>
-
       <div className="min-h-screen bg-white">
         {/* ─── STICKY TOP NAV ─── */}
         <nav className="sticky top-0 z-50 bg-white border-b-2 border-[#E8F0E8] shadow-sm">
@@ -890,10 +889,7 @@ export default function Affordance() {
                   Get Chimiq{" "}
                   <span className="italic text-[#a8d4a7]">on your phone.</span>
                 </h2>
-                <p className="text-white/85 text-lg mb-8 max-w-lg">
-                  Scan in-store. Build your shelf. Get push alerts when a new
-                  conflict is found in your routine. Free to try.
-                </p>
+                <p className="text-white/85 text-lg mb-8 max-w-lg">Scan in-store. Build your personal shelf with the products you use every day. Get push alerts when a new conflict is found in your routine. Free to try.</p>
 
                 <div className="flex flex-col sm:flex-row gap-3 mb-6">
                   <button
