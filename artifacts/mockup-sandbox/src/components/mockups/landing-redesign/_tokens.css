@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+.chimiq-root {
+  --chimiq-bg: #FFFFFF;
+  --chimiq-bg-soft: #F7FAF7;
+  --chimiq-bg-cream: #FAFAF8;
+  --chimiq-fg: #1A1A1F;
+  --chimiq-muted: #6B7280;
+  --chimiq-border: #E8F0E8;
+  --chimiq-border-strong: #DCE9DC;
+  /* Sage green — same as production */
+  --chimiq-primary: #7BAF7A;
+  --chimiq-primary-strong: #356E36;
+  --chimiq-primary-soft: #F0F7F0;
+  --chimiq-danger: #EF4444;
+  --chimiq-danger-soft: #FEF2F2;
+  --chimiq-warning: #F59E0B;
+
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--chimiq-fg);
+  background: var(--chimiq-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.chimiq-root h1,
+.chimiq-root h2,
+.chimiq-root h3,
+.chimiq-root h4,
+.chimiq-root .font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* Focus rings — WCAG 2.1 1.4.11 (3:1 against white) */
+.chimiq-root :focus-visible {
+  outline: 2px solid var(--chimiq-primary-strong);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Tap targets ≥ 44px */
+.chimiq-root [data-touch] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chimiq-root *,
+  .chimiq-root *::before,
+  .chimiq-root *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
