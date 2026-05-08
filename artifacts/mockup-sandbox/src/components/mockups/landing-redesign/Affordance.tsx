@@ -5,8 +5,6 @@ import {
   ShieldCheck,
   AlertTriangle,
   ArrowRight,
-  Smartphone,
-  Apple,
   Download,
   Play,
   CheckCircle2,
@@ -24,11 +22,300 @@ import {
   Gift,
   Mail,
   HelpCircle,
+  Wifi,
+  Signal,
+  BatteryFull,
 } from "lucide-react";
 
 const SAGE = "#7BAF7A";
 const SAGE_STRONG = "#356E36";
 const DANGER = "#EF4444";
+
+/* ─── Real Apple Inc. logo (monochrome, single path) ─── */
+function AppleLogo({ size = 24, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill={color}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+    </svg>
+  );
+}
+
+/* ─── Real Google Play four-colour triangle ─── */
+function GooglePlayLogo({ size = 24 }: { size?: number }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M325.3 234.3 104.6 13l280.8 161.2-60.1 60.1z"
+        fill="#EA4335"
+      />
+      <path
+        d="M104.6 13c-9.5 4-15.6 13.2-15.6 25.4v435.2c0 12.2 6.1 21.4 15.6 25.4l231.4-231.4L104.6 13z"
+        fill="#34A853"
+      />
+      <path
+        d="M467.7 222 388.6 176 322 240l66.6 64 79.1-46c23.7-13.6 23.7-50.4 0-64z"
+        fill="#FBBC04"
+      />
+      <path
+        d="M104.6 499 325.3 278.4l60.1 60.1L104.6 499z"
+        fill="#4285F4"
+      />
+    </svg>
+  );
+}
+
+/* ─── Inline stylised iPhone mockup (no PNG) ─── */
+function HeroPhone() {
+  return (
+    <div className="hero-phone-wrap" aria-hidden="false" role="img" aria-label="Chimiq app preview showing a danger conflict between Retinol and Benzoyl Peroxide">
+      <style>{`
+        .hero-phone-wrap {
+          --phone-w: 320px;
+          --phone-h: 660px;
+          width: var(--phone-w);
+          position: relative;
+          margin: 0 auto;
+          animation: phone-float 6s ease-in-out infinite;
+        }
+        @keyframes phone-float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        .hero-phone {
+          width: var(--phone-w);
+          height: var(--phone-h);
+          border-radius: 48px;
+          background: #0a0a0c;
+          padding: 10px;
+          box-shadow:
+            0 1px 0 rgba(255,255,255,0.08) inset,
+            0 60px 90px -30px rgba(0,0,0,0.85),
+            0 30px 60px -20px rgba(53,110,53,0.35);
+          position: relative;
+        }
+        .hero-phone::before {
+          content: '';
+          position: absolute;
+          inset: -1px;
+          border-radius: 49px;
+          background: linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 35%, rgba(255,255,255,0) 65%, rgba(255,255,255,0.08));
+          pointer-events: none;
+        }
+        .hero-phone-screen {
+          width: 100%;
+          height: 100%;
+          border-radius: 38px;
+          background: #FAFAF7;
+          overflow: hidden;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+        }
+        .hero-phone-island {
+          position: absolute;
+          top: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 110px;
+          height: 30px;
+          background: #000;
+          border-radius: 999px;
+          z-index: 10;
+        }
+        .hero-phone-status {
+          height: 50px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          padding: 0 26px 6px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #1A1A1F;
+          font-family: -apple-system, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: 0.01em;
+        }
+      `}</style>
+      <div className="hero-phone">
+        <div className="hero-phone-screen">
+          <div className="hero-phone-island" />
+          <div className="hero-phone-status">
+            <span>9:41</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <Signal size={14} strokeWidth={2.5} />
+              <Wifi size={14} strokeWidth={2.5} />
+              <BatteryFull size={18} strokeWidth={2} />
+            </div>
+          </div>
+
+          {/* App content */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 18px 18px", overflow: "hidden" }}>
+            {/* App header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: "linear-gradient(135deg, #d4a5a8 0%, #b88c95 100%)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 2px 6px rgba(184,140,149,0.4)",
+                }}>
+                  <FlaskConical size={14} color="#fff" strokeWidth={2.5} />
+                </div>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 600, color: "#1A1A1F", letterSpacing: "-0.01em" }}>
+                  Chimiq
+                </span>
+              </div>
+              <div style={{
+                width: 28, height: 28, borderRadius: 999,
+                background: "#EFEDE7",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Bell size={13} color="#356E36" strokeWidth={2.5} />
+              </div>
+            </div>
+
+            {/* Section label */}
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#356E36", marginBottom: 4 }}>
+              Scan
+            </div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, fontWeight: 600, color: "#1A1A1F", lineHeight: 1.15, letterSpacing: "-0.01em", marginBottom: 12 }}>
+              Check your routine
+            </div>
+
+            {/* Ingredient list card */}
+            <div style={{
+              background: "#fff",
+              borderRadius: 14,
+              border: "1px solid #E8F0E8",
+              padding: "10px 12px",
+              marginBottom: 8,
+              boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+            }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#6B7280", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
+                Ingredients (12)
+              </div>
+              <div style={{ fontSize: 11, color: "#1A1A1F", lineHeight: 1.5 }}>
+                Aqua, <b>Retinol 0.5%</b>, Glycerin, Niacinamide, <b>Benzoyl Peroxide</b>, Squalane, Tocopherol, Panthenol, Allantoin…
+              </div>
+            </div>
+
+            {/* Analyze button */}
+            <button style={{
+              width: "100%",
+              height: 40,
+              borderRadius: 12,
+              background: "#356E36",
+              color: "#fff",
+              border: "none",
+              fontSize: 13,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              boxShadow: "0 4px 12px rgba(53,110,53,0.35)",
+              marginBottom: 12,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}>
+              <Zap size={13} strokeWidth={2.5} />
+              Analyze
+            </button>
+
+            {/* Result card — DANGER */}
+            <div style={{
+              background: "linear-gradient(135deg, #FEF2F2 0%, #FFE4E4 100%)",
+              border: "1.5px solid #EF4444",
+              borderRadius: 14,
+              padding: "11px 12px",
+              boxShadow: "0 6px 18px rgba(239,68,68,0.18)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+                <span style={{
+                  background: "#EF4444",
+                  color: "#fff",
+                  fontSize: 8,
+                  fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  padding: "2px 6px",
+                  borderRadius: 999,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                }}>
+                  <AlertTriangle size={9} strokeWidth={3} />
+                  DANGER
+                </span>
+                <span style={{ fontSize: 9, color: "#991B1B", fontWeight: 600 }}>1 conflict</span>
+              </div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: "#1A1A1F", lineHeight: 1.2, marginBottom: 4, letterSpacing: "-0.01em" }}>
+                Retinol + Benzoyl Peroxide
+              </div>
+              <div style={{ fontSize: 10.5, color: "#4B5563", lineHeight: 1.4, marginBottom: 8 }}>
+                Benzoyl peroxide oxidises retinol — they neutralise each other and irritate skin.
+              </div>
+              <div style={{
+                background: "#fff",
+                border: "1px solid #FECACA",
+                borderRadius: 8,
+                padding: "6px 8px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}>
+                <CheckCircle2 size={12} color="#356E36" strokeWidth={2.5} />
+                <span style={{ fontSize: 10, color: "#1A1A1F", fontWeight: 600 }}>
+                  Use AM/PM separately
+                </span>
+              </div>
+            </div>
+
+            {/* Spacer push pills to bottom */}
+            <div style={{ flex: 1 }} />
+
+            {/* Bottom nav */}
+            <div style={{
+              display: "flex",
+              justifyContent: "space-around",
+              paddingTop: 10,
+              borderTop: "1px solid #E8F0E8",
+              marginTop: 10,
+            }}>
+              {[
+                { icon: ScanLine, label: "Scan", active: true },
+                { icon: ShoppingBag, label: "Shelf" },
+                { icon: Search, label: "Browse" },
+                { icon: ShieldCheck, label: "Me" },
+              ].map((t) => (
+                <div key={t.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                  <t.icon size={16} color={t.active ? "#356E36" : "#9CA3AF"} strokeWidth={2.5} />
+                  <span style={{ fontSize: 8.5, fontWeight: t.active ? 700 : 500, color: t.active ? "#356E36" : "#9CA3AF" }}>
+                    {t.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Btn({
   children,
@@ -169,18 +456,19 @@ export default function Affordance() {
           <div className="absolute inset-0 bg-black/75" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-[#0d200d]/80" />
 
-          <div className="relative z-10 flex-1 flex flex-col items-center text-center px-6 pt-20 pb-16 max-w-4xl mx-auto w-full">
-            <span className="inline-flex items-center gap-2 py-2 px-4 rounded-full bg-[#EF4444]/15 border border-[#EF4444]/40 text-[#fecaca] text-xs font-bold tracking-widest uppercase mb-6">
+          <div className="relative z-10 flex-1 grid lg:grid-cols-[1fr_auto] gap-12 lg:gap-16 items-center px-6 pt-20 pb-16 max-w-7xl mx-auto w-full">
+           <div className="flex flex-col items-center lg:items-start text-center lg:text-left max-w-2xl">
+            <span className="inline-flex items-center gap-2 py-2 px-4 rounded-full bg-[#EF4444]/15 border border-[#EF4444]/40 text-[#fecaca] text-xs font-bold tracking-widest uppercase mb-7">
               <AlertTriangle size={14} />
               AVOID DANGEROUS COMBOS
             </span>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif text-white leading-[1.05] tracking-tight mb-5">
-              Chimiq is the app that{" "}
+            <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-serif text-white leading-[1.05] tracking-[-0.022em] mb-6">
+              Chimiq{" "}
               <span className="italic text-[#a8d4a7]">scans your skincare</span>{" "}
-              and flags dangerous ingredient combinations.
+              and flags the dangerous combinations.
             </h1>
-            <p className="text-lg text-white/85 mb-10 max-w-2xl">
+            <p className="text-base lg:text-[17px] text-white/75 mb-10 max-w-xl leading-relaxed">
               Paste an ingredient list, scan a barcode, or build your full
               routine. We tell you — in seconds — what conflicts, what's safe,
               and what to do instead.
@@ -253,7 +541,7 @@ export default function Affordance() {
             </div>
 
             {/* Ingredient pills with conflict badges */}
-            <div className="flex flex-wrap justify-center gap-2 mt-10 max-w-2xl">
+            <div className="flex flex-wrap justify-center lg:justify-start gap-2 mt-10 max-w-2xl">
               {[
                 { name: "Retinol", conflict: true },
                 { name: "Glycolic Acid", conflict: true },
@@ -275,6 +563,18 @@ export default function Affordance() {
                 </span>
               ))}
             </div>
+           </div>
+
+           {/* RIGHT COLUMN — Inline phone mockup */}
+           <div className="hidden lg:flex flex-col items-center justify-center pl-4">
+             <HeroPhone />
+             <div className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
+               <span className="w-1.5 h-1.5 rounded-full bg-[#a8d4a7] animate-pulse" />
+               <span className="text-[11px] text-white/80 font-medium tracking-wide">
+                 iOS preview · Android coming soon
+               </span>
+             </div>
+           </div>
           </div>
         </section>
 
@@ -882,7 +1182,7 @@ export default function Affordance() {
             <div className="grid md:grid-cols-2 gap-10 items-center">
               <div>
                 <span className="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/15 border border-white/30 text-white text-xs font-bold tracking-widest uppercase mb-5">
-                  <Smartphone size={12} />
+                  <Download size={12} />
                   Download Chimiq
                 </span>
                 <h2 className="text-4xl md:text-6xl font-serif leading-[1.05] mb-5">
@@ -895,27 +1195,29 @@ export default function Affordance() {
                   <button
                     data-touch
                     style={{ width: 240 }}
-                    className="inline-flex items-center gap-3 min-h-[64px] px-5 rounded-2xl bg-white text-[#0d200d] font-bold hover:bg-[#F0F7F0] transition-all active:scale-[0.97] shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-white/60"
+                    className="inline-flex items-center gap-3 min-h-[64px] px-5 rounded-2xl bg-black text-white font-bold hover:bg-[#1a1a1f] transition-all active:scale-[0.97] shadow-xl ring-1 ring-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/60"
+                    aria-label="Download Chimiq on the App Store"
                   >
-                    <Apple size={32} />
+                    <AppleLogo size={28} color="#fff" />
                     <span className="text-left leading-tight">
                       <span className="block text-[10px] font-medium opacity-70">
                         Download on the
                       </span>
-                      <span className="block text-lg">App Store</span>
+                      <span className="block text-lg tracking-tight">App Store</span>
                     </span>
                   </button>
                   <button
                     data-touch
                     style={{ width: 240 }}
-                    className="inline-flex items-center gap-3 min-h-[64px] px-5 rounded-2xl bg-white text-[#0d200d] font-bold hover:bg-[#F0F7F0] transition-all active:scale-[0.97] shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-white/60"
+                    className="inline-flex items-center gap-3 min-h-[64px] px-5 rounded-2xl bg-black text-white font-bold hover:bg-[#1a1a1f] transition-all active:scale-[0.97] shadow-xl ring-1 ring-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/60"
+                    aria-label="Get Chimiq on Google Play"
                   >
-                    <Smartphone size={32} />
+                    <GooglePlayLogo size={26} />
                     <span className="text-left leading-tight">
                       <span className="block text-[10px] font-medium opacity-70">
-                        Get it on
+                        GET IT ON
                       </span>
-                      <span className="block text-lg">Google Play</span>
+                      <span className="block text-lg tracking-tight">Google Play</span>
                     </span>
                   </button>
                 </div>
@@ -1087,10 +1389,10 @@ export default function Affordance() {
           </span>
           <span className="flex items-center gap-1 ml-1">
             <span className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-              <Apple size={14} />
+              <AppleLogo size={13} color="#fff" />
             </span>
-            <span className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-              <Smartphone size={14} />
+            <span className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
+              <GooglePlayLogo size={13} />
             </span>
           </span>
         </div>
