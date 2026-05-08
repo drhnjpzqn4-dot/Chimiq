@@ -565,8 +565,8 @@ export default function Affordance() {
             </div>
            </div>
 
-           {/* RIGHT COLUMN — Inline phone mockup */}
-           <div className="hidden lg:flex flex-col items-center justify-center pl-4">
+           {/* RIGHT COLUMN — Inline phone mockup (stacks below text on narrow widths) */}
+           <div className="flex flex-col items-center justify-center w-full lg:w-auto lg:pl-4 mt-4 lg:mt-0 order-last lg:order-none">
              <HeroPhone />
              <div className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
                <span className="w-1.5 h-1.5 rounded-full bg-[#a8d4a7] animate-pulse" />
