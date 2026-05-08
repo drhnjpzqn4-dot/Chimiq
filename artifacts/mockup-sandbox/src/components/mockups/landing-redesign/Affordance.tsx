@@ -25,6 +25,7 @@ import {
   Wifi,
   Signal,
   BatteryFull,
+  Camera,
 } from "lucide-react";
 
 const SAGE = "#7BAF7A";
@@ -90,11 +91,6 @@ function HeroPhone() {
           width: var(--phone-w);
           position: relative;
           margin: 0 auto;
-          animation: phone-float 6s ease-in-out infinite;
-        }
-        @keyframes phone-float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
         }
         .hero-phone {
           width: var(--phone-w);
@@ -168,17 +164,16 @@ function HeroPhone() {
             {/* App header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: "linear-gradient(135deg, #d4a5a8 0%, #b88c95 100%)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 2px 6px rgba(184,140,149,0.4)",
-                }}>
-                  <FlaskConical size={14} color="#fff" strokeWidth={2.5} />
-                </div>
-                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 600, color: "#1A1A1F", letterSpacing: "-0.01em" }}>
-                  Chimiq
-                </span>
+                <img
+                  src="/images/app-icon.png"
+                  alt=""
+                  style={{ width: 28, height: 28, borderRadius: 8, boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}
+                />
+                <img
+                  src="/images/logo-chimiq-long.png"
+                  alt="Chimiq"
+                  style={{ height: 18, width: "auto", display: "block" }}
+                />
               </div>
               <div style={{
                 width: 28, height: 28, borderRadius: 999,
@@ -193,49 +188,87 @@ function HeroPhone() {
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#356E36", marginBottom: 4 }}>
               Scan
             </div>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, fontWeight: 600, color: "#1A1A1F", lineHeight: 1.15, letterSpacing: "-0.01em", marginBottom: 12 }}>
-              Check your routine
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, fontWeight: 600, color: "#1A1A1F", lineHeight: 1.15, letterSpacing: "-0.01em", marginBottom: 10 }}>
+              Scan a barcode
             </div>
 
-            {/* Ingredient list card */}
+            {/* Camera viewport */}
             <div style={{
-              background: "#fff",
+              position: "relative",
+              width: "100%",
+              aspectRatio: "4 / 3",
               borderRadius: 14,
-              border: "1px solid #E8F0E8",
-              padding: "10px 12px",
-              marginBottom: 8,
-              boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+              overflow: "hidden",
+              background: "linear-gradient(135deg, #1a1a1f 0%, #2a2a30 100%)",
+              marginBottom: 10,
+              boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
             }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "#6B7280", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
-                Ingredients (12)
+              {/* Camera grid overlay */}
+              <div style={{
+                position: "absolute", inset: 0,
+                backgroundImage:
+                  "linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px)",
+                backgroundSize: "24px 24px",
+              }} />
+              {/* Corner brackets */}
+              {[
+                { top: 12, left: 12, borderTop: "2px solid #fff", borderLeft: "2px solid #fff" },
+                { top: 12, right: 12, borderTop: "2px solid #fff", borderRight: "2px solid #fff" },
+                { bottom: 12, left: 12, borderBottom: "2px solid #fff", borderLeft: "2px solid #fff" },
+                { bottom: 12, right: 12, borderBottom: "2px solid #fff", borderRight: "2px solid #fff" },
+              ].map((s, i) => (
+                <div key={i} style={{ position: "absolute", width: 18, height: 18, borderRadius: 3, ...s }} />
+              ))}
+              {/* Barcode */}
+              <div style={{
+                position: "absolute", left: "50%", top: "50%",
+                transform: "translate(-50%, -50%)",
+                display: "flex", alignItems: "flex-end", gap: 2, height: 56,
+              }}>
+                {[3,1,2,1,4,2,1,3,1,2,3,1,1,2,4,1,2,3,1,2,1,3,2,1,3].map((w, i) => (
+                  <span key={i} style={{ width: w, height: "100%", background: "#fff", opacity: 0.92 }} />
+                ))}
               </div>
-              <div style={{ fontSize: 11, color: "#1A1A1F", lineHeight: 1.5 }}>
-                Aqua, <b>Retinol 0.5%</b>, Glycerin, Niacinamide, <b>Benzoyl Peroxide</b>, Squalane, Tocopherol, Panthenol, Allantoin…
+              {/* Scan line */}
+              <div className="hero-scanline" />
+              {/* Camera icon badge */}
+              <div style={{
+                position: "absolute", top: 10, right: 10,
+                width: 26, height: 26, borderRadius: 999,
+                background: "rgba(255,255,255,0.16)",
+                backdropFilter: "blur(6px)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                border: "1px solid rgba(255,255,255,0.25)",
+              }}>
+                <Camera size={13} color="#fff" strokeWidth={2} />
+              </div>
+              {/* Hint */}
+              <div style={{
+                position: "absolute", left: "50%", bottom: 8,
+                transform: "translateX(-50%)",
+                fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.85)",
+                letterSpacing: "0.08em", textTransform: "uppercase",
+                whiteSpace: "nowrap",
+              }}>
+                Align the barcode
               </div>
             </div>
-
-            {/* Analyze button */}
-            <button style={{
-              width: "100%",
-              height: 40,
-              borderRadius: 12,
-              background: "#356E36",
-              color: "#fff",
-              border: "none",
-              fontSize: 13,
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              boxShadow: "0 4px 12px rgba(53,110,53,0.35)",
-              marginBottom: 12,
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}>
-              <Zap size={13} strokeWidth={2.5} />
-              Analyze
-            </button>
+            <style>{`
+              .hero-scanline {
+                position: absolute;
+                left: 8%; right: 8%;
+                height: 2px;
+                background: linear-gradient(to right, transparent, #a8d4a7 20%, #a8d4a7 80%, transparent);
+                box-shadow: 0 0 12px #a8d4a7;
+                animation: heroScan 2.6s ease-in-out infinite;
+              }
+              @keyframes heroScan {
+                0%   { top: 14%; opacity: 0; }
+                15%  { opacity: 1; }
+                85%  { opacity: 1; }
+                100% { top: 86%; opacity: 0; }
+              }
+            `}</style>
 
             {/* Result card — DANGER */}
             <div style={{
@@ -453,10 +486,10 @@ export default function Affordance() {
             className="absolute inset-0 w-full h-full object-cover"
           />
           {/* darker overlay — chrome over photography */}
-          <div className="absolute inset-0 bg-black/75" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/30" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-[#0d200d]/80" />
 
-          <div className="relative z-10 flex-1 grid lg:grid-cols-[1fr_auto] gap-12 lg:gap-16 items-center px-6 pt-20 pb-16 max-w-7xl mx-auto w-full">
+          <div className="relative z-10 flex-1 grid lg:grid-cols-[1.2fr_auto] gap-10 lg:gap-12 items-center px-6 pt-20 pb-16 max-w-6xl mx-auto w-full">
            <div className="flex flex-col items-center lg:items-start text-center lg:text-left max-w-2xl">
             <span className="inline-flex items-center gap-2 py-2 px-4 rounded-full bg-[#EF4444]/15 border border-[#EF4444]/40 text-[#fecaca] text-xs font-bold tracking-widest uppercase mb-7">
               <AlertTriangle size={14} />
@@ -874,22 +907,30 @@ export default function Affordance() {
                   brand: "The Ordinary",
                   name: "Retinol 1% in Squalane",
                   role: "PM serum",
+                  img: "/images/the-ordinary-retinol.webp",
                 },
                 {
                   brand: "The Ordinary",
                   name: "Salicylic Acid 2% Solution",
                   role: "PM exfoliant",
+                  img: "/images/the-ordinary-salicylic-acid.webp",
                 },
                 {
                   brand: "The Ordinary",
                   name: "AHA 30% + BHA 2% Peel",
                   role: "Weekly peel",
+                  img: "/images/the-ordinary-aha-bha.webp",
                 },
               ].map((p, i, arr) => (
                 <div key={p.name} className="flex items-stretch gap-3 flex-1">
                   <div className="flex-1 bg-white/8 rounded-2xl p-5 border-2 border-white/15 backdrop-blur-sm">
-                    <div className="aspect-[3/4] mb-4 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
-                      <FlaskConical size={56} className="text-white/40" />
+                    <div className="aspect-[3/4] mb-4 rounded-xl bg-white/95 border border-white/15 flex items-center justify-center overflow-hidden p-3">
+                      <img
+                        src={p.img}
+                        alt={`${p.brand} ${p.name}`}
+                        className="w-full h-full object-contain"
+                        loading="lazy"
+                      />
                     </div>
                     <span className="block text-[10px] font-bold tracking-widest uppercase text-white/50 mb-1">
                       {p.brand}
