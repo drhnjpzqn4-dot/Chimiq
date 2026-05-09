@@ -78,9 +78,10 @@ async function seedProductsCache() {
       count += batch.length;
     }
 
-    const [{ total }] = await db.execute(
+    const result = await db.execute(
       sql`SELECT COUNT(*) as total FROM cached_products`,
-    ) as Array<{ total: string }>;
+    );
+    const { total } = (result.rows[0] ?? { total: "0" }) as { total: string };
 
     console.log(`\nDone! Seeded ${count} products. Total in cache: ${total}`);
   } catch (err) {
