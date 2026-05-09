@@ -7,10 +7,10 @@ export const modules: ModuleMap = {
   "./components/mockups/BrandDirectionC.tsx": () => import("../components/mockups/BrandDirectionC.tsx"),
   "./components/mockups/BrandDirections.tsx": () => import("../components/mockups/BrandDirections.tsx"),
   "./components/mockups/LeanCanvas.tsx": () => import("../components/mockups/LeanCanvas.tsx"),
-  "./components/mockups/landing-redesign/Accessibility.tsx": () => import("../components/mockups/landing-redesign/Accessibility.tsx"),
-  "./components/mockups/landing-redesign/Affordance.tsx": () => import("../components/mockups/landing-redesign/Affordance.tsx"),
-  "./components/mockups/landing-redesign/Hierarchy.tsx": () => import("../components/mockups/landing-redesign/Hierarchy.tsx"),
   "./components/mockups/skinscreen-app/BottomSheet.tsx": () => import("../components/mockups/skinscreen-app/BottomSheet.tsx"),
   "./components/mockups/skinscreen-app/InlineChecklist.tsx": () => import("../components/mockups/skinscreen-app/InlineChecklist.tsx"),
-  "./components/mockups/skinscreen-app/QuietUtility.tsx": () => import("../components/mockups/skinscreen-app/QuietUtility.tsx")
+  "./components/mockups/skinscreen-app/QuietUtility.tsx": () => import("../components/mockups/skinscreen-app/QuietUtility.tsx"),
+  "./components/mockups/landing-redesign/Accessibility.tsx": () => import("../components/mockups/landing-redesign/Accessibility.tsx"),
+  "./components/mockups/landing-redesign/Affordance.tsx": () => import("../components/mockups/landing-redesign/Affordance.tsx"),
+  "./components/mockups/landing-redesign/Hierarchy.tsx": () => import("../components/mockups/landing-redesign/Hierarchy.tsx")
 };
