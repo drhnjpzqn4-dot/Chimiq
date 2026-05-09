@@ -90,7 +90,13 @@ export function ChatPanel({ defaultOpen = false }: { defaultOpen?: boolean } = {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed");
+      if (!response.ok) {
+        if (response.status === 403) {
+          setError(t("chatPanel.errPremium"));
+          return;
+        }
+        throw new Error("Failed");
+      }
 
       const data = (await response.json()) as { reply: string };
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);

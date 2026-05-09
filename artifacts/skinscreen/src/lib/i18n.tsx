@@ -809,6 +809,7 @@ const en: Dict = {
   "chatPanel.send": "Send message",
   "chatPanel.notMedical": "Not medical advice · Consult a dermatologist for diagnosis",
   "chatPanel.errSend": "Something went wrong. Please try again.",
+  "chatPanel.errPremium": "AI chat is a premium feature. Upgrade to start chatting.",
 
   "derm.expertCare": "Expert care",
   "derm.findDermatologist": "Find a Dermatologist Near You",
@@ -1970,6 +1971,7 @@ const sv: Dict = {
   "chatPanel.send": "Skicka meddelande",
   "chatPanel.notMedical": "Inte medicinsk rådgivning · Kontakta en hudläkare för diagnos",
   "chatPanel.errSend": "Något gick fel. Försök igen.",
+  "chatPanel.errPremium": "AI-chatten är en premiumfunktion. Uppgradera för att börja chatta.",
 
   "derm.expertCare": "Expertvård",
   "derm.findDermatologist": "Hitta en hudläkare nära dig",
@@ -3121,6 +3123,7 @@ const fr: Dict = {
   "chatPanel.send": "Envoyer le message",
   "chatPanel.notMedical": "Pas un avis médical · Consultez un dermatologue pour un diagnostic",
   "chatPanel.errSend": "Une erreur est survenue. Veuillez réessayer.",
+  "chatPanel.errPremium": "Le chat IA est une fonctionnalité premium. Passez à la version supérieure pour commencer à discuter.",
 
   "derm.expertCare": "Soins experts",
   "derm.findDermatologist": "Trouver un dermatologue près de chez vous",
@@ -4272,6 +4275,7 @@ const es: Dict = {
   "chatPanel.send": "Enviar mensaje",
   "chatPanel.notMedical": "No es consejo médico · Consulta a un dermatólogo para un diagnóstico",
   "chatPanel.errSend": "Algo salió mal. Inténtalo de nuevo.",
+  "chatPanel.errPremium": "El chat con IA es una función premium. Mejora tu plan para empezar a chatear.",
 
   "derm.expertCare": "Cuidado experto",
   "derm.findDermatologist": "Encuentra un dermatólogo cerca de ti",
