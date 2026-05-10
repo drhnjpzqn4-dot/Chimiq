@@ -46,15 +46,31 @@ export async function openExternal(
 }
 
 /**
+ * Resolve the API base URL for the current platform:
+ * - Native (Capacitor): always uses NATIVE_API_BASE_URL
+ * - Web with VITE_API_URL set: uses that env var (e.g. Railway backend)
+ * - Web without VITE_API_URL: returns empty string (relative URLs, same origin)
+ */
+export function getApiBaseUrl(): string {
+  if (isNative()) return NATIVE_API_BASE_URL;
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+  return envUrl ? envUrl.replace(/\/+$/, "") : "";
+}
+
+/**
  * Install a global fetch interceptor that rewrites relative `/api/...` requests
- * to absolute URLs against the production backend when running inside the
- * Capacitor native shell. No-op on web. Idempotent — call once at startup.
+ * to absolute URLs against the correct backend. Works for both native (Capacitor)
+ * and web (when VITE_API_URL is set). No-op when neither applies. Idempotent.
  */
 let nativeFetchInstalled = false;
 export function installNativeFetchInterceptor() {
   if (nativeFetchInstalled) return;
   if (typeof window === "undefined") return;
-  if (!isNative()) return;
+
+  const apiBase = getApiBaseUrl();
+  // Nothing to rewrite — relative fetches will hit the same origin correctly
+  if (!apiBase) return;
+
   nativeFetchInstalled = true;
 
   const originalFetch = window.fetch.bind(window);
@@ -71,7 +87,7 @@ export function installNativeFetchInterceptor() {
         urlStr.startsWith("./api/");
       if (isRelativeApi) {
         const path = urlStr.startsWith("/") ? urlStr : `/${urlStr.replace(/^\.\//, "")}`;
-        const absolute = `${NATIVE_API_BASE_URL}${path}`;
+        const absolute = `${apiBase}${path}`;
         if (input instanceof Request) {
           return originalFetch(new Request(absolute, input), init);
         }
