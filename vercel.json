@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm --filter @workspace/skinscreen run build",
-  "outputDirectory": "artifacts/skinscreen/dist/public",
+  "outputDirectory": "dist/public",
   "installCommand": "pnpm install",
   "framework": null
 }
