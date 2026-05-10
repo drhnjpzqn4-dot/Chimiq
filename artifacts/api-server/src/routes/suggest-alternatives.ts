@@ -6,6 +6,8 @@ import {
   sanitizeIngredients,
   sanitizeText,
 } from "../lib/sanitize.js";
+import { requireAuth } from "../lib/authGate.js";
+import { ipRateLimit } from "../lib/rateLimit.js";
 
 const SuggestAlternativesBody = z.object({
   ingredients: z.string().trim().min(1).max(3000),
@@ -76,7 +78,19 @@ Required response format:
 
 const router: IRouter = Router();
 
-router.post("/suggest-alternatives", async (req, res) => {
+// Per-IP burst limiter on top of the auth gate. Each call is one Sonnet
+// request, so we allow only a handful per minute even for signed-in users.
+const suggestLimiter = ipRateLimit({
+  windowMs: 60_000,
+  max: 10,
+  key: "suggest-alternatives",
+});
+
+// `requireAuth`: this endpoint always issues a Sonnet call (no cache), so
+// leaving it open to anonymous traffic was the worst-case bypass — a single
+// curl loop could rack up real spend. Suggest-alternatives is a follow-up
+// action after a scan, so requiring auth matches the actual UX path.
+router.post("/suggest-alternatives", requireAuth, suggestLimiter, async (req, res) => {
   const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
   const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
 

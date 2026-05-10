@@ -1,8 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
-import { getUserPlan } from "@workspace/db";
 import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
+import { requirePremium } from "../lib/authGate.js";
 
 const router: IRouter = Router();
 
@@ -85,30 +85,10 @@ Pregnancy-safe alternatives users can substitute in:
 
 The EU's Scientific Committee on Consumer Safety (SCCS) has banned or restricted thousands of cosmetic ingredients via Regulation (EC) 1223/2009 (Annex II = banned, Annex III = restricted with conditions). Notable EU-banned ingredients you may see in non-EU products: certain phthalates (DBP, DEHP, BBP), formaldehyde at >0.05% as an active preservative, lead acetate, mercury compounds. EU restricts phenoxyethanol to ≤1%, hydroquinone to professional-only use in nail systems, and salicylic acid to ≤2% in leave-on products. Reference EU restrictions when relevant — they're often stricter than US/Asian standards and provide useful safety context.`;
 
-router.post("/chat", async (req: Request, res: Response) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  // Server-side premium gate — the chat launcher is hidden for non-premium
-  // users on the frontend, but we re-check here so direct API calls can't
-  // burn through Anthropic credits without a paid subscription.
-  try {
-    const plan = await getUserPlan(req.user.id);
-    if (plan !== "premium") {
-      res.status(403).json({
-        error: "AI chat is a premium feature. Upgrade to start chatting.",
-        code: "premium_required",
-      });
-      return;
-    }
-  } catch (err) {
-    req.log.error({ err }, "Premium check failed in /chat");
-    res.status(500).json({ error: "Could not verify subscription. Please try again." });
-    return;
-  }
-
+// Server-side premium gate — the chat launcher is hidden for non-premium
+// users on the frontend, but we re-check here so direct API calls can't
+// burn through Anthropic credits without a paid subscription.
+router.post("/chat", requirePremium, async (req: Request, res: Response) => {
   const parsed = ChatBodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });

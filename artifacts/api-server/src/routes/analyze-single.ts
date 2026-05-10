@@ -11,6 +11,7 @@ import {
   isStale,
 } from "../lib/analysis-cache.js";
 import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
+import { requireAuth } from "../lib/authGate.js";
 import { partitionIngredients } from "../lib/safe-ingredients.js";
 import { getRisksInList, buildMandatoryFlagsBlock } from "../lib/risky-ingredients.js";
 import { getUserPlan } from "@workspace/db";
@@ -296,7 +297,11 @@ async function runAIAnalysis(
 
 const router: IRouter = Router();
 
-router.post("/analyze-single", async (req, res) => {
+// `requireAuth` ensures every call is attributable to a user so the daily
+// free-scan cap below cannot be bypassed by anonymous callers. See the
+// matching note on POST /analyze.
+router.post("/analyze-single", requireAuth, async (req, res) => {
+  if (!req.isAuthenticated()) return; // unreachable: requireAuth above; narrows req.user
   const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
   const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
 
@@ -313,9 +318,9 @@ router.post("/analyze-single", async (req, res) => {
   // `finish` listener below so the user isn't charged a scan for a
   // failure response. Premium users have no cap — they get a plain
   // post-success increment.
-  const userId = req.user?.id;
+  const userId = req.user.id;
   let claimedFreeSlot = false;
-  if (userId) {
+  {
     let plan: "free" | "premium" = "free";
     try {
       plan = await getUserPlan(userId);

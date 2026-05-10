@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
+import { requireAuth } from "../lib/authGate.js";
+import { ipRateLimit } from "../lib/rateLimit.js";
 
 const ScanLabelBody = z.object({
   imageBase64: z.string().min(1, "Image data is required"),
@@ -9,7 +11,16 @@ const ScanLabelBody = z.object({
 
 const router: IRouter = Router();
 
-router.post("/scan-label", async (req, res) => {
+// Cap any single IP to ~20 vision calls/minute as a circuit-breaker on
+// runaway clients (e.g. broken loops uploading the same photo). The /analyze
+// daily quota is the long-term cost cap; this is just burst protection.
+const scanLabelLimiter = ipRateLimit({ windowMs: 60_000, max: 20, key: "scan-label" });
+
+// `requireAuth`: vision calls (claude-haiku-4-5 with image input) are too
+// expensive to expose anonymously. Tying every call to a signed-in user
+// also means future quota tightening can be applied without another
+// migration.
+router.post("/scan-label", requireAuth, scanLabelLimiter, async (req, res) => {
   const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
   const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
 

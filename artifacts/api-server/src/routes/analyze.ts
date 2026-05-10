@@ -21,6 +21,7 @@ import {
   incrementTodayScanCount,
   releaseDailyScanSlot,
 } from "../lib/scanQuota.js";
+import { requireAuth } from "../lib/authGate.js";
 
 const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).optional();
 
@@ -300,7 +301,12 @@ async function runAIAnalysis(
 
 const router: IRouter = Router();
 
-router.post("/analyze", async (req, res) => {
+// `requireAuth` is mandatory here so we can always attribute a scan to a
+// concrete user and enforce the free-tier daily cap below. Without it,
+// anonymous callers (curl/Postman) would skip the `if (userId)` branch
+// entirely and call Anthropic for free indefinitely.
+router.post("/analyze", requireAuth, async (req, res) => {
+  if (!req.isAuthenticated()) return; // unreachable: requireAuth above; narrows req.user
   const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
   const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
 
@@ -317,9 +323,9 @@ router.post("/analyze", async (req, res) => {
   // `finish` listener below so the user isn't charged a scan for a
   // failure response. Premium users have no cap — they get a plain
   // post-success increment.
-  const userId = req.user?.id;
+  const userId = req.user.id;
   let claimedFreeSlot = false;
-  if (userId) {
+  {
     let plan: "free" | "premium" = "free";
     try {
       plan = await getUserPlan(userId);

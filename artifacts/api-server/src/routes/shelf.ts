@@ -180,6 +180,13 @@ async function analyzePair(
   }
 }
 
+// Why no premium gate: this endpoint runs N×(N-1)/2 Sonnet calls across the
+// user's shelf, but the shelf itself is already plan-bounded — free users
+// are capped at 2 products by the POST /shelf gate above (max 1 LLM pair),
+// premium users are capped at MAX_PRODUCTS=10 (max 45 pairs) and CONCURRENCY
+// is held at 3. So spend is bounded per user even without a price-tier
+// check, and we want free users to see the value of routine analysis on
+// their two products before upgrading.
 router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });

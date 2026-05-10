@@ -13,6 +13,8 @@ import {
   SanitizationError,
 } from "../lib/sanitize.js";
 import { evaluateContributionBadges } from "../lib/gamification.js";
+import { requireAuth } from "../lib/authGate.js";
+import { ipRateLimit } from "../lib/rateLimit.js";
 
 const StartBody = z.object({
   barcode: z.string().regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required."),
@@ -276,7 +278,19 @@ router.post("/contribute/start", async (req, res) => {
   }
 });
 
-router.post("/contribute/photos", async (req, res) => {
+// Two vision LLM calls per submission (front photo + ingredients photo) make
+// this the most expensive contribution endpoint. `requireAuth` forces every
+// vision call to be tied to a real user (admin can also revoke abuse), and
+// the IP limiter is a backstop against runaway clients submitting the same
+// photos in a loop. The submissionId being a UUID issued by /contribute/start
+// already throttles legitimate happy-path traffic.
+const contributePhotosLimiter = ipRateLimit({
+  windowMs: 60_000,
+  max: 8,
+  key: "contribute-photos",
+});
+
+router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (req, res) => {
   const parseResult = PhotosBody.safeParse(req.body);
   if (!parseResult.success) {
     res.status(400).json({ error: "Invalid data.", issues: parseResult.error.issues });
