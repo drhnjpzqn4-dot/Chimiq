@@ -21,10 +21,10 @@ const scanLabelLimiter = ipRateLimit({ windowMs: 60_000, max: 20, key: "scan-lab
 // also means future quota tightening can be applied without another
 // migration.
 router.post("/scan-label", requireAuth, scanLabelLimiter, async (req, res) => {
-  const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
-  const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  
+  const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  if (!baseURL || !apiKey) {
+  if (!apiKey) {
     req.log.error("Anthropic integration env vars not configured");
     res.status(500).json({ error: "Label scan service is not available. Please try again later." });
     return;
@@ -39,7 +39,7 @@ router.post("/scan-label", requireAuth, scanLabelLimiter, async (req, res) => {
 
   const { imageBase64, mimeType } = parseResult.data;
 
-  const anthropic = new Anthropic({ apiKey, baseURL });
+  const anthropic = new Anthropic({ apiKey });
 
   try {
     const message = await anthropic.messages.create({

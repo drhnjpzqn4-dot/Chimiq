@@ -82,13 +82,13 @@ export async function scanRecipeSafety(input: {
   method?: string;
   log: (msg: string, data?: unknown) => void;
 }): Promise<RecipeAiVerdict | null> {
-  const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
-  const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
-  if (!baseURL || !apiKey) {
+  
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
     throw new RecipeSafetyUnavailableError();
   }
 
-  const anthropic = new Anthropic({ apiKey, baseURL });
+  const anthropic = new Anthropic({ apiKey });
   const ingredientLines = input.ingredients
     .map((i) => `- ${i.name}${i.amount ? ` (${i.amount})` : ""}${i.notes ? ` — ${i.notes}` : ""}`)
     .join("\n");

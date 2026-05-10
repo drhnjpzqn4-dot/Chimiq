@@ -1,19 +1,21 @@
 import { Router, type IRouter } from "express";
-import { gcsClient } from "../lib/objectStorage";
+import { createClient } from "@supabase/supabase-js";
 import { db, userSubmittedProductsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { isRequestAdmin } from "../lib/admin";
 
 const router: IRouter = Router();
 
-function isAdmin(req: { user?: { email?: string } }): boolean {
+function isAdmin(req: { user?: { email?: string | null } }): boolean {
   return isRequestAdmin(req as { user?: { email?: string | null } });
 }
 
 router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
-  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
-  const privateDir = process.env.PRIVATE_OBJECT_DIR;
-  if (!bucketId || !privateDir) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const bucketName = process.env.STORAGE_BUCKET_NAME || "chimiq-uploads";
+
+  if (!supabaseUrl || !serviceRoleKey) {
     res.status(503).json({ error: "Object storage not configured." });
     return;
   }
@@ -24,7 +26,7 @@ router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
     return;
   }
 
-  const typedReq = req as { user?: { id?: string; email?: string } };
+  const typedReq = req as { user?: { id?: string; email?: string | null } };
   const userId = typedReq.user?.id ?? null;
 
   if (!userId) {
@@ -56,19 +58,21 @@ router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
       }
     }
 
-    const objectKey = `${privateDir.replace(/\/$/, "")}/${relativePath}`;
-    const bucket = gcsClient.bucket(bucketId);
-    const file = bucket.file(objectKey);
-    const [exists] = await file.exists();
-    if (!exists) {
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .download(relativePath);
+
+    if (error || !data) {
       res.status(404).json({ error: "Object not found." });
       return;
     }
-    const [metadata] = await file.getMetadata();
-    const contentType = (metadata.contentType as string | undefined) ?? "application/octet-stream";
+
+    const contentType = data.type || "application/octet-stream";
     res.setHeader("Content-Type", contentType);
     res.setHeader("Cache-Control", "private, max-age=3600");
-    file.createReadStream().pipe(res);
+    const arrayBuffer = await data.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
   } catch (err) {
     req.log.error({ err }, "Storage object fetch failed");
     res.status(500).json({ error: "Failed to fetch object." });

@@ -38,27 +38,10 @@ interface SendGridCreds {
 }
 
 async function getSendGridCredentials(): Promise<SendGridCreds | null> {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? "repl " + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-      ? "depl " + process.env.WEB_REPL_RENEWAL
-      : null;
-  if (!hostname || !xReplitToken) return null;
-
-  const res = await fetch(
-    `https://${hostname}/api/v2/connection?include_secrets=true&connector_names=sendgrid`,
-    {
-      headers: { Accept: "application/json", "X-Replit-Token": xReplitToken },
-    },
-  );
-  if (!res.ok) return null;
-  const data = (await res.json()) as {
-    items?: Array<{ settings?: { api_key?: string; from_email?: string } }>;
-  };
-  const settings = data.items?.[0]?.settings;
-  if (!settings?.api_key || !settings.from_email) return null;
-  return { apiKey: settings.api_key, fromEmail: settings.from_email };
+  const apiKey = process.env.SENDGRID_API_KEY;
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+  if (!apiKey || !fromEmail) return null;
+  return { apiKey, fromEmail };
 }
 
 function escapeHtml(s: string): string {

@@ -9,40 +9,7 @@ interface FeedbackNotifyPayload {
   userId: string | null;
 }
 
-// Default destination for the team notification. Overridable via env
-// `FEEDBACK_NOTIFY_TO` if we ever route to a different inbox/alias.
 const DEFAULT_TO = "hello@chimiq.com";
-
-// Pulls the SendGrid API key + verified sender from the Replit
-// SendGrid connector (configured via the integrations skill). Never
-// cache the result — access tokens expire, so a new fetch is required
-// per send.
-async function getSendGridCredentials(): Promise<{
-  apiKey: string;
-  fromEmail: string;
-} | null> {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? "repl " + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-      ? "depl " + process.env.WEB_REPL_RENEWAL
-      : null;
-  if (!hostname || !xReplitToken) return null;
-
-  const res = await fetch(
-    `https://${hostname}/api/v2/connection?include_secrets=true&connector_names=sendgrid`,
-    {
-      headers: { Accept: "application/json", "X-Replit-Token": xReplitToken },
-    },
-  );
-  if (!res.ok) return null;
-  const data = (await res.json()) as {
-    items?: Array<{ settings?: { api_key?: string; from_email?: string } }>;
-  };
-  const settings = data.items?.[0]?.settings;
-  if (!settings?.api_key || !settings.from_email) return null;
-  return { apiKey: settings.api_key, fromEmail: settings.from_email };
-}
 
 function escapeHtml(s: string): string {
   return s
@@ -55,12 +22,8 @@ function escapeHtml(s: string): string {
 
 /**
  * Fire-and-forget email notification when new feedback arrives.
- *
- * Sends to `FEEDBACK_NOTIFY_TO` (default `hello@chimiq.com`) via the
- * Replit SendGrid connector. When the connector is not configured we
- * silently no-op so local dev / tests don't need it. Failures are
- * logged but never thrown — the user's POST /api/feedback response
- * must not depend on email delivery succeeding.
+ * Requires SENDGRID_API_KEY and SENDGRID_FROM_EMAIL env vars.
+ * Silently no-ops if not configured so local dev works without email.
  */
 export function notifyNewFeedback(
   payload: FeedbackNotifyPayload,
@@ -68,17 +31,17 @@ export function notifyNewFeedback(
 ): void {
   const to = process.env.FEEDBACK_NOTIFY_TO || DEFAULT_TO;
 
-  // Detached promise — never await.
   void (async () => {
     try {
-      const creds = await getSendGridCredentials();
-      if (!creds) {
-        log.debug(
-          "SendGrid connector not configured; skipping feedback email",
-        );
+      const apiKey = process.env.SENDGRID_API_KEY;
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+
+      if (!apiKey || !fromEmail) {
+        log.debug("SendGrid env vars not configured; skipping feedback email");
         return;
       }
-      sgMail.setApiKey(creds.apiKey);
+
+      sgMail.setApiKey(apiKey);
 
       const subjectFrom = payload.email ?? "anonymous";
       const subject = `[Chimiq feedback] from ${subjectFrom}`;
@@ -98,24 +61,16 @@ export function notifyNewFeedback(
         `<p><strong>New feedback received</strong></p>`,
         `<ul>`,
         `<li><strong>From:</strong> ${escapeHtml(payload.email ?? "(anonymous)")}</li>`,
-        payload.userId
-          ? `<li><strong>User ID:</strong> ${escapeHtml(payload.userId)}</li>`
-          : "",
-        payload.locale
-          ? `<li><strong>Locale:</strong> ${escapeHtml(payload.locale)}</li>`
-          : "",
-        payload.pageUrl
-          ? `<li><strong>Page:</strong> <a href="${escapeHtml(payload.pageUrl)}">${escapeHtml(payload.pageUrl)}</a></li>`
-          : "",
+        payload.userId ? `<li><strong>User ID:</strong> ${escapeHtml(payload.userId)}</li>` : "",
+        payload.locale ? `<li><strong>Locale:</strong> ${escapeHtml(payload.locale)}</li>` : "",
+        payload.pageUrl ? `<li><strong>Page:</strong> <a href="${escapeHtml(payload.pageUrl)}">${escapeHtml(payload.pageUrl)}</a></li>` : "",
         `</ul>`,
         `<blockquote style="border-left:3px solid #ccc;padding-left:12px;white-space:pre-wrap;">${escapeHtml(payload.message)}</blockquote>`,
       ].join("\n");
 
       await sgMail.send({
         to,
-        from: creds.fromEmail,
-        // When the user supplied an email, set it as Reply-To so the
-        // team can hit Reply directly to respond.
+        from: fromEmail,
         replyTo: payload.email ?? undefined,
         subject,
         text: lines,

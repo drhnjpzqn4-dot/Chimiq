@@ -91,10 +91,10 @@ const suggestLimiter = ipRateLimit({
 // curl loop could rack up real spend. Suggest-alternatives is a follow-up
 // action after a scan, so requiring auth matches the actual UX path.
 router.post("/suggest-alternatives", requireAuth, suggestLimiter, async (req, res) => {
-  const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
-  const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  
+  const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  if (!baseURL || !apiKey) {
+  if (!apiKey) {
     req.log.error("Anthropic integration env vars not configured");
     res.status(500).json({ error: "Suggestions service is not available. Please try again later." });
     return;
@@ -133,7 +133,7 @@ router.post("/suggest-alternatives", requireAuth, suggestLimiter, async (req, re
     throw err;
   }
 
-  const anthropic = new Anthropic({ apiKey, baseURL });
+  const anthropic = new Anthropic({ apiKey });
 
   try {
     const message = await anthropic.messages.create({

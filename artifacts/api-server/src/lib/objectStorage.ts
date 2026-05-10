@@ -1,40 +1,37 @@
-import { Storage } from "@google-cloud/storage";
+import { createClient } from "@supabase/supabase-js";
 
-const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
-
-export const gcsClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
-      },
-    },
-    universe_domain: "googleapis.com",
-  },
-  projectId: "",
-});
-
+/**
+ * Upload a buffer to Supabase Storage.
+ * Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars.
+ * Returns the public URL path, or null if upload fails or storage is not configured.
+ */
 export async function uploadBufferToGcs(
   buffer: Buffer,
   folder: string,
   filename: string,
   contentType: string,
 ): Promise<string | null> {
-  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
-  const privateDir = process.env.PRIVATE_OBJECT_DIR;
-  if (!bucketId || !privateDir) return null;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const bucketName = process.env.STORAGE_BUCKET_NAME || "chimiq-uploads";
+
+  if (!supabaseUrl || !serviceRoleKey) return null;
+
   try {
-    const objectKey = `${privateDir.replace(/\/$/, "")}/${folder}/${filename}`;
-    const bucket = gcsClient.bucket(bucketId);
-    await bucket.file(objectKey).save(buffer, { contentType, resumable: false });
-    return `/objects/${folder}/${filename}`;
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const objectKey = `${folder}/${filename}`;
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(objectKey, buffer, { contentType, upsert: true });
+
+    if (error) return null;
+
+    const { data } = supabase.storage.from(bucketName).getPublicUrl(objectKey);
+    return data.publicUrl;
   } catch {
     return null;
   }
 }
+
+// Legacy export kept for routes that import gcsClient directly
+export const gcsClient = null;

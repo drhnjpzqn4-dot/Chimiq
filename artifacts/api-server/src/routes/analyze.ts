@@ -307,10 +307,10 @@ const router: IRouter = Router();
 // entirely and call Anthropic for free indefinitely.
 router.post("/analyze", requireAuth, async (req, res) => {
   if (!req.isAuthenticated()) return; // unreachable: requireAuth above; narrows req.user
-  const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
-  const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  
+  const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  if (!baseURL || !apiKey) {
+  if (!apiKey) {
     req.log.error("Anthropic integration env vars not configured");
     res.status(500).json({ error: "Analysis service is not available. Please try again later." });
     return;
@@ -423,7 +423,7 @@ router.post("/analyze", requireAuth, async (req, res) => {
         const mandatory = buildMandatoryFlagsBlock(allRisks, skinProfile);
         const conflicts = getConflicts(ingredients1, ingredients2);
         const mandatoryConflicts = buildMandatoryConflictsBlock(conflicts, skinProfile);
-        const anthropic = new Anthropic({ apiKey, baseURL });
+        const anthropic = new Anthropic({ apiKey });
         setImmediate(async () => {
           try {
             let regulatoryContext: string | undefined;
@@ -493,7 +493,7 @@ router.post("/analyze", requireAuth, async (req, res) => {
     req.log.warn({ err }, "Regulatory context lookup failed, proceeding without it");
   }
 
-  const anthropic = new Anthropic({ apiKey, baseURL });
+  const anthropic = new Anthropic({ apiKey });
   const result = await runAIAnalysis(
     anthropic,
     p1.needsAnalysis.join(", ") || "(no active ingredients)",

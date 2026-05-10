@@ -333,8 +333,8 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
     .set({ status: "ai_reviewing" })
     .where(eq(userSubmittedProductsTable.id, submissionId));
 
-  const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
-  const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  
+  const apiKey = process.env.ANTHROPIC_API_KEY;
 
   let extractedProductName: string | undefined;
   let extractedBrand: string | undefined;
@@ -343,7 +343,7 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
   let aiNote: string | undefined;
 
   if ((frontImageBase64 || ingredientsImageBase64) && baseURL && apiKey) {
-    const anthropic = new Anthropic({ apiKey, baseURL });
+    const anthropic = new Anthropic({ apiKey });
     const [frontResult, ingredientsResult] = await Promise.allSettled([
       frontImageBase64 ? extractFromFrontImage(frontImageBase64, anthropic) : Promise.resolve(null),
       ingredientsImageBase64
