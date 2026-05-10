@@ -375,7 +375,7 @@ router.post(
       // card. ANY failure before `refunds.create` settles must trigger a
       // compensating refund or we'd silently leave a real charge sitting
       // there — defeating the "charge + immediate refund" promise (#107).
-      let refund: import("stripe").default.Refund | null = null;
+      let refund: Awaited<ReturnType<typeof stripe.refunds.create>> | null = null;
       try {
         // CRITICAL: insert the audit row BEFORE issuing the refund. The
         // resulting `charge.refunded` webhook handler matches against this

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type Stripe from "stripe";
 
 const fetchPromoFromStripeMock = vi.fn();
 const couponsUpdateMock = vi.fn();
@@ -36,6 +35,21 @@ const noopLogger = {
   debug: vi.fn(),
 } as unknown as Parameters<typeof checkAndAlertTesterPromo>[0];
 
+// Local shape stubs — avoids import type Stripe namespace access (TS2702).
+interface StripeCoupon {
+  id?: string;
+  name?: string | null;
+  metadata: Record<string, string> | null;
+  max_redemptions?: number | null;
+}
+interface StripePromotionCode {
+  id: string;
+  code: string;
+  active: boolean;
+  times_redeemed: number;
+  max_redemptions?: number | null;
+  created?: number;
+}
 interface SnapshotOpts {
   promoId?: string;
   code?: string | null;
@@ -66,8 +80,8 @@ function snapshot(opts: SnapshotOpts) {
       couponName: "Tester 6M",
       alertedThresholds: [],
     },
-    promo: { id: promoId } as Stripe.PromotionCode,
-    coupon: { id: COUPON_ID, metadata } as unknown as Stripe.Coupon,
+    promo: { id: promoId } as StripePromotionCode,
+    coupon: { id: COUPON_ID, metadata } as unknown as StripeCoupon,
   };
 }
 

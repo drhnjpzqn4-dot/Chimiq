@@ -1,5 +1,4 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import type Stripe from "stripe";
 import { db, testerPromoChangesTable } from "@workspace/db";
 import { and, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient";
@@ -11,6 +10,7 @@ import {
   fetchPromoFromStripe,
   resolveActivePromo,
   type PromoPayload,
+  type StripePromotionCode,
 } from "../lib/testerPromo";
 
 // In-memory cache TTL. Stripe redemption counts don't change
@@ -130,7 +130,7 @@ router.post("/admin/tester-promo/raise-cap", async (req: Request, res: Response)
       await stripe.promotionCodes.update(currentPromo.id, { active: false });
     }
 
-    let newPromo: Stripe.PromotionCode;
+    let newPromo: StripePromotionCode;
     try {
       newPromo = await stripe.promotionCodes.create({
         promotion: { type: "coupon", coupon: COUPON_ID },
@@ -144,7 +144,7 @@ router.post("/admin/tester-promo/raise-cap", async (req: Request, res: Response)
       if (wasActive) {
         await stripe.promotionCodes
           .update(currentPromo.id, { active: true })
-          .catch((rollbackErr) => {
+          .catch((rollbackErr: unknown) => {
             // eslint-disable-next-line no-console
             console.error(
               "[admin/tester-promo] FAILED to re-activate old promo after create failure",
@@ -212,7 +212,7 @@ router.post("/admin/tester-promo/mint", async (req: Request, res: Response) => {
       await stripe.promotionCodes.update(currentPromo.id, { active: false });
     }
 
-    let newPromo: Stripe.PromotionCode;
+    let newPromo: StripePromotionCode;
     try {
       newPromo = await stripe.promotionCodes.create({
         promotion: { type: "coupon", coupon: COUPON_ID },
@@ -226,7 +226,7 @@ router.post("/admin/tester-promo/mint", async (req: Request, res: Response) => {
       if (currentPromo && wasActive) {
         await stripe.promotionCodes
           .update(currentPromo.id, { active: true })
-          .catch((rollbackErr) => {
+          .catch((rollbackErr: unknown) => {
             // eslint-disable-next-line no-console
             console.error(
               "[admin/tester-promo] FAILED to re-activate old promo after mint failure",
@@ -274,8 +274,8 @@ router.post("/admin/tester-promo/mint", async (req: Request, res: Response) => {
 async function recordPromoChange(opts: {
   action: "raise_cap" | "mint";
   adminEmail: string | null;
-  oldPromo: Stripe.PromotionCode | null;
-  newPromo: Stripe.PromotionCode;
+  oldPromo: StripePromotionCode | null;
+  newPromo: StripePromotionCode;
 }): Promise<void> {
   try {
     await db.insert(testerPromoChangesTable).values({

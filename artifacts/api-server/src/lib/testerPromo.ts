@@ -1,5 +1,22 @@
-import type Stripe from "stripe";
 import { getUncachableStripeClient } from "../stripeClient";
+type StripeClient = Awaited<ReturnType<typeof getUncachableStripeClient>>;
+
+// Local shape definitions — only the fields our code reads.
+// Avoids import type Stripe namespace access (TS2702 under moduleResolution:bundler).
+export interface StripeCoupon {
+  id?: string;
+  name?: string | null;
+  metadata: Record<string, string> | null;
+  max_redemptions?: number | null;
+}
+export interface StripePromotionCode {
+  id: string;
+  code: string;
+  active: boolean;
+  times_redeemed: number;
+  max_redemptions?: number | null;
+  created?: number;
+}
 
 // Original (bootstrap) promotion code on the TESTER6M coupon. We treat this
 // as a fallback only — once the founder raises the cap or mints a new code
@@ -45,7 +62,7 @@ export interface PromoPayload {
   alertedThresholds: number[];
 }
 
-async function getActivePromotionCodeId(coupon: Stripe.Coupon): Promise<string> {
+async function getActivePromotionCodeId(coupon: StripeCoupon): Promise<string> {
   const fromMetadata = coupon.metadata?.[ACTIVE_PROMO_METADATA_KEY];
   if (fromMetadata && typeof fromMetadata === "string" && fromMetadata.trim()) {
     return fromMetadata.trim();
@@ -58,9 +75,9 @@ async function getActivePromotionCodeId(coupon: Stripe.Coupon): Promise<string> 
 // Dashboard). Falls back to the most recently created promotion code on
 // the coupon, then to the bootstrap id.
 export async function resolveActivePromo(
-  stripe: Stripe,
-  coupon: Stripe.Coupon,
-): Promise<Stripe.PromotionCode> {
+  stripe: StripeClient,
+  coupon: StripeCoupon,
+): Promise<StripePromotionCode> {
   const promoId = await getActivePromotionCodeId(coupon);
   try {
     return await stripe.promotionCodes.retrieve(promoId);
@@ -81,8 +98,8 @@ export async function resolveActivePromo(
 }
 
 export function buildPayload(
-  promo: Stripe.PromotionCode,
-  coupon: Stripe.Coupon,
+  promo: StripePromotionCode,
+  coupon: StripeCoupon,
 ): PromoPayload {
   // Stripe stores the per-promotion-code cap on the promotion code, and a
   // separate (often broader) cap on the coupon. Show whichever is tighter
@@ -123,8 +140,8 @@ export function buildPayload(
 
 export async function fetchPromoFromStripe(): Promise<{
   payload: PromoPayload;
-  promo: Stripe.PromotionCode;
-  coupon: Stripe.Coupon;
+  promo: StripePromotionCode;
+  coupon: StripeCoupon;
 }> {
   const stripe = await getUncachableStripeClient();
   const coupon = await stripe.coupons.retrieve(COUPON_ID);

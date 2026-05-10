@@ -1,7 +1,39 @@
-import type Stripe from "stripe";
 import type { Logger } from "pino";
 import { eq, or } from "drizzle-orm";
 import { db, usersTable, paymentTestChargesTable, subscriptionEventsTable } from "@workspace/db";
+
+// ---------------------------------------------------------------------------
+// Minimal local interfaces — duck-typed to match the Stripe shapes we use.
+// Avoids any dependency on Stripe's exported type namespace (which breaks
+// under TypeScript 5.9 with `import type`).
+// ---------------------------------------------------------------------------
+interface StripeEvent {
+  type: string;
+  id: string;
+  data: { object: Record<string, unknown> };
+}
+
+interface StripeCheckoutSession {
+  metadata?: Record<string, string | undefined>;
+  subscription?: string | { id: string } | null;
+  customer?: string | { id: string } | null;
+}
+
+interface StripeSubscription {
+  id: string;
+  customer: string | { id: string };
+  status: string;
+  trial_end?: number | null;
+}
+
+interface StripeCharge {
+  id: string;
+  customer?: string | { id: string } | null;
+  payment_intent?: string | { id: string } | null;
+  metadata?: Record<string, string | undefined>;
+  amount?: number;
+  amount_refunded?: number;
+}
 
 /**
  * Apply a (already-verified) Stripe webhook event to our internal user state.
@@ -19,12 +51,12 @@ import { db, usersTable, paymentTestChargesTable, subscriptionEventsTable } from
  * removes the paid grant and leaves any earned-premium time intact.
  */
 export async function applyStripeEventToUser(
-  event: Stripe.Event,
+  event: StripeEvent,
   log: Logger,
 ): Promise<void> {
   switch (event.type) {
     case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const session = event.data.object as unknown as StripeCheckoutSession;
       const userId = session.metadata?.userId;
       if (!userId) {
         log.warn(
@@ -74,7 +106,7 @@ export async function applyStripeEventToUser(
 
     case "customer.subscription.created":
     case "customer.subscription.updated": {
-      const sub = event.data.object as Stripe.Subscription;
+      const sub = event.data.object as unknown as StripeSubscription;
       const customerId =
         typeof sub.customer === "string" ? sub.customer : sub.customer.id;
       // active or trialing => keep / grant premium; anything else => downgrade
@@ -131,7 +163,7 @@ export async function applyStripeEventToUser(
     }
 
     case "customer.subscription.deleted": {
-      const sub = event.data.object as Stripe.Subscription;
+      const sub = event.data.object as unknown as StripeSubscription;
       const customerId =
         typeof sub.customer === "string" ? sub.customer : sub.customer.id;
       await db
@@ -140,10 +172,6 @@ export async function applyStripeEventToUser(
           plan: "free",
           stripeSubscriptionId: null,
           subscriptionStatus: sub.status,
-          // Preserve the historical trial end so the admin Users
-          // dashboard can still tell "used trial then cancelled" apart
-          // from "never trialed". Only the active-state branch above
-          // overwrites it from a fresh sub.trial_end value.
         })
         .where(eq(usersTable.stripeCustomerId, customerId));
       log.info(
@@ -154,22 +182,13 @@ export async function applyStripeEventToUser(
     }
 
     case "charge.refunded": {
-      const charge = event.data.object as Stripe.Charge;
+      const charge = event.data.object as unknown as StripeCharge;
       const customerId =
         typeof charge.customer === "string"
           ? charge.customer
           : (charge.customer?.id ?? null);
       if (!customerId) return;
 
-      // Skip the operator's go-live verification charges (#107). The admin
-      // "Test live charge" button inserts a payment_test_charges audit row
-      // BEFORE issuing the refund, so any matching charge.refunded event is
-      // a verification ping — not a real cancellation. We mark the audit
-      // row as "delivered" so the UI can confirm true end-to-end webhook
-      // delivery, then early-return without touching user.plan.
-      //
-      // We also accept charge.metadata.purpose as a belt-and-suspenders
-      // fallback in case the audit insert raced the webhook.
       const paymentIntentId =
         typeof charge.payment_intent === "string"
           ? charge.payment_intent
@@ -207,15 +226,12 @@ export async function applyStripeEventToUser(
             chargeId: charge.id,
             paymentIntentId,
             auditMatched,
-            metadataMatched:
-              charge.metadata?.purpose === "go_live_test_charge",
+            metadataMatched: charge.metadata?.purpose === "go_live_test_charge",
           },
           "Ignoring go-live test charge refund — leaving user.plan unchanged",
         );
         return;
       }
-      // Only downgrade on full refunds. Partial refunds may be promo credits
-      // or partial-period adjustments and shouldn't kick a paying user off.
       const fullyRefunded =
         typeof charge.amount === "number" &&
         typeof charge.amount_refunded === "number" &&
@@ -237,12 +253,6 @@ export async function applyStripeEventToUser(
         .set({
           plan: "free",
           stripeSubscriptionId: null,
-          // Mark the subscription as canceled so the admin Users
-          // dashboard bucket logic doesn't keep showing a refunded
-          // user as still "active"/"trialing" until the next
-          // subscription.* event arrives. We deliberately keep
-          // trialEndsAt so "used trial then refunded" is still
-          // distinguishable from "never trialed".
           subscriptionStatus: "canceled",
         })
         .where(eq(usersTable.stripeCustomerId, customerId));
@@ -254,8 +264,6 @@ export async function applyStripeEventToUser(
     }
 
     default:
-      // Other event types (invoice.*, payment_intent.*, etc.) are mirrored by
-      // stripe-replit-sync but do not require user-state changes here.
       return;
   }
 }

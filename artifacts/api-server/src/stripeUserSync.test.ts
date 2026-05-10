@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type Stripe from "stripe";
 
 // Capture every .set() payload + the .where() clause so each test can
 // assert exactly what got written. The drizzle update chain is
@@ -61,6 +60,7 @@ vi.mock("@workspace/db", () => {
 });
 
 const { applyStripeEventToUser } = await import("./stripeUserSync");
+type StripeEvent = Parameters<typeof applyStripeEventToUser>[0];
 
 const noopLogger = {
   info: vi.fn(),
@@ -68,13 +68,13 @@ const noopLogger = {
   error: vi.fn(),
 } as unknown as Parameters<typeof applyStripeEventToUser>[1];
 
-function ev<T>(type: string, object: T, id = "evt_test"): Stripe.Event {
+function ev<T>(type: string, object: T, id = "evt_test"): StripeEvent {
   return {
     id,
     type,
     data: { object },
     object: "event",
-  } as unknown as Stripe.Event;
+  } as unknown as StripeEvent;
 }
 
 beforeEach(() => {

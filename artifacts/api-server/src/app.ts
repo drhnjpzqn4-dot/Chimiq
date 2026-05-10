@@ -1,13 +1,18 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import pinoHttp from "pino-http";
+import * as pinoHttpModule from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
 import { WebhookHandlers } from "./webhookHandlers";
 import { applyStripeEventToUser } from "./stripeUserSync";
-import type Stripe from "stripe";
+
+// Derive the event type from the function we already import —
+// avoids any Stripe namespace import issues across TypeScript versions.
+type StripeEvent = Parameters<typeof applyStripeEventToUser>[0];
+
+const pinoHttp = (pinoHttpModule as any).default ?? pinoHttpModule;
 
 const app: Express = express();
 
@@ -21,14 +26,14 @@ app.use(
   pinoHttp({
     logger,
     serializers: {
-      req(req) {
+      req(req: any) {
         return {
           id: req.id,
           method: req.method,
           url: req.url?.split("?")[0],
         };
       },
-      res(res) {
+      res(res: any) {
         return {
           statusCode: res.statusCode,
         };
@@ -59,7 +64,7 @@ app.post(
       try {
         const event = JSON.parse(
           (req.body as Buffer).toString("utf8"),
-        ) as Stripe.Event;
+        ) as unknown as StripeEvent;
         await applyStripeEventToUser(event, logger);
       } catch (innerErr) {
         logger.error(

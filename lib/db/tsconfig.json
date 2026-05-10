@@ -6,7 +6,13 @@
     "emitDeclarationOnly": true,
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "module": "esnext",
+    "moduleResolution": "bundler"
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

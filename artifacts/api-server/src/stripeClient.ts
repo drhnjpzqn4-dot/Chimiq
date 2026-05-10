@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 
+
 async function getCredentials() {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
@@ -28,7 +29,9 @@ async function getCredentials() {
     },
   });
 
-  const data = (await response.json()) as {
+  // @types/node defines its own incomplete Response — cast to get web fetch methods.
+  const rawText = await (response as unknown as { text: () => Promise<string> }).text();
+  const data = JSON.parse(rawText) as {
     items?: Array<{ settings: { publishable: string; secret: string } }>;
   };
 
@@ -44,9 +47,10 @@ async function getCredentials() {
   };
 }
 
-export async function getUncachableStripeClient(): Promise<Stripe> {
+// Stripe.Stripe = instance type from the CJS namespace. Stripe() = factory (no new).
+export async function getUncachableStripeClient(): Promise<Stripe.Stripe> {
   const { secretKey } = await getCredentials();
-  return new Stripe(secretKey, {
+  return Stripe(secretKey, {
     apiVersion: "2025-03-31.basil",
   });
 }

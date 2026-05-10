@@ -3,9 +3,16 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "skipLibCheck": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
     {
       "path": "../../lib/db"

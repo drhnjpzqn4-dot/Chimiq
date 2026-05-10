@@ -5,7 +5,11 @@
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "module": "esnext",
+    "moduleResolution": "bundler"
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }
