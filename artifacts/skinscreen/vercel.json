@@ -1,0 +1,6 @@
+{
+  "outputDirectory": "dist/public",
+  "buildCommand": "cd ../.. && pnpm --filter @workspace/skinscreen run build",
+  "installCommand": "cd ../.. && pnpm install",
+  "framework": null
+}
