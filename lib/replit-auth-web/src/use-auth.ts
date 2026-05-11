@@ -81,7 +81,7 @@ export function useAuth(): AuthState {
       return;
     }
 
-    window.location.href = `/api/login?returnTo=${encodeURIComponent(target)}`;
+    window.location.href = `/login?next=${encodeURIComponent(target)}`;
   }, []);
 
   const logout = useCallback(() => {
