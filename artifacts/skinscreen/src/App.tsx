@@ -21,6 +21,7 @@ const HomeB = lazy(() => import("@/pages/HomeB"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
 const Signup = lazy(() => import("@/pages/Signup"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 const AppPage = lazy(() => import("@/pages/AppPage"));
 const AdminPage = lazy(() => import("@/pages/AdminPage"));
 const AdminRecipesPage = lazy(() => import("@/pages/AdminRecipesPage"));
@@ -63,6 +64,44 @@ function RouteFallback() {
   );
 }
 
+/**
+ * Handles Supabase hash tokens in the URL (#access_token=...).
+ * Occurs after magic links and password reset links.
+ * Exchanges the token for a server session cookie.
+ */
+function HashTokenHandler() {
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.includes("access_token=")) return;
+    const params = new URLSearchParams(hash.substring(1));
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
+    const type = params.get("type");
+    if (!access_token) return;
+
+    // Clear the hash from the URL immediately
+    window.history.replaceState({}, "", window.location.pathname + window.location.search);
+
+    if (type === "recovery") {
+      // Password reset — go to reset page with token in query string
+      const dest = `/reset-password?access_token=${encodeURIComponent(access_token)}${refresh_token ? `&refresh_token=${encodeURIComponent(refresh_token)}` : ""}`;
+      window.location.href = dest;
+      return;
+    }
+
+    // Regular sign-in / magic link — exchange for server session
+    fetch("/api/auth/token-exchange", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ access_token, refresh_token }),
+    })
+      .then((res) => { if (res.ok) window.location.reload(); })
+      .catch(console.error);
+  }, []);
+  return null;
+}
+
 function Router() {
   return (
     <Suspense fallback={<RouteFallback />}>
@@ -73,6 +112,7 @@ function Router() {
         <Route path="/pricing" component={Pricing} />
         <Route path="/signup" component={Signup} />
         <Route path="/login" component={LoginPage} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/app" component={AppPage} />
         <Route path="/app/:rest*" component={AppPage} />
         <Route path="/discover" component={Discover} />
@@ -152,7 +192,8 @@ function App() {
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
               <NativeBootstrap />
-              <Router />
+              <HashTokenHandler />
+      <Router />
             </WouterRouter>
             <Toaster />
             <UpdateBanner />

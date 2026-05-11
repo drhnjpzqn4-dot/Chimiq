@@ -291,15 +291,34 @@ router.post("/auth/signup", async (req: Request, res: Response) => {
 
     const user = data.user;
 
-    // Upsert user in local database (not verified until email confirmation)
+    // Upsert user in local database
     await upsertUser(
       user.id,
       user.email,
       firstName || null,
       lastName || null,
       null,
-      false
+      user.email_confirmed_at != null && user.email_confirmed_at !== ""
     );
+
+    // If email confirmation is disabled, Supabase returns a session immediately — auto-login
+    if (data.session) {
+      const now = Math.floor(Date.now() / 1000);
+      const sessionData: SessionData = {
+        user: supabaseUserToAuthUser(user),
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token || undefined,
+        expires_at: data.session.expires_at ? Math.floor(data.session.expires_at) : now + 3600,
+      };
+      const sid = await createSession(sessionData);
+      setSessionCookie(res, sid);
+      res.json({
+        ok: true,
+        autoLoggedIn: true,
+        user: supabaseUserToAuthUser(user),
+      });
+      return;
+    }
 
     res.json({
       ok: true,
@@ -450,6 +469,109 @@ router.post("/auth/refresh", async (req: Request, res: Response) => {
   } catch (err) {
     req.log?.error?.({ err }, "Token refresh error");
     res.status(500).json({ error: "Refresh failed" });
+  }
+});
+
+
+/**
+ * POST /api/auth/forgot-password
+ * Send a password reset email via Supabase
+ */
+router.post("/auth/forgot-password", async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) {
+    res.status(400).json({ error: "Email required" });
+    return;
+  }
+  try {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://www.chimiq.com/reset-password",
+    });
+    if (error) {
+      req.log?.warn?.({ error: error.message }, "Forgot password Supabase error");
+    }
+    // Always return ok — prevents email enumeration attacks
+    res.json({ ok: true });
+  } catch (err) {
+    req.log?.error?.({ err }, "Forgot password error");
+    res.status(500).json({ error: "Failed to send reset email" });
+  }
+});
+
+/**
+ * POST /api/auth/token-exchange
+ * Exchange a Supabase access_token (from magic link / URL hash) for a server session cookie.
+ * Used when the frontend receives #access_token=... in the URL hash.
+ */
+router.post("/auth/token-exchange", async (req: Request, res: Response) => {
+  const { access_token, refresh_token } = req.body;
+  if (!access_token) {
+    res.status(400).json({ error: "access_token required" });
+    return;
+  }
+  try {
+    const payload = await verifyJWT(access_token);
+    if (!payload || !payload.sub) {
+      res.status(401).json({ error: "Invalid or expired token" });
+      return;
+    }
+    const supabase = getSupabaseAdminClient();
+    const { data: { user }, error } = await supabase.auth.admin.getUserById(payload.sub as string);
+    if (error || !user) {
+      res.status(401).json({ error: "User not found" });
+      return;
+    }
+    await upsertUser(
+      user.id,
+      user.email,
+      user.user_metadata?.first_name as string | null ?? null,
+      user.user_metadata?.last_name as string | null ?? null,
+      user.user_metadata?.avatar_url as string | null ?? null,
+      user.email_confirmed_at != null && user.email_confirmed_at !== ""
+    );
+    const now = Math.floor(Date.now() / 1000);
+    const sessionData: SessionData = {
+      user: supabaseUserToAuthUser(user),
+      access_token,
+      refresh_token: refresh_token || undefined,
+      expires_at: (payload.exp as number) ?? now + 3600,
+    };
+    const sid = await createSession(sessionData);
+    setSessionCookie(res, sid);
+    res.json({ ok: true, user: supabaseUserToAuthUser(user) });
+  } catch (err) {
+    req.log?.error?.({ err }, "Token exchange error");
+    res.status(500).json({ error: "Token exchange failed" });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Update user password using a recovery access_token
+ */
+router.post("/auth/reset-password", async (req: Request, res: Response) => {
+  const { access_token, password } = req.body;
+  if (!access_token || !password) {
+    res.status(400).json({ error: "access_token and password required" });
+    return;
+  }
+  try {
+    const payload = await verifyJWT(access_token);
+    if (!payload || !payload.sub) {
+      res.status(401).json({ error: "Invalid or expired reset link" });
+      return;
+    }
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase.auth.admin.updateUserById(payload.sub as string, { password });
+    if (error) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    req.log?.error?.({ err }, "Reset password error");
+    res.status(500).json({ error: "Failed to reset password" });
   }
 });
 
