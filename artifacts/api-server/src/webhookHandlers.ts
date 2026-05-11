@@ -1,4 +1,4 @@
-import { getStripeSync } from "./stripeClient";
+import { getUncachableStripeClient } from "./stripeClient";
 
 export class WebhookHandlers {
   static async processWebhook(payload: Buffer, signature: string): Promise<void> {
@@ -11,7 +11,19 @@ export class WebhookHandlers {
       );
     }
 
-    const sync = await getStripeSync();
-    await sync.processWebhook(payload, signature);
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      throw new Error(
+        "STRIPE_WEBHOOK_SECRET is not set. " +
+          "Get it from Stripe Dashboard → Developers → Webhooks → your endpoint → Signing secret.",
+      );
+    }
+
+    const stripe = await getUncachableStripeClient();
+
+    // Verifies signature — throws Stripe.errors.StripeSignatureVerificationError
+    // if invalid. app.ts catches and responds 400.
+    // app.ts then parses the body and calls applyStripeEventToUser() separately.
+    stripe.webhooks.constructEvent(payload, signature, webhookSecret);
   }
 }
