@@ -31,9 +31,10 @@ export function BottomTabBar() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border/40 bg-white/85 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70"
+      className="fixed inset-x-0 bottom-0 z-50 border-t bg-white/85 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70"
       style={{
         paddingBottom: "var(--safe-bottom)",
+        borderColor: "#EAE3DC",
         boxShadow: "0 -8px 24px -16px rgba(15, 23, 42, 0.12)",
       }}
     >
@@ -53,37 +54,29 @@ export function BottomTabBar() {
                     aria-label={`${t(tab.labelKey)}${active ? " (current page)" : ""}`}
                     className={cn(
                       "group relative flex flex-col items-center gap-1 pb-0.5 text-[11px] font-medium transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                      active ? "text-primary-strong" : "text-foreground/80 hover:text-foreground",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7BAF7A]/45 focus-visible:ring-offset-4 focus-visible:ring-offset-[#FAF6F2]",
+                      active ? "font-semibold" : "font-medium",
                     )}
+                    style={{ color: active ? "#7BAF7A" : "#5E544C" }}
                   >
                     <span
-                      className={cn(
-                        "flex h-14 w-14 shrink-0 items-center justify-center rounded-full shadow-md transition-transform duration-200",
-                        active ? "scale-100 ring-2 ring-white ring-offset-2 ring-offset-[#FAFAF8]" : "scale-95 group-hover:scale-100",
-                      )}
-                      style={{ backgroundColor: SAGE_FAB }}
+                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full transition-transform duration-200"
+                      style={{
+                        marginTop: -26,
+                        backgroundColor: SAGE_FAB,
+                        border: "4px solid #FAF6F2",
+                        boxShadow: "0 6px 16px rgba(91,143,90,.35)",
+                      }}
                     >
                       <Icon
                         aria-hidden="true"
-                        className="h-6 w-6 text-white transition-transform"
+                        className="text-white transition-transform"
+                        style={{ width: 26, height: 26 }}
                         strokeWidth={active ? 2.4 : 2}
+                        color="#FFFFFF"
                       />
                     </span>
-                    <span
-                      className={cn(
-                        "tracking-wide",
-                        active ? "font-semibold" : "font-medium",
-                      )}
-                    >
-                      {t(tab.labelKey)}
-                    </span>
-                    {active && (
-                      <span
-                        aria-hidden
-                        className="absolute -top-px h-[3px] w-8 rounded-full bg-primary-strong"
-                      />
-                    )}
+                    <span className="tracking-wide">{t(tab.labelKey)}</span>
                   </a>
                 </Link>
               </li>
@@ -101,31 +94,29 @@ export function BottomTabBar() {
                   }`}
                   className={cn(
                     "group relative flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                    active ? "text-primary-strong" : "text-foreground/80 hover:text-foreground",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7BAF7A]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#FAF6F2]",
                   )}
+                  style={{ color: active ? "#7BAF7A" : "#5E544C" }}
                 >
                   <span
                     className={cn(
                       "relative flex h-9 w-12 items-center justify-center rounded-2xl transition-all duration-200",
-                      active
-                        ? "bg-primary/12 scale-100"
-                        : "scale-95 group-hover:bg-muted",
+                      active ? "scale-100" : "scale-95 group-hover:bg-[#FAF6F2]",
                     )}
+                    style={active ? { backgroundColor: "rgba(123, 175, 122, 0.12)" } : undefined}
                   >
                     <Icon
                       aria-hidden="true"
-                      className={cn(
-                        "h-5 w-5 transition-transform",
-                        active ? "scale-110" : "scale-100",
-                      )}
+                      className={cn("h-5 w-5 transition-transform", active ? "scale-110" : "scale-100")}
                       strokeWidth={active ? 2.4 : 2}
+                      color={active ? "#7BAF7A" : "#5E544C"}
                     />
                     {showDot && (
                       <span
                         data-testid="tab-bar-recipes-dot"
                         aria-hidden="true"
-                        className="absolute right-1.5 top-1 inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white"
+                        className="absolute right-1.5 top-1 inline-flex h-2.5 w-2.5 rounded-full ring-2 ring-white"
+                        style={{ backgroundColor: "#7BAF7A" }}
                       />
                     )}
                   </span>
@@ -137,12 +128,6 @@ export function BottomTabBar() {
                   >
                     {t(tab.labelKey)}
                   </span>
-                  {active && (
-                    <span
-                      aria-hidden
-                      className="absolute -top-px h-[3px] w-8 rounded-full bg-primary-strong"
-                    />
-                  )}
                 </a>
               </Link>
             </li>

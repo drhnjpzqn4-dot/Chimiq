@@ -184,7 +184,15 @@ export default function DiscoverScreen() {
       {/* DIY recipes */}
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="font-serif text-lg font-semibold text-foreground">
+          <h2
+            className="leading-tight"
+            style={{
+              fontFamily: '"Iowan Old Style", Georgia, serif',
+              fontSize: 28,
+              fontWeight: 600,
+              color: "#1F1A17",
+            }}
+          >
             {t("discover.diyTitle")}
           </h2>
           <Link href="/recipes">
@@ -322,7 +330,17 @@ export default function DiscoverScreen() {
       {ENABLE_COMMUNITY_TIPS && (
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-serif text-lg font-semibold text-foreground">{t("discover.topTips")}</h2>
+          <h2
+            className="leading-tight"
+            style={{
+              fontFamily: '"Iowan Old Style", Georgia, serif',
+              fontSize: 28,
+              fontWeight: 600,
+              color: "#1F1A17",
+            }}
+          >
+            {t("discover.topTips")}
+          </h2>
           <span className="text-xs text-muted-foreground/70">{t("discover.last30Days")}</span>
         </div>
 

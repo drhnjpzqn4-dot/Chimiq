@@ -71,21 +71,33 @@ export default function HomeScreen() {
 
   return (
     <AppShell title={t("tabs.home")}>
-      <div className="space-y-5 rounded-2xl bg-[#FAF7F2] p-4 sm:p-5">
+      <div className="space-y-5 p-4 sm:p-5">
         {/* Sektion 1 — Hälsning */}
         <section className="animate-pop-in">
-          <h1 className="font-serif text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
+          <h1
+            className="leading-tight"
+            style={{
+              fontFamily: '"Iowan Old Style", Georgia, serif',
+              fontSize: 28,
+              fontWeight: 600,
+              color: "#1F1A17",
+            }}
+          >
             {t("home.greetingFmt", { name: firstName })}
           </h1>
-          <p className="mt-1.5 text-sm font-medium text-muted-foreground">{todayLabel}</p>
-          <p className="mt-1 text-sm text-muted-foreground/90">{t("home.tagline")}</p>
+          <p className="mt-1.5 font-medium" style={{ fontSize: 13, color: "#5E544C" }}>
+            {todayLabel}
+          </p>
+          <p className="mt-1" style={{ fontSize: 13, color: "#5E544C" }}>
+            {t("home.tagline")}
+          </p>
         </section>
 
         <BatchRecallBanner />
 
         {/* Sektion 2 — Min hylla (preview) */}
         <section>
-          <Card className="border-border/40 bg-white shadow-sm">
+          <Card className="border-[#EAE3DC] bg-white shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="font-serif text-lg">{t("home.shelfPreviewTitle")}</CardTitle>
               <Link href="/app/shelf">
@@ -116,7 +128,8 @@ export default function HomeScreen() {
                   {previewProducts.map((p) => (
                     <li
                       key={p.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-[#FAFAF8] px-3 py-2.5"
+                      className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5"
+                      style={{ borderColor: "#EAE3DC", backgroundColor: "#FFFFFF" }}
                     >
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                         {p.productName}
@@ -138,7 +151,7 @@ export default function HomeScreen() {
 
         {/* Sektion 3 — Bidragsstatus (kompakt) */}
         <section>
-          <Card className="border-border/40 bg-[#FDF8F3] shadow-sm">
+          <Card className="border-[#EAE3DC] bg-white shadow-sm">
             <CardContent className="pt-6">
               <p className="mb-3 text-sm font-medium text-foreground">
                 {t("home.contributionCompactFmt", {
@@ -161,9 +174,16 @@ export default function HomeScreen() {
 
         {/* Sektion 4 — Veckans ingrediens */}
         <section>
-          <Card className="border-border/40 bg-white shadow-sm">
+          <Card className="border-[#EAE3DC] bg-white shadow-sm">
             <CardHeader>
-              <CardTitle className="font-serif text-lg" style={{ color: "#7BAF7A" }}>
+              <CardTitle
+                className="text-lg leading-tight"
+                style={{
+                  fontFamily: '"Iowan Old Style", Georgia, serif',
+                  fontWeight: 600,
+                  color: "#1F1A17",
+                }}
+              >
                 {t("home.ingredientWeekTitle")}
               </CardTitle>
             </CardHeader>
@@ -178,7 +198,7 @@ export default function HomeScreen() {
 
         {/* Sektion 5 — Discover Problems */}
         <section>
-          <Card className="border-border/40 bg-white shadow-sm">
+          <Card className="border-[#EAE3DC] bg-white shadow-sm">
             <CardContent className="pt-6">
               <Link href="/app/problems">
                 <a
