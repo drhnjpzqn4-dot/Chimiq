@@ -4,6 +4,9 @@ import { Trophy, Crown, Sparkles, ChevronLeft, Info } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useTranslation } from "@/lib/i18n";
 
+/** BESLUT-SS-017: hide weekly community tip until dermatologist Q&A ships. */
+const ENABLE_COMMUNITY_TIPS = false;
+
 interface LeaderboardRow {
   userId: string;
   displayName: string;
@@ -71,6 +74,7 @@ export default function LeaderboardScreen() {
       </div>
 
       {/* Best Tip of the Week */}
+      {ENABLE_COMMUNITY_TIPS && (
       <section className="mb-6 animate-pop-in">
         <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
           <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-amber-700">
@@ -101,6 +105,7 @@ export default function LeaderboardScreen() {
           )}
         </div>
       </section>
+      )}
 
       {/* Tab switch */}
       <div role="tablist" aria-label={t("leaderboard.periodAria")} className="mb-4 flex gap-2">

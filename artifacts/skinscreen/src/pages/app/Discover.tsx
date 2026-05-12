@@ -6,15 +6,15 @@ import {
   ArrowUpRight,
   Compass,
   Trophy,
-  Heart,
-  Send,
-  Loader2,
   Info,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { FindDermatologist } from "@/components/FindDermatologist";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useTranslation } from "@/lib/i18n";
+
+/** BESLUT-SS-017: community tips UI off until dermatologist Q&A ships. */
+const ENABLE_COMMUNITY_TIPS = false;
 
 interface TipFeedItem {
   id: string;
@@ -48,6 +48,7 @@ export default function DiscoverScreen() {
   };
 
   useEffect(() => {
+    if (!ENABLE_COMMUNITY_TIPS) return;
     loadTips();
   }, []);
 
@@ -160,7 +161,7 @@ export default function DiscoverScreen() {
       </section>
 
       {/* Tip composer */}
-      {isAuthenticated && (
+      {ENABLE_COMMUNITY_TIPS && isAuthenticated && (
         <section className="mb-6">
           <div className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm">
             <div className="mb-2 flex items-center justify-between">
@@ -212,6 +213,7 @@ export default function DiscoverScreen() {
       )}
 
       {/* Tips feed */}
+      {ENABLE_COMMUNITY_TIPS && (
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-serif text-lg font-semibold text-foreground">{t("discover.topTips")}</h2>
@@ -271,6 +273,7 @@ export default function DiscoverScreen() {
           ))}
         </div>
       </section>
+      )}
 
       {/* Find dermatologist */}
       <section className="mb-2 -mx-4">

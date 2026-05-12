@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import {
   AlertTriangle,
-  CheckCircle2,
+  Ban,
+  Check,
   Filter,
   Loader2,
-  ShieldAlert,
   Sparkles,
   X,
 } from "lucide-react";
@@ -53,11 +53,14 @@ export default function RecipesPage() {
   const [risk, setRisk] = useState<(typeof RISK_LEVELS)[number]>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const RISK_BADGE: Record<RiskLevel, { bg: string; text: string; label: string; Icon: typeof CheckCircle2 }> = useMemo(
+  const RISK_BADGE: Record<
+    RiskLevel,
+    { bg: string; text: string; label: string; Icon: typeof Check | typeof AlertTriangle | typeof Ban }
+  > = useMemo(
     () => ({
-      safe: { bg: "bg-green-100", text: "text-green-700", label: t("recipes.badgeSafe"), Icon: CheckCircle2 },
+      safe: { bg: "bg-green-100", text: "text-green-700", label: t("recipes.badgeSafe"), Icon: Check },
       caution: { bg: "bg-amber-100", text: "text-amber-700", label: t("recipes.badgeCaution"), Icon: AlertTriangle },
-      high_risk: { bg: "bg-red-100", text: "text-red-700", label: t("recipes.badgeHighRisk"), Icon: ShieldAlert },
+      high_risk: { bg: "bg-red-100", text: "text-red-700", label: t("recipes.badgeHighRisk"), Icon: Ban },
     }),
     [t],
   );
@@ -192,9 +195,9 @@ export default function RecipesPage() {
                       </h3>
                       {badge && (
                         <span
-                          className={`inline-flex shrink-0 items-center gap-1 rounded-full ${badge.bg} px-2 py-0.5 text-[10px] font-semibold ${badge.text}`}
+                          className={`inline-flex shrink-0 items-center rounded-full ${badge.bg} px-2 py-0.5 text-[10px] font-semibold ${badge.text}`}
                         >
-                          <badge.Icon className="h-3 w-3" />
+                          <badge.Icon className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
                           {badge.label}
                         </span>
                       )}

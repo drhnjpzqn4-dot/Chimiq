@@ -3,9 +3,9 @@ import { Link, useRoute } from "wouter";
 import {
   AlertTriangle,
   ArrowLeft,
-  CheckCircle2,
+  Ban,
+  Check,
   Loader2,
-  ShieldAlert,
   Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -44,11 +44,14 @@ export default function RecipeDetailPage() {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const RISK_STYLES: Record<RiskLevel, { bg: string; text: string; label: string; Icon: typeof CheckCircle2 }> = useMemo(
+  const RISK_STYLES: Record<
+    RiskLevel,
+    { bg: string; text: string; label: string; Icon: typeof Check | typeof AlertTriangle | typeof Ban }
+  > = useMemo(
     () => ({
-      safe: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: t("recipeDetail.riskSafe"), Icon: CheckCircle2 },
+      safe: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: t("recipeDetail.riskSafe"), Icon: Check },
       caution: { bg: "bg-amber-50 border-amber-200", text: "text-amber-700", label: t("recipeDetail.riskCaution"), Icon: AlertTriangle },
-      high_risk: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: t("recipeDetail.riskHigh"), Icon: ShieldAlert },
+      high_risk: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: t("recipeDetail.riskHigh"), Icon: Ban },
     }),
     [t],
   );
@@ -114,8 +117,8 @@ export default function RecipeDetailPage() {
 
         {verdict && style && (
           <div className={`rounded-3xl border ${style.bg} p-5`}>
-            <div className={`flex items-center gap-2 ${style.text}`}>
-              <style.Icon className="h-5 w-5" />
+            <div className={`flex items-center ${style.text}`}>
+              <style.Icon className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
               <p className="font-semibold">{t("recipeDetail.aiSafetyScan", { label: style.label })}</p>
             </div>
             <p className="mt-2 text-sm text-foreground/80">{verdict.summary}</p>

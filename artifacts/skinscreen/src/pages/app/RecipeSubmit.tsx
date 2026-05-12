@@ -6,8 +6,9 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
+  Ban,
+  Check,
   CheckCircle2,
-  ShieldAlert,
   Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -83,11 +84,14 @@ export default function RecipeSubmitScreen() {
   const [scannerUnavailable, setScannerUnavailable] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const RISK_STYLES: Record<AiVerdict["riskLevel"], { bg: string; text: string; label: string; icon: typeof CheckCircle2 }> = useMemo(
+  const RISK_STYLES: Record<
+    AiVerdict["riskLevel"],
+    { bg: string; text: string; label: string; icon: typeof Check | typeof AlertTriangle | typeof Ban }
+  > = useMemo(
     () => ({
-      safe: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: t("recipeDetail.riskSafe"), icon: CheckCircle2 },
+      safe: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: t("recipeDetail.riskSafe"), icon: Check },
       caution: { bg: "bg-amber-50 border-amber-200", text: "text-amber-700", label: t("recipeDetail.riskCaution"), icon: AlertTriangle },
-      high_risk: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: t("recipeDetail.riskHigh"), icon: ShieldAlert },
+      high_risk: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: t("recipeDetail.riskHigh"), icon: Ban },
     }),
     [t],
   );
@@ -330,8 +334,8 @@ export default function RecipeSubmitScreen() {
 
           {verdict && style && Icon && (
             <div className={`rounded-3xl border ${style.bg} p-5`}>
-              <div className={`flex items-center gap-2 ${style.text}`}>
-                <Icon className="h-5 w-5" />
+              <div className={`flex items-center ${style.text}`}>
+                <Icon className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
                 <p className="font-semibold">{t("recipeDetail.aiSafetyScan", { label: style.label })}</p>
               </div>
               <p className="mt-2 text-sm text-foreground/80">{verdict.summary}</p>

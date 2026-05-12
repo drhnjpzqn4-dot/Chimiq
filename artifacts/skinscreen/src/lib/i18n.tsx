@@ -696,6 +696,7 @@ const en: Dict = {
   "scanner.tapToSeeWhy": "Tap to see why and view the source.",
   "scanner.selectSkinType": "Select your skin type",
   "scanner.selectProducts": "Select products to scan",
+  // DEPRECATED (2026-05): preloaded-sample UI removed from IngredientScanner — keys kept for translators / rollback.
   "scanner.useSample": "Use a preloaded sample",
   "scanner.useSampleHint": "Load a real-world example — then hit Analyze.",
   "scanner.choosePopular": "Choose a popular product",
@@ -714,6 +715,11 @@ const en: Dict = {
   "myShelf.noConflicts": "No conflicts found",
   "myShelf.title": "My Shelf",
   "myShelf.removeProduct": "Remove product",
+  "myShelf.removeDialogTitle": "Remove {name} from your shelf?",
+  "myShelf.removeDialogDescription":
+    "This can't be undone. (You can always add it again later.)",
+  "myShelf.removeDialogCancel": "Cancel",
+  "myShelf.removeDialogConfirm": "Remove",
   "myShelf.downloadPdf": "Download PDF Safety Report",
   "myShelf.downloadPdfHint": "Full routine analysis — share with your dermatologist",
   "myShelf.morning": "Morning",
@@ -1858,6 +1864,7 @@ const sv: Dict = {
   "scanner.tapToSeeWhy": "Tryck för att se varför och visa källan.",
   "scanner.selectSkinType": "Välj din hudtyp",
   "scanner.selectProducts": "Välj produkter att skanna",
+  // DEPRECATED (2026-05): förhandsladdat exempel borttaget i IngredientScanner — nycklar behålls för översättare / rollback.
   "scanner.useSample": "Använd ett färdigt exempel",
   "scanner.useSampleHint": "Ladda ett verkligt exempel — tryck sedan Analysera.",
   "scanner.choosePopular": "Välj en populär produkt",
@@ -1876,6 +1883,11 @@ const sv: Dict = {
   "myShelf.noConflicts": "Inga konflikter hittades",
   "myShelf.title": "Min hylla",
   "myShelf.removeProduct": "Ta bort produkt",
+  "myShelf.removeDialogTitle": "Ta bort {name} från din hylla?",
+  "myShelf.removeDialogDescription":
+    "Det går inte att ångra. (Du kan alltid lägga till den igen senare.)",
+  "myShelf.removeDialogCancel": "Avbryt",
+  "myShelf.removeDialogConfirm": "Ta bort",
   "myShelf.downloadPdf": "Ladda ner PDF-säkerhetsrapport",
   "myShelf.downloadPdfHint": "Fullständig rutinanalys — dela med din hudläkare",
   "myShelf.morning": "Morgon",
@@ -3010,6 +3022,7 @@ const fr: Dict = {
   "scanner.tapToSeeWhy": "Touchez pour voir pourquoi et consulter la source.",
   "scanner.selectSkinType": "Sélectionnez votre type de peau",
   "scanner.selectProducts": "Sélectionnez les produits à scanner",
+  // DEPRECATED (2026-05): exemple préchargé retiré d'IngredientScanner — clés conservées pour traduction / rollback.
   "scanner.useSample": "Utiliser un exemple préchargé",
   "scanner.useSampleHint": "Chargez un exemple réel — puis touchez Analyser.",
   "scanner.choosePopular": "Choisir un produit populaire",
@@ -3028,6 +3041,11 @@ const fr: Dict = {
   "myShelf.noConflicts": "Aucun conflit trouvé",
   "myShelf.title": "Mon étagère",
   "myShelf.removeProduct": "Retirer le produit",
+  "myShelf.removeDialogTitle": "Retirer {name} de votre étagère ?",
+  "myShelf.removeDialogDescription":
+    "Cette action est irréversible. (Vous pourrez toujours l'ajouter à nouveau plus tard.)",
+  "myShelf.removeDialogCancel": "Annuler",
+  "myShelf.removeDialogConfirm": "Retirer",
   "myShelf.downloadPdf": "Télécharger le rapport de sécurité PDF",
   "myShelf.downloadPdfHint": "Analyse complète de la routine — partagez avec votre dermatologue",
   "myShelf.morning": "Matin",
@@ -4162,6 +4180,7 @@ const es: Dict = {
   "scanner.tapToSeeWhy": "Toca para ver por qué y consultar la fuente.",
   "scanner.selectSkinType": "Selecciona tu tipo de piel",
   "scanner.selectProducts": "Selecciona los productos a escanear",
+  // DEPRECATED (2026-05): ejemplo precargado eliminado en IngredientScanner — claves conservadas para traducción / rollback.
   "scanner.useSample": "Usar un ejemplo precargado",
   "scanner.useSampleHint": "Carga un ejemplo real — luego pulsa Analizar.",
   "scanner.choosePopular": "Elige un producto popular",
@@ -4180,6 +4199,11 @@ const es: Dict = {
   "myShelf.noConflicts": "Sin conflictos",
   "myShelf.title": "Mi estante",
   "myShelf.removeProduct": "Quitar producto",
+  "myShelf.removeDialogTitle": "¿Quitar {name} de tu estantería?",
+  "myShelf.removeDialogDescription":
+    "No se puede deshacer. (Siempre puedes volver a añadirla después.)",
+  "myShelf.removeDialogCancel": "Cancelar",
+  "myShelf.removeDialogConfirm": "Quitar",
   "myShelf.downloadPdf": "Descargar informe PDF de seguridad",
   "myShelf.downloadPdfHint": "Análisis completo de la rutina — compártelo con tu dermatólogo",
   "myShelf.morning": "Mañana",

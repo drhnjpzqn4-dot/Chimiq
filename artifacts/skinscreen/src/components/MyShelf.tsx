@@ -18,6 +18,17 @@ import {
   ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus, Sparkles, Check,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useTranslation } from "@/lib/i18n";
@@ -600,6 +611,7 @@ function LockedSlotCard({ index, onUpgrade }: { index: number; onUpgrade: () => 
 export function MyShelf({ displayName }: MyShelfProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<ShelfTab>("morning");
+  const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
   const [analysisState, setAnalysisState] = useState<AnalysisState>({ status: "idle" });
@@ -767,21 +779,28 @@ export function MyShelf({ displayName }: MyShelfProps) {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="group flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#FAFAF8] border border-border/30 hover:border-border/50 transition-colors"
+                className="relative rounded-xl border border-border/30 bg-[#FAFAF8] py-2.5 pl-4 pr-11 transition-colors hover:border-border/50"
               >
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] shrink-0" />
-                <span className="text-sm text-foreground flex-1 min-w-0 truncate">{product.productName}</span>
-                {product.routineSlot === "both" && (
-                  <span className="text-[10px] text-muted-foreground/60 shrink-0">AM+PM</span>
-                )}
                 <button
-                  onClick={() => handleRemove(product.id)}
+                  type="button"
+                  onClick={() =>
+                    setRemoveTarget({ id: product.id, name: product.productName })
+                  }
                   disabled={removeMutation.isPending}
-                  className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-red-400 transition-all ml-1"
+                  className="absolute right-2 top-2 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-red-50 hover:text-red-600"
                   aria-label={t("myShelf.removeProduct")}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
+                <div className="flex min-w-0 items-center gap-3">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#22C55E]" />
+                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                    {product.productName}
+                  </span>
+                  {product.routineSlot === "both" && (
+                    <span className="shrink-0 text-[10px] text-muted-foreground/60">AM+PM</span>
+                  )}
+                </div>
               </div>
             ))}
 
@@ -826,6 +845,38 @@ export function MyShelf({ displayName }: MyShelfProps) {
           </button>
         </div>
       )}
+
+      <AlertDialog
+        open={removeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {removeTarget
+                ? t("myShelf.removeDialogTitle", { name: removeTarget.name })
+                : ""}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("myShelf.removeDialogDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("myShelf.removeDialogCancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className={cn(buttonVariants({ variant: "destructive" }))}
+              onClick={() => {
+                if (removeTarget) void handleRemove(removeTarget.id);
+                setRemoveTarget(null);
+              }}
+            >
+              {t("myShelf.removeDialogConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {showContributeModal && (
         <ContributeModal

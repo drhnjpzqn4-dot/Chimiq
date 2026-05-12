@@ -6,7 +6,7 @@ import {
   Loader2,
   PackagePlus,
   Sparkles,
-  ShieldCheck,
+  Check,
   ChevronRight,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -254,8 +254,8 @@ export default function BrowseScreen() {
                   </p>
                   <div className="mt-1 flex items-center gap-2">
                     {p.verifiedSafe && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-                        <ShieldCheck className="h-3 w-3" />
+                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                        <Check className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
                         {t("browse.verifiedSafe")}
                       </span>
                     )}

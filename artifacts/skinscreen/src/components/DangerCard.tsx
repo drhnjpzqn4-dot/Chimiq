@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Info, ExternalLink } from "lucide-react";
+import { AlertTriangle, Ban, ExternalLink } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import { useTranslation } from "@/lib/i18n";
 
@@ -28,8 +28,12 @@ export function DangerCard({ pair, risk, citation, citationUrl, severity, delay 
             <h3 className="text-xl sm:text-2xl font-serif font-semibold text-foreground leading-tight">
               {pair}
             </h3>
-            <Badge variant={isHighRisk ? "destructive" : "warning"} className="shrink-0 font-sans tracking-wide uppercase text-[10px]">
-              {isHighRisk ? <AlertTriangle className="w-3 h-3 mr-1" /> : <Info className="w-3 h-3 mr-1" />}
+            <Badge variant={isHighRisk ? "destructive" : "warning"} className="inline-flex shrink-0 items-center font-sans tracking-wide uppercase text-[10px]">
+              {isHighRisk ? (
+                <Ban className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
+              ) : (
+                <AlertTriangle className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
+              )}
               {severityLabel}
             </Badge>
           </div>

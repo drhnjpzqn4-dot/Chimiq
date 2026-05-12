@@ -25,7 +25,6 @@ import {
   FlaskConical,
   ShieldCheck,
   AlertTriangle,
-  Info,
   ExternalLink,
   Camera,
   Search,
@@ -36,6 +35,8 @@ import {
   ChevronUp,
   ChevronRight,
   Sparkles,
+  Check,
+  Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConflictResult } from "@workspace/api-client-react";
@@ -364,9 +365,19 @@ function FlagCard({
               </h3>
               <Badge
                 variant={isHighRisk ? "destructive" : "warning"}
-                className="shrink-0 text-[10px] font-sans tracking-wide uppercase"
+                className="inline-flex shrink-0 items-center text-[10px] font-sans tracking-wide uppercase"
               >
-                {isHighRisk ? t("scanner.highRisk") : t("scanner.caution")}
+                {isHighRisk ? (
+                  <>
+                    <Ban className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
+                    {t("scanner.highRisk")}
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
+                    {t("scanner.caution")}
+                  </>
+                )}
               </Badge>
             </div>
             <span className={cn(
@@ -441,8 +452,8 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
             <h3 className="text-xl sm:text-2xl font-serif font-semibold text-foreground leading-tight">
               {result.pair}
             </h3>
-            <Badge className="shrink-0 bg-green-100 text-green-700 border-green-200 hover:bg-green-100 font-sans tracking-wide uppercase text-[10px]">
-              <ShieldCheck className="w-3 h-3 mr-1" />
+            <Badge className="inline-flex shrink-0 items-center bg-green-100 text-green-700 border-green-200 hover:bg-green-100 font-sans tracking-wide uppercase text-[10px]">
+              <Check className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
               {t("scanner.safe")}
             </Badge>
           </div>
@@ -477,8 +488,8 @@ function AlternativeCard({ alt, delay }: { alt: AlternativeSuggestion; delay?: n
             <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-0.5">{alt.brand}</p>
             <h4 className="text-base font-serif font-semibold text-foreground leading-tight">{alt.name}</h4>
           </div>
-          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
-            <ShieldCheck className="w-3 h-3" />
+          <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
+            <Check className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
             {t("scanner.saferPick")}
           </span>
         </div>
@@ -833,106 +844,6 @@ function QuickStartDropdown({
   );
 }
 
-function ScanDivider() {
-  return (
-    <div className="flex items-center gap-3 my-3">
-      <div className="flex-1 border-t border-border/40" />
-      <span className="text-[13px] text-muted-foreground whitespace-nowrap shrink-0">
-        — or scan your own product —
-      </span>
-      <div className="flex-1 border-t border-border/40" />
-    </div>
-  );
-}
-
-const NEUTROGENA_BP_INGREDIENTS =
-  "Water, Sodium C14-16 Olefin Sulfonate, PEG-80 Sorbitan Laurate, Cocamidopropyl Betaine, Glycerin, Sodium Lauroamphoacetate, Sodium Hydroxide, Hydroxyethylcellulose, Benzoyl Peroxide 10%, Glycol Distearate, Cocamide MEA, Laureth-4, Citric Acid, Tetrasodium EDTA";
-
-const ROC_RETINOL_INGREDIENTS =
-  "Water, Dimethicone, Glycerin, Isopropyl Isostearate, Caprylic/Capric Triglyceride, PEG-100 Stearate, Propylene Glycol, Glyceryl Stearate, Cetyl Alcohol, Niacinamide, Retinol, Sodium Hyaluronate, Tocopherol, Phenoxyethanol, Ethylhexylglycerin, Disodium EDTA, Carbomer, Triethanolamine";
-
-const PAULAS_CHOICE_AHA_INGREDIENTS =
-  "Water, Glycolic Acid 8%, Butylene Glycol, Sodium Hydroxide, Phenyl Trimethicone, Aloe Barbadensis Leaf Extract, Allantoin, Chamomilla Recutita Flower Extract, Polysorbate 20, Tetrasodium EDTA, Methylparaben";
-
-const CERAVE_SA_INGREDIENTS =
-  "Water, Glycerin, Cetearyl Alcohol, Salicylic Acid 2%, Caprylic/Capric Triglyceride, Ceramide NP, Ceramide AP, Ceramide EOP, Niacinamide, Sodium Lauroyl Lactylate, Cholesterol, Phenoxyethanol, Methylparaben, Propylparaben, Ethylparaben, Carbomer, Sodium Hydroxide";
-
-const CERAVE_MOISTURISER_INGREDIENTS =
-  "Water, Glycerin, Cetearyl Alcohol, Caprylic/Capric Triglyceride, Dimethicone, Behentrimonium Methosulfate, Hyaluronic Acid, Niacinamide, Ceramide NP, Ceramide AP, Ceramide EOP, Sodium Lauroyl Lactylate, Cholesterol, Phenoxyethanol, Methylparaben, Propylparaben, Ethylparaben, Butylparaben, Carbomer, Sodium Hydroxide, Tocopheryl Acetate";
-
-interface ScannerPreset {
-  label: string;
-  badge: string;
-  badgeColor: "red" | "amber" | "green";
-  description: string;
-  seed: ScannerSeed;
-  /** Single-product preset thumbnail (Open Beauty Facts URL). */
-  image?: string;
-  /** Compare-preset thumbnails — rendered side by side in the tile. */
-  product1Image?: string;
-  product2Image?: string;
-}
-
-// Neutrogena Rapid Clear BP Wash is not in Open Beauty Facts at the time of
-// writing, so the preset's first product falls back to the FlaskConical
-// thumbnail rendered by `ProductImageThumb` when no `product1Image` is set.
-// The name and ingredient seed are kept as the original hard-coded sample.
-const ROC_RETINOL_PRESET_IMAGE =
-  "https://images.openbeautyfacts.org/images/products/121/000/080/0237/front_fr.3.400.jpg";
-const CERAVE_SA_PRESET_IMAGE =
-  "https://images.openbeautyfacts.org/images/products/333/787/579/5456/front_en.14.400.jpg";
-const PAULAS_CHOICE_PRESET_IMAGE =
-  "https://images.openbeautyfacts.org/images/products/200/000/015/2356/front_en.3.400.jpg";
-const CERAVE_MOISTURISER_PRESET_IMAGE =
-  "https://images.openbeautyfacts.org/images/products/333/787/559/7470/front_en.3.400.jpg";
-
-const COMPARE_PRESETS: ScannerPreset[] = [
-  {
-    label: "Neutrogena BP Wash + RoC Retinol",
-    badge: "shareCanvas.highRisk",
-    badgeColor: "red",
-    description: "scanner.presetBpRetinolDesc",
-    product2Image: ROC_RETINOL_PRESET_IMAGE,
-    seed: {
-      mode: "compare",
-      product1: NEUTROGENA_BP_INGREDIENTS,
-      product1Name: "Neutrogena Rapid Clear BP Wash",
-      product2: ROC_RETINOL_INGREDIENTS,
-      product2Name: "RoC Retinol Correxion Serum",
-      autoRun: false,
-    },
-  },
-  {
-    label: "CeraVe SA Cleanser + Paula's Choice AHA",
-    badge: "shareCanvas.caution",
-    badgeColor: "amber",
-    description: "scanner.presetSaAhaDesc",
-    product1Image: CERAVE_SA_PRESET_IMAGE,
-    product2Image: PAULAS_CHOICE_PRESET_IMAGE,
-    seed: {
-      mode: "compare",
-      product1: CERAVE_SA_INGREDIENTS,
-      product1Name: "CeraVe SA Smoothing Cleanser",
-      product2: PAULAS_CHOICE_AHA_INGREDIENTS,
-      product2Name: "Paula's Choice 8% AHA Gel",
-      autoRun: false,
-    },
-  },
-];
-
-const SINGLE_PRESET: ScannerPreset = {
-  label: "CeraVe Moisturising Cream",
-  badge: "scanner.scanIngredientsBadge",
-  badgeColor: "green",
-  description: "scanner.presetCeravePremiumDesc",
-  image: CERAVE_MOISTURISER_PRESET_IMAGE,
-  seed: {
-    mode: "single",
-    ingredients: CERAVE_MOISTURISER_INGREDIENTS,
-    autoRun: false,
-  },
-};
-
 export function IngredientScanner({
   ctaLabel,
   seed: externalSeed,
@@ -1177,8 +1088,6 @@ export function IngredientScanner({
   const cautionConflicts = compareConflicts.filter((c) => c.severity === "CAUTION");
   const safeConflicts = compareConflicts.filter((c) => c.severity === "SAFE");
 
-  const presets = mode === "compare" ? COMPARE_PRESETS : [SINGLE_PRESET];
-
   const handleStartOver = () => {
     setIngredients("");
     setProductName("");
@@ -1248,75 +1157,15 @@ export function IngredientScanner({
             </button>
           </div>
 
-          {/* Sub-options A / B / C — three parallel ways to pick ingredients.
-              Each letter badge gets its own accent colour, and a small "OR"
-              chip sits in the left rail directly under the badge so the three
-              options read as a vertical stack of alternatives instead of
-              separate full-width rows. */}
+          {/* Sub-options A / B — two parallel ways to pick ingredients.
+              Letter badges + "OR" rail (no rail under the last option). */}
           <div className="space-y-5">
 
-            {/* A — Preloaded sample */}
-            <div className="flex gap-3">
-              <div className="flex flex-col items-center shrink-0 mt-0.5 gap-1.5">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-300">
-                  A
-                </div>
-                <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
-                  {t("scanner.or")}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.useSample")}</h4>
-                <p className="text-xs text-muted-foreground mb-3">{t("scanner.useSampleHint")}</p>
-                <div className={cn("grid gap-3", presets.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-sm")}>
-                  {presets.map((preset) => {
-                    const isCompare = preset.seed.mode === "compare";
-                    return (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => applySeed(preset.seed)}
-                        className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white border border-border/50 hover:border-primary/40 hover:shadow-sm transition-all duration-150 text-left group"
-                      >
-                        <div className="flex items-center gap-3 w-full">
-                          {isCompare ? (
-                            <div className="flex items-center -space-x-2 shrink-0">
-                              <ProductImageThumb src={preset.product1Image} size={40} radius={50} />
-                              <ProductImageThumb src={preset.product2Image} size={40} radius={50} />
-                            </div>
-                          ) : (
-                            <ProductImageThumb src={preset.image} size={48} radius={50} />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-sm font-medium text-foreground leading-snug">{preset.label}</span>
-                              <span className={cn(
-                                "shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                                preset.badgeColor === "red" && "bg-red-100 text-red-600",
-                                preset.badgeColor === "amber" && "bg-amber-100 text-amber-700",
-                                preset.badgeColor === "green" && "bg-primary/10 text-primary",
-                              )}>
-                                {t(preset.badge)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-xs text-muted-foreground">{t(preset.description)}</span>
-                        <span className="text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                          {t("scanner.loadExample")}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* B — Popular product */}
+            {/* A — Popular product (was B) */}
             <div className="flex gap-3">
               <div className="flex flex-col items-center shrink-0 mt-0.5 gap-1.5">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-300">
-                  B
+                  A
                 </div>
                 <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
                   {t("scanner.or")}
@@ -1354,15 +1203,12 @@ export function IngredientScanner({
               </div>
             </div>
 
-            {/* C — Scan your own */}
+            {/* B — Scan your own (was C) */}
             <div className="flex gap-3">
               <div className="flex flex-col items-center shrink-0 mt-0.5 gap-1.5">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-amber-100 text-amber-700 border border-amber-300">
-                  C
+                  B
                 </div>
-                <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
-                  {t("scanner.or")}
-                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.scanOwn")}</h4>

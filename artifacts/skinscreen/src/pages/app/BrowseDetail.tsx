@@ -3,7 +3,7 @@ import { useLocation, useRoute } from "wouter";
 import {
   ArrowLeft,
   ScanLine,
-  ShieldCheck,
+  Check,
   Sparkles,
   Loader2,
   AlertTriangle,
@@ -141,8 +141,8 @@ export default function BrowseDetailScreen() {
                   {t(`browse.cat.${product.category}`)} · {t("browseDetail.barcodeLabel", { code: product.barcode })}
                 </p>
                 {product.verifiedSafe && (
-                  <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700">
-                    <ShieldCheck className="h-3 w-3" />
+                  <span className="mt-2 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+                    <Check className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
                     {t("browse.verifiedSafe")}
                   </span>
                 )}
