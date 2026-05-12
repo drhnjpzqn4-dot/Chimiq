@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -122,6 +122,7 @@ function Router() {
         <Route path="/recipes/:id" component={RecipeDetailPage} />
         <Route path="/discover/mistakes/:slug" component={MistakeDetail} />
         <Route path="/discover/worries/:slug" component={WorryDetail} />
+        <Route path="/admin" component={() => <Redirect to="/admin/submissions" replace />} />
         <Route path="/admin/submissions" component={AdminPage} />
         <Route path="/admin/recipes" component={AdminRecipesPage} />
         <Route path="/admin/users" component={AdminUsersPage} />
