@@ -25,8 +25,12 @@ const en: Dict = {
   // ───── Tabs ─────
   "tabs.scan": "Scan",
   "tabs.browse": "Browse",
+  "tabs.home": "Home",
+  "tabs.shelf": "Shelf",
   "tabs.discover": "Discover",
   "tabs.profile": "Profile",
+  "home.greetingFmt": "Hi, {name}!",
+  "home.placeholderNote": "The Home screen will be expanded in the next sprint.",
 
   // ───── Common ─────
   "common.signIn": "Sign in",
@@ -1185,8 +1189,12 @@ const sv: Dict = {
   // ───── Tabs ─────
   "tabs.scan": "Skanna",
   "tabs.browse": "Bläddra",
+  "tabs.home": "Hem",
+  "tabs.shelf": "Hylla",
   "tabs.discover": "Upptäck",
   "tabs.profile": "Profil",
+  "home.greetingFmt": "Hej, {name}!",
+  "home.placeholderNote": "Hem-sidan byggs ut i nästa sprint.",
 
   // ───── Common ─────
   "common.signIn": "Logga in",
@@ -2353,8 +2361,12 @@ const fr: Dict = {
   // ───── Tabs ─────
   "tabs.scan": "Scanner",
   "tabs.browse": "Parcourir",
+  "tabs.home": "Accueil",
+  "tabs.shelf": "Étagère",
   "tabs.discover": "Découvrir",
   "tabs.profile": "Profil",
+  "home.greetingFmt": "Bonjour, {name} !",
+  "home.placeholderNote": "La page d'accueil sera enrichie lors du prochain sprint.",
 
   // ───── Common ─────
   "common.signIn": "Se connecter",
@@ -3511,8 +3523,12 @@ const es: Dict = {
   // ───── Tabs ─────
   "tabs.scan": "Escanear",
   "tabs.browse": "Explorar",
+  "tabs.home": "Inicio",
+  "tabs.shelf": "Estante",
   "tabs.discover": "Descubrir",
   "tabs.profile": "Perfil",
+  "home.greetingFmt": "¡Hola, {name}!",
+  "home.placeholderNote": "La página de inicio se ampliará en el próximo sprint.",
 
   // ───── Common ─────
   "common.signIn": "Iniciar sesión",
