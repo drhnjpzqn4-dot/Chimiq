@@ -78,7 +78,7 @@ export default function AppPage() {
           <Route component={() => <Redirect to="/app/scan" />} />
         </Switch>
       </Suspense>
-      {isPremium && <ChatPanelLauncher />}
+      <ChatPanelLauncher isPremium={isPremium} />
     </>
   );
 }

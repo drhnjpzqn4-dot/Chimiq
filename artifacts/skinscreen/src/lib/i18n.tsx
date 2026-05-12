@@ -747,6 +747,14 @@ const en: Dict = {
   "chatPanel.close": "Close chat",
   "chatPanel.placeholder": "Ask about ingredient safety...",
 
+  "paywall.title": "Upgrade to Premium",
+  "paywall.subtitle": "Get unlimited scans, AI chat, and full routine insights",
+  "paywall.benefit1": "Unlimited scans per day",
+  "paywall.benefit2": "AI skincare assistant",
+  "paywall.benefit3": "Full routine check — see conflicts between all your products",
+  "paywall.trialCta": "Try 14 days free",
+  "paywall.alreadyPremiumLink": "Already Premium? Sign in again",
+
   "derm.cityPlaceholder": "Enter city or postcode",
   "derm.findingLocation": "Finding your location…",
   "derm.mapTitle": "Dermatologists near you",
@@ -1931,6 +1939,14 @@ const sv: Dict = {
   "chatPanel.close": "Stäng chatt",
   "chatPanel.placeholder": "Fråga om ingredienssäkerhet...",
 
+  "paywall.title": "Uppgradera till Premium",
+  "paywall.subtitle": "Få obegränsade skanningar, AI-chat och full rutinkoll",
+  "paywall.benefit1": "Obegränsade skanningar per dag",
+  "paywall.benefit2": "AI-hudvårdsassistent",
+  "paywall.benefit3": "Full rutinkontroll — se konflikter mellan alla dina produkter",
+  "paywall.trialCta": "Prova 14 dagar gratis",
+  "paywall.alreadyPremiumLink": "Redan Premium? Logga in på nytt",
+
   "derm.cityPlaceholder": "Ange stad eller postnummer",
   "derm.findingLocation": "Hittar din plats…",
   "derm.mapTitle": "Hudläkare nära dig",
@@ -3105,6 +3121,14 @@ const fr: Dict = {
   "chatPanel.close": "Fermer le chat",
   "chatPanel.placeholder": "Posez une question sur la sécurité des ingrédients...",
 
+  "paywall.title": "Passer à Premium",
+  "paywall.subtitle": "Scans illimités, chat IA et analyse complète de votre routine",
+  "paywall.benefit1": "Scans illimités par jour",
+  "paywall.benefit2": "Assistant IA soins de la peau",
+  "paywall.benefit3": "Contrôle de routine complet — voyez les conflits entre tous vos produits",
+  "paywall.trialCta": "Essayer 14 jours gratuitement",
+  "paywall.alreadyPremiumLink": "Déjà Premium ? Reconnectez-vous",
+
   "derm.cityPlaceholder": "Entrez la ville ou le code postal",
   "derm.findingLocation": "Recherche de votre position…",
   "derm.mapTitle": "Dermatologues près de chez vous",
@@ -4278,6 +4302,14 @@ const es: Dict = {
   "chatPanel.aiAssistant": "Asistente IA de seguridad de skincare",
   "chatPanel.close": "Cerrar chat",
   "chatPanel.placeholder": "Pregunta sobre seguridad de ingredientes...",
+
+  "paywall.title": "Pásate a Premium",
+  "paywall.subtitle": "Escaneos ilimitados, chat con IA y control total de tu rutina",
+  "paywall.benefit1": "Escaneos ilimitados al día",
+  "paywall.benefit2": "Asistente de cuidado de la piel con IA",
+  "paywall.benefit3": "Control de rutina completo — detecta conflictos entre todos tus productos",
+  "paywall.trialCta": "Prueba 14 días gratis",
+  "paywall.alreadyPremiumLink": "¿Ya eres Premium? Inicia sesión de nuevo",
 
   "derm.cityPlaceholder": "Introduce la ciudad o el código postal",
   "derm.findingLocation": "Buscando tu ubicación…",
