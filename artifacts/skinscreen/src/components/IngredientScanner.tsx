@@ -45,12 +45,17 @@ const PLACEHOLDER_SINGLE = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, C
 const PLACEHOLDER_1 = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, Cetearyl Alcohol, Phenoxyethanol, Sodium Hyaluronate, Butylene Glycol, Carbomer`;
 const PLACEHOLDER_2 = `Aqua, Ascorbic Acid (Vitamin C 20%), Glycolic Acid, Propylene Glycol, Tocopherol, Ferulic Acid, Sodium Hydroxide, Panthenol`;
 
-const SKIN_PROFILES: { value: SkinProfile; labelKey: string; emoji: string }[] = [
-  { value: "sensitive", labelKey: "scanner.skinType.sensitive", emoji: "🌸" },
-  { value: "young", labelKey: "scanner.skinType.young", emoji: "✨" },
-  { value: "mature", labelKey: "scanner.skinType.mature", emoji: "🍃" },
-  { value: "pregnant", labelKey: "scanner.skinType.pregnant", emoji: "🤱" },
-];
+function readStoredSkinProfile(): SkinProfile | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const stored = window.localStorage.getItem("skinscreen.skinProfile");
+    if (!stored) return undefined;
+    const allowed: SkinProfile[] = ["sensitive", "young", "mature", "pregnant"];
+    return allowed.includes(stored as SkinProfile) ? (stored as SkinProfile) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 const FLAG_CATEGORY_KEYS: Record<string, string> = {
   ENDOCRINE_DISRUPTOR: "scanner.flagCategory.endocrineDisruptor",
@@ -62,41 +67,6 @@ const FLAG_CATEGORY_KEYS: Record<string, string> = {
   NANOPARTICLE: "scanner.flagCategory.nanoparticle",
   CAUTION: "scanner.flagCategory.caution",
 };
-
-function SkinProfileSelector({
-  value,
-  onChange,
-}: {
-  value: SkinProfile | undefined;
-  onChange: (v: SkinProfile | undefined) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-xs font-semibold uppercase tracking-wider mb-2 text-primary">{t("scanner.yourSkinType")}</p>
-      <div className="flex flex-wrap gap-2">
-        {SKIN_PROFILES.map((p) => (
-          <button
-            key={p.value}
-            type="button"
-            onClick={() => onChange(value === p.value ? undefined : p.value)}
-            className={cn(
-              "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150",
-              "border focus:outline-none focus:ring-2 focus:ring-primary/40",
-              value === p.value
-                ? "border-transparent shadow-sm"
-                : "bg-white border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground",
-            )}
-            data-touch-target
-            style={value === p.value ? { backgroundColor: "hsl(var(--primary))", color: "#fff", borderColor: "hsl(var(--primary))" } : {}}
-          >
-            {t(p.labelKey)}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 interface ProductSearchProps {
   onIngredients: (ingredients: string, productName: string) => void;
@@ -858,32 +828,6 @@ export function IngredientScanner({
 } = {}) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<"single" | "compare">("single");
-  // Persist the user's last skin-type choice so returning users don't have to
-  // re-pick it on every scan. Stored in localStorage; gracefully ignores any
-  // legacy/invalid value.
-  const [skinProfile, setSkinProfile] = useState<SkinProfile | undefined>(() => {
-    if (typeof window === "undefined") return undefined;
-    try {
-      const stored = window.localStorage.getItem("skinscreen.skinProfile");
-      if (!stored) return undefined;
-      const valid = SKIN_PROFILES.some((o) => o.value === stored);
-      return valid ? (stored as SkinProfile) : undefined;
-    } catch {
-      return undefined;
-    }
-  });
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      if (skinProfile) {
-        window.localStorage.setItem("skinscreen.skinProfile", skinProfile);
-      } else {
-        window.localStorage.removeItem("skinscreen.skinProfile");
-      }
-    } catch {
-      // ignore quota / disabled storage
-    }
-  }, [skinProfile]);
   const [ingredients, setIngredients] = useState("");
   const [productName, setProductName] = useState<string>("");
   const [product1, setProduct1] = useState("");
@@ -1063,6 +1007,7 @@ export function IngredientScanner({
 
   const handleScan = () => {
     setSubmitted(true);
+    const skinProfile = readStoredSkinProfile();
     if (mode === "single") {
       if (!ingredients.trim()) return;
       analyzeSingle.mutate({ data: { ingredients, skinProfile } });
@@ -1100,7 +1045,6 @@ export function IngredientScanner({
     setProduct2Name("");
     setProduct2Image("");
     setSubmitted(false);
-    setSkinProfile(undefined);
     setQuickStartResetKey((k) => k + 1);
     analyzeSingle.reset();
     analyzeCompare.reset();
@@ -1109,18 +1053,9 @@ export function IngredientScanner({
   return (
     <div className="w-full max-w-4xl mx-auto">
 
-      {/* ── STEP 1: Skin type ── */}
+      {/* ── STEP 1: Select products ── */}
       <StepHeader
         index={1}
-        title={t("scanner.selectSkinType")}
-        description={t("scanner.stepSkinTypeDesc")}
-      >
-        <SkinProfileSelector value={skinProfile} onChange={setSkinProfile} />
-      </StepHeader>
-
-      {/* ── STEP 2: Select products ── */}
-      <StepHeader
-        index={2}
         title={t("scanner.selectProducts")}
         description={t("scanner.stepSelectDesc")}
       >
@@ -1157,19 +1092,15 @@ export function IngredientScanner({
             </button>
           </div>
 
-          {/* Sub-options A / B — two parallel ways to pick ingredients.
-              Letter badges + "OR" rail (no rail under the last option). */}
+          {/* Sub-options A / B — two parallel ways to pick ingredients. */}
           <div className="space-y-5">
 
-            {/* A — Popular product (was B) */}
+            {/* A — Popular product */}
             <div className="flex gap-3">
-              <div className="flex flex-col items-center shrink-0 mt-0.5 gap-1.5">
+              <div className="flex flex-col items-center shrink-0 mt-0.5">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-300">
                   A
                 </div>
-                <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
-                  {t("scanner.or")}
-                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.choosePopular")}</h4>
@@ -1203,9 +1134,9 @@ export function IngredientScanner({
               </div>
             </div>
 
-            {/* B — Scan your own (was C) */}
+            {/* B — Scan your own */}
             <div className="flex gap-3">
-              <div className="flex flex-col items-center shrink-0 mt-0.5 gap-1.5">
+              <div className="flex flex-col items-center shrink-0 mt-0.5">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-amber-100 text-amber-700 border border-amber-300">
                   B
                 </div>
@@ -1304,9 +1235,9 @@ export function IngredientScanner({
           </div>
       </StepHeader>
 
-      {/* ── STEP 3: Analyze ── */}
+      {/* ── STEP 2: Analyze ── */}
       <StepHeader
-        index={3}
+        index={2}
         title={t("scanner.analyze")}
         description={
           mode === "single"
