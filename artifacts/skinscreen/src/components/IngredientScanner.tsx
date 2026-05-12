@@ -23,6 +23,7 @@ import { trackEvent } from "@/lib/analytics";
 import {
   Loader2,
   FlaskConical,
+  ScanLine,
   ShieldCheck,
   AlertTriangle,
   ExternalLink,
@@ -818,6 +819,7 @@ export function IngredientScanner({
   ctaLabel,
   seed: externalSeed,
   onSeedConsumed,
+  scanVisualStyle,
 }: {
   ctaLabel?: { single: string; compare: string };
   seed?: ScannerSeed | null;
@@ -825,8 +827,11 @@ export function IngredientScanner({
       the parent can clear its own seed prop and re-show lookup-home sections
       (recents / get-started) for the next interaction. */
   onSeedConsumed?: () => void;
+  /** SS-015: Scan page palette for toggle, A/B cards, and Analyze control. */
+  scanVisualStyle?: boolean;
 } = {}) {
   const { t } = useTranslation();
+  const ss = scanVisualStyle === true;
   const [mode, setMode] = useState<"single" | "compare">("single");
   const [ingredients, setIngredients] = useState("");
   const [productName, setProductName] = useState<string>("");
@@ -1058,10 +1063,19 @@ export function IngredientScanner({
         index={1}
         title={t("scanner.selectProducts")}
         description={t("scanner.stepSelectDesc")}
+        visualVariant={ss ? "scan" : "default"}
       >
 
           {/* 1 or 2 products toggle */}
-          <div className="flex gap-2 mb-6 p-1 bg-white rounded-2xl border border-border/50 shadow-sm w-fit">
+          <div
+            className={cn(
+              "flex gap-2 mb-6 p-1 rounded-2xl w-fit",
+              ss
+                ? "border bg-white shadow-sm"
+                : "bg-white rounded-2xl border border-border/50 shadow-sm",
+            )}
+            style={ss ? { borderColor: "rgba(123, 175, 122, 0.35)" } : undefined}
+          >
             <button
               type="button"
               onClick={() => { setMode("single"); resetResults(); }}
@@ -1069,9 +1083,20 @@ export function IngredientScanner({
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-150",
                 mode === "single"
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? ss
+                    ? "text-white shadow-sm"
+                    : "bg-primary text-white shadow-sm"
+                  : ss
+                    ? "bg-white"
+                    : "text-muted-foreground hover:text-foreground",
               )}
+              style={
+                ss && mode === "single"
+                  ? { backgroundColor: "#7BAF7A" }
+                  : ss && mode !== "single"
+                    ? { color: "#7BAF7A" }
+                    : undefined
+              }
             >
               <Zap className="w-3.5 h-3.5" />
               {t("scanner.oneProduct")}
@@ -1083,9 +1108,20 @@ export function IngredientScanner({
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-150",
                 mode === "compare"
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? ss
+                    ? "text-white shadow-sm"
+                    : "bg-primary text-white shadow-sm"
+                  : ss
+                    ? "bg-white"
+                    : "text-muted-foreground hover:text-foreground",
               )}
+              style={
+                ss && mode === "compare"
+                  ? { backgroundColor: "#7BAF7A" }
+                  : ss && mode !== "compare"
+                    ? { color: "#7BAF7A" }
+                    : undefined
+              }
             >
               <ArrowLeftRight className="w-3.5 h-3.5" />
               {t("scanner.twoProducts")}
@@ -1098,11 +1134,24 @@ export function IngredientScanner({
             {/* A — Popular product */}
             <div className="flex gap-3">
               <div className="flex flex-col items-center shrink-0 mt-0.5">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-300">
+                <div
+                  className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border",
+                    ss
+                      ? "bg-[#7BAF7A]/20 text-[#2f5530] border-[#7BAF7A]/40"
+                      : "bg-indigo-100 text-indigo-700 border-indigo-300",
+                  )}
+                >
                   A
                 </div>
               </div>
-              <div className="flex-1 min-w-0">
+              <div
+                className={cn(
+                  "flex-1 min-w-0",
+                  ss && "rounded-xl border-l-4 border-transparent bg-[#FFFDFB] shadow-sm pl-4 pr-3 py-3",
+                )}
+                style={ss ? { borderLeftColor: "#7BAF7A" } : undefined}
+              >
                 <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.choosePopular")}</h4>
                 <p className="text-xs text-muted-foreground mb-3">{t("scanner.choosePopularHint")}</p>
                 {mode === "single" ? (
@@ -1137,11 +1186,24 @@ export function IngredientScanner({
             {/* B — Scan your own */}
             <div className="flex gap-3">
               <div className="flex flex-col items-center shrink-0 mt-0.5">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-amber-100 text-amber-700 border border-amber-300">
+                <div
+                  className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border",
+                    ss
+                      ? "bg-[#7BAF7A]/20 text-[#2f5530] border-[#7BAF7A]/40"
+                      : "bg-amber-100 text-amber-700 border-amber-300",
+                  )}
+                >
                   B
                 </div>
               </div>
-              <div className="flex-1 min-w-0">
+              <div
+                className={cn(
+                  "flex-1 min-w-0",
+                  ss && "rounded-xl border-l-4 border-transparent bg-[#FFFDFB] shadow-sm pl-4 pr-3 py-3",
+                )}
+                style={ss ? { borderLeftColor: "#7BAF7A" } : undefined}
+              >
                 <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.scanOwn")}</h4>
                 <p className="text-xs text-muted-foreground mb-3">{t("scanner.scanOwnHint")}</p>
                 {mode === "single" ? (
@@ -1246,19 +1308,37 @@ export function IngredientScanner({
         }
         active={canSubmit}
         hasConnector={false}
+        visualVariant={ss ? "scan" : "default"}
       >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div
+          className={cn(
+            "flex flex-col sm:flex-row items-start sm:items-center gap-3",
+            ss && "w-full",
+          )}
+        >
           <Button
             size="lg"
             onClick={handleScan}
             disabled={!canSubmit || isPending}
             data-touch-target
-            className="w-full sm:w-auto min-w-[200px] gap-2 text-base py-3 px-8 rounded-2xl active:animate-tap-bounce"
+            className={cn(
+              "gap-2 active:animate-tap-bounce",
+              ss
+                ? "w-full min-w-0 rounded-2xl border-0 py-4 text-lg font-semibold !bg-[#7BAF7A] !text-white shadow-sm hover:!bg-[#6a9e69] hover:!text-white sm:w-full"
+                : "w-full sm:w-auto min-w-[200px] text-base py-3 px-8 rounded-2xl",
+            )}
           >
             {isPending ? (
-              <><Loader2 className="w-4 h-4 animate-spin" />{t("scanner.analysing")}</>
+              <><Loader2 className="w-5 h-5 animate-spin" />{t("scanner.analysing")}</>
             ) : (
-              <><FlaskConical className="w-4 h-4" />{mode === "single" ? (ctaLabel?.single ?? t("scanner.ctaSingle")) : (ctaLabel?.compare ?? t("scanner.ctaCompare"))}</>
+              <>
+                {ss ? (
+                  <ScanLine className="w-5 h-5 shrink-0" aria-hidden />
+                ) : (
+                  <FlaskConical className="w-4 h-4" aria-hidden />
+                )}
+                {mode === "single" ? (ctaLabel?.single ?? t("scanner.ctaSingle")) : (ctaLabel?.compare ?? t("scanner.ctaCompare"))}
+              </>
             )}
           </Button>
           <button

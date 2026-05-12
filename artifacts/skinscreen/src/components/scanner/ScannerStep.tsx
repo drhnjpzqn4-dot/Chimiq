@@ -7,6 +7,8 @@ interface StepHeaderProps {
   active?: boolean;
   hasConnector?: boolean;
   children?: React.ReactNode;
+  /** SS-015: Scan page — sage titles, sage step ring. */
+  visualVariant?: "default" | "scan";
 }
 
 export function StepHeader({
@@ -16,27 +18,40 @@ export function StepHeader({
   active = true,
   hasConnector = true,
   children,
+  visualVariant = "default",
 }: StepHeaderProps) {
+  const scan = visualVariant === "scan";
   return (
     <div className="flex gap-4 mb-2">
       <div className="shrink-0 flex flex-col items-center">
         <div
           className={cn(
             "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 transition-colors",
-            active ? "bg-primary" : "bg-muted-foreground/40",
+            active
+              ? scan
+                ? ""
+                : "bg-primary"
+              : "bg-muted-foreground/40",
           )}
+          style={scan && active ? { backgroundColor: "#7BAF7A" } : undefined}
         >
           {index}
         </div>
         {hasConnector && (
           <div
-            className="w-px flex-1 mt-2 bg-primary/25"
+            className={cn("w-px flex-1 mt-2", scan ? "bg-[#7BAF7A]/25" : "bg-primary/25")}
             style={{ minHeight: 24 }}
           />
         )}
       </div>
       <div className="flex-1 min-w-0 pb-8">
-        <h3 className="font-bold text-[17px] text-foreground mb-0.5 mt-1.5">
+        <h3
+          className={cn(
+            "font-bold text-[17px] mb-0.5 mt-1.5",
+            scan ? "tracking-[0.08em]" : "text-foreground",
+          )}
+          style={scan ? { color: "#7BAF7A" } : undefined}
+        >
           {title}
         </h3>
         {description && (

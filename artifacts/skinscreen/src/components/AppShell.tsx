@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { useAuth } from "@workspace/replit-auth-web";
 import { BottomTabBar } from "@/components/BottomTabBar";
 
 interface AppShellProps {
@@ -10,7 +9,6 @@ interface AppShellProps {
 }
 
 export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps) {
-  const { user } = useAuth();
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
   return (
@@ -26,23 +24,16 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
           <a href={base + "/"} className="flex items-center gap-2" data-touch-target aria-label="Chimiq home">
             <span
               aria-hidden
-              className="font-serif text-2xl font-bold leading-none tracking-tight text-primary-strong"
-              style={{ letterSpacing: "-0.01em" }}
+              className="font-serif text-2xl font-bold leading-none tracking-tight"
+              style={{ letterSpacing: "-0.01em", color: "#7BAF7A" }}
             >
               Chimiq
             </span>
             <span className="sr-only">Chimiq</span>
           </a>
-          <div className="flex items-center gap-2">
+          <div className="flex min-h-[2.25rem] items-center justify-end gap-2">
             {rightSlot}
-            {user && (
-              <div
-                aria-hidden
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/12 text-xs font-bold uppercase text-primary"
-              >
-                {(user.firstName ?? user.email ?? "U").slice(0, 1)}
-              </div>
-            )}
+            {/* SS-016: reserved for active conflict warning (V8); profile avatar removed from top bar */}
           </div>
         </div>
 

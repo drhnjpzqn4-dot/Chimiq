@@ -289,14 +289,21 @@ export default function ScanScreen() {
 
   return (
     <AppShell title={t("scan.title")} subtitle={t("scan.subtitle")}>
+      <div className="-mx-4 space-y-5 bg-[#FAF7F2] px-4 pb-6 sm:space-y-6">
       {/* SCAN PRODUCT — Variant A "morphing search" (camera viewfinder + search) */}
       <section className="mb-6 animate-pop-in">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+          <p
+            className="text-[11px] font-bold uppercase tracking-[0.12em]"
+            style={{ color: "#7BAF7A" }}
+          >
             {t("scan.heading")}
           </p>
           {isPremium ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-primary to-amber-400 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm"
+              style={{ backgroundColor: "#D29A55" }}
+            >
               <Sparkles className="h-3 w-3" />
               {t("scan.premiumBadge")}
             </span>
@@ -393,7 +400,10 @@ export default function ScanScreen() {
       {/* RECENT SCANS — only on lookup home (when no analysis is running) */}
       {!seed && recent.length > 0 && (
         <section className="mb-6">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+          <p
+            className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em]"
+            style={{ color: "#7BAF7A" }}
+          >
             {t("scan.recentScans")}
           </p>
           <div className="overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm">
@@ -432,7 +442,10 @@ export default function ScanScreen() {
       {/* RECENT SCANS — empty state hint with browse / discover quick links */}
       {!seed && recent.length === 0 && (
         <section className="mb-6">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+          <p
+            className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em]"
+            style={{ color: "#7BAF7A" }}
+          >
             {t("scan.getStarted")}
           </p>
           <div className="grid grid-cols-2 gap-3">
@@ -440,10 +453,15 @@ export default function ScanScreen() {
               type="button"
               onClick={() => navigate("/app/browse")}
               data-touch-target
-              className="flex flex-col items-start gap-1 rounded-2xl border border-border/60 bg-white p-3.5 text-left shadow-sm transition-colors hover:border-primary/40"
+              className="flex flex-col items-start gap-2 rounded-xl bg-white p-3.5 text-left shadow-sm transition-shadow hover:shadow-md"
             >
-              <PackageSearch className="h-5 w-5 text-primary" />
-              <span className="text-[14px] font-semibold text-foreground">
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                style={{ backgroundColor: "rgba(123, 175, 122, 0.2)" }}
+              >
+                <PackageSearch className="h-5 w-5" style={{ color: "#7BAF7A" }} aria-hidden />
+              </span>
+              <span className="text-[14px] font-semibold" style={{ color: "#1C1C1E" }}>
                 {t("scan.browseProducts")}
               </span>
               <span className="text-[12px] text-muted-foreground">
@@ -454,10 +472,15 @@ export default function ScanScreen() {
               type="button"
               onClick={() => navigate("/app/discover")}
               data-touch-target
-              className="flex flex-col items-start gap-1 rounded-2xl border border-border/60 bg-white p-3.5 text-left shadow-sm transition-colors hover:border-primary/40"
+              className="flex flex-col items-start gap-2 rounded-xl bg-white p-3.5 text-left shadow-sm transition-shadow hover:shadow-md"
             >
-              <Compass className="h-5 w-5 text-primary" />
-              <span className="text-[14px] font-semibold text-foreground">
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                style={{ backgroundColor: "rgba(123, 175, 122, 0.2)" }}
+              >
+                <Compass className="h-5 w-5" style={{ color: "#7BAF7A" }} aria-hidden />
+              </span>
+              <span className="text-[14px] font-semibold" style={{ color: "#1C1C1E" }}>
                 {t("scan.discoverArticles")}
               </span>
               <span className="text-[12px] text-muted-foreground">
@@ -498,13 +521,20 @@ export default function ScanScreen() {
           type="button"
           onClick={() => navigate("/app/profile")}
           data-touch-target
-          className="mb-6 flex w-full items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-left transition-colors hover:bg-amber-50"
+          className="mb-6 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left shadow-sm transition-opacity hover:opacity-95"
+          style={{ backgroundColor: "#F4D8A2" }}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
+            style={{ backgroundColor: "#D29A55" }}
+          >
             <Gift className="h-4 w-4" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-bold uppercase tracking-widest text-amber-700">
+            <span
+              className="block text-[11px] font-bold uppercase tracking-[0.14em]"
+              style={{ color: "#D29A55" }}
+            >
               {t("scan.earnFreeMonth")}
             </span>
             <span className="block text-sm font-medium text-foreground">
@@ -513,10 +543,10 @@ export default function ScanScreen() {
                 {t("scan.toGoFmt", { remaining: milestoneProgress.remaining })}
               </span>
             </span>
-            <span className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-amber-100">
+            <span className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-white/50">
               <span
-                className="block h-full rounded-full bg-gradient-to-r from-primary to-amber-400 transition-all duration-500"
-                style={{ width: `${milestoneProgress.pct}%` }}
+                className="block h-full rounded-full transition-all duration-500"
+                style={{ width: `${milestoneProgress.pct}%`, backgroundColor: "#D29A55" }}
               />
             </span>
           </span>
@@ -530,6 +560,7 @@ export default function ScanScreen() {
       >
         <IngredientScanner
           seed={seed}
+          scanVisualStyle
           onSeedConsumed={() => {
             // Clear local seed once IngredientScanner has applied it, so the
             // lookup-home Recents / Get Started sections re-appear and the
@@ -547,6 +578,7 @@ export default function ScanScreen() {
           50% { transform: translateY(58px); }
         }
       `}</style>
+      </div>
     </AppShell>
   );
 }
