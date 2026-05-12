@@ -24,6 +24,8 @@ export interface AuthUser {
   lastName: string | null;
   profileImageUrl: string | null;
   emailVerified: boolean;
+  /** False until the in-app onboarding wizard is completed (V10). */
+  onboardingCompleted?: boolean;
 }
 
 export const SESSION_COOKIE = "sid";
@@ -209,5 +211,6 @@ export function supabaseUserToAuthUser(
     lastName: supabaseUser.user_metadata?.last_name || null,
     profileImageUrl: supabaseUser.user_metadata?.avatar_url || null,
     emailVerified,
+    onboardingCompleted: false,
   };
 }

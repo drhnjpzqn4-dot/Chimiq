@@ -218,6 +218,7 @@ export const GetCurrentAuthUserResponse = zod.object({
         .describe(
           "True when the OIDC identity provider returned a verified email claim.",
         ),
+      onboardingCompleted: zod.boolean(),
     }),
     zod.null(),
   ]),

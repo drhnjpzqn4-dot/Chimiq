@@ -74,7 +74,15 @@ async function validateJWTToken(
 
     // Fetch user from local database to get all fields
     const [user] = await db
-      .select()
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        profileImageUrl: usersTable.profileImageUrl,
+        emailVerified: usersTable.emailVerified,
+        onboardingCompleted: usersTable.onboardingCompleted,
+      })
       .from(usersTable)
       .where(eq(usersTable.id, payload.sub));
 
@@ -87,6 +95,7 @@ async function validateJWTToken(
       lastName: user.lastName || null,
       profileImageUrl: user.profileImageUrl || null,
       emailVerified: user.emailVerified || false,
+      onboardingCompleted: user.onboardingCompleted,
     };
   } catch {
     return null;
@@ -138,22 +147,33 @@ export async function authMiddleware(
   }
 
   // Back-fill fields that may be missing on sessions issued before a schema
-  // expansion (e.g. `emailVerified` was added in the DIY-recipes work).
+  // expansion (e.g. `emailVerified` / `onboardingCompleted`).
   let userForRequest = refreshed.user;
-  if (userForRequest.emailVerified === undefined) {
+  if (
+    userForRequest.emailVerified === undefined ||
+    userForRequest.onboardingCompleted === undefined
+  ) {
     try {
       const [row] = await db
-        .select({ emailVerified: usersTable.emailVerified })
+        .select({
+          emailVerified: usersTable.emailVerified,
+          onboardingCompleted: usersTable.onboardingCompleted,
+        })
         .from(usersTable)
         .where(eq(usersTable.id, userForRequest.id));
       userForRequest = {
         ...userForRequest,
         emailVerified: row?.emailVerified ?? false,
+        onboardingCompleted: row?.onboardingCompleted ?? false,
       };
       refreshed.user = userForRequest;
       await updateSession(sid, refreshed);
     } catch {
-      userForRequest = { ...userForRequest, emailVerified: false };
+      userForRequest = {
+        ...userForRequest,
+        emailVerified: userForRequest.emailVerified ?? false,
+        onboardingCompleted: userForRequest.onboardingCompleted ?? false,
+      };
     }
   }
 

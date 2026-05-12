@@ -697,7 +697,7 @@ components:
         - inferredProductType
     AuthUser:
       type: object
-      required: [id, email, firstName, lastName, profileImageUrl, emailVerified]
+      required: [id, email, firstName, lastName, profileImageUrl, emailVerified, onboardingCompleted]
       properties:
         id:
           type: string
@@ -713,6 +713,9 @@ components:
         emailVerified:
           type: boolean
           description: True when the OIDC identity provider returned a verified email claim.
+        onboardingCompleted:
+          type: boolean
+          description: False until the in-app onboarding wizard is completed.
     RecipeEligibility:
       type: object
       required: [canSubmit, emailVerified, reason]

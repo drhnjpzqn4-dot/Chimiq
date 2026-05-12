@@ -15,6 +15,7 @@ import {
   SESSION_COOKIE,
   SESSION_TTL,
   type SessionData,
+  type AuthUser,
   getSupabaseAdminClient,
   getSupabaseClient,
   supabaseUserToAuthUser,
@@ -84,6 +85,13 @@ async function upsertUser(
     })
     .returning();
   return user;
+}
+
+function withOnboardingFromRow(
+  base: AuthUser,
+  row: { onboardingCompleted: boolean } | null | undefined,
+): AuthUser {
+  return { ...base, onboardingCompleted: row?.onboardingCompleted ?? false };
 }
 
 router.get("/me", (req: Request, res: Response) => {
@@ -215,11 +223,26 @@ router.get("/legal/consent", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/auth/user", (req: Request, res: Response) => {
-  const user = req.isAuthenticated()
-    ? { ...req.user, emailVerified: req.user.emailVerified === true }
-    : null;
-  res.json(GetCurrentAuthUserResponse.parse({ user }));
+router.get("/auth/user", async (req: Request, res: Response) => {
+  if (!req.isAuthenticated()) {
+    res.json(GetCurrentAuthUserResponse.parse({ user: null }));
+    return;
+  }
+  try {
+    const [row] = await db
+      .select({ onboardingCompleted: usersTable.onboardingCompleted })
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.id));
+    const user = {
+      ...req.user,
+      emailVerified: req.user.emailVerified === true,
+      onboardingCompleted: row?.onboardingCompleted ?? false,
+    };
+    res.json(GetCurrentAuthUserResponse.parse({ user }));
+  } catch (err) {
+    req.log?.error?.({ err }, "Failed to load user onboarding state");
+    res.status(500).json({ error: "Could not load user" });
+  }
 });
 
 /**
@@ -286,7 +309,7 @@ router.post("/auth/signin", async (req: Request, res: Response) => {
     // Create local session
     const now = Math.floor(Date.now() / 1000);
     const sessionData: SessionData = {
-      user: supabaseUserToAuthUser(user),
+      user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
       access_token: session.access_token,
       refresh_token: session.refresh_token || undefined,
       expires_at: session.expires_at ? Math.floor(session.expires_at) : now + 3600,
@@ -297,7 +320,7 @@ router.post("/auth/signin", async (req: Request, res: Response) => {
 
     res.json({
       ok: true,
-      user: supabaseUserToAuthUser(user),
+      user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
       token: sid,
     });
   } catch (err) {
@@ -340,8 +363,7 @@ router.post("/auth/signup", async (req: Request, res: Response) => {
 
     const user = data.user;
 
-    // Upsert user in local database
-    await upsertUser(
+    const dbUser = await upsertUser(
       user.id,
       user.email,
       firstName || null,
@@ -354,7 +376,7 @@ router.post("/auth/signup", async (req: Request, res: Response) => {
     if (data.session) {
       const now = Math.floor(Date.now() / 1000);
       const sessionData: SessionData = {
-        user: supabaseUserToAuthUser(user),
+        user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token || undefined,
         expires_at: data.session.expires_at ? Math.floor(data.session.expires_at) : now + 3600,
@@ -364,7 +386,7 @@ router.post("/auth/signup", async (req: Request, res: Response) => {
       res.json({
         ok: true,
         autoLoggedIn: true,
-        user: supabaseUserToAuthUser(user),
+        user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
       });
       return;
     }
@@ -571,7 +593,7 @@ router.post("/auth/token-exchange", async (req: Request, res: Response) => {
       res.status(401).json({ error: "User not found" });
       return;
     }
-    await upsertUser(
+    const dbUser = await upsertUser(
       user.id,
       user.email,
       user.user_metadata?.first_name as string | null ?? null,
@@ -581,14 +603,14 @@ router.post("/auth/token-exchange", async (req: Request, res: Response) => {
     );
     const now = Math.floor(Date.now() / 1000);
     const sessionData: SessionData = {
-      user: supabaseUserToAuthUser(user),
+      user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
       access_token,
       refresh_token: refresh_token || undefined,
       expires_at: (payload.exp as number) ?? now + 3600,
     };
     const sid = await createSession(sessionData);
     setSessionCookie(res, sid);
-    res.json({ ok: true, user: supabaseUserToAuthUser(user) });
+    res.json({ ok: true, user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser) });
   } catch (err) {
     req.log?.error?.({ err }, "Token exchange error");
     res.status(500).json({ error: "Token exchange failed" });

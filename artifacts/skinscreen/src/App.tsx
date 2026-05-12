@@ -23,6 +23,7 @@ const Signup = lazy(() => import("@/pages/Signup"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 const AppPage = lazy(() => import("@/pages/AppPage"));
+const OnboardingFlow = lazy(() => import("@/pages/OnboardingFlow"));
 const AdminPage = lazy(() => import("@/pages/AdminPage"));
 const AdminRecipesPage = lazy(() => import("@/pages/AdminRecipesPage"));
 const AdminUsersPage = lazy(() => import("@/pages/AdminUsersPage"));
@@ -113,6 +114,7 @@ function Router() {
         <Route path="/signup" component={Signup} />
         <Route path="/login" component={LoginPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
+        <Route path="/onboarding" component={OnboardingFlow} />
         <Route path="/app" component={AppPage} />
         <Route path="/app/:rest*" component={AppPage} />
         <Route path="/discover" component={Discover} />

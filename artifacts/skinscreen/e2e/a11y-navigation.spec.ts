@@ -14,6 +14,8 @@ const FAKE_USER = {
   firstName: "Axe",
   lastName: "Tester",
   profileImageUrl: null,
+  emailVerified: true,
+  onboardingCompleted: true,
   plan: "free" as const,
   isAdmin: false,
 };
