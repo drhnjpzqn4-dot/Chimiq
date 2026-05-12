@@ -22,6 +22,15 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
       >
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <a href={base + "/"} className="flex items-center gap-2" data-touch-target aria-label="Chimiq home">
+            <img
+              src={`${base}/favicon.svg`}
+              alt=""
+              width={28}
+              height={28}
+              className="shrink-0 object-contain"
+              style={{ width: 28, height: 28 }}
+              aria-hidden
+            />
             <span
               aria-hidden
               className="leading-none tracking-tight"
@@ -29,7 +38,7 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
                 fontFamily: '"Iowan Old Style", Georgia, serif',
                 color: "#A06D54",
                 fontWeight: 600,
-                fontSize: 22,
+                fontSize: 28,
                 letterSpacing: "-0.01em",
               }}
             >
