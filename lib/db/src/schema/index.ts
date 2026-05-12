@@ -39,3 +39,4 @@ export * from "./checkout-events";
 export * from "./checkout-abandonment-events";
 export * from "./checkout-recovery-events";
 export * from "./subscription-events";
+export * from "./recalls";

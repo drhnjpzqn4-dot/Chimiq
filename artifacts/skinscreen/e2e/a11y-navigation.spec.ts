@@ -43,7 +43,14 @@ async function installApiMocks(page: Page) {
       acceptedVersion: "1.0",
       currentVersion: "1.0",
       acceptedAt: new Date().toISOString(),
+      acceptedMedicalDisclaimerVersion: "medical_disclaimer_v1",
+      acceptedMedicalDisclaimerAt: new Date().toISOString(),
+      currentMedicalDisclaimerVersion: "medical_disclaimer_v1",
     }),
+  );
+
+  await page.route("**/api/recalls/recent", (route) =>
+    jsonRoute(route, { recalls: [] }),
   );
 
   // Admin / billing checks return false-y so the badge renders without errors.
@@ -64,7 +71,12 @@ test.describe("Navigation chrome accessibility", () => {
         try {
           window.localStorage.setItem(
             "skinscreen.legal.consent",
-            JSON.stringify({ version: "1.0", acceptedAt: new Date().toISOString() }),
+            JSON.stringify({
+              version: "1.0",
+              acceptedAt: new Date().toISOString(),
+              medicalDisclaimerVersion: "medical_disclaimer_v1",
+              medicalAcceptedAt: new Date().toISOString(),
+            }),
           );
         } catch {
           // noop

@@ -6,7 +6,7 @@ import {
   LogoutMobileSessionResponse,
 } from "@workspace/api-zod";
 import { db, usersTable, legalConsentsTable, sessionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import {
   clearSession,
   getSessionId,
@@ -94,8 +94,9 @@ router.get("/me", (req: Request, res: Response) => {
   res.json(req.user);
 });
 
-// Legal consent endpoints (unchanged from original)
+// Legal consent — terms + in-app medical disclaimer (V6).
 const CURRENT_TERMS_VERSION = "1.0";
+const MEDICAL_DISCLAIMER_VERSION = "medical_disclaimer_v1";
 
 router.post("/legal/consent", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
@@ -103,7 +104,10 @@ router.post("/legal/consent", async (req: Request, res: Response) => {
     return;
   }
   const userId = req.user.id;
-  const version = CURRENT_TERMS_VERSION;
+  const bodyVersion =
+    typeof req.body?.version === "string" && req.body.version.trim().length > 0
+      ? req.body.version.trim()
+      : CURRENT_TERMS_VERSION;
 
   const ip = req.ip ? req.ip.slice(0, 64) : null;
   const userAgent =
@@ -113,20 +117,42 @@ router.post("/legal/consent", async (req: Request, res: Response) => {
 
   try {
     const now = new Date();
+
+    if (bodyVersion === MEDICAL_DISCLAIMER_VERSION) {
+      await db.insert(legalConsentsTable).values({
+        userId,
+        termsVersion: MEDICAL_DISCLAIMER_VERSION,
+        acceptedAt: now,
+        ip,
+        userAgent,
+      });
+      res.json({
+        ok: true,
+        acceptedMedicalDisclaimerVersion: MEDICAL_DISCLAIMER_VERSION,
+        acceptedMedicalDisclaimerAt: now.toISOString(),
+      });
+      return;
+    }
+
+    if (bodyVersion !== CURRENT_TERMS_VERSION) {
+      res.status(400).json({ error: "Unknown consent version." });
+      return;
+    }
+
     await db.insert(legalConsentsTable).values({
       userId,
-      termsVersion: version,
+      termsVersion: bodyVersion,
       acceptedAt: now,
       ip,
       userAgent,
     });
     await db
       .update(usersTable)
-      .set({ acceptedTermsVersion: version, acceptedTermsAt: now })
+      .set({ acceptedTermsVersion: bodyVersion, acceptedTermsAt: now })
       .where(eq(usersTable.id, userId));
     res.json({
       ok: true,
-      acceptedVersion: version,
+      acceptedVersion: bodyVersion,
       acceptedAt: now.toISOString(),
     });
   } catch (err) {
@@ -141,6 +167,9 @@ router.get("/legal/consent", async (req: Request, res: Response) => {
       acceptedVersion: null,
       currentVersion: CURRENT_TERMS_VERSION,
       acceptedAt: null,
+      acceptedMedicalDisclaimerVersion: null,
+      acceptedMedicalDisclaimerAt: null,
+      currentMedicalDisclaimerVersion: MEDICAL_DISCLAIMER_VERSION,
     });
     return;
   }
@@ -153,12 +182,32 @@ router.get("/legal/consent", async (req: Request, res: Response) => {
       .from(usersTable)
       .where(eq(usersTable.id, req.user.id))
       .limit(1);
+
+    const [medRow] = await db
+      .select({ acceptedAt: legalConsentsTable.acceptedAt })
+      .from(legalConsentsTable)
+      .where(
+        and(
+          eq(legalConsentsTable.userId, req.user.id),
+          eq(legalConsentsTable.termsVersion, MEDICAL_DISCLAIMER_VERSION),
+        ),
+      )
+      .orderBy(desc(legalConsentsTable.acceptedAt))
+      .limit(1);
+
     res.json({
       acceptedVersion: row?.acceptedTermsVersion ?? null,
       currentVersion: CURRENT_TERMS_VERSION,
       acceptedAt: row?.acceptedTermsAt
         ? new Date(row.acceptedTermsAt).toISOString()
         : null,
+      acceptedMedicalDisclaimerVersion: medRow
+        ? MEDICAL_DISCLAIMER_VERSION
+        : null,
+      acceptedMedicalDisclaimerAt: medRow?.acceptedAt
+        ? new Date(medRow.acceptedAt).toISOString()
+        : null,
+      currentMedicalDisclaimerVersion: MEDICAL_DISCLAIMER_VERSION,
     });
   } catch (err) {
     req.log?.error?.({ err }, "Failed to load legal consent");

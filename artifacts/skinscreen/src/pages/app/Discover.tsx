@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   MessageCircle,
   Sparkles,
@@ -7,9 +8,11 @@ import {
   Compass,
   Trophy,
   Info,
+  ArrowRight,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { FindDermatologist } from "@/components/FindDermatologist";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useTranslation } from "@/lib/i18n";
 
@@ -29,6 +32,13 @@ interface TipFeedItem {
 const TIP_MAX = 280;
 const TIP_MIN = 8;
 
+interface FeaturedRecipe {
+  id: string;
+  title: string;
+  category: string;
+  photoUrl: string | null;
+}
+
 export default function DiscoverScreen() {
   const { isAuthenticated } = useAuth();
   const { t } = useTranslation();
@@ -37,6 +47,17 @@ export default function DiscoverScreen() {
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+
+  const featuredRecipesQuery = useQuery({
+    queryKey: ["discover-recipes-featured"],
+    queryFn: async (): Promise<FeaturedRecipe[]> => {
+      const res = await fetch("/api/recipes?limit=3", { credentials: "include" });
+      if (!res.ok) return [];
+      const data = (await res.json()) as { recipes?: FeaturedRecipe[] };
+      return (data.recipes ?? []).slice(0, 3);
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
   const loadTips = () => {
     setLoading(true);
@@ -156,6 +177,91 @@ export default function DiscoverScreen() {
               </p>
             </div>
             <ArrowUpRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+          </a>
+        </Link>
+      </section>
+
+      {/* DIY recipes */}
+      <section className="mb-6">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="font-serif text-lg font-semibold text-foreground">
+            {t("discover.diyTitle")}
+          </h2>
+          <Link href="/recipes">
+            <a
+              data-touch-target
+              className="inline-flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
+            >
+              {t("discover.diyAllRecipes")}
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+            </a>
+          </Link>
+        </div>
+
+        {featuredRecipesQuery.isLoading ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-28 rounded-2xl skeleton" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(featuredRecipesQuery.data ?? []).map((r) => (
+              <Link key={r.id} href={`/recipes/${r.id}`}>
+                <a data-touch-target className="block h-full">
+                  <Card className="h-full border-border/40 bg-white shadow-sm transition-transform hover:-translate-y-0.5">
+                    <CardContent className="p-3">
+                      <div className="mb-2 aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted/50">
+                        {r.photoUrl ? (
+                          <img
+                            src={r.photoUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full min-h-[72px] items-center justify-center text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                            {r.category}
+                          </div>
+                        )}
+                      </div>
+                      <p className="font-serif text-sm font-semibold leading-snug text-foreground line-clamp-2">
+                        {r.title}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </a>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Link href="/app/recipes/new">
+            <a
+              data-touch-target
+              className="inline-flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
+            >
+              {t("discover.diyContribute")}
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+            </a>
+          </Link>
+        </div>
+
+        <Link href="/app/problems">
+          <a
+            data-touch-target
+            className="mt-4 flex items-center gap-3 rounded-3xl border border-border/50 bg-white p-4 shadow-sm transition-transform hover:-translate-y-0.5"
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Compass className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-serif text-base font-semibold text-foreground">
+                {t("discover.diyProblemsTitle")}
+              </p>
+              <p className="text-xs text-muted-foreground">{t("discover.diyProblemsSubtitle")}</p>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           </a>
         </Link>
       </section>

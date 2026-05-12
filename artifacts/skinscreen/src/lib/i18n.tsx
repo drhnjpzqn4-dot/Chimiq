@@ -85,6 +85,11 @@ const en: Dict = {
   "discover.aiHint": "Tap the chat bubble to start",
   "discover.leaderboardTitle": "Leaderboard",
   "discover.leaderboardSubtitle": "See top contributors and Best Tip of the Week.",
+  "discover.diyTitle": "DIY recipes",
+  "discover.diyAllRecipes": "All recipes",
+  "discover.diyContribute": "Share your own recipe",
+  "discover.diyProblemsTitle": "Discover ingredient problems",
+  "discover.diyProblemsSubtitle": "See common conflicts and red flags.",
   "discover.tipBy": "by",
   "discover.upvoteTip": "Upvote tip",
   "discover.removeVote": "Remove vote",
@@ -92,6 +97,10 @@ const en: Dict = {
   "discover.tipPostError": "Could not post tip.",
   "discover.tipNetworkError": "Network error. Try again.",
   "discover.footnote": "DIY recipes, top mistakes, and more inside the app.",
+
+  "recalls.bannerCta": "New safety alert — check your products",
+  "recalls.toggleShow": "Show alert titles",
+  "recalls.toggleHide": "Hide list",
 
   // ───── In-app: profile ─────
   "profile.title": "Profile",
@@ -648,6 +657,12 @@ const en: Dict = {
   "consent.checkboxSuffix": ".",
   "consent.continue": "Agree & continue",
   "consent.cancel": "Cancel",
+
+  "consent.medical.title": "Medical information",
+  "consent.medical.body":
+    "Chimiq is an information tool — not medical advice. Always consult a doctor for skin problems.",
+  "consent.medical.checkbox": "I understand that Chimiq does not replace medical advice",
+  "consent.medical.continue": "Accept and continue",
 
   // ───── Cookie consent banner ─────
   "cookies.title": "Your privacy choices",
@@ -1270,6 +1285,11 @@ const sv: Dict = {
   "discover.aiHint": "Tryck på chattbubblan för att börja",
   "discover.leaderboardTitle": "Topplista",
   "discover.leaderboardSubtitle": "Se de bästa bidragsgivarna och Veckans bästa tips.",
+  "discover.diyTitle": "DIY-recept",
+  "discover.diyAllRecipes": "Alla recept",
+  "discover.diyContribute": "Bidra med ditt eget recept",
+  "discover.diyProblemsTitle": "Upptäck ingrediensproblem",
+  "discover.diyProblemsSubtitle": "Se vanliga konflikter och varningsflaggor.",
   "discover.tipBy": "av",
   "discover.upvoteTip": "Rösta upp tipset",
   "discover.removeVote": "Ta bort röst",
@@ -1277,6 +1297,10 @@ const sv: Dict = {
   "discover.tipPostError": "Kunde inte publicera tipset.",
   "discover.tipNetworkError": "Nätverksfel. Försök igen.",
   "discover.footnote": "DIY-recept, vanliga misstag och mer i appen.",
+
+  "recalls.bannerCta": "Nytt säkerhetslarm — kontrollera dina produkter",
+  "recalls.toggleShow": "Visa larmtitlar",
+  "recalls.toggleHide": "Dölj lista",
 
   // ───── Profile ─────
   "profile.title": "Profil",
@@ -1840,6 +1864,12 @@ const sv: Dict = {
   "consent.checkboxSuffix": ".",
   "consent.continue": "Godkänn & fortsätt",
   "consent.cancel": "Avbryt",
+
+  "consent.medical.title": "Medicinsk information",
+  "consent.medical.body":
+    "Chimiq är ett informationsverktyg — inte medicinsk rådgivning. Konsultera alltid läkare vid hudproblem.",
+  "consent.medical.checkbox": "Jag förstår att Chimiq inte ersätter medicinsk rådgivning",
+  "consent.medical.continue": "Godkänn och fortsätt",
 
   // ───── Cookie consent banner ─────
   "cookies.title": "Dina integritetsval",
@@ -2463,6 +2493,11 @@ const fr: Dict = {
   "discover.leaderboardTitle": "Classement",
   "discover.leaderboardSubtitle":
     "Voyez les meilleurs contributeurs et le meilleur conseil de la semaine.",
+  "discover.diyTitle": "Recettes DIY",
+  "discover.diyAllRecipes": "Toutes les recettes",
+  "discover.diyContribute": "Partagez votre propre recette",
+  "discover.diyProblemsTitle": "Découvrir les problèmes d'ingrédients",
+  "discover.diyProblemsSubtitle": "Conflits fréquents et signaux d'alerte.",
   "discover.tipBy": "par",
   "discover.upvoteTip": "Soutenir ce conseil",
   "discover.removeVote": "Retirer le vote",
@@ -2471,6 +2506,10 @@ const fr: Dict = {
   "discover.tipNetworkError": "Erreur réseau. Réessayez.",
   "discover.footnote":
     "Recettes DIY, erreurs courantes et plus encore dans l'application.",
+
+  "recalls.bannerCta": "Nouvelle alerte sécurité — vérifiez vos produits",
+  "recalls.toggleShow": "Afficher les titres d'alerte",
+  "recalls.toggleHide": "Masquer la liste",
 
   "profile.title": "Profil",
   "profile.subtitle": "Votre compte, votre forfait et vos contributions.",
@@ -3022,6 +3061,13 @@ const fr: Dict = {
   "consent.checkboxSuffix": ".",
   "consent.continue": "Accepter & continuer",
   "consent.cancel": "Annuler",
+
+  "consent.medical.title": "Informations médicales",
+  "consent.medical.body":
+    "Chimiq est un outil d'information — pas un avis médical. Consultez toujours un médecin en cas de problèmes de peau.",
+  "consent.medical.checkbox":
+    "Je comprends que Chimiq ne remplace pas un avis médical",
+  "consent.medical.continue": "Accepter et continuer",
 
   // ───── Cookie consent banner ─────
   "cookies.title": "Vos choix de confidentialité",
@@ -3645,6 +3691,11 @@ const es: Dict = {
   "discover.leaderboardTitle": "Clasificación",
   "discover.leaderboardSubtitle":
     "Mira a los mejores contribuidores y el Mejor Consejo de la Semana.",
+  "discover.diyTitle": "Recetas DIY",
+  "discover.diyAllRecipes": "Todas las recetas",
+  "discover.diyContribute": "Comparte tu propia receta",
+  "discover.diyProblemsTitle": "Descubre problemas de ingredientes",
+  "discover.diyProblemsSubtitle": "Conflictos habituales y señales de alerta.",
   "discover.tipBy": "por",
   "discover.upvoteTip": "Votar consejo",
   "discover.removeVote": "Retirar voto",
@@ -3653,6 +3704,10 @@ const es: Dict = {
   "discover.tipNetworkError": "Error de red. Inténtalo de nuevo.",
   "discover.footnote":
     "Recetas DIY, errores comunes y más dentro de la app.",
+
+  "recalls.bannerCta": "Nueva alerta de seguridad — revisa tus productos",
+  "recalls.toggleShow": "Ver títulos de alertas",
+  "recalls.toggleHide": "Ocultar lista",
 
   "profile.title": "Perfil",
   "profile.subtitle": "Tu cuenta, tu plan y tus contribuciones.",
@@ -4204,6 +4259,13 @@ const es: Dict = {
   "consent.checkboxSuffix": ".",
   "consent.continue": "Aceptar y continuar",
   "consent.cancel": "Cancelar",
+
+  "consent.medical.title": "Información médica",
+  "consent.medical.body":
+    "Chimiq es una herramienta informativa — no un consejo médico. Consulta siempre a un médico ante problemas de piel.",
+  "consent.medical.checkbox":
+    "Entiendo que Chimiq no sustituye el consejo médico",
+  "consent.medical.continue": "Aceptar y continuar",
 
   // ───── Cookie consent banner ─────
   "cookies.title": "Tus opciones de privacidad",
