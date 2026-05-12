@@ -29,7 +29,7 @@ function AppRouteFallback() {
 }
 
 export default function AppPage() {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, user } = useAuth();
   const { isPremium } = useUserPlan();
   const [, navigate] = useLocation();
 
@@ -58,6 +58,10 @@ export default function AppPage() {
   }
 
   if (!isAuthenticated) return null;
+
+  if (user?.onboardingCompleted === false) {
+    return <Redirect to="/onboarding" replace />;
+  }
 
   return (
     <>

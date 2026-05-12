@@ -38,6 +38,11 @@ export const usersTable = pgTable("users", {
   // to render "in trial / paid / free" without hitting Stripe per row.
   subscriptionStatus: varchar("subscription_status"),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  /** Onboarding wizard (V10); false = must complete /onboarding before app shell. */
+  onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
+  skinType: varchar("skin_type"),
+  ageGroup: varchar("age_group"),
+  skinGoal: varchar("skin_goal"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

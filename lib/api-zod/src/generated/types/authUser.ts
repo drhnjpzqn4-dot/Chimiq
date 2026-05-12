@@ -18,4 +18,6 @@ export interface AuthUser {
   profileImageUrl: string | null;
   /** True when the OIDC identity provider returned a verified email claim. */
   emailVerified: boolean;
+  /** False until the in-app onboarding wizard is completed. */
+  onboardingCompleted: boolean;
 }

@@ -28,6 +28,7 @@ import adminFunnelRouter from "./admin-funnel";
 import checkoutAbandonmentRouter from "./checkout-abandonment";
 import checkoutRecoveryRouter from "./checkout-recovery";
 import recallsRouter from "./recalls";
+import profileOnboardingRouter from "./profile-onboarding";
 
 const router: IRouter = Router();
 
@@ -60,5 +61,6 @@ router.use(adminFunnelRouter);
 router.use(checkoutAbandonmentRouter);
 router.use(checkoutRecoveryRouter);
 router.use(recallsRouter);
+router.use(profileOnboardingRouter);
 
 export default router;
