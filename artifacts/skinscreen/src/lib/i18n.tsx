@@ -86,6 +86,8 @@ const en: Dict = {
   // ───── In-app: profile ─────
   "profile.title": "Profile",
   "profile.subtitle": "Your account, plan, and contributions.",
+  "profile.skinSection": "My skin",
+  "profile.contributionProgress": "Contributions & rewards",
   "profile.language": "Language",
 
   // ───── Standalone PWA welcome (Home.tsx) ─────
@@ -1251,6 +1253,8 @@ const sv: Dict = {
   // ───── Profile ─────
   "profile.title": "Profil",
   "profile.subtitle": "Ditt konto, ditt abonnemang och dina bidrag.",
+  "profile.skinSection": "Min hud",
+  "profile.contributionProgress": "Bidrag & belöningar",
   "profile.language": "Språk",
 
   // ───── Standalone PWA welcome ─────
@@ -2424,6 +2428,8 @@ const fr: Dict = {
 
   "profile.title": "Profil",
   "profile.subtitle": "Votre compte, votre forfait et vos contributions.",
+  "profile.skinSection": "Ma peau",
+  "profile.contributionProgress": "Contributions et récompenses",
   "profile.language": "Langue",
 
   "homeStandalone.kicker": "Scanner d'ingrédients par IA",
@@ -3586,6 +3592,8 @@ const es: Dict = {
 
   "profile.title": "Perfil",
   "profile.subtitle": "Tu cuenta, tu plan y tus contribuciones.",
+  "profile.skinSection": "Mi piel",
+  "profile.contributionProgress": "Contribuciones y recompensas",
   "profile.language": "Idioma",
 
   "homeStandalone.kicker": "Escáner de ingredientes con IA",

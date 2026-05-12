@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { MyShelf } from "@/components/MyShelf";
 import { useTranslation } from "@/lib/i18n";
 
-const PREMIUM_CONTRIBUTION_MILESTONE = 30;
+export const PREMIUM_CONTRIBUTION_MILESTONE = 30;
 const STARS_DISPLAYED = 5;
 
 interface ContributeStats {

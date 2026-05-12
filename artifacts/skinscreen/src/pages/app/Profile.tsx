@@ -22,12 +22,14 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { SkinProfileChips } from "@/components/SkinProfileChips";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { notifyUnseenRecipesChanged } from "@/hooks/useUnseenRecipeCount";
 import { getBaseUrl } from "@/lib/base-url";
 import { isNative, openExternal, MANAGE_SUBSCRIPTION_WEB_URL } from "@/lib/native";
 import { useTranslation, LOCALES, type Locale } from "@/lib/i18n";
+import { PREMIUM_CONTRIBUTION_MILESTONE } from "@/pages/app/Shelf";
 
 interface ContributeStats {
   acceptedContributions: number;
@@ -216,7 +218,7 @@ export default function ProfileScreen() {
   const displayName = user.firstName ?? user.email?.split("@")[0] ?? t("common.greetingFallback");
   const initials = (user.firstName ?? user.email ?? t("common.initialFallback")).slice(0, 1).toUpperCase();
 
-  const milestone = 30;
+  const milestone = PREMIUM_CONTRIBUTION_MILESTONE;
   const contributed = stats?.acceptedContributions ?? 0;
   const nextMilestone = Math.ceil((contributed + 1) / milestone) * milestone;
   const remaining = nextMilestone - contributed;
@@ -247,6 +249,8 @@ export default function ProfileScreen() {
           </div>
         </div>
       </section>
+
+      <SkinProfileChips />
 
       {/* Notification banner — surfaces unseen review feedback for the
           submitter and deep-links each entry to the right destination
@@ -702,6 +706,38 @@ export default function ProfileScreen() {
               ))}
             </ul>
           )}
+        </div>
+      </section>
+
+      {/* Contributions & rewards — milestone progress (same rule as Scan shelf). */}
+      <section className="mb-5">
+        <div className="rounded-3xl border border-border/40 bg-[#FDF8F3] p-5 shadow-sm">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                {t("profile.contributionProgress")}
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                {t("scan.contributionsProgressFmt", {
+                  current: progressInCycle,
+                  total: milestone,
+                })}{" "}
+                <span className="text-muted-foreground">{t("scan.toGoFmt", { remaining })}</span>
+              </p>
+            </div>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-[#7BAF7A] shadow-sm">
+              <Gift className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white/80">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${progressPct}%`,
+                backgroundColor: "#7BAF7A",
+              }}
+            />
+          </div>
         </div>
       </section>
 
