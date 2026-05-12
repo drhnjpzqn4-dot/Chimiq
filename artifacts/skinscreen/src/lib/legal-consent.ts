@@ -1,9 +1,14 @@
 export const TERMS_VERSION = "1.0";
+/** Versioned consent key for the in-app medical disclaimer step (V6). */
+export const MEDICAL_DISCLAIMER_VERSION = "medical_disclaimer_v1";
+
 const STORAGE_KEY = "skinscreen.legal.consent";
 
 export interface ConsentRecord {
   version: string;
   acceptedAt: string;
+  medicalDisclaimerVersion?: string;
+  medicalAcceptedAt?: string;
 }
 
 export function getStoredConsent(): ConsentRecord | null {
@@ -21,6 +26,24 @@ export function getStoredConsent(): ConsentRecord | null {
   }
 }
 
+export function hasAcceptedTermsOnly(): boolean {
+  const r = getStoredConsent();
+  return r !== null && r.version === TERMS_VERSION;
+}
+
+export function hasAcceptedMedicalDisclaimer(): boolean {
+  const r = getStoredConsent();
+  return (
+    r !== null &&
+    r.medicalDisclaimerVersion === MEDICAL_DISCLAIMER_VERSION
+  );
+}
+
+/** True when both current terms and the medical disclaimer have been accepted locally. */
+export function hasAcceptedCurrentTerms(): boolean {
+  return hasAcceptedTermsOnly() && hasAcceptedMedicalDisclaimer();
+}
+
 export function saveConsent(): ConsentRecord {
   const record: ConsentRecord = {
     version: TERMS_VERSION,
@@ -36,17 +59,26 @@ export function saveConsent(): ConsentRecord {
   return record;
 }
 
-export function hasAcceptedCurrentTerms(): boolean {
-  return getStoredConsent() !== null;
+export function saveMedicalDisclaimerConsent(): ConsentRecord {
+  const prev = getStoredConsent();
+  if (!prev || prev.version !== TERMS_VERSION) {
+    throw new Error("Cannot record medical consent before terms consent.");
+  }
+  const record: ConsentRecord = {
+    ...prev,
+    medicalDisclaimerVersion: MEDICAL_DISCLAIMER_VERSION,
+    medicalAcceptedAt: new Date().toISOString(),
+  };
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+    } catch {
+      // ignore
+    }
+  }
+  return record;
 }
 
-/**
- * Best-effort POST to the server so we have an audit trail of acceptance
- * (#101). Fire-and-forget — we don't block the UI on the network call,
- * because we already wrote the local record before this runs. Errors are
- * swallowed so a flaky network never traps the user behind the consent
- * modal after they've accepted.
- */
 export async function postServerConsent(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
@@ -61,17 +93,52 @@ export async function postServerConsent(): Promise<void> {
   }
 }
 
+export async function postMedicalDisclaimerServerConsent(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    await fetch("/api/legal/consent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ version: MEDICAL_DISCLAIMER_VERSION }),
+    });
+  } catch {
+    // ignore
+  }
+}
+
 export interface ServerConsentStatus {
   acceptedVersion: string | null;
   currentVersion: string;
   acceptedAt: string | null;
+  acceptedMedicalDisclaimerVersion: string | null;
+  acceptedMedicalDisclaimerAt: string | null;
+  currentMedicalDisclaimerVersion: string;
 }
 
-/**
- * Read the server's record of consent for the current user. Returns null when
- * unauthenticated or on network failure — the caller should fall back to the
- * device-local check.
- */
+/** Mirror server-side consent into localStorage when the user is signed in. */
+export function applyServerConsentToLocalStorage(status: ServerConsentStatus): void {
+  if (typeof window === "undefined") return;
+  if (status.acceptedVersion !== TERMS_VERSION) return;
+
+  const record: ConsentRecord = {
+    version: TERMS_VERSION,
+    acceptedAt:
+      status.acceptedAt ?? new Date().toISOString(),
+  };
+  if (status.acceptedMedicalDisclaimerVersion === MEDICAL_DISCLAIMER_VERSION) {
+    record.medicalDisclaimerVersion = MEDICAL_DISCLAIMER_VERSION;
+    record.medicalAcceptedAt =
+      status.acceptedMedicalDisclaimerAt ?? new Date().toISOString();
+  }
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+  } catch {
+    // ignore
+  }
+}
+
 export async function fetchServerConsent(): Promise<ServerConsentStatus | null> {
   if (typeof window === "undefined") return null;
   try {

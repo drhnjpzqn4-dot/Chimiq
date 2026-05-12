@@ -12,10 +12,17 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { useTranslation } from "@/lib/i18n";
 import {
   hasAcceptedCurrentTerms,
+  hasAcceptedTermsOnly,
+  hasAcceptedMedicalDisclaimer,
+  getStoredConsent,
   saveConsent,
+  saveMedicalDisclaimerConsent,
   postServerConsent,
+  postMedicalDisclaimerServerConsent,
   fetchServerConsent,
+  applyServerConsentToLocalStorage,
   TERMS_VERSION,
+  MEDICAL_DISCLAIMER_VERSION,
 } from "@/lib/legal-consent";
 
 interface ConsentGateContext {
@@ -39,6 +46,10 @@ const LEGAL_BASE = (() => {
   return `${base}/legal`;
 })();
 
+const MEDICAL_SAGE = "#7BAF7A";
+
+type ConsentStep = "terms" | "medical";
+
 interface ProviderProps {
   children: ReactNode;
 }
@@ -47,47 +58,101 @@ export function ConsentGateProvider({ children }: ProviderProps) {
   const { login, isAuthenticated } = useAuth();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [consentStep, setConsentStep] = useState<ConsentStep>("terms");
   const [checked, setChecked] = useState(false);
   const [hasConsented, setHasConsented] = useState<boolean>(() =>
     hasAcceptedCurrentTerms(),
   );
   const pendingReturnToRef = useRef<string | undefined>(undefined);
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const autoMedicalOpenedRef = useRef(false);
 
-  // Re-check storage when the auth state flips (covers the case where the
-  // user already accepted earlier on this device and is signing back in).
-  // For authed users we *also* check the server record (#101) so consent
-  // survives clearing browser storage or moving devices, and we mirror any
-  // server-confirmed acceptance into localStorage so the gate stays quiet
-  // on the next page load.
   useEffect(() => {
     setHasConsented(hasAcceptedCurrentTerms());
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      autoMedicalOpenedRef.current = false;
+      return;
+    }
     let cancelled = false;
     void (async () => {
-      const status = await fetchServerConsent();
-      if (cancelled) return;
-      if (status?.acceptedVersion === TERMS_VERSION) {
-        // Server says yes — promote to local so future loads skip the modal.
-        if (!hasAcceptedCurrentTerms()) saveConsent();
+      const snapshot = getStoredConsent();
+      const localTermsOk = snapshot?.version === TERMS_VERSION;
+      const localMedicalOk =
+        snapshot?.medicalDisclaimerVersion === MEDICAL_DISCLAIMER_VERSION;
+
+      let status = await fetchServerConsent();
+      if (cancelled || !status) return;
+
+      if (
+        status.acceptedVersion === TERMS_VERSION &&
+        status.acceptedMedicalDisclaimerVersion === MEDICAL_DISCLAIMER_VERSION
+      ) {
+        applyServerConsentToLocalStorage(status);
         setHasConsented(true);
         return;
       }
-      // Reconciliation: user has consented locally (likely from the
-      // pre-login modal) but the server has no record yet — typically
-      // because the POST in `onAccept` happened while still anonymous and
-      // 401'd. Now that we're authenticated, replay it and re-fetch so
-      // the audit row is guaranteed to exist before the user does anything
-      // meaningful in the app.
-      if (hasAcceptedCurrentTerms()) {
-        await postServerConsent();
+
+      if (
+        status.acceptedVersion === TERMS_VERSION &&
+        localMedicalOk &&
+        status.acceptedMedicalDisclaimerVersion !== MEDICAL_DISCLAIMER_VERSION
+      ) {
+        await postMedicalDisclaimerServerConsent();
         if (cancelled) return;
-        const recheck = await fetchServerConsent();
-        if (cancelled) return;
-        if (recheck?.acceptedVersion === TERMS_VERSION) {
+        status = await fetchServerConsent();
+        if (cancelled || !status) return;
+        if (
+          status.acceptedVersion === TERMS_VERSION &&
+          status.acceptedMedicalDisclaimerVersion === MEDICAL_DISCLAIMER_VERSION
+        ) {
+          applyServerConsentToLocalStorage(status);
           setHasConsented(true);
+          return;
         }
       }
+
+      if (localTermsOk && localMedicalOk && status.acceptedVersion !== TERMS_VERSION) {
+        await postServerConsent();
+        if (cancelled) return;
+        await postMedicalDisclaimerServerConsent();
+        if (cancelled) return;
+        status = await fetchServerConsent();
+        if (cancelled || !status) return;
+        if (
+          status.acceptedVersion === TERMS_VERSION &&
+          status.acceptedMedicalDisclaimerVersion === MEDICAL_DISCLAIMER_VERSION
+        ) {
+          applyServerConsentToLocalStorage(status);
+          setHasConsented(true);
+          return;
+        }
+      }
+
+      if (localTermsOk && status.acceptedVersion !== TERMS_VERSION) {
+        await postServerConsent();
+        if (cancelled) return;
+        status = await fetchServerConsent();
+        if (cancelled || !status) return;
+      }
+
+      if (status.acceptedVersion === TERMS_VERSION) {
+        applyServerConsentToLocalStorage(status);
+        if (cancelled) return;
+      }
+
+      if (
+        status.acceptedVersion === TERMS_VERSION &&
+        status.acceptedMedicalDisclaimerVersion !== MEDICAL_DISCLAIMER_VERSION &&
+        !hasAcceptedMedicalDisclaimer() &&
+        !autoMedicalOpenedRef.current
+      ) {
+        autoMedicalOpenedRef.current = true;
+        setConsentStep("medical");
+        setChecked(false);
+        setOpen(true);
+      }
+
+      setHasConsented(hasAcceptedCurrentTerms());
     })();
     return () => {
       cancelled = true;
@@ -101,17 +166,22 @@ export function ConsentGateProvider({ children }: ProviderProps) {
     [login],
   );
 
+  const openModal = useCallback((returnTo?: string) => {
+    pendingReturnToRef.current = returnTo;
+    setChecked(false);
+    setConsentStep(hasAcceptedTermsOnly() ? "medical" : "terms");
+    setOpen(true);
+  }, []);
+
   const requestLogin = useCallback(
     (returnTo?: string) => {
       if (hasAcceptedCurrentTerms()) {
         proceed(returnTo);
         return;
       }
-      pendingReturnToRef.current = returnTo;
-      setChecked(false);
-      setOpen(true);
+      openModal(returnTo);
     },
-    [proceed],
+    [proceed, openModal],
   );
 
   const resetConsent = useCallback(() => {
@@ -122,36 +192,49 @@ export function ConsentGateProvider({ children }: ProviderProps) {
       // ignore
     }
     setHasConsented(false);
+    autoMedicalOpenedRef.current = false;
   }, []);
-
-  const onAccept = useCallback(() => {
-    if (!checked) return;
-    saveConsent();
-    // Fire-and-forget audit-trail POST. If the user is already signed in
-    // this records immediately; otherwise the server endpoint just 401s
-    // and the next call after the OIDC callback completes will succeed
-    // (re-triggered by the auth-flip effect above).
-    void postServerConsent();
-    setHasConsented(true);
-    setOpen(false);
-    const target = pendingReturnToRef.current;
-    pendingReturnToRef.current = undefined;
-    proceed(target);
-  }, [checked, proceed]);
 
   const onCancel = useCallback(() => {
     setOpen(false);
     pendingReturnToRef.current = undefined;
-  }, []);
+    if (consentStep === "medical") {
+      autoMedicalOpenedRef.current = false;
+    }
+  }, [consentStep]);
 
-  // Close on Escape; trap focus inside the dialog
+  const onAccept = useCallback(() => {
+    if (!checked) return;
+
+    if (consentStep === "terms") {
+      saveConsent();
+      void postServerConsent();
+      setConsentStep("medical");
+      setChecked(false);
+      return;
+    }
+
+    try {
+      saveMedicalDisclaimerConsent();
+    } catch {
+      return;
+    }
+    void postMedicalDisclaimerServerConsent();
+    setHasConsented(true);
+    setOpen(false);
+    const target = pendingReturnToRef.current;
+    pendingReturnToRef.current = undefined;
+    if (target !== undefined) {
+      proceed(target);
+    }
+  }, [checked, consentStep, proceed]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel();
     };
     window.addEventListener("keydown", onKey);
-    // focus the checkbox first so a user can immediately tick & continue
     const root = dialogRef.current;
     const checkbox = root?.querySelector<HTMLInputElement>(
       'input[type="checkbox"]',
@@ -164,6 +247,8 @@ export function ConsentGateProvider({ children }: ProviderProps) {
     () => ({ requestLogin, hasConsented, resetConsent }),
     [requestLogin, hasConsented, resetConsent],
   );
+
+  const isMedicalStep = consentStep === "medical";
 
   return (
     <Ctx.Provider value={value}>
@@ -183,78 +268,129 @@ export function ConsentGateProvider({ children }: ProviderProps) {
             ref={dialogRef}
             className="w-full max-w-md bg-card text-card-foreground border border-border rounded-2xl shadow-2xl p-6 sm:p-7"
           >
-            <h2
-              id="consent-gate-title"
-              className="text-xl font-serif font-semibold mb-2"
-            >
-              {t("consent.title")}
-            </h2>
-            <p
-              id="consent-gate-desc"
-              className="text-sm text-muted-foreground leading-relaxed mb-5"
-            >
-              {t("consent.intro")}
-            </p>
+            {!isMedicalStep ? (
+              <>
+                <h2
+                  id="consent-gate-title"
+                  className="text-xl font-serif font-semibold mb-2"
+                >
+                  {t("consent.title")}
+                </h2>
+                <p
+                  id="consent-gate-desc"
+                  className="text-sm text-muted-foreground leading-relaxed mb-5"
+                >
+                  {t("consent.intro")}
+                </p>
 
-            <label className="flex items-start gap-3 text-sm leading-relaxed cursor-pointer select-none mb-6">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={(e) => setChecked(e.target.checked)}
-                className="mt-0.5 h-5 w-5 shrink-0 rounded border-border text-primary focus:ring-2 focus:ring-primary"
-                aria-describedby="consent-gate-desc"
-                data-testid="consent-checkbox"
-              />
-              <span>
-                {t("consent.checkboxPrefix")}{" "}
-                <a
-                  href={`${LEGAL_BASE}/terms`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-primary font-medium hover:text-primary/80"
-                >
-                  {t("consent.linkTerms")}
-                </a>
-                {", "}
-                <a
-                  href={`${LEGAL_BASE}/privacy`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-primary font-medium hover:text-primary/80"
-                >
-                  {t("consent.linkPrivacy")}
-                </a>
-                {t("consent.checkboxAnd")}
-                <a
-                  href={`${LEGAL_BASE}/medical-disclaimer`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-primary font-medium hover:text-primary/80"
-                >
-                  {t("consent.linkDisclaimer")}
-                </a>
-                {t("consent.checkboxSuffix")}
-              </span>
-            </label>
+                <label className="flex items-start gap-3 text-sm leading-relaxed cursor-pointer select-none mb-6">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => setChecked(e.target.checked)}
+                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-border text-primary focus:ring-2 focus:ring-primary"
+                    aria-describedby="consent-gate-desc"
+                    data-testid="consent-checkbox"
+                  />
+                  <span>
+                    {t("consent.checkboxPrefix")}{" "}
+                    <a
+                      href={`${LEGAL_BASE}/terms`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline text-primary font-medium hover:text-primary/80"
+                    >
+                      {t("consent.linkTerms")}
+                    </a>
+                    {", "}
+                    <a
+                      href={`${LEGAL_BASE}/privacy`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline text-primary font-medium hover:text-primary/80"
+                    >
+                      {t("consent.linkPrivacy")}
+                    </a>
+                    {t("consent.checkboxAnd")}
+                    <a
+                      href={`${LEGAL_BASE}/medical-disclaimer`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline text-primary font-medium hover:text-primary/80"
+                    >
+                      {t("consent.linkDisclaimer")}
+                    </a>
+                    {t("consent.checkboxSuffix")}
+                  </span>
+                </label>
 
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-              <button
-                type="button"
-                onClick={onCancel}
-                className="px-5 py-2.5 rounded-full border border-border text-foreground hover:bg-border/30 text-sm font-medium transition-colors"
-              >
-                {t("consent.cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={onAccept}
-                disabled={!checked}
-                data-testid="consent-continue"
-                className="px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90"
-              >
-                {t("consent.continue")}
-              </button>
-            </div>
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={onCancel}
+                    className="px-5 py-2.5 rounded-full border border-border text-foreground hover:bg-border/30 text-sm font-medium transition-colors"
+                  >
+                    {t("consent.cancel")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onAccept}
+                    disabled={!checked}
+                    data-testid="consent-continue"
+                    className="px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90"
+                  >
+                    {t("consent.continue")}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2
+                  id="consent-gate-title"
+                  className="text-xl font-serif font-semibold mb-2"
+                >
+                  {t("consent.medical.title")}
+                </h2>
+                <p
+                  id="consent-gate-desc"
+                  className="text-sm text-muted-foreground leading-relaxed mb-5"
+                >
+                  {t("consent.medical.body")}
+                </p>
+
+                <label className="flex items-start gap-3 text-sm leading-relaxed cursor-pointer select-none mb-6">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => setChecked(e.target.checked)}
+                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-border text-primary focus:ring-2 focus:ring-primary"
+                    aria-describedby="consent-gate-desc"
+                    data-testid="consent-medical-checkbox"
+                  />
+                  <span>{t("consent.medical.checkbox")}</span>
+                </label>
+
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={onCancel}
+                    className="px-5 py-2.5 rounded-full border border-border text-foreground hover:bg-border/30 text-sm font-medium transition-colors"
+                  >
+                    {t("consent.cancel")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onAccept}
+                    disabled={!checked}
+                    data-testid="consent-medical-continue"
+                    className="px-5 py-2.5 rounded-full text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+                    style={{ backgroundColor: MEDICAL_SAGE }}
+                  >
+                    {t("consent.medical.continue")}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

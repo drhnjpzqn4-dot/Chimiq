@@ -4,6 +4,7 @@ import { useAuth } from "@workspace/replit-auth-web";
 import { useGetShelf, getGetShelfQueryKey } from "@workspace/api-client-react";
 import { ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import BatchRecallBanner from "@/components/BatchRecallBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n";
 import { PREMIUM_CONTRIBUTION_MILESTONE } from "@/pages/app/Shelf";
@@ -79,6 +80,8 @@ export default function HomeScreen() {
           <p className="mt-1.5 text-sm font-medium text-muted-foreground">{todayLabel}</p>
           <p className="mt-1 text-sm text-muted-foreground/90">{t("home.tagline")}</p>
         </section>
+
+        <BatchRecallBanner />
 
         {/* Sektion 2 — Min hylla (preview) */}
         <section>
