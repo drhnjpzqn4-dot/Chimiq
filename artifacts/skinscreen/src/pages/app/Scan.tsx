@@ -548,6 +548,8 @@ export default function ScanScreen() {
           </span>
           {overLimit ? (
             <span className="font-semibold" style={{ color: "#8A6217" }}>
+              {t("scan.limitReached")}
+            </span>
           ) : (
             <span>{t("scan.leftFmt", { count: remaining })}</span>
           )}
