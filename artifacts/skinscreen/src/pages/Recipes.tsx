@@ -55,12 +55,28 @@ export default function RecipesPage() {
 
   const RISK_BADGE: Record<
     RiskLevel,
-    { bg: string; text: string; label: string; Icon: typeof Check | typeof AlertTriangle | typeof Ban }
+    {
+      pill: { backgroundColor: string; color: string };
+      label: string;
+      Icon: typeof Check | typeof AlertTriangle | typeof Ban;
+    }
   > = useMemo(
     () => ({
-      safe: { bg: "bg-green-100", text: "text-green-700", label: t("recipes.badgeSafe"), Icon: Check },
-      caution: { bg: "bg-amber-100", text: "text-amber-700", label: t("recipes.badgeCaution"), Icon: AlertTriangle },
-      high_risk: { bg: "bg-red-100", text: "text-red-700", label: t("recipes.badgeHighRisk"), Icon: Ban },
+      safe: {
+        pill: { backgroundColor: "#E8F2E5", color: "#5B8F5A" },
+        label: t("recipes.badgeSafe"),
+        Icon: Check,
+      },
+      caution: {
+        pill: { backgroundColor: "#FBF3DC", color: "#8A6217" },
+        label: t("recipes.badgeCaution"),
+        Icon: AlertTriangle,
+      },
+      high_risk: {
+        pill: { backgroundColor: "#FCE4E0", color: "#8C2A1A" },
+        label: t("recipes.badgeHighRisk"),
+        Icon: Ban,
+      },
     }),
     [t],
   );
@@ -195,9 +211,15 @@ export default function RecipesPage() {
                       </h3>
                       {badge && (
                         <span
-                          className={`inline-flex shrink-0 items-center rounded-full ${badge.bg} px-2 py-0.5 text-[10px] font-semibold ${badge.text}`}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full font-semibold"
+                          style={{
+                            ...badge.pill,
+                            fontSize: 10,
+                            padding: "3px 8px",
+                            fontWeight: 600,
+                          }}
                         >
-                          <badge.Icon className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
+                          <badge.Icon className="h-[14px] w-[14px] shrink-0" aria-hidden />
                           {badge.label}
                         </span>
                       )}
@@ -255,9 +277,10 @@ function FilterRow<T extends string>({
               onClick={() => onChange(o)}
               className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
                 active
-                  ? "border-primary bg-primary text-white"
-                  : "border-border bg-white text-foreground hover:bg-muted"
+                  ? "text-white"
+                  : "border-[#EAE3DC] bg-white text-[#1F1A17] hover:bg-[#FAF6F2]"
               }`}
+              style={active ? { borderColor: "#7BAF7A", backgroundColor: "#7BAF7A" } : { borderColor: "#EAE3DC" }}
             >
               {displayLabel ? displayLabel(o) : o}
             </button>

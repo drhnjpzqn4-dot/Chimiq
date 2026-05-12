@@ -457,19 +457,19 @@ export default function ProfileScreen() {
                   ? t("profileCard.statusUnderReview")
                   : s.status;
                 const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
-                const iconClass = isApproved
-                  ? "text-green-600"
-                  : isRejected
-                  ? "text-destructive"
-                  : "text-amber-500";
                 return (
                   <li
                     key={s.id}
                     className={`rounded-2xl border p-3 ${
                       isRejected
-                        ? "border-destructive/30 bg-red-50/40"
-                        : "border-border/40 bg-muted/20"
+                        ? "border-[#EAE3DC]"
+                        : "border-[#EAE3DC]"
                     }`}
+                    style={
+                      isRejected
+                        ? { backgroundColor: "rgba(252, 228, 224, 0.35)" }
+                        : { backgroundColor: "#FFFFFF" }
+                    }
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -484,15 +484,34 @@ export default function ProfileScreen() {
                         </p>
                       </div>
                       <span
-                        className={`inline-flex items-center gap-1 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full font-semibold"
+                        style={
                           isApproved
-                            ? "bg-green-100 text-green-700"
+                            ? {
+                                backgroundColor: "#E8F2E5",
+                                color: "#5B8F5A",
+                                fontSize: 10,
+                                padding: "3px 8px",
+                                fontWeight: 600,
+                              }
                             : isRejected
-                            ? "bg-red-100 text-red-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
+                              ? {
+                                  backgroundColor: "#FCE4E0",
+                                  color: "#8C2A1A",
+                                  fontSize: 10,
+                                  padding: "3px 8px",
+                                  fontWeight: 600,
+                                }
+                              : {
+                                  backgroundColor: "#FBF3DC",
+                                  color: "#8A6217",
+                                  fontSize: 10,
+                                  padding: "3px 8px",
+                                  fontWeight: 600,
+                                }
+                        }
                       >
-                        <Icon className={`h-3 w-3 ${iconClass}`} />
+                        <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
                         {label}
                       </span>
                     </div>
@@ -563,24 +582,55 @@ export default function ProfileScreen() {
                         : null;
                 const riskColor =
                   r.riskLevel === "high_risk"
-                    ? "text-red-600"
+                    ? "#8C2A1A"
                     : r.riskLevel === "caution"
-                      ? "text-amber-600"
-                      : "text-green-600";
+                      ? "#8A6217"
+                      : "#5B8F5A";
                 const cardTone = isChanges
-                  ? "border-amber-300 bg-amber-50/60"
+                  ? "border-[#EAE3DC]"
                   : isRejected
-                    ? "border-destructive/30 bg-red-50/40"
-                    : "border-border/40 bg-muted/20";
-                const badgeTone = isApproved
-                  ? "bg-green-100 text-green-700"
-                  : isRejected
-                    ? "bg-red-100 text-red-700"
-                    : isChanges
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-muted text-muted-foreground";
+                    ? "border-[#EAE3DC]"
+                    : "border-[#EAE3DC]";
+                const cardBg =
+                  isChanges
+                    ? { backgroundColor: "rgba(251, 243, 220, 0.45)" }
+                    : isRejected
+                      ? { backgroundColor: "rgba(252, 228, 224, 0.35)" }
+                      : { backgroundColor: "#FFFFFF" };
+                const recipeStatusPillStyle =
+                  isApproved
+                    ? {
+                        backgroundColor: "#E8F2E5",
+                        color: "#5B8F5A",
+                        fontSize: 10,
+                        padding: "3px 8px",
+                        fontWeight: 600,
+                      }
+                    : isRejected
+                      ? {
+                          backgroundColor: "#FCE4E0",
+                          color: "#8C2A1A",
+                          fontSize: 10,
+                          padding: "3px 8px",
+                          fontWeight: 600,
+                        }
+                      : isChanges
+                        ? {
+                            backgroundColor: "#FBF3DC",
+                            color: "#8A6217",
+                            fontSize: 10,
+                            padding: "3px 8px",
+                            fontWeight: 600,
+                          }
+                        : {
+                            backgroundColor: "#FAF6F2",
+                            color: "#5E544C",
+                            fontSize: 10,
+                            padding: "3px 8px",
+                            fontWeight: 600,
+                          };
                 return (
-                  <li key={r.id} className={`rounded-2xl border p-3 ${cardTone}`}>
+                  <li key={r.id} className={`rounded-2xl border p-3 ${cardTone}`} style={cardBg}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-foreground">
@@ -591,7 +641,7 @@ export default function ProfileScreen() {
                           {RiskIcon && (
                             <>
                               <span aria-hidden>·</span>
-                              <RiskIcon className={`h-3 w-3 ${riskColor}`} />
+                              <RiskIcon className="h-3 w-3 shrink-0" style={{ color: riskColor }} />
                             </>
                           )}
                           <span aria-hidden>·</span>
@@ -602,9 +652,10 @@ export default function ProfileScreen() {
                       </div>
                       <span
                         role="status"
-                        className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${badgeTone}`}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full font-semibold"
+                        style={recipeStatusPillStyle}
                       >
-                        <StatusIcon className="h-3 w-3" aria-hidden="true" />
+                        <StatusIcon className="h-3 w-3 shrink-0" aria-hidden="true" />
                         {label}
                       </span>
                     </div>

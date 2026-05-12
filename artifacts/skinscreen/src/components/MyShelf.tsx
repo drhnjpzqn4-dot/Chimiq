@@ -234,10 +234,14 @@ function ConflictCard({ conflict, delay }: { conflict: RoutineConflict; delay?: 
   const isHighRisk = conflict.severity === "HIGH_RISK";
   return (
     <FadeIn delay={delay} fullWidth>
-      <div className={cn(
-        "p-4 rounded-2xl border",
-        isHighRisk ? "bg-red-50/70 border-red-200" : "bg-amber-50/50 border-amber-200/70",
-      )}>
+      <div
+        className="rounded-2xl border p-4"
+        style={
+          isHighRisk
+            ? { backgroundColor: "rgba(252, 228, 224, 0.55)", borderColor: "#EAE3DC" }
+            : { backgroundColor: "rgba(251, 243, 220, 0.5)", borderColor: "#EAE3DC" }
+        }
+      >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="min-w-0">
             <p className="text-xs font-semibold text-muted-foreground mb-0.5">
@@ -247,10 +251,26 @@ function ConflictCard({ conflict, delay }: { conflict: RoutineConflict; delay?: 
               {conflict.pair}
             </p>
           </div>
-          <span className={cn(
-            "shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap",
-            isHighRisk ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700",
-          )}>
+          <span
+            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full font-semibold uppercase tracking-wider"
+            style={
+              isHighRisk
+                ? {
+                    backgroundColor: "#FCE4E0",
+                    color: "#8C2A1A",
+                    fontSize: 10,
+                    padding: "3px 8px",
+                    fontWeight: 600,
+                  }
+                : {
+                    backgroundColor: "#FBF3DC",
+                    color: "#8A6217",
+                    fontSize: 10,
+                    padding: "3px 8px",
+                    fontWeight: 600,
+                  }
+            }
+          >
             {isHighRisk ? (
               <><ShieldOff className="w-3 h-3" /> {t("myShelf.severityHighRisk")}</>
             ) : (
@@ -344,11 +364,11 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
           aria-expanded={open}
         >
           {overallSafe ? (
-            <ShieldCheck className="w-4 h-4 text-[#22C55E] shrink-0" />
+            <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: "#5B8F5A" }} />
           ) : highRiskCount > 0 ? (
-            <ShieldOff className="w-4 h-4 text-red-500 shrink-0" />
+            <ShieldOff className="h-4 w-4 shrink-0" style={{ color: "#8C2A1A" }} />
           ) : (
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: "#8A6217" }} />
           )}
           <span className="text-sm font-medium text-foreground">
             {overallSafe
@@ -360,12 +380,30 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
           {!overallSafe && (
             <div className="flex items-center gap-1">
               {highRiskCount > 0 && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold">
+                <span
+                  className="inline-flex items-center rounded-full font-semibold"
+                  style={{
+                    backgroundColor: "#FCE4E0",
+                    color: "#8C2A1A",
+                    fontSize: 10,
+                    padding: "3px 8px",
+                    fontWeight: 600,
+                  }}
+                >
                   {highRiskCount} {t("myShelf.high")}
                 </span>
               )}
               {cautionCount > 0 && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
+                <span
+                  className="inline-flex items-center rounded-full font-semibold"
+                  style={{
+                    backgroundColor: "#FBF3DC",
+                    color: "#8A6217",
+                    fontSize: 10,
+                    padding: "3px 8px",
+                    fontWeight: 600,
+                  }}
+                >
                   {cautionCount} {t("myShelf.cautionShort")}
                 </span>
               )}
@@ -392,11 +430,16 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
       {open && (
         <div className="px-4 pb-4">
           {overallSafe ? (
-            <div className="flex items-center gap-3 p-4 rounded-2xl bg-green-50 border border-green-200">
-              <ShieldCheck className="w-5 h-5 text-[#22C55E] shrink-0" />
+            <div
+              className="flex items-center gap-3 rounded-2xl border p-4"
+              style={{ backgroundColor: "#E8F2E5", borderColor: "#EAE3DC" }}
+            >
+              <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: "#5B8F5A" }} />
               <div>
-                <p className="text-sm font-semibold text-[#16A34A]">{t("myShelf.noConflicts")}</p>
-                <p className="text-xs text-[#16A34A]/70 mt-0.5">
+                <p className="text-sm font-semibold" style={{ color: "#5B8F5A" }}>
+                  {t("myShelf.noConflicts")}
+                </p>
+                <p className="mt-0.5 text-xs" style={{ color: "#5E544C" }}>
                   {t("myShelf.routineLooksGood")}
                 </p>
               </div>
@@ -691,12 +734,30 @@ export function MyShelf({ displayName }: MyShelfProps) {
         <div className="flex items-center gap-2">
           {analysisData && (
             analysisData.overallSafe ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-[#16A34A] text-[10px] font-bold">
-                <ShieldCheck className="w-3 h-3" /> {t("myShelf.allClear")}
+              <span
+                className="inline-flex items-center gap-1 rounded-full font-semibold"
+                style={{
+                  backgroundColor: "#E8F2E5",
+                  color: "#5B8F5A",
+                  fontSize: 10,
+                  padding: "3px 8px",
+                  fontWeight: 600,
+                }}
+              >
+                <ShieldCheck className="h-3 w-3 shrink-0" /> {t("myShelf.allClear")}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold">
-                <ShieldOff className="w-3 h-3" />
+              <span
+                className="inline-flex items-center gap-1 rounded-full font-semibold"
+                style={{
+                  backgroundColor: "#FCE4E0",
+                  color: "#8C2A1A",
+                  fontSize: 10,
+                  padding: "3px 8px",
+                  fontWeight: 600,
+                }}
+              >
+                <ShieldOff className="h-3 w-3 shrink-0" />
                 {(analysisData.highRiskCount + analysisData.cautionCount) === 1
                   ? t("myShelf.oneConflictBadge")
                   : t("myShelf.manyConflictsBadgeFmt").replace("{count}", String(analysisData.highRiskCount + analysisData.cautionCount))}

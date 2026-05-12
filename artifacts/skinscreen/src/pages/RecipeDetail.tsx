@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { Link, useRoute } from "wouter";
 import {
   AlertTriangle,
@@ -46,12 +47,32 @@ export default function RecipeDetailPage() {
 
   const RISK_STYLES: Record<
     RiskLevel,
-    { bg: string; text: string; label: string; Icon: typeof Check | typeof AlertTriangle | typeof Ban }
+    {
+      panelStyle: CSSProperties;
+      headerColor: string;
+      label: string;
+      Icon: typeof Check | typeof AlertTriangle | typeof Ban;
+    }
   > = useMemo(
     () => ({
-      safe: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: t("recipeDetail.riskSafe"), Icon: Check },
-      caution: { bg: "bg-amber-50 border-amber-200", text: "text-amber-700", label: t("recipeDetail.riskCaution"), Icon: AlertTriangle },
-      high_risk: { bg: "bg-red-50 border-red-200", text: "text-red-700", label: t("recipeDetail.riskHigh"), Icon: Ban },
+      safe: {
+        panelStyle: { backgroundColor: "#E8F2E5", border: "1px solid #EAE3DC" },
+        headerColor: "#5B8F5A",
+        label: t("recipeDetail.riskSafe"),
+        Icon: Check,
+      },
+      caution: {
+        panelStyle: { backgroundColor: "#FBF3DC", border: "1px solid #EAE3DC" },
+        headerColor: "#8A6217",
+        label: t("recipeDetail.riskCaution"),
+        Icon: AlertTriangle,
+      },
+      high_risk: {
+        panelStyle: { backgroundColor: "#FCE4E0", border: "1px solid #EAE3DC" },
+        headerColor: "#8C2A1A",
+        label: t("recipeDetail.riskHigh"),
+        Icon: Ban,
+      },
     }),
     [t],
   );
@@ -116,8 +137,8 @@ export default function RecipeDetailPage() {
         </div>
 
         {verdict && style && (
-          <div className={`rounded-3xl border ${style.bg} p-5`}>
-            <div className={`flex items-center ${style.text}`}>
+          <div className="rounded-3xl p-5" style={style.panelStyle}>
+            <div className="flex items-center" style={{ color: style.headerColor }}>
               <style.Icon className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
               <p className="font-semibold">{t("recipeDetail.aiSafetyScan", { label: style.label })}</p>
             </div>

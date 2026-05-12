@@ -46,16 +46,15 @@ export function StepHeader({
       </div>
       <div className="flex-1 min-w-0 pb-8">
         <h3
-          className={cn(
-            "font-bold text-[17px] mb-0.5 mt-1.5",
-            scan ? "tracking-[0.08em]" : "text-foreground",
-          )}
-          style={scan ? { color: "#7BAF7A" } : undefined}
+          className={cn("mb-0.5 mt-1.5 text-[17px] font-bold", scan ? "tracking-[0.08em]" : "text-foreground")}
+          style={scan ? { color: "#1F1A17" } : undefined}
         >
           {title}
         </h3>
         {description && (
-          <p className="text-xs text-muted-foreground mb-4">{description}</p>
+          <p className="mb-4 text-xs text-muted-foreground" style={scan ? { fontSize: 13, color: "#5E544C" } : undefined}>
+            {description}
+          </p>
         )}
         {children}
       </div>
@@ -71,57 +70,35 @@ interface VerdictCardProps {
 }
 
 export function VerdictCard({ tone, icon, title, summary }: VerdictCardProps) {
-  const wrap =
+  const wrapStyle =
     tone === "safe"
-      ? "bg-green-50 border-green-200"
+      ? { backgroundColor: "#E8F2E5", border: "1px solid #EAE3DC" }
       : tone === "high"
-        ? "bg-red-50/60 border-red-200"
-        : "bg-amber-50/40 border-amber-200/70";
-  const iconWrap =
+        ? { backgroundColor: "rgba(252, 228, 224, 0.65)", border: "1px solid #EAE3DC" }
+        : { backgroundColor: "rgba(251, 243, 220, 0.55)", border: "1px solid #EAE3DC" };
+  const iconWrapStyle =
     tone === "safe"
-      ? "bg-green-100"
+      ? { backgroundColor: "#E8F2E5" }
       : tone === "high"
-        ? "bg-red-100"
-        : "bg-amber-100";
-  const titleColor =
-    tone === "safe"
-      ? "text-green-800"
-      : tone === "high"
-        ? "text-red-800"
-        : "text-amber-800";
-  const summaryColor =
-    tone === "safe"
-      ? "text-green-700"
-      : tone === "high"
-        ? "text-red-700"
-        : "text-amber-700";
+        ? { backgroundColor: "#FCE4E0" }
+        : { backgroundColor: "#FBF3DC" };
+  const titleColor = tone === "safe" ? "#5B8F5A" : tone === "high" ? "#8C2A1A" : "#8A6217";
+  const summaryColor = tone === "safe" ? "#5E544C" : tone === "high" ? "#8C2A1A" : "#8A6217";
 
   return (
     <div
-      className={cn(
-        "rounded-3xl border p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm animate-pop-in",
-        wrap,
-      )}
+      className="flex animate-pop-in flex-col items-start gap-4 rounded-3xl p-6 shadow-sm sm:flex-row sm:items-center sm:p-8"
+      style={wrapStyle}
     >
-      <div
-        className={cn(
-          "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0",
-          iconWrap,
-        )}
-      >
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" style={iconWrapStyle}>
         {icon}
       </div>
       <div>
-        <h3
-          className={cn(
-            "text-xl sm:text-2xl font-serif font-semibold leading-tight",
-            titleColor,
-          )}
-        >
+        <h3 className="font-serif text-xl font-semibold leading-tight sm:text-2xl" style={{ color: titleColor }}>
           {title}
         </h3>
         {summary && (
-          <p className={cn("text-sm mt-1 leading-relaxed", summaryColor)}>
+          <p className="mt-1 text-sm leading-relaxed" style={{ color: summaryColor }}>
             {summary}
           </p>
         )}

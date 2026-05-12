@@ -15,7 +15,6 @@ import { IngredientDetailSheet, type IngredientDetailFlag } from "@/components/I
 import { ProductRating } from "@/components/ProductRating";
 import { InlineGapFill } from "@/components/InlineGapFill";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/FadeIn";
 import { StepHeader, VerdictCard } from "@/components/scanner/ScannerStep";
 import { useTranslation } from "@/lib/i18n";
@@ -314,12 +313,16 @@ function FlagCard({
   const panelId = `${headingId}-panel`;
   return (
     <FadeIn delay={delay} fullWidth>
-      <div className={cn(
-        "flex flex-col h-full rounded-3xl border shadow-sm overflow-hidden",
-        isHighRisk
-          ? "bg-red-50/60 border-red-200"
-          : "bg-amber-50/40 border-amber-200/70",
-      )}>
+      <div
+        className={cn(
+          "flex flex-col h-full rounded-3xl border shadow-sm overflow-hidden",
+        )}
+        style={
+          isHighRisk
+            ? { backgroundColor: "rgba(252, 228, 224, 0.65)", borderColor: "#EAE3DC" }
+            : { backgroundColor: "rgba(251, 243, 220, 0.55)", borderColor: "#EAE3DC" }
+        }
+      >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -334,9 +337,25 @@ function FlagCard({
               <h3 className="text-base sm:text-lg font-serif font-semibold text-foreground leading-tight">
                 {flag.ingredient}
               </h3>
-              <Badge
-                variant={isHighRisk ? "destructive" : "warning"}
-                className="inline-flex shrink-0 items-center text-[10px] font-sans tracking-wide uppercase"
+              <span
+                className="inline-flex shrink-0 items-center gap-1 rounded-full font-semibold uppercase tracking-wide"
+                style={
+                  isHighRisk
+                    ? {
+                        backgroundColor: "#FCE4E0",
+                        color: "#8C2A1A",
+                        fontSize: 10,
+                        padding: "3px 8px",
+                        fontWeight: 600,
+                      }
+                    : {
+                        backgroundColor: "#FBF3DC",
+                        color: "#8A6217",
+                        fontSize: 10,
+                        padding: "3px 8px",
+                        fontWeight: 600,
+                      }
+                }
               >
                 {isHighRisk ? (
                   <>
@@ -349,12 +368,16 @@ function FlagCard({
                     {t("scanner.caution")}
                   </>
                 )}
-              </Badge>
+              </span>
             </div>
-            <span className={cn(
-              "inline-block mt-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
-              isHighRisk ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700",
-            )}>
+            <span
+              className="mt-1.5 inline-block rounded-full text-[10px] font-semibold uppercase tracking-wider"
+              style={
+                isHighRisk
+                  ? { backgroundColor: "#FCE4E0", color: "#8C2A1A", padding: "3px 8px", fontWeight: 600 }
+                  : { backgroundColor: "#FBF3DC", color: "#8A6217", padding: "3px 8px", fontWeight: 600 }
+              }
+            >
               {FLAG_CATEGORY_KEYS[flag.category] ? t(FLAG_CATEGORY_KEYS[flag.category]) : flag.category}
             </span>
             {!open && (
@@ -382,12 +405,8 @@ function FlagCard({
                 type="button"
                 onClick={onOpenProfile}
                 data-touch-target
-                className={cn(
-                  "mb-3 inline-flex items-center gap-1 text-xs font-semibold transition-colors",
-                  isHighRisk
-                    ? "text-red-700 hover:text-red-800"
-                    : "text-amber-700 hover:text-amber-800",
-                )}
+                className="mb-3 inline-flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-80"
+                style={{ color: isHighRisk ? "#8C2A1A" : "#8A6217" }}
               >
                 {t("scanner.seeFullProfile")}
               </button>
@@ -417,16 +436,28 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
   const { t } = useTranslation();
   return (
     <FadeIn delay={delay} fullWidth>
-      <div className="flex flex-col justify-between h-full p-6 sm:p-8 bg-white rounded-3xl border border-green-200 shadow-sm">
+      <div
+        className="flex h-full flex-col justify-between rounded-3xl border bg-white p-6 shadow-sm sm:p-8"
+        style={{ borderColor: "#EAE3DC" }}
+      >
         <div>
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <h3 className="text-xl sm:text-2xl font-serif font-semibold text-foreground leading-tight">
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <h3 className="text-xl font-serif font-semibold leading-tight text-foreground sm:text-2xl">
               {result.pair}
             </h3>
-            <Badge className="inline-flex shrink-0 items-center bg-green-100 text-green-700 border-green-200 hover:bg-green-100 font-sans tracking-wide uppercase text-[10px]">
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full font-semibold uppercase tracking-wide"
+              style={{
+                backgroundColor: "#E8F2E5",
+                color: "#5B8F5A",
+                fontSize: 10,
+                padding: "3px 8px",
+                fontWeight: 600,
+              }}
+            >
               <Check className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />
               {t("scanner.safe")}
-            </Badge>
+            </span>
           </div>
           <p className="text-muted-foreground leading-relaxed mb-6">{result.explanation}</p>
         </div>
@@ -1323,10 +1354,22 @@ export function IngredientScanner({
             data-touch-target
             className={cn(
               "gap-2 active:animate-tap-bounce",
-              ss
-                ? "w-full min-w-0 rounded-2xl border-0 py-4 text-lg font-semibold !bg-[#7BAF7A] !text-white shadow-sm hover:!bg-[#6a9e69] hover:!text-white sm:w-full"
-                : "w-full sm:w-auto min-w-[200px] text-base py-3 px-8 rounded-2xl",
+              ss ? "w-full min-w-0 border-0 hover:opacity-95 sm:w-full" : "w-full min-w-[200px] rounded-2xl px-8 py-3 text-base sm:w-auto",
             )}
+            style={
+              ss
+                ? {
+                    backgroundColor: "#7BAF7A",
+                    color: "#FFFFFF",
+                    borderRadius: 999,
+                    padding: 14,
+                    width: "100%",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    boxShadow: "0 2px 6px rgba(91,143,90,.25)",
+                  }
+                : undefined
+            }
           >
             {isPending ? (
               <><Loader2 className="w-5 h-5 animate-spin" />{t("scanner.analysing")}</>
@@ -1402,13 +1445,13 @@ export function IngredientScanner({
             }
             icon={
               singleResult.overallSafe ? (
-                <ShieldCheck className="w-6 h-6 text-green-600" />
+                <ShieldCheck className="h-6 w-6" style={{ color: "#5B8F5A" }} />
               ) : (
                 <AlertTriangle
-                  className={cn(
-                    "w-6 h-6",
-                    singleHighRisk.length > 0 ? "text-red-600" : "text-amber-600",
-                  )}
+                  className="h-6 w-6"
+                  style={{
+                    color: singleHighRisk.length > 0 ? "#8C2A1A" : "#8A6217",
+                  }}
                 />
               )
             }
@@ -1478,15 +1521,33 @@ export function IngredientScanner({
                           }
                           aria-label={t("scanner.seeDetailsForFmt", { name: ing })}
                           className={cn(
-                            "rounded-md px-2 py-0.5 text-[11px] font-medium leading-snug transition-colors cursor-pointer",
-                            "hover:brightness-95 active:brightness-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                            tone === "high" &&
-                              "bg-red-50 text-red-700 ring-1 ring-red-200",
-                            tone === "caution" &&
-                              "bg-amber-50 text-amber-800 ring-1 ring-amber-200",
-                            tone === "neutral" &&
-                              "bg-slate-50 text-slate-600 ring-1 ring-slate-200/60",
+                            "cursor-pointer rounded-full leading-snug transition-colors hover:brightness-95 active:brightness-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7BAF7A]/40",
                           )}
+                          style={
+                            tone === "high"
+                              ? {
+                                  backgroundColor: "#FCE4E0",
+                                  color: "#8C2A1A",
+                                  fontSize: 10,
+                                  padding: "3px 8px",
+                                  fontWeight: 600,
+                                }
+                              : tone === "caution"
+                                ? {
+                                    backgroundColor: "#FBF3DC",
+                                    color: "#8A6217",
+                                    fontSize: 10,
+                                    padding: "3px 8px",
+                                    fontWeight: 600,
+                                  }
+                                : {
+                                    backgroundColor: "#E8F2E5",
+                                    color: "#5B8F5A",
+                                    fontSize: 10,
+                                    padding: "3px 8px",
+                                    fontWeight: 600,
+                                  }
+                          }
                         >
                           {ing}
                         </button>
@@ -1500,9 +1561,20 @@ export function IngredientScanner({
           {singleHighRisk.length > 0 && (
             <div>
               <FadeIn>
-                <h3 className="text-lg font-semibold text-destructive flex items-center gap-2 mb-4">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: "#8C2A1A" }}>
                   {t("scanner.highRiskIngredients")}
-                  <Badge variant="destructive" className="text-[11px] font-sans">{singleHighRisk.length}</Badge>
+                  <span
+                    className="inline-flex items-center rounded-full font-semibold"
+                    style={{
+                      backgroundColor: "#FCE4E0",
+                      color: "#8C2A1A",
+                      fontSize: 10,
+                      padding: "3px 8px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {singleHighRisk.length}
+                  </span>
                 </h3>
               </FadeIn>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1532,9 +1604,20 @@ export function IngredientScanner({
           {singleCaution.length > 0 && (
             <div>
               <FadeIn>
-                <h3 className="text-lg font-semibold text-amber-700 flex items-center gap-2 mb-4">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: "#8A6217" }}>
                   {t("scanner.useWithCaution")}
-                  <Badge variant="warning" className="text-[11px] font-sans">{singleCaution.length}</Badge>
+                  <span
+                    className="inline-flex items-center rounded-full font-semibold"
+                    style={{
+                      backgroundColor: "#FBF3DC",
+                      color: "#8A6217",
+                      fontSize: 10,
+                      padding: "3px 8px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {singleCaution.length}
+                  </span>
                 </h3>
               </FadeIn>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1725,15 +1808,13 @@ export function IngredientScanner({
             }
             icon={
               compareResult.overallSafe && compareConflicts.length === 0 ? (
-                <ShieldCheck className="w-6 h-6 text-green-600" />
+                <ShieldCheck className="h-6 w-6" style={{ color: "#5B8F5A" }} />
               ) : (
                 <AlertTriangle
-                  className={cn(
-                    "w-6 h-6",
-                    highRiskConflicts.length > 0
-                      ? "text-red-600"
-                      : "text-amber-600",
-                  )}
+                  className="h-6 w-6"
+                  style={{
+                    color: highRiskConflicts.length > 0 ? "#8C2A1A" : "#8A6217",
+                  }}
                 />
               )
             }
@@ -1758,9 +1839,20 @@ export function IngredientScanner({
           {highRiskConflicts.length > 0 && (
             <div>
               <FadeIn>
-                <h3 className="text-lg font-semibold text-destructive flex items-center gap-2 mb-4">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: "#8C2A1A" }}>
                   {t("scanner.highRiskConflicts")}
-                  <Badge variant="destructive" className="text-[11px] font-sans">{highRiskConflicts.length}</Badge>
+                  <span
+                    className="inline-flex items-center rounded-full font-semibold"
+                    style={{
+                      backgroundColor: "#FCE4E0",
+                      color: "#8C2A1A",
+                      fontSize: 10,
+                      padding: "3px 8px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {highRiskConflicts.length}
+                  </span>
                 </h3>
               </FadeIn>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1774,9 +1866,20 @@ export function IngredientScanner({
           {cautionConflicts.length > 0 && (
             <div>
               <FadeIn>
-                <h3 className="text-lg font-semibold text-amber-700 flex items-center gap-2 mb-4">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: "#8A6217" }}>
                   {t("scanner.useWithCaution")}
-                  <Badge variant="warning" className="text-[11px] font-sans">{cautionConflicts.length}</Badge>
+                  <span
+                    className="inline-flex items-center rounded-full font-semibold"
+                    style={{
+                      backgroundColor: "#FBF3DC",
+                      color: "#8A6217",
+                      fontSize: 10,
+                      padding: "3px 8px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {cautionConflicts.length}
+                  </span>
                 </h3>
               </FadeIn>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1790,9 +1893,20 @@ export function IngredientScanner({
           {safeConflicts.length > 0 && (
             <div>
               <FadeIn>
-                <h3 className="text-lg font-semibold text-green-700 flex items-center gap-2 mb-4">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: "#5B8F5A" }}>
                   {t("scanner.commonlySafe")}
-                  <Badge className="text-[11px] font-sans bg-green-100 text-green-700 border-green-200 hover:bg-green-100">{safeConflicts.length}</Badge>
+                  <span
+                    className="inline-flex items-center rounded-full font-semibold"
+                    style={{
+                      backgroundColor: "#E8F2E5",
+                      color: "#5B8F5A",
+                      fontSize: 10,
+                      padding: "3px 8px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {safeConflicts.length}
+                  </span>
                 </h3>
               </FadeIn>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

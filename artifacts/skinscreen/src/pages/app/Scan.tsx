@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Camera,
   Search,
@@ -289,13 +289,13 @@ export default function ScanScreen() {
 
   return (
     <AppShell title={t("scan.title")} subtitle={t("scan.subtitle")}>
-      <div className="-mx-4 space-y-5 bg-[#FAF7F2] px-4 pb-6 sm:space-y-6">
+      <div className="-mx-4 space-y-5 px-4 pb-6 sm:space-y-6" style={{ backgroundColor: "#FAF6F2" }}>
       {/* SCAN PRODUCT — Variant A "morphing search" (camera viewfinder + search) */}
       <section className="mb-6 animate-pop-in">
         <div className="mb-2 flex items-center justify-between">
           <p
-            className="text-[11px] font-bold uppercase tracking-[0.12em]"
-            style={{ color: "#7BAF7A" }}
+            className="text-[11px] font-bold uppercase"
+            style={{ letterSpacing: "0.08em", color: "#5E544C" }}
           >
             {t("scan.heading")}
           </p>
@@ -317,10 +317,13 @@ export default function ScanScreen() {
               onClick={() => navigate(overLimit ? "/pricing" : "/app/profile")}
               data-touch-target
               className={`inline-flex min-h-[24px] items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors ${
-                overLimit
-                  ? "bg-amber-100 text-amber-900 hover:bg-amber-200"
-                  : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                overLimit ? "" : "bg-muted/60 text-muted-foreground hover:bg-muted"
               }`}
+              style={
+                overLimit
+                  ? { backgroundColor: "#FCE4E0", color: "#8C2A1A" }
+                  : undefined
+              }
               aria-label={t("scan.freeScansAriaFmt", { used: scansToday, total: FREE_DAILY_LIMIT })}
             >
               {overLimit
@@ -381,11 +384,14 @@ export default function ScanScreen() {
 
       {/* Seed banner: a Browse-tapped product is auto-loading */}
       {(seedLoading || seedErrorKey) && (
-        <div className="mb-3 flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+        <div
+          className="mb-3 flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm"
+          style={{ borderColor: "#EAE3DC", backgroundColor: "#FFFFFF" }}
+        >
           {seedLoading ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" style={{ color: "#5E544C" }} />
           ) : (
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+            <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: "#8A6217" }} />
           )}
           <span className="min-w-0 flex-1">
             {seedLoading
@@ -401,8 +407,8 @@ export default function ScanScreen() {
       {!seed && recent.length > 0 && (
         <section className="mb-6">
           <p
-            className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em]"
-            style={{ color: "#7BAF7A" }}
+            className="mb-3 text-[11px] font-bold uppercase"
+            style={{ letterSpacing: "0.08em", color: "#5E544C" }}
           >
             {t("scan.recentScans")}
           </p>
@@ -416,13 +422,15 @@ export default function ScanScreen() {
               >
                 <span
                   aria-hidden
-                  className={`h-2 w-2 shrink-0 rounded-full ${
-                    r.verdict === "safe"
-                      ? "bg-green-500"
-                      : r.verdict === "high"
-                        ? "bg-red-500"
-                        : "bg-amber-500"
-                  }`}
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{
+                    backgroundColor:
+                      r.verdict === "safe"
+                        ? "#5B8F5A"
+                        : r.verdict === "high"
+                          ? "#8C2A1A"
+                          : "#8A6217",
+                  }}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-medium leading-tight text-foreground">
@@ -443,8 +451,8 @@ export default function ScanScreen() {
       {!seed && recent.length === 0 && (
         <section className="mb-6">
           <p
-            className="mb-3 text-[11px] font-bold uppercase tracking-[0.12em]"
-            style={{ color: "#7BAF7A" }}
+            className="mb-3 text-[11px] font-bold uppercase"
+            style={{ letterSpacing: "0.08em", color: "#5E544C" }}
           >
             {t("scan.getStarted")}
           </p>
@@ -453,18 +461,29 @@ export default function ScanScreen() {
               type="button"
               onClick={() => navigate("/app/browse")}
               data-touch-target
-              className="flex flex-col items-start gap-2 rounded-xl bg-white p-3.5 text-left shadow-sm transition-shadow hover:shadow-md"
+              className="flex flex-col items-center bg-white text-center transition-[transform,border-color] hover:-translate-y-0.5 border-[1.5px] border-[#EAE3DC] hover:border-[#7BAF7A]"
+              style={{
+                borderRadius: 18,
+                padding: "22px 18px",
+              }}
             >
               <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                style={{ backgroundColor: "rgba(123, 175, 122, 0.2)" }}
+                className="mb-3 flex h-14 w-14 shrink-0 items-center justify-center"
+                style={{ borderRadius: 16, backgroundColor: "#E8F2E5" }}
               >
-                <PackageSearch className="h-5 w-5" style={{ color: "#7BAF7A" }} aria-hidden />
+                <PackageSearch className="h-6 w-6" style={{ color: "#5B8F5A" }} aria-hidden />
               </span>
-              <span className="text-[14px] font-semibold" style={{ color: "#1C1C1E" }}>
+              <span
+                style={{
+                  fontFamily: '"Iowan Old Style", Georgia, serif',
+                  fontSize: 18,
+                  fontWeight: 600,
+                  color: "#1F1A17",
+                }}
+              >
                 {t("scan.browseProducts")}
               </span>
-              <span className="text-[12px] text-muted-foreground">
+              <span className="mt-1 text-[12px]" style={{ color: "#5E544C" }}>
                 {t("scan.browseHint")}
               </span>
             </button>
@@ -472,22 +491,42 @@ export default function ScanScreen() {
               type="button"
               onClick={() => navigate("/app/discover")}
               data-touch-target
-              className="flex flex-col items-start gap-2 rounded-xl bg-white p-3.5 text-left shadow-sm transition-shadow hover:shadow-md"
+              className="flex flex-col items-center bg-white text-center transition-[transform,border-color] hover:-translate-y-0.5 border-[1.5px] border-[#EAE3DC] hover:border-[#7BAF7A]"
+              style={{
+                borderRadius: 18,
+                padding: "22px 18px",
+              }}
             >
               <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                style={{ backgroundColor: "rgba(123, 175, 122, 0.2)" }}
+                className="mb-3 flex h-14 w-14 shrink-0 items-center justify-center"
+                style={{ borderRadius: 16, backgroundColor: "#E8F2E5" }}
               >
-                <Compass className="h-5 w-5" style={{ color: "#7BAF7A" }} aria-hidden />
+                <Compass className="h-6 w-6" style={{ color: "#5B8F5A" }} aria-hidden />
               </span>
-              <span className="text-[14px] font-semibold" style={{ color: "#1C1C1E" }}>
+              <span
+                style={{
+                  fontFamily: '"Iowan Old Style", Georgia, serif',
+                  fontSize: 18,
+                  fontWeight: 600,
+                  color: "#1F1A17",
+                }}
+              >
                 {t("scan.discoverArticles")}
               </span>
-              <span className="text-[12px] text-muted-foreground">
+              <span className="mt-1 text-[12px]" style={{ color: "#5E544C" }}>
                 {t("scan.discoverHint")}
               </span>
             </button>
           </div>
+          <Link href="/app/browse">
+            <a
+              className="mt-6 block text-center text-[12px] transition-opacity hover:opacity-80"
+              style={{ color: "#5E544C" }}
+              data-touch-target
+            >
+              {t("browse.addAProduct")} →
+            </a>
+          </Link>
         </section>
       )}
 
@@ -500,7 +539,7 @@ export default function ScanScreen() {
           aria-live="polite"
         >
           <span>
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold" style={{ color: "#1F1A17" }}>
               {scansToday === 1
                 ? t("scan.scansTodayOneFmt", { count: scansToday })
                 : t("scan.scansTodayManyFmt", { count: scansToday })}
@@ -508,7 +547,9 @@ export default function ScanScreen() {
             <span> · {t("scan.freeScansPerDayFmt", { total: FREE_DAILY_LIMIT })}</span>
           </span>
           {overLimit ? (
-            <span className="font-semibold text-amber-700">{t("scan.limitReached")}</span>
+            <span className="font-semibold" style={{ color: "#8A6217" }}>
+              {t("scan.limitReached")}
+            </span>
           ) : (
             <span>{t("scan.leftFmt", { count: remaining })}</span>
           )}
