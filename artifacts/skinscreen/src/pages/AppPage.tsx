@@ -6,6 +6,7 @@ import { trackEvent, trackMetaStandard } from "@/lib/analytics";
 import { useUserPlan } from "@/hooks/useUserPlan";
 
 const ScanScreen = lazy(() => import("@/pages/app/Scan"));
+const HomeScreen = lazy(() => import("@/pages/app/Home"));
 const ShelfScreen = lazy(() => import("@/pages/app/Shelf"));
 const BrowseScreen = lazy(() => import("@/pages/app/Browse"));
 const BrowseDetailScreen = lazy(() => import("@/pages/app/BrowseDetail"));
@@ -63,6 +64,7 @@ export default function AppPage() {
       <Suspense fallback={<AppRouteFallback />}>
         <Switch>
           <Route path="/app" component={() => <Redirect to="/app/scan" />} />
+          <Route path="/app/home" component={HomeScreen} />
           <Route path="/app/scan" component={ScanScreen} />
           <Route path="/app/browse" component={BrowseScreen} />
           <Route path="/app/browse/:barcode" component={BrowseDetailScreen} />
