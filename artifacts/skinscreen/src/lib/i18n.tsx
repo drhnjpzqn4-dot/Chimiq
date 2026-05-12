@@ -31,6 +31,16 @@ const en: Dict = {
   "tabs.profile": "Profile",
   "home.greetingFmt": "Hi, {name}!",
   "home.placeholderNote": "The Home screen will be expanded in the next sprint.",
+  "home.tagline": "Your skincare assistant",
+  "home.shelfPreviewTitle": "My shelf",
+  "home.shelfSeeAll": "See all",
+  "home.shelfEmptyCta": "Add your first product →",
+  "home.contributionCompactFmt": "{current} of {total} contributions",
+  "home.ingredientWeekTitle": "Ingredient of the week",
+  "home.ingredientWeekName": "Niacinamide",
+  "home.ingredientWeekBody":
+    "Niacinamide strengthens the skin barrier and can make pores look smaller. Safe for all skin types.",
+  "home.problemsCta": "Explore risky ingredients →",
 
   // ───── Common ─────
   "common.signIn": "Sign in",
@@ -1197,6 +1207,16 @@ const sv: Dict = {
   "tabs.profile": "Profil",
   "home.greetingFmt": "Hej, {name}!",
   "home.placeholderNote": "Hem-sidan byggs ut i nästa sprint.",
+  "home.tagline": "Din hudvårdsassistent",
+  "home.shelfPreviewTitle": "Min hylla",
+  "home.shelfSeeAll": "Visa alla",
+  "home.shelfEmptyCta": "Lägg till din första produkt →",
+  "home.contributionCompactFmt": "{current} av {total} bidrag",
+  "home.ingredientWeekTitle": "Veckans ingrediens",
+  "home.ingredientWeekName": "Niacinamide",
+  "home.ingredientWeekBody":
+    "Niacinamid stärker hudbarriären och minskar porer. Säker för alla hudtyper.",
+  "home.problemsCta": "Utforska farliga ingredienser →",
 
   // ───── Common ─────
   "common.signIn": "Logga in",
@@ -2371,6 +2391,16 @@ const fr: Dict = {
   "tabs.profile": "Profil",
   "home.greetingFmt": "Bonjour, {name} !",
   "home.placeholderNote": "La page d'accueil sera enrichie lors du prochain sprint.",
+  "home.tagline": "Votre assistant soins de la peau",
+  "home.shelfPreviewTitle": "Mon étagère",
+  "home.shelfSeeAll": "Tout voir",
+  "home.shelfEmptyCta": "Ajoutez votre premier produit →",
+  "home.contributionCompactFmt": "{current} sur {total} contributions",
+  "home.ingredientWeekTitle": "Ingrédient de la semaine",
+  "home.ingredientWeekName": "Niacinamide",
+  "home.ingredientWeekBody":
+    "Le niacinamide renforce la barrière cutanée et peut resserrer l'apparence des pores. Convient à tous les types de peau.",
+  "home.problemsCta": "Explorer les ingrédients à risque →",
 
   // ───── Common ─────
   "common.signIn": "Se connecter",
@@ -3535,6 +3565,16 @@ const es: Dict = {
   "tabs.profile": "Perfil",
   "home.greetingFmt": "¡Hola, {name}!",
   "home.placeholderNote": "La página de inicio se ampliará en el próximo sprint.",
+  "home.tagline": "Tu asistente de cuidado de la piel",
+  "home.shelfPreviewTitle": "Mi estante",
+  "home.shelfSeeAll": "Ver todo",
+  "home.shelfEmptyCta": "Añade tu primer producto →",
+  "home.contributionCompactFmt": "{current} de {total} aportes",
+  "home.ingredientWeekTitle": "Ingrediente de la semana",
+  "home.ingredientWeekName": "Niacinamida",
+  "home.ingredientWeekBody":
+    "La niacinamida refuerza la barrera cutánea y puede hacer que los poros se vean más pequeños. Segura para todo tipo de piel.",
+  "home.problemsCta": "Explorar ingredientes de riesgo →",
 
   // ───── Common ─────
   "common.signIn": "Iniciar sesión",
