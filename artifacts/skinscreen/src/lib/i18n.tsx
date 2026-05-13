@@ -1152,6 +1152,10 @@ const en: Dict = {
   "scan.hoursAgoFmt": "{n}h ago",
   "scan.todayLabel": "today",
   "scan.yesterdayLabel": "yesterday",
+  "scan.choiceNewTitle": "Scan a new product",
+  "scan.choiceNewSubtitle": "Point at a barcode or ingredient list",
+  "scan.choiceSearchTitle": "Search the database",
+  "scan.choiceSearchSubtitle": "Find a product by name or browse the catalogue",
 
   "shelf.premiumUnlockedTitle": "Premium unlocked!",
   "shelf.premiumUnlockedFmt": "You contributed {count} products. Premium access until {date}.",
@@ -2403,6 +2407,10 @@ const sv: Dict = {
   "scan.hoursAgoFmt": "{n} tim sedan",
   "scan.todayLabel": "idag",
   "scan.yesterdayLabel": "igår",
+  "scan.choiceNewTitle": "Skanna ny produkt",
+  "scan.choiceNewSubtitle": "Rikta mot en streckkod eller ingredienslista",
+  "scan.choiceSearchTitle": "Sök i databas",
+  "scan.choiceSearchSubtitle": "Hitta produkt via namn eller bläddra i katalogen",
 
   "shelf.premiumUnlockedTitle": "Premium upplåst!",
   "shelf.premiumUnlockedFmt": "Du bidrog med {count} produkter. Premium-åtkomst till {date}.",
@@ -3645,6 +3653,10 @@ const fr: Dict = {
   "scan.hoursAgoFmt": "il y a {n} h",
   "scan.todayLabel": "aujourd'hui",
   "scan.yesterdayLabel": "hier",
+  "scan.choiceNewTitle": "Scanner un nouveau produit",
+  "scan.choiceNewSubtitle": "Pointez un code-barres ou une liste d'ingrédients",
+  "scan.choiceSearchTitle": "Rechercher dans la base",
+  "scan.choiceSearchSubtitle": "Trouver un produit par nom ou parcourir le catalogue",
 
   "shelf.premiumUnlockedTitle": "Premium débloqué !",
   "shelf.premiumUnlockedFmt": "Vous avez contribué {count} produits. Accès Premium jusqu'au {date}.",
@@ -4887,6 +4899,10 @@ const es: Dict = {
   "scan.hoursAgoFmt": "hace {n} h",
   "scan.todayLabel": "hoy",
   "scan.yesterdayLabel": "ayer",
+  "scan.choiceNewTitle": "Escanear un producto nuevo",
+  "scan.choiceNewSubtitle": "Apunta a un código de barras o a la lista de ingredientes",
+  "scan.choiceSearchTitle": "Buscar en la base de datos",
+  "scan.choiceSearchSubtitle": "Encuentra un producto por nombre o explora el catálogo",
 
   "shelf.premiumUnlockedTitle": "¡Premium desbloqueado!",
   "shelf.premiumUnlockedFmt": "Has aportado {count} productos. Acceso Premium hasta {date}.",
