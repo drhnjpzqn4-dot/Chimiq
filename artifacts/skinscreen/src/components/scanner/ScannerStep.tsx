@@ -94,7 +94,7 @@ export function VerdictCard({ tone, icon, title, summary }: VerdictCardProps) {
         {icon}
       </div>
       <div>
-        <h3 className="font-serif text-xl font-semibold leading-tight sm:text-2xl" style={{ color: titleColor }}>
+        <h3 className="font-serif text-xl font-medium leading-tight sm:text-2xl" style={{ color: titleColor }}>
           {title}
         </h3>
         {summary && (

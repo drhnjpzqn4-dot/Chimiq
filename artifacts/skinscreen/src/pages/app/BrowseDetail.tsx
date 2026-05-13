@@ -134,7 +134,7 @@ export default function BrowseDetailScreen() {
                     {product.brand}
                   </p>
                 )}
-                <h2 className="font-serif text-xl font-semibold leading-tight text-foreground">
+                <h2 className="font-serif text-xl font-medium leading-tight text-foreground">
                   {product.productName}
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">

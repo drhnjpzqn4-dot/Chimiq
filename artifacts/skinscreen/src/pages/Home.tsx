@@ -36,7 +36,7 @@ function StandaloneWelcome() {
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-primary text-white shadow-lg shadow-primary/30">
           <ScanLine className="h-10 w-10" />
         </div>
-        <h1 className="font-serif text-3xl font-bold leading-tight text-foreground">
+        <h1 className="font-serif text-3xl font-medium leading-tight text-foreground">
           Chimiq
         </h1>
         <p className="mt-2 text-sm font-medium uppercase tracking-widest text-primary">

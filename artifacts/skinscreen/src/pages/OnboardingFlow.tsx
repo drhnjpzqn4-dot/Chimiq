@@ -2,23 +2,30 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { Redirect, useLocation } from "wouter";
 import { useAuth, AUTH_REFRESH_EVENT } from "@workspace/replit-auth-web";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/lib/i18n";
 
 const ASSET_BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
 type SkinId = "sensitive" | "oily" | "dry" | "combination";
-type AgeId = "under18" | "18-25" | "26-35" | "36-45" | "46plus";
+type AgeId = "under16" | "16-17" | "18-25" | "26-35" | "36-45" | "46plus";
 type GoalId = "calm" | "acne" | "antiaging" | "hydrate" | "protect";
 
 const SKIN_IDS: SkinId[] = ["sensitive", "oily", "dry", "combination"];
-const AGE_IDS: AgeId[] = ["under18", "18-25", "26-35", "36-45", "46plus"];
+const AGE_IDS: AgeId[] = ["under16", "16-17", "18-25", "26-35", "36-45", "46plus"];
 const GOAL_IDS: GoalId[] = ["calm", "acne", "antiaging", "hydrate", "protect"];
 
-function ProgressDots({ activeIndex }: { activeIndex: number }) {
+function ProgressDots({
+  activeIndex,
+  total,
+}: {
+  activeIndex: number;
+  total: number;
+}) {
   return (
     <div className="mb-6 flex justify-center gap-2" aria-hidden>
-      {[0, 1, 2, 3].map((i) => (
+      {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
           className="h-2 w-2 rounded-full"
@@ -85,6 +92,7 @@ export default function OnboardingFlow() {
   const [skin, setSkin] = useState<SkinId | null>(null);
   const [age, setAge] = useState<AgeId | null>(null);
   const [goal, setGoal] = useState<GoalId | null>(null);
+  const [parentalConsentGiven, setParentalConsentGiven] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const seededNameRef = useRef(false);
@@ -94,18 +102,31 @@ export default function OnboardingFlow() {
   const canContinueStep1 = nameOk;
   const canContinueStep2 = skin !== null;
   const canContinueStep3 = age !== null;
+  const canContinueParental = parentalConsentGiven;
   const canFinish = goal !== null;
 
-  const progressIndex = useMemo(() => {
+  const needsParentalStep = age === "under16";
+  const progressDotCount = needsParentalStep ? 5 : 4;
+
+  const progressActive = useMemo(() => {
     if (step <= 0) return -1;
-    return step - 1;
-  }, [step]);
+    if (step === 1) return 0;
+    if (step === 2) return 1;
+    if (step === 3) return 2;
+    if (step === 4) return 3;
+    if (step === 5) return needsParentalStep ? 4 : 3;
+    return -1;
+  }, [step, needsParentalStep]);
 
   useEffect(() => {
     if (seededNameRef.current || !user?.firstName) return;
     setFirstName(user.firstName);
     seededNameRef.current = true;
   }, [user?.firstName]);
+
+  useEffect(() => {
+    if (age !== "under16") setParentalConsentGiven(false);
+  }, [age]);
 
   if (isLoading) {
     return (
@@ -136,6 +157,7 @@ export default function OnboardingFlow() {
 
   async function submitAll() {
     if (!skin || !age || !goal || !nameOk) return;
+    if (age === "under16" && !parentalConsentGiven) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -148,6 +170,7 @@ export default function OnboardingFlow() {
           skinType: skin,
           ageGroup: age,
           skinGoal: goal,
+          parentalConsentGiven: age === "under16" ? parentalConsentGiven : false,
         }),
       });
       if (!res.ok) {
@@ -173,7 +196,9 @@ export default function OnboardingFlow() {
       style={{ backgroundColor: "var(--cream)" }}
     >
       <div className="mx-auto w-full max-w-md">
-        {step >= 1 && step <= 4 && <ProgressDots activeIndex={progressIndex} />}
+        {step >= 1 && step <= 5 && (
+          <ProgressDots activeIndex={progressActive} total={progressDotCount} />
+        )}
 
         {step === 0 && (
           <div className="flex flex-col items-center pt-6 text-center">
@@ -294,7 +319,7 @@ export default function OnboardingFlow() {
               className="mt-8 h-12 w-full rounded-full text-base font-semibold disabled:opacity-90"
               style={primaryButtonStyle(canContinueStep3)}
               disabled={!canContinueStep3}
-              onClick={() => setStep(4)}
+              onClick={() => setStep(age === "under16" ? 4 : 5)}
               data-touch-target
             >
               {t("onboarding.continue")}
@@ -303,6 +328,45 @@ export default function OnboardingFlow() {
         )}
 
         {step === 4 && (
+          <div>
+            <h1 className="leading-tight" style={headingStyle()}>
+              {t("onboarding.parentalConsent.title")}
+            </h1>
+            <p
+              className="mt-4 text-sm leading-relaxed"
+              style={{ color: "#5E544C" }}
+            >
+              {t("onboarding.parentalConsent.body")}
+            </p>
+            <div className="mt-8 flex items-start gap-3">
+              <Checkbox
+                id="parental-consent"
+                checked={parentalConsentGiven}
+                onCheckedChange={(v) => setParentalConsentGiven(v === true)}
+                className="mt-0.5"
+              />
+              <label
+                htmlFor="parental-consent"
+                className="cursor-pointer text-sm leading-snug"
+                style={{ color: "var(--ink)" }}
+              >
+                {t("onboarding.parentalConsent.checkboxLabel")}
+              </label>
+            </div>
+            <Button
+              type="button"
+              className="mt-8 h-12 w-full rounded-full text-base font-semibold disabled:opacity-90"
+              style={primaryButtonStyle(canContinueParental)}
+              disabled={!canContinueParental}
+              onClick={() => setStep(5)}
+              data-touch-target
+            >
+              {t("onboarding.continue")}
+            </Button>
+          </div>
+        )}
+
+        {step === 5 && (
           <div>
             <h1 className="leading-tight" style={headingStyle()}>
               {t("onboarding.goalTitle")}

@@ -1702,7 +1702,7 @@ export function IngredientScanner({
             <div className="flex items-center gap-4">
               <ProductImageThumb src={productImage || undefined} size={96} radius={12} />
               <div className="min-w-0 flex-1 space-y-1.5">
-                <h2 className="font-serif text-[22px] font-bold leading-tight text-foreground">
+                <h2 className="font-serif text-[22px] font-medium leading-tight text-foreground">
                   {t("scanner.resultsForFmt")}<br />{productName || t("scanner.scannedProductFallback")}
                 </h2>
                 {productBarcode && (

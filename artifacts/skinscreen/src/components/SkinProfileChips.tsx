@@ -42,7 +42,7 @@ export function SkinProfileChips() {
   return (
     <section className="mb-5 animate-pop-in">
       <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
-        <h2 className="mb-3 font-serif text-lg font-semibold text-foreground">
+        <h2 className="mb-3 font-serif text-lg font-medium text-foreground">
           {t("profile.skinSection")}
         </h2>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

@@ -5,7 +5,14 @@ import { eq } from "drizzle-orm";
 const router: IRouter = Router();
 
 const SKIN_TYPES = new Set(["sensitive", "oily", "dry", "combination"]);
-const AGE_GROUPS = new Set(["under18", "18-25", "26-35", "36-45", "46plus"]);
+const AGE_GROUPS = new Set([
+  "under16",
+  "16-17",
+  "18-25",
+  "26-35",
+  "36-45",
+  "46plus",
+]);
 const SKIN_GOALS = new Set(["calm", "acne", "antiaging", "hydrate", "protect"]);
 
 /**
@@ -18,7 +25,8 @@ router.post("/profile/onboarding", async (req: Request, res: Response) => {
     return;
   }
 
-  const { firstName, skinType, ageGroup, skinGoal } = req.body ?? {};
+  const { firstName, skinType, ageGroup, skinGoal, parentalConsentGiven } =
+    req.body ?? {};
   const trimmed =
     typeof firstName === "string" ? firstName.trim().slice(0, 80) : "";
 
@@ -39,6 +47,12 @@ router.post("/profile/onboarding", async (req: Request, res: Response) => {
     return;
   }
 
+  const consentFlag = parentalConsentGiven === true;
+  if (ageGroup === "under16" && !consentFlag) {
+    res.status(400).json({ error: "Parental consent required" });
+    return;
+  }
+
   try {
     await db
       .update(usersTable)
@@ -51,6 +65,11 @@ router.post("/profile/onboarding", async (req: Request, res: Response) => {
         updatedAt: new Date(),
       })
       .where(eq(usersTable.id, req.user.id));
+
+    req.log?.info(
+      { parentalConsentGiven: consentFlag, ageGroup },
+      "onboarding completed",
+    );
 
     res.json({ ok: true });
   } catch (err) {
