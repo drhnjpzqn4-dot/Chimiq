@@ -11,7 +11,7 @@ import {
   subscriptionEventsTable,
 } from "@workspace/db";
 import { sql, and, gte, eq, count, countDistinct } from "drizzle-orm";
-import { isRequestAdmin } from "../lib/admin";
+import { isRequestAdmin } from "../lib/admin.js";
 
 const router: IRouter = Router();
 

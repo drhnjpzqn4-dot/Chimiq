@@ -5,16 +5,16 @@ const couponsUpdateMock = vi.fn();
 const sgSendMock = vi.fn();
 const sgSetApiKeyMock = vi.fn();
 
-vi.mock("./testerPromo", async () => {
+vi.mock("./testerPromo.js", async () => {
   const actual =
-    await vi.importActual<typeof import("./testerPromo")>("./testerPromo");
+    await vi.importActual<typeof import("./testerPromo.js")>("./testerPromo.js");
   return {
     ...actual,
     fetchPromoFromStripe: fetchPromoFromStripeMock,
   };
 });
 
-vi.mock("../stripeClient", () => ({
+vi.mock("../stripeClient.js", () => ({
   getUncachableStripeClient: async () => ({
     coupons: { update: couponsUpdateMock },
   }),
@@ -24,9 +24,9 @@ vi.mock("@sendgrid/mail", () => ({
   default: { setApiKey: sgSetApiKeyMock, send: sgSendMock },
 }));
 
-const { checkAndAlertTesterPromo } = await import("./testerPromoAlert");
+const { checkAndAlertTesterPromo } = await import("./testerPromoAlert.js");
 const { ALERTED_PROMO_ID_KEY, ALERTED_THRESHOLDS_KEY, COUPON_ID } =
-  await import("./testerPromo");
+  await import("./testerPromo.js");
 
 const noopLogger = {
   info: vi.fn(),

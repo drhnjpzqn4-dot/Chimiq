@@ -1,14 +1,14 @@
 import type { Logger } from "pino";
 import sgMail from "@sendgrid/mail";
-import { getUncachableStripeClient } from "../stripeClient";
+import { getUncachableStripeClient } from "../stripeClient.js";
 import {
   ALERTED_PROMO_ID_KEY,
   ALERTED_THRESHOLDS_KEY,
   COUPON_ID,
   fetchPromoFromStripe,
   parseAlertedThresholds,
-} from "./testerPromo";
-import { SUPER_ADMIN_EMAIL } from "./admin";
+} from "./testerPromo.js";
+import { SUPER_ADMIN_EMAIL } from "./admin.js";
 
 // Thresholds (percent of cap consumed) at which Pia gets a heads-up.
 // Each threshold fires at most once per active promotion code — when a

@@ -259,6 +259,8 @@ export const RoutineSlot = {
   morning: "morning",
   evening: "evening",
   both: "both",
+  occasional: "occasional",
+  wishlist: "wishlist",
 } as const;
 
 export interface ShelfProduct {

@@ -7,8 +7,9 @@ import {
   checkoutEventsTable,
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { getUncachableStripeClient } from "../stripeClient";
-import { isRequestAdmin } from "../lib/admin";
+import Stripe from "stripe";
+import { getUncachableStripeClient } from "../stripeClient.js";
+import { isRequestAdmin } from "../lib/admin.js";
 
 const router: IRouter = Router();
 
@@ -476,8 +477,8 @@ router.post(
       try {
         const endpoints = await stripe.webhookEndpoints.list({ limit: 30 });
         webhookEndpoints = endpoints.data
-          .filter((e) => e.livemode === livemode)
-          .map((e) => {
+          .filter((e: Stripe.WebhookEndpoint) => e.livemode === livemode)
+          .map((e: Stripe.WebhookEndpoint) => {
             const enabledEvents = e.enabled_events ?? [];
             const listens =
               enabledEvents.includes("*") ||

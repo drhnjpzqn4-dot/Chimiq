@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getCosingInfo } from "../lib/cosing";
+import { getCosingInfo } from "../lib/cosing.js";
 import { db, cachedPubchemTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 

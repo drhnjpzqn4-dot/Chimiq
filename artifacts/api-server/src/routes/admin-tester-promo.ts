@@ -1,8 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db, testerPromoChangesTable } from "@workspace/db";
 import { and, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
-import { getUncachableStripeClient } from "../stripeClient";
-import { isRequestAdmin, getRequestEmail } from "../lib/admin";
+import { getUncachableStripeClient } from "../stripeClient.js";
+import { isRequestAdmin, getRequestEmail } from "../lib/admin.js";
 import {
   ACTIVE_PROMO_METADATA_KEY,
   COUPON_ID,
@@ -11,7 +11,7 @@ import {
   resolveActivePromo,
   type PromoPayload,
   type StripePromotionCode,
-} from "../lib/testerPromo";
+} from "../lib/testerPromo.js";
 
 // In-memory cache TTL. Stripe redemption counts don't change
 // second-to-second, so a short window (45s) gives admins a snappy page

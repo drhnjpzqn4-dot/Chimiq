@@ -10,7 +10,7 @@ import {
   getSupabaseAdminClient,
   type SessionData,
   type AuthUser,
-} from "../lib/auth";
+} from "../lib/auth.js";
 
 declare global {
   namespace Express {
