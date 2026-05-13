@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import { useUnseenRecipeCount } from "@/hooks/useUnseenRecipeCount";
 
-const SAGE_FAB = "#7BAF7A";
+const ACTIVE_TAB = "var(--rose-gold-deep)";
+const INACTIVE_TAB = "var(--ink-soft)";
+const SAGE_FAB = "var(--sage)";
 
 type TabItem = {
   id: string;
@@ -34,7 +36,7 @@ export function BottomTabBar() {
       className="fixed inset-x-0 bottom-0 z-50 border-t bg-white/85 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70"
       style={{
         paddingBottom: "var(--safe-bottom)",
-        borderColor: "#EAE3DC",
+        borderColor: "var(--line)",
         boxShadow: "0 -8px 24px -16px rgba(15, 23, 42, 0.12)",
       }}
     >
@@ -54,18 +56,18 @@ export function BottomTabBar() {
                     aria-label={`${t(tab.labelKey)}${active ? " (current page)" : ""}`}
                     className={cn(
                       "group relative flex flex-col items-center gap-1 pb-0.5 text-[11px] font-medium transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7BAF7A]/45 focus-visible:ring-offset-4 focus-visible:ring-offset-[#FAF6F2]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_45%,transparent)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--cream)]",
                       active ? "font-semibold" : "font-medium",
                     )}
-                    style={{ color: active ? "#7BAF7A" : "#5E544C" }}
+                    style={{ color: active ? ACTIVE_TAB : INACTIVE_TAB }}
                   >
                     <span
                       className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full transition-transform duration-200"
                       style={{
                         marginTop: -26,
                         backgroundColor: SAGE_FAB,
-                        border: "4px solid #FAF6F2",
-                        boxShadow: "0 6px 16px rgba(91,143,90,.35)",
+                        border: "4px solid var(--cream)",
+                        boxShadow: "0 6px 16px color-mix(in srgb, var(--sage) 35%, transparent)",
                       }}
                     >
                       <Icon
@@ -94,29 +96,33 @@ export function BottomTabBar() {
                   }`}
                   className={cn(
                     "group relative flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7BAF7A]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#FAF6F2]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_45%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--cream)]",
                   )}
-                  style={{ color: active ? "#7BAF7A" : "#5E544C" }}
+                  style={{ color: active ? ACTIVE_TAB : INACTIVE_TAB }}
                 >
                   <span
                     className={cn(
                       "relative flex h-9 w-12 items-center justify-center rounded-2xl transition-all duration-200",
-                      active ? "scale-100" : "scale-95 group-hover:bg-[#FAF6F2]",
+                      active ? "scale-100" : "scale-95 group-hover:bg-[var(--cream)]",
                     )}
-                    style={active ? { backgroundColor: "rgba(123, 175, 122, 0.12)" } : undefined}
+                    style={
+                      active
+                        ? { backgroundColor: "color-mix(in srgb, var(--rose-gold-deep) 12%, transparent)" }
+                        : undefined
+                    }
                   >
                     <Icon
                       aria-hidden="true"
                       className={cn("h-5 w-5 transition-transform", active ? "scale-110" : "scale-100")}
                       strokeWidth={active ? 2.4 : 2}
-                      color={active ? "#7BAF7A" : "#5E544C"}
+                      color={active ? ACTIVE_TAB : INACTIVE_TAB}
                     />
                     {showDot && (
                       <span
                         data-testid="tab-bar-recipes-dot"
                         aria-hidden="true"
                         className="absolute right-1.5 top-1 inline-flex h-2.5 w-2.5 rounded-full ring-2 ring-white"
-                        style={{ backgroundColor: "#7BAF7A" }}
+                        style={{ backgroundColor: "var(--rose-gold-deep)" }}
                       />
                     )}
                   </span>
