@@ -12,13 +12,13 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#FAF6F2" }}>
+    <div className="min-h-screen" style={{ backgroundColor: "var(--cream)" }}>
       <a href="#main-content" className="skip-to-content">
         Skip to main content
       </a>
       <header
         className="sticky top-0 z-40 border-b bg-white/85 backdrop-blur-md"
-        style={{ paddingTop: "var(--safe-top)", borderColor: "#EAE3DC" }}
+        style={{ paddingTop: "var(--safe-top)", borderColor: "var(--line)" }}
       >
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <a href={base + "/"} className="flex items-center gap-2" data-touch-target aria-label="Chimiq home">
@@ -35,8 +35,8 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
               aria-hidden
               className="leading-none tracking-tight"
               style={{
-                fontFamily: '"Iowan Old Style", Georgia, serif',
-                color: "var(--rose-gold-deep, #A06D54)",
+                fontFamily: "var(--font-serif)",
+                color: "var(--rose-gold-deep)",
                 fontWeight: 600,
                 fontSize: 18,
                 letterSpacing: "-0.01em",
@@ -62,9 +62,9 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
               <h1
                 className="leading-tight"
                 style={{
-                  fontFamily: '"Iowan Old Style", Georgia, serif',
+                  fontFamily: "var(--font-serif)",
                   fontSize: 28,
-                  color: "#1F1A17",
+                  color: "var(--ink)",
                   fontWeight: 600,
                 }}
               >
@@ -72,7 +72,7 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
               </h1>
             )}
             {subtitle && (
-              <p className="mt-1" style={{ fontSize: 13, color: "#5E544C" }}>
+              <p className="mt-1" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
                 {subtitle}
               </p>
             )}
