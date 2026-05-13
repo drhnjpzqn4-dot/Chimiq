@@ -2,11 +2,11 @@ import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import * as pinoHttpModule from "pino-http";
-import router from "./routes";
-import { logger } from "./lib/logger";
-import { authMiddleware } from "./middlewares/authMiddleware";
-import { WebhookHandlers } from "./webhookHandlers";
-import { applyStripeEventToUser } from "./stripeUserSync";
+import router from "./routes/index.js";
+import { logger } from "./lib/logger.js";
+import { authMiddleware } from "./middlewares/authMiddleware.js";
+import { WebhookHandlers } from "./webhookHandlers.js";
+import { applyStripeEventToUser } from "./stripeUserSync.js";
 
 // Derive the event type from the function we already import —
 // avoids any Stripe namespace import issues across TypeScript versions.

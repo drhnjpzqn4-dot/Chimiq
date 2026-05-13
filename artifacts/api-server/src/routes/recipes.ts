@@ -10,13 +10,13 @@ import {
   RECIPE_STATUSES,
   type RecipeIngredient,
 } from "@workspace/db";
-import { isRequestAdmin } from "../lib/admin";
-import { ipRateLimit } from "../lib/rateLimit";
-import { sanitizeText, SanitizationError } from "../lib/sanitize";
+import { isRequestAdmin } from "../lib/admin.js";
+import { ipRateLimit } from "../lib/rateLimit.js";
+import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
 import {
   scanRecipeSafety,
   RecipeSafetyUnavailableError,
-} from "../lib/recipeSafety";
+} from "../lib/recipeSafety.js";
 
 const router: IRouter = Router();
 

@@ -59,7 +59,7 @@ vi.mock("@workspace/db", () => {
   };
 });
 
-const { applyStripeEventToUser } = await import("./stripeUserSync");
+const { applyStripeEventToUser } = await import("./stripeUserSync.js");
 type StripeEvent = Parameters<typeof applyStripeEventToUser>[0];
 
 const noopLogger = {

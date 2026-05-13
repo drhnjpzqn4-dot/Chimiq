@@ -1,4 +1,4 @@
-import { getUncachableStripeClient } from "../stripeClient";
+import { getUncachableStripeClient } from "../stripeClient.js";
 type StripeClient = Awaited<ReturnType<typeof getUncachableStripeClient>>;
 
 // Local shape definitions — only the fields our code reads.

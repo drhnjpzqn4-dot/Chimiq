@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { db, userSubmittedProductsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { isRequestAdmin } from "../lib/admin";
+import { isRequestAdmin } from "../lib/admin.js";
 
 const router: IRouter = Router();
 

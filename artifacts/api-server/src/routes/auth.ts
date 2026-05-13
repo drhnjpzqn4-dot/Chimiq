@@ -20,7 +20,7 @@ import {
   getSupabaseClient,
   supabaseUserToAuthUser,
   verifyJWT,
-} from "../lib/auth";
+} from "../lib/auth.js";
 
 const router: IRouter = Router();
 

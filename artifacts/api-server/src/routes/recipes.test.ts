@@ -122,13 +122,13 @@ const safetyMock = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../lib/recipeSafety", () => ({
+vi.mock("../lib/recipeSafety.js", () => ({
   scanRecipeSafety: safetyMock.scan,
   RecipeSafetyUnavailableError: safetyMock.Unavailable,
 }));
 
 // Import recipes router AFTER all mocks are registered.
-const { default: recipesRouter } = await import("./recipes");
+const { default: recipesRouter } = await import("./recipes.js");
 
 // ---------------------------------------------------------------------------
 // Test app + server helpers
@@ -204,7 +204,7 @@ const verdict = {
   modelVersion: "test-model",
 };
 
-import { SUPER_ADMIN_EMAIL } from "../lib/admin";
+import { SUPER_ADMIN_EMAIL } from "../lib/admin.js";
 
 const ADMIN_EMAIL = SUPER_ADMIN_EMAIL;
 

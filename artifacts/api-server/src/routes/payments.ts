@@ -7,8 +7,8 @@ import {
   checkoutEventsTable,
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { getUncachableStripeClient } from "../stripeClient";
-import { isRequestAdmin } from "../lib/admin";
+import { getUncachableStripeClient } from "../stripeClient.js";
+import { isRequestAdmin } from "../lib/admin.js";
 
 const router: IRouter = Router();
 

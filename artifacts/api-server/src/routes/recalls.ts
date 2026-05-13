@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { listRecentRecalls } from "../lib/safetyGatePoller";
-import { ipRateLimit } from "../lib/rateLimit";
+import { listRecentRecalls } from "../lib/safetyGatePoller.js";
+import { ipRateLimit } from "../lib/rateLimit.js";
 
 const router: IRouter = Router();
 

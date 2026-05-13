@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db, usersTable } from "@workspace/db";
 import { and, asc, count, desc, ilike, sql } from "drizzle-orm";
 import { z } from "zod/v4";
-import { isRequestAdmin } from "../lib/admin";
+import { isRequestAdmin } from "../lib/admin.js";
 
 const router: IRouter = Router();
 

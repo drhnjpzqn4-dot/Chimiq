@@ -15,7 +15,7 @@ vi.mock("@anthropic-ai/sdk", () => {
 
 // Import AFTER vi.mock so the mocked SDK is what the module sees.
 const { scanRecipeSafety, RecipeSafetyUnavailableError } = await import(
-  "./recipeSafety"
+  "./recipeSafety.js"
 );
 
 const noopLog = () => {};
