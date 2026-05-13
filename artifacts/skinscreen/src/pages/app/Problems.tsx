@@ -128,7 +128,7 @@ export default function ProblemsScreen() {
                 </span>
               )}
             </header>
-            <h3 className="mt-2 font-serif text-lg font-semibold leading-tight text-foreground">
+            <h3 className="mt-2 font-serif text-lg font-medium leading-tight text-foreground">
               {c.title}
             </h3>
             <p className="mt-1 text-sm font-medium text-muted-foreground">{c.hook}</p>

@@ -199,7 +199,7 @@ export default function BrowseScreen() {
       ) : products.length === 0 ? (
         <div className="rounded-3xl border border-border/40 bg-white p-8 text-center shadow-sm">
           <PackageSearch className="mx-auto h-10 w-10 text-muted-foreground/50" />
-          <p className="mt-3 font-serif text-lg font-semibold text-foreground">
+          <p className="mt-3 font-serif text-lg font-medium text-foreground">
             {debounced || category ? t("browse.noProductsFound") : t("browse.dbEmpty")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -246,7 +246,7 @@ export default function BrowseScreen() {
                       {p.brand}
                     </p>
                   )}
-                  <p className="truncate font-serif text-base font-semibold text-foreground">
+                  <p className="truncate font-serif text-base font-medium text-foreground">
                     {p.productName}
                   </p>
                   <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">

@@ -237,7 +237,7 @@ export default function ProfileScreen() {
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-serif text-xl font-semibold leading-tight text-foreground truncate">
+            <p className="font-serif text-xl font-medium leading-tight text-foreground truncate">
               {displayName}
             </p>
             {user.email && (
@@ -333,7 +333,7 @@ export default function ProfileScreen() {
               <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 {t("profileCard.currentPlan")}
               </span>
-              <p className="mt-1 flex items-center gap-2 font-serif text-2xl font-semibold text-foreground">
+              <p className="mt-1 flex items-center gap-2 font-serif text-2xl font-medium text-foreground">
                 {isPremium ? (
                   <>
                     <Crown className="h-5 w-5 text-amber-500" />
@@ -414,7 +414,7 @@ export default function ProfileScreen() {
               <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 {t("profileCard.contributions")}
               </p>
-              <p className="mt-1 font-serif text-2xl font-semibold text-foreground">
+              <p className="mt-1 font-serif text-2xl font-medium text-foreground">
                 {contributed} <span className="text-base text-muted-foreground">{t("profileCard.products")}</span>
               </p>
               <p className="mt-1 text-sm text-muted-foreground">

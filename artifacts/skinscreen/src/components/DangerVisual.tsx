@@ -58,7 +58,7 @@ export function DangerVisual() {
             <ProductBottle {...PRODUCT_A} />
 
             <div className="flex flex-col items-center gap-1">
-              <span className="text-2xl font-serif text-red-500 font-bold leading-none">+</span>
+              <span className="text-2xl font-serif text-red-500 font-medium leading-none">+</span>
               <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50">vs</span>
             </div>
 

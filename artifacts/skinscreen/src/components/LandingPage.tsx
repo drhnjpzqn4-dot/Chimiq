@@ -925,7 +925,7 @@ export function LandingPage({ config }: LandingPageProps) {
                       <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                         <User className="w-6 h-6 text-primary-strong" />
                       </div>
-                      <p className="font-serif text-lg font-semibold text-foreground mb-2">
+                      <p className="font-serif text-lg font-medium text-foreground mb-2">
                         {t("myShelfMkt.shelfWaitingTitle")}
                       </p>
                       <p className="text-sm text-muted-foreground mb-5">

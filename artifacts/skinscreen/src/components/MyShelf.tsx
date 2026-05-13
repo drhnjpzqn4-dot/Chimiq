@@ -130,7 +130,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
   return (
     <div className="bg-white rounded-2xl border border-border/60 shadow-lg p-6">
       <div className="flex items-center justify-between mb-5">
-        <h3 className="font-serif text-lg font-semibold text-foreground">{t("myShelf.addProduct")}</h3>
+        <h3 className="font-serif text-lg font-medium text-foreground">{t("myShelf.addProduct")}</h3>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
           <X className="w-5 h-5" />
         </button>
@@ -586,7 +586,7 @@ function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
           {t("myShelf.premium")}
         </p>
       </div>
-      <p className="font-serif text-xl font-semibold text-foreground leading-tight mb-3">
+      <p className="font-serif text-xl font-medium text-foreground leading-tight mb-3">
         {t("myShelf.upgradeUnlock")}
       </p>
 
@@ -767,7 +767,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
     <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
       <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
         <div>
-          <span className="font-serif text-lg font-semibold text-foreground">{t("myShelf.title")}</span>
+          <span className="font-serif text-lg font-medium text-foreground">{t("myShelf.title")}</span>
           {displayName && (
             <span className="ml-2 text-sm text-muted-foreground">— {displayName}</span>
           )}
@@ -1087,7 +1087,7 @@ export function MyShelfSection() {
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
       <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
-        <span className="font-serif text-lg font-semibold text-foreground">{t("myShelf.title")}</span>
+        <span className="font-serif text-lg font-medium text-foreground">{t("myShelf.title")}</span>
         <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{t("myShelf.manyProductsCountFmt").replace("{count}", "5")}</span>
       </div>
 

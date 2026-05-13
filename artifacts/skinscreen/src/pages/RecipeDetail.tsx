@@ -191,7 +191,7 @@ export default function RecipeDetailPage() {
         )}
 
         <section className="rounded-3xl border border-border/60 bg-white p-5">
-          <h2 className="font-serif text-lg font-semibold text-foreground">{t("recipeDetail.ingredients")}</h2>
+          <h2 className="font-serif text-lg font-medium text-foreground">{t("recipeDetail.ingredients")}</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {recipe.ingredients.map((ing, i) => (
               <li key={i} className="flex items-start justify-between gap-3 border-b border-border/40 pb-2 last:border-0 last:pb-0">
@@ -210,7 +210,7 @@ export default function RecipeDetailPage() {
         </section>
 
         <section className="rounded-3xl border border-border/60 bg-white p-5">
-          <h2 className="font-serif text-lg font-semibold text-foreground">{t("recipeDetail.method")}</h2>
+          <h2 className="font-serif text-lg font-medium text-foreground">{t("recipeDetail.method")}</h2>
           <p className="mt-3 whitespace-pre-line text-sm text-foreground/85">
             {recipe.method}
           </p>

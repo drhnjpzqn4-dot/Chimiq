@@ -40,7 +40,7 @@ export default function RewardsScreen() {
         <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-primary">
           <Gift className="h-3.5 w-3.5" /> 1
         </div>
-        <h2 className="font-serif text-lg font-semibold text-foreground">
+        <h2 className="font-serif text-lg font-medium text-foreground">
           {t("rewards.contribTitle")}
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t("rewards.contribBody")}</p>
@@ -50,14 +50,14 @@ export default function RewardsScreen() {
         <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-amber-700">
           <Sparkles className="h-3.5 w-3.5" /> 2
         </div>
-        <h2 className="font-serif text-lg font-semibold text-foreground">
+        <h2 className="font-serif text-lg font-medium text-foreground">
           {t("rewards.tipsTitle")}
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t("rewards.tipsBody")}</p>
       </section>
 
       <section className="mb-5">
-        <h2 className="mb-3 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <h2 className="mb-3 flex items-center gap-2 font-serif text-lg font-medium text-foreground">
           <Trophy className="h-4 w-4 text-amber-500" /> {t("rewards.badgesTitle")}
         </h2>
         <ul className="grid grid-cols-2 gap-3">
@@ -77,7 +77,7 @@ export default function RewardsScreen() {
       </section>
 
       <section className="mb-6 rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
-        <h2 className="mb-2 flex items-center gap-2 font-serif text-base font-semibold text-foreground">
+        <h2 className="mb-2 flex items-center gap-2 font-serif text-base font-medium text-foreground">
           <Crown className="h-4 w-4 text-amber-500" /> {t("rewards.rulesTitle")}
         </h2>
         <ul className="space-y-1.5 text-sm text-muted-foreground">

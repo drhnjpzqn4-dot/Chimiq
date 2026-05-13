@@ -298,7 +298,7 @@ export default function RecipeSubmitScreen() {
       <AppShell title={t("recipeSubmit.headerLoading")}>
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-center">
           <Mail className="mx-auto mb-3 h-8 w-8 text-amber-600" />
-          <h2 className="font-serif text-lg font-semibold text-foreground">
+          <h2 className="font-serif text-lg font-medium text-foreground">
             {t("recipeSubmit.verifyEmailTitle")}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">

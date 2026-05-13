@@ -266,7 +266,7 @@ export function ContributeModal({
                   ? stepLabel[step]
                   : t("contribute.helpUsAddProduct")}
               </p>
-              <p className="font-serif text-lg font-semibold leading-tight text-foreground mt-0.5">
+              <p className="font-serif text-lg font-medium leading-tight text-foreground mt-0.5">
                 {step === "front-photo" && t("contribute.step1Photo")}
                 {step === "ingredients" && t("contribute.step2Ingredients")}
                 {step === "submitting" && t("contribute.submittingTitle")}

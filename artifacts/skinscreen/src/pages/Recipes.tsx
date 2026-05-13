@@ -206,7 +206,7 @@ export default function RecipesPage() {
                     className="block rounded-3xl border border-border/60 bg-white p-4 transition-colors hover:border-primary/40 hover:bg-primary/5"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-serif text-lg font-semibold leading-tight text-foreground">
+                      <h3 className="font-serif text-lg font-medium leading-tight text-foreground">
                         {r.title}
                       </h3>
                       {badge && (

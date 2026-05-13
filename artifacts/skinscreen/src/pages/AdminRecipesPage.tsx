@@ -478,7 +478,7 @@ function AdminRecipesPageInner() {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="font-serif text-lg font-semibold text-foreground">
+                          <h2 className="font-serif text-lg font-medium text-foreground">
                             {r.title}
                           </h2>
                           <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
