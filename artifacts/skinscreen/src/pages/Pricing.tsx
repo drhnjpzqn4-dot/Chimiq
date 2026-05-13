@@ -308,28 +308,27 @@ export default function Pricing() {
           </FadeIn>
 
           <FadeIn delay={0.1}>
-            <div className="relative bg-[#1A1A2E] rounded-3xl border border-primary/20 shadow-xl p-8 flex flex-col h-full overflow-hidden">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative rounded-3xl border border-[#D29A55]/40 shadow-xl p-8 flex flex-col h-full overflow-hidden" style={{ backgroundColor: "#F4D8A2" }}>
+              <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: "rgba(210,154,85,0.25)" }} />
+              <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: "rgba(210,154,85,0.15)" }} />
 
               <div className="relative mb-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-primary">{t("pricing.premium")}</p>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
+                  <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8A6217" }}>{t("pricing.premium")}</p>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: "rgba(138,98,23,0.15)", color: "#8A6217" }}>
                     <Zap className="w-2.5 h-2.5" /> {t("pricing.bestValue")}
                   </span>
                 </div>
 
-                <div className="inline-flex items-center bg-white/5 border border-white/10 rounded-full p-0.5 mb-4">
+                <div className="inline-flex items-center rounded-full p-0.5 mb-4" style={{ backgroundColor: "rgba(138,98,23,0.12)", border: "1px solid rgba(138,98,23,0.2)" }}>
                   <button
                     type="button"
                     onClick={() => setBilling("monthly")}
                     className={cn(
                       "px-3 py-1 rounded-full text-[11px] font-semibold transition-colors",
-                      billing === "monthly"
-                        ? "bg-white text-[#1A1A2E]"
-                        : "text-white/60 hover:text-white",
+                      billing === "monthly" ? "bg-white" : "hover:bg-white/40",
                     )}
+                    style={{ color: billing === "monthly" ? "#2C1A0E" : "rgba(44,26,14,0.55)" }}
                   >
                     {t("pricing.monthly")}
                   </button>
@@ -338,33 +337,27 @@ export default function Pricing() {
                     onClick={() => setBilling("yearly")}
                     className={cn(
                       "px-3 py-1 rounded-full text-[11px] font-semibold transition-colors flex items-center gap-1.5",
-                      billing === "yearly"
-                        ? "bg-white text-[#1A1A2E]"
-                        : "text-white/60 hover:text-white",
+                      billing === "yearly" ? "bg-white" : "hover:bg-white/40",
                     )}
+                    style={{ color: billing === "yearly" ? "#2C1A0E" : "rgba(44,26,14,0.55)" }}
                   >
                     {t("pricing.yearly")}
-                    <span className={cn(
-                      "px-1.5 py-0.5 rounded-full text-[9px] font-bold",
-                      billing === "yearly"
-                        ? "bg-primary text-white"
-                        : "bg-primary/30 text-primary",
-                    )}>
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold" style={{ backgroundColor: "#D29A55", color: "white" }}>
                       {t("pricing.save98")}
                     </span>
                   </button>
                 </div>
 
                 <div className="flex items-end gap-1 mb-1">
-                  <span className="text-4xl font-bold text-white">
+                  <span className="text-4xl font-bold" style={{ color: "#2C1A0E" }}>
                     {billing === "yearly" ? "490" : "49"}
                   </span>
-                  <span className="text-lg font-semibold text-white/70 mb-1">SEK</span>
-                  <span className="text-white/50 mb-1">
+                  <span className="text-lg font-semibold mb-1" style={{ color: "rgba(44,26,14,0.65)" }}>SEK</span>
+                  <span className="mb-1" style={{ color: "rgba(44,26,14,0.45)" }}>
                     /{billing === "yearly" ? t("pricing.year") : t("pricing.month")}
                   </span>
                 </div>
-                <p className="text-sm text-white/50">
+                <p className="text-sm" style={{ color: "rgba(44,26,14,0.50)" }}>
                   {billing === "yearly" ? t("pricing.yearlyHint") : t("pricing.monthlyHint")}
                 </p>
               </div>
@@ -372,18 +365,18 @@ export default function Pricing() {
               <div className="space-y-3 flex-1 relative">
                 {PREMIUM_FEATURES.map((f) => (
                   <div key={f.label} className="flex items-center gap-3">
-                    <Check className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-sm text-white/80">{f.label}</span>
+                    <Check className="w-4 h-4 shrink-0" style={{ color: "#8A6217" }} />
+                    <span className="text-sm" style={{ color: "rgba(44,26,14,0.80)" }}>{f.label}</span>
                   </div>
                 ))}
               </div>
 
               <div className="mt-8 relative">
                 {error && (
-                  <p className="text-xs text-red-400 text-center mb-3">{error}</p>
+                  <p className="text-xs text-red-600 text-center mb-3">{error}</p>
                 )}
                 {plan === "premium" ? (
-                  <div className="w-full py-3 rounded-xl bg-primary/20 text-center text-sm font-medium text-primary border border-primary/30">
+                  <div className="w-full py-3 rounded-xl text-center text-sm font-medium border" style={{ backgroundColor: "rgba(210,154,85,0.25)", color: "#8A6217", borderColor: "rgba(210,154,85,0.5)" }}>
                     <ShieldCheck className="w-4 h-4 inline mr-1.5" />
                     {t("pricing.youreOnPremium")}
                   </div>
@@ -391,7 +384,8 @@ export default function Pricing() {
                   <button
                     onClick={handleUpgrade}
                     disabled={loading || planLoading}
-                    className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    style={{ backgroundColor: "#D29A55", color: "white" }}
                   >
                     {loading ? (
                       <><Loader2 className="w-4 h-4 animate-spin" />{t("pricing.redirecting")}</>
@@ -403,14 +397,14 @@ export default function Pricing() {
                   </button>
                 )}
                 {plan !== "premium" && trialEligible && (
-                  <p className="text-[11px] text-primary/80 text-center mt-3 font-medium">
+                  <p className="text-[11px] text-center mt-3 font-medium" style={{ color: "#8A6217" }}>
                     {t("pricing.trialFinePrint", {
                       days: trialDays,
                       price: billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo",
                     })}
                   </p>
                 )}
-                <p className="text-[11px] text-white/30 text-center mt-3">
+                <p className="text-[11px] text-center mt-3" style={{ color: "rgba(44,26,14,0.40)" }}>
                   {t("pricing.securePayment")}
                 </p>
               </div>
