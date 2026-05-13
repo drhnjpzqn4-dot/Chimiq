@@ -335,6 +335,7 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
 
   
   const apiKey = process.env.ANTHROPIC_API_KEY;
+  const baseURL = process.env.API_BASE_URL ?? process.env.VITE_API_URL ?? "";
 
   let extractedProductName: string | undefined;
   let extractedBrand: string | undefined;

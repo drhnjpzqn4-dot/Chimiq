@@ -606,7 +606,7 @@ router.post("/auth/token-exchange", async (req: Request, res: Response) => {
       user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
       access_token,
       refresh_token: refresh_token || undefined,
-      expires_at: (payload.exp as number) ?? now + 3600,
+      expires_at: ((payload as Record<string, unknown>).exp as number) ?? now + 3600,
     };
     const sid = await createSession(sessionData);
     setSessionCookie(res, sid);

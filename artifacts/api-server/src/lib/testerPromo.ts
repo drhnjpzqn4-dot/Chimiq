@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import { getUncachableStripeClient } from "../stripeClient.js";
 type StripeClient = Awaited<ReturnType<typeof getUncachableStripeClient>>;
 
@@ -91,7 +92,7 @@ export async function resolveActivePromo(
     if (list.data.length === 0) {
       throw err;
     }
-    const active = list.data.find((p) => p.active);
+    const active = list.data.find((p: Stripe.PromotionCode) => p.active);
     const sorted = [...list.data].sort((a, b) => (b.created ?? 0) - (a.created ?? 0));
     return active ?? sorted[0];
   }
