@@ -25,7 +25,7 @@ export function DangerCard({ pair, risk, citation, citationUrl, severity, delay 
       <div className="flex flex-col justify-between h-full p-6 sm:p-8 bg-white rounded-3xl border border-border/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
         <div>
           <div className="flex items-start justify-between gap-4 mb-4">
-            <h3 className="text-xl sm:text-2xl font-serif font-semibold text-foreground leading-tight">
+            <h3 className="text-xl sm:text-2xl font-serif font-medium text-foreground leading-tight">
               {pair}
             </h3>
             <Badge variant={isHighRisk ? "destructive" : "warning"} className="inline-flex shrink-0 items-center font-sans tracking-wide uppercase text-[10px]">

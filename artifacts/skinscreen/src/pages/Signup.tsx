@@ -130,7 +130,7 @@ export default function Signup() {
             <ShieldCheck className="w-3.5 h-3.5" />
             {t("signup.badge")}
           </span>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-semibold text-foreground leading-[1.05] tracking-tight mb-5">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-medium text-foreground leading-[1.05] tracking-tight mb-5">
             {headline}
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed mb-8">
@@ -178,7 +178,7 @@ export default function Signup() {
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
               {t("signup.compareKicker")}
             </p>
-            <h2 className="text-3xl sm:text-4xl font-serif font-semibold text-foreground mb-3">
+            <h2 className="text-3xl sm:text-4xl font-serif font-medium text-foreground mb-3">
               {t("signup.compareTitle")}
             </h2>
             <p className="text-muted-foreground max-w-lg mx-auto">
@@ -261,7 +261,7 @@ export default function Signup() {
             <div className="flex flex-wrap justify-center gap-x-10 gap-y-4 mb-10 text-center">
               {(stats.users ?? 0) > 0 && (
                 <div>
-                  <div className="text-3xl font-serif font-semibold text-foreground">
+                  <div className="text-3xl font-serif font-medium text-foreground">
                     {stats.users!.toLocaleString()}
                   </div>
                   <div className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
@@ -271,7 +271,7 @@ export default function Signup() {
               )}
               {stats.analyses > 0 && (
                 <div>
-                  <div className="text-3xl font-serif font-semibold text-foreground">
+                  <div className="text-3xl font-serif font-medium text-foreground">
                     {stats.analyses.toLocaleString()}
                   </div>
                   <div className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
@@ -281,7 +281,7 @@ export default function Signup() {
               )}
               {stats.products > 0 && (
                 <div>
-                  <div className="text-3xl font-serif font-semibold text-foreground">
+                  <div className="text-3xl font-serif font-medium text-foreground">
                     {stats.products.toLocaleString()}
                   </div>
                   <div className="text-xs uppercase tracking-widest text-muted-foreground mt-1">
@@ -316,7 +316,7 @@ export default function Signup() {
       {/* FAQ */}
       <section className="px-4 sm:px-6 py-14 bg-white border-t border-border/40">
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-serif font-semibold text-foreground text-center mb-8">
+          <h2 className="text-2xl sm:text-3xl font-serif font-medium text-foreground text-center mb-8">
             {t("signup.faqTitle")}
           </h2>
           <div className="space-y-3">
@@ -356,7 +356,7 @@ export default function Signup() {
       {/* Final CTA */}
       <section className="px-4 sm:px-6 py-16">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-serif font-semibold text-foreground mb-4">
+          <h2 className="text-3xl sm:text-4xl font-serif font-medium text-foreground mb-4">
             {t("signup.finalCtaTitle")}
           </h2>
           <p className="text-muted-foreground mb-7">{t("signup.finalCtaBody")}</p>

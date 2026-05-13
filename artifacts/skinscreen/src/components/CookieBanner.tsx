@@ -74,7 +74,7 @@ export function CookieBanner() {
             <div className="flex-1 min-w-0">
               <h2
                 id="cookie-banner-title"
-                className="text-base font-serif font-semibold text-foreground"
+                className="text-base font-serif font-medium text-foreground"
               >
                 {t("cookies.title")}
               </h2>

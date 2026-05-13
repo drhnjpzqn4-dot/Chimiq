@@ -68,7 +68,7 @@ export function DiscoverRatingsAdmin() {
   return (
     <section aria-labelledby="discover-ratings-heading">
       <div className="mb-6">
-        <h2 id="discover-ratings-heading" className="text-2xl font-serif font-semibold text-foreground mb-1">
+        <h2 id="discover-ratings-heading" className="text-2xl font-serif font-medium text-foreground mb-1">
           Discover article ratings
         </h2>
         <p className="text-sm text-muted-foreground">

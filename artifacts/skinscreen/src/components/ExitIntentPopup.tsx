@@ -140,7 +140,7 @@ export function ExitIntentPopup({ enabled, onCta }: ExitIntentPopupProps) {
 
         <h2
           id="exit-popup-title"
-          className="text-2xl font-serif font-semibold text-foreground mb-3"
+          className="text-2xl font-serif font-medium text-foreground mb-3"
         >
           {t("exitPopup.title")}
         </h2>

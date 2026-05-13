@@ -23,14 +23,14 @@ export function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) 
           {t("legal.backToApp")}
         </a>
 
-        <h1 className="text-3xl md:text-4xl font-serif font-semibold mb-2">
+        <h1 className="text-3xl md:text-4xl font-serif font-medium mb-2">
           {title}
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
           {t("legal.lastUpdated", { date: lastUpdated })}
         </p>
 
-        <article className="prose prose-sm md:prose-base max-w-none text-foreground leading-relaxed [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:mt-8 [&_h2]:mb-3 [&_h3]:font-semibold [&_h3]:text-lg [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold">
+        <article className="prose prose-sm md:prose-base max-w-none text-foreground leading-relaxed [&_h2]:font-serif [&_h2]:text-2xl [[&_h2]:font-semibold_h2]:font-medium [&_h2]:mt-8 [&_h2]:mb-3 [[&_h3]:font-semibold_h3]:font-medium [&_h3]:text-lg [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold">
           {children}
         </article>
 

@@ -164,7 +164,7 @@ function ContactFooterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h3 className="text-lg font-serif font-semibold text-foreground mb-1">{t("footer.getInTouch")}</h3>
+      <h3 className="text-lg font-serif font-medium text-foreground mb-1">{t("footer.getInTouch")}</h3>
       <input
         type="text"
         value={name}
@@ -576,7 +576,7 @@ export function LandingPage({ config }: LandingPageProps) {
                     <rect x="55.5" y="70" width="2" height="3" rx="0.5" fill="#2A2A2A"/>
                   </svg>
                 </div>
-                <h3 className="text-xl font-serif font-semibold mb-3">{t("howItWorks.scanTitle")}</h3>
+                <h3 className="text-xl font-serif font-medium mb-3">{t("howItWorks.scanTitle")}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{t("howItWorks.scanBody")}</p>
               </div>
             </FadeIn>
@@ -606,7 +606,7 @@ export function LandingPage({ config }: LandingPageProps) {
                     <rect x="58" y="46" width="8" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
                   </svg>
                 </div>
-                <h3 className="text-xl font-serif font-semibold mb-3">{t("howItWorks.routineTitle")}</h3>
+                <h3 className="text-xl font-serif font-medium mb-3">{t("howItWorks.routineTitle")}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{t("howItWorks.routineBody")}</p>
               </div>
             </FadeIn>
@@ -623,7 +623,7 @@ export function LandingPage({ config }: LandingPageProps) {
                     <p style={{ color: "#B91C1C", fontSize: 10, margin: "4px 0 0", lineHeight: 1.4, opacity: 0.8 }}>{t("howItWorks.demoSubtitle")}</p>
                   </div>
                 </div>
-                <h3 className="text-xl font-serif font-semibold mb-3">{t("howItWorks.risksTitle")}</h3>
+                <h3 className="text-xl font-serif font-medium mb-3">{t("howItWorks.risksTitle")}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{t("howItWorks.risksBody")}</p>
               </div>
             </FadeIn>
@@ -683,7 +683,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 style={{
                   fontFamily: "'Source Serif 4', 'Iowan Old Style', Georgia, serif",
                   fontSize: "clamp(38px, 5vw, 44px)",
-                  fontWeight: 700,
+                  fontWeight: 500,
                   color: "#1A1A1A",
                   marginBottom: 12,
                   letterSpacing: "-0.01em",
@@ -780,7 +780,7 @@ export function LandingPage({ config }: LandingPageProps) {
                       </div>
                       <div className="p-3.5">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{product.brand}</p>
-                        <p className="text-sm font-serif font-semibold text-foreground leading-snug mb-1">{product.name}</p>
+                        <p className="text-sm font-serif font-medium text-foreground leading-snug mb-1">{product.name}</p>
                         <p className="text-xs font-semibold text-red-500">{product.activeIngredient}</p>
                       </div>
                     </div>
@@ -1054,7 +1054,7 @@ export function LandingPage({ config }: LandingPageProps) {
 
             <h2
               id="download-heading"
-              className="text-4xl sm:text-5xl font-serif font-semibold text-foreground mb-5"
+              className="text-4xl sm:text-5xl font-serif font-medium text-foreground mb-5"
             >
               {t("download.title")}
             </h2>

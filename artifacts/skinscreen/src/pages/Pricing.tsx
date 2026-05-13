@@ -260,7 +260,7 @@ export default function Pricing() {
 
         <FadeIn>
           <div className="text-center mb-14">
-            <h1 className="text-4xl sm:text-5xl font-serif font-semibold text-foreground mb-4">
+            <h1 className="text-4xl sm:text-5xl font-serif font-medium text-foreground mb-4">
               {t("pricing.headline")}
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto">

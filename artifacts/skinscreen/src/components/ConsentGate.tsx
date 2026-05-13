@@ -270,7 +270,7 @@ export function ConsentGateProvider({ children }: ProviderProps) {
               <>
                 <h2
                   id="consent-gate-title"
-                  className="text-xl font-serif font-semibold mb-2"
+                  className="text-xl font-serif font-medium mb-2"
                 >
                   {t("consent.title")}
                 </h2>
@@ -345,7 +345,7 @@ export function ConsentGateProvider({ children }: ProviderProps) {
               <>
                 <h2
                   id="consent-gate-title"
-                  className="text-xl font-serif font-semibold mb-2"
+                  className="text-xl font-serif font-medium mb-2"
                 >
                   {t("consent.medical.title")}
                 </h2>

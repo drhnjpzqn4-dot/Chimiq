@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-border/60 shadow-sm p-8 text-center">
           <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-6" />
-          <h2 className="text-xl font-serif font-semibold text-foreground mb-3">Password updated!</h2>
+          <h2 className="text-xl font-serif font-medium text-foreground mb-3">Password updated!</h2>
           <p className="text-sm text-muted-foreground">Redirecting you to sign in…</p>
         </div>
       </div>
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
           <a href={base + "/"}>
             <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-4" />
           </a>
-          <h1 className="text-2xl font-serif font-semibold text-foreground">Set new password</h1>
+          <h1 className="text-2xl font-serif font-medium text-foreground">Set new password</h1>
         </div>
 
         {error && (

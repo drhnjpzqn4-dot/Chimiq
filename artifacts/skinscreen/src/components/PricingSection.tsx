@@ -71,7 +71,7 @@ export function PricingSection() {
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
             {t("pricing.kicker")}
           </p>
-          <h2 className="text-3xl sm:text-4xl font-serif font-semibold text-foreground mb-3">
+          <h2 className="text-3xl sm:text-4xl font-serif font-medium text-foreground mb-3">
             {t("pricing.sectionHeadline")}
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto">

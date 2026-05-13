@@ -336,7 +336,7 @@ function AdminRecipesPageInner() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-6">
-          <h1 className="text-3xl font-serif font-semibold text-foreground mb-1">
+          <h1 className="text-3xl font-serif font-medium text-foreground mb-1">
             DIY recipe queue
           </h1>
           <p className="text-muted-foreground text-base">
@@ -433,7 +433,7 @@ function AdminRecipesPageInner() {
         {!loading && !error && recipes.length === 0 && (
           <div className="rounded-2xl bg-white border border-border/60 p-12 text-center">
             <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-4" />
-            <p className="text-lg font-serif font-semibold text-foreground mb-1">
+            <p className="text-lg font-serif font-medium text-foreground mb-1">
               No recipes match these filters
             </p>
             <p className="text-muted-foreground text-sm">

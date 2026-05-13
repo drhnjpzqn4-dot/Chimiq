@@ -193,7 +193,7 @@ export function TesterPromoAdmin() {
       <div className="mb-4">
         <h2
           id="tester-promo-heading"
-          className="text-2xl font-serif font-semibold text-foreground mb-1"
+          className="text-2xl font-serif font-medium text-foreground mb-1"
         >
           Tester promo
         </h2>

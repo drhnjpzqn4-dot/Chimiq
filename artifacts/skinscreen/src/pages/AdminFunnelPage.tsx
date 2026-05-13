@@ -149,7 +149,7 @@ function AdminFunnelPageInner() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-serif font-semibold text-foreground mb-1">
+            <h1 className="text-3xl font-serif font-medium text-foreground mb-1">
               Conversion funnel
             </h1>
             <p className="text-muted-foreground text-base">
@@ -226,7 +226,7 @@ function AdminFunnelPageInner() {
                         </p>
                       </div>
                     </div>
-                    <p className="text-2xl font-serif font-semibold text-foreground tabular-nums">
+                    <p className="text-2xl font-serif font-medium text-foreground tabular-nums">
                       {step.count.toLocaleString()}
                     </p>
                     {step.key !== "signups" && (
@@ -242,7 +242,7 @@ function AdminFunnelPageInner() {
             <FunnelTrendChart period={period} />
 
             <div className="bg-white rounded-2xl border border-border/60 p-6 mb-8">
-              <h2 className="text-lg font-serif font-semibold text-foreground mb-6">
+              <h2 className="text-lg font-serif font-medium text-foreground mb-6">
                 Funnel visualization
               </h2>
               <div className="space-y-3">
@@ -323,7 +323,7 @@ function AdminFunnelPageInner() {
 
             <div className="bg-white rounded-2xl border border-border/60 overflow-hidden">
               <div className="px-6 py-4 border-b border-border/40">
-                <h2 className="text-lg font-serif font-semibold text-foreground">
+                <h2 className="text-lg font-serif font-medium text-foreground">
                   Step-by-step breakdown
                 </h2>
               </div>

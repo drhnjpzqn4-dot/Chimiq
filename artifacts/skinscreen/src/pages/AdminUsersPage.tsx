@@ -97,7 +97,7 @@ function StatCard({
         <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
           {label}
         </p>
-        <p className="text-xl font-serif font-semibold text-foreground">{value}</p>
+        <p className="text-xl font-serif font-medium text-foreground">{value}</p>
       </div>
     </div>
   );
@@ -219,7 +219,7 @@ function AdminUsersPageInner() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-6">
-          <h1 className="text-3xl font-serif font-semibold text-foreground mb-1">
+          <h1 className="text-3xl font-serif font-medium text-foreground mb-1">
             Users
           </h1>
           <p className="text-muted-foreground text-base">
@@ -283,7 +283,7 @@ function AdminUsersPageInner() {
             </div>
           ) : data && data.users.length === 0 ? (
             <div className="text-center py-20 px-6">
-              <p className="text-lg font-serif font-semibold text-foreground mb-1">
+              <p className="text-lg font-serif font-medium text-foreground mb-1">
                 No users match this search
               </p>
               <p className="text-muted-foreground text-sm">

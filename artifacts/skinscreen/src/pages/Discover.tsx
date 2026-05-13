@@ -55,7 +55,7 @@ function DiscoverThumb({
   return (
     <div
       aria-hidden
-      className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center font-serif font-bold text-2xl text-foreground/60"
+      className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center font-serif font-medium text-2xl text-foreground/60"
       style={{ background: grad }}
     >
       {item.rank}
@@ -82,7 +82,7 @@ function MistakeCard({ item, index }: { item: MistakeItem; index: number }) {
           <DiscoverThumb item={item} tone="mistake" />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3 mb-1.5">
-              <h3 className="text-base sm:text-lg font-serif font-semibold text-foreground leading-snug">
+              <h3 className="text-base sm:text-lg font-serif font-medium text-foreground leading-snug">
                 {item.title}
               </h3>
               <span
@@ -125,7 +125,7 @@ function WorryCard({ item, index }: { item: WorryItem; index: number }) {
           <DiscoverThumb item={item} tone="worry" />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3 mb-1.5">
-              <h3 className="text-base sm:text-lg font-serif font-semibold text-foreground leading-snug">
+              <h3 className="text-base sm:text-lg font-serif font-medium text-foreground leading-snug">
                 {item.title}
               </h3>
               <span

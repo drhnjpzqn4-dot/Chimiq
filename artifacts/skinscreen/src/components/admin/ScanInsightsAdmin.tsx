@@ -203,7 +203,7 @@ export function ScanInsightsAdmin() {
       <div className="mb-6">
         <h2
           id="scan-insights-heading"
-          className="text-2xl font-serif font-semibold text-foreground mb-1"
+          className="text-2xl font-serif font-medium text-foreground mb-1"
         >
           Scan insights
         </h2>

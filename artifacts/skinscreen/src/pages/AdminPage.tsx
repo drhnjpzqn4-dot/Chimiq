@@ -294,7 +294,7 @@ function AdminPageInner() {
 
         <div>
           <div className="mb-6">
-            <h1 className="text-3xl font-serif font-semibold text-foreground mb-1">
+            <h1 className="text-3xl font-serif font-medium text-foreground mb-1">
               Submission Queue
             </h1>
             <p className="text-muted-foreground text-base">
@@ -351,7 +351,7 @@ function AdminPageInner() {
           {!loading && !error && submissions.length === 0 && (
             <div className="rounded-2xl bg-white border border-border/60 p-12 text-center">
               <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-4" />
-              <p className="text-lg font-serif font-semibold text-foreground mb-1">
+              <p className="text-lg font-serif font-medium text-foreground mb-1">
                 Nothing here
               </p>
               <p className="text-muted-foreground text-sm">{headline}</p>

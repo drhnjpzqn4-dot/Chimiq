@@ -155,7 +155,7 @@ export function FeedbackAdmin() {
       <div className="mb-6">
         <h2
           id="feedback-admin-heading"
-          className="text-2xl font-serif font-semibold text-foreground mb-1"
+          className="text-2xl font-serif font-medium text-foreground mb-1"
         >
           User feedback
         </h2>

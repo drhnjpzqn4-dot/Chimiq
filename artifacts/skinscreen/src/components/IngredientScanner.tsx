@@ -334,7 +334,7 @@ function FlagCard({
         >
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-serif font-semibold text-foreground leading-tight">
+              <h3 className="text-base sm:text-lg font-serif font-medium text-foreground leading-tight">
                 {flag.ingredient}
               </h3>
               <span
@@ -442,7 +442,7 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
       >
         <div>
           <div className="mb-4 flex items-start justify-between gap-4">
-            <h3 className="text-xl font-serif font-semibold leading-tight text-foreground sm:text-2xl">
+            <h3 className="text-xl font-serif font-medium leading-tight text-foreground sm:text-2xl">
               {result.pair}
             </h3>
             <span
@@ -488,7 +488,7 @@ function AlternativeCard({ alt, delay }: { alt: AlternativeSuggestion; delay?: n
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-0.5">{alt.brand}</p>
-            <h4 className="text-base font-serif font-semibold text-foreground leading-tight">{alt.name}</h4>
+            <h4 className="text-base font-serif font-medium text-foreground leading-tight">{alt.name}</h4>
           </div>
           <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
             <Check className="mr-1 h-[14px] w-[14px] shrink-0" aria-hidden />

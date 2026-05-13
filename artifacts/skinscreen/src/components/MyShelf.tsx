@@ -284,7 +284,7 @@ function ConflictCard({ conflict, delay }: { conflict: RoutineConflict; delay?: 
             <p className="text-xs font-semibold text-muted-foreground mb-0.5">
               {conflict.product1Name} + {conflict.product2Name}
             </p>
-            <p className="text-sm font-serif font-semibold text-foreground leading-snug">
+            <p className="text-sm font-serif font-medium text-foreground leading-snug">
               {conflict.pair}
             </p>
           </div>

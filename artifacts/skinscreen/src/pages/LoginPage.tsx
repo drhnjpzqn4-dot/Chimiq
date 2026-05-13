@@ -84,7 +84,7 @@ export default function LoginPage() {
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-border/60 shadow-sm p-8 text-center">
           <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-6" />
-          <h2 className="text-xl font-serif font-semibold text-foreground mb-3">Check your email</h2>
+          <h2 className="text-xl font-serif font-medium text-foreground mb-3">Check your email</h2>
           <p className="text-sm text-muted-foreground mb-6">
             We sent a confirmation link to <strong>{email}</strong>. Click it and then sign in.
           </p>
@@ -105,7 +105,7 @@ export default function LoginPage() {
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-border/60 shadow-sm p-8 text-center">
           <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-6" />
-          <h2 className="text-xl font-serif font-semibold text-foreground mb-3">Check your email</h2>
+          <h2 className="text-xl font-serif font-medium text-foreground mb-3">Check your email</h2>
           <p className="text-sm text-muted-foreground mb-6">
             If <strong>{email}</strong> is registered, you will receive a reset link shortly.
           </p>
@@ -131,7 +131,7 @@ export default function LoginPage() {
           <a href={base + "/"}>
             <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-4" />
           </a>
-          <h1 className="text-2xl font-serif font-semibold text-foreground">{title}</h1>
+          <h1 className="text-2xl font-serif font-medium text-foreground">{title}</h1>
           {mode === "forgot" && (
             <p className="text-sm text-muted-foreground mt-1">
               Enter your email and we'll send you a reset link.
