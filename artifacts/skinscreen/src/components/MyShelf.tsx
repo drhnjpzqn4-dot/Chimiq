@@ -16,6 +16,7 @@ import {
   Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle,
   X, ShieldCheck, ShieldOff, Loader2,
   ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus, Sparkles, Check,
+  Clock, Heart,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import {
@@ -526,7 +527,7 @@ const DEMO_PRODUCTS = [
   },
 ];
 
-type ShelfFilter = "all" | "morning" | "evening" | "slotBoth";
+type ShelfFilter = "all" | "morning" | "evening" | "occasional" | "wishlist";
 
 const FREE_TIER_LIMIT = 2;
 
@@ -706,10 +707,13 @@ export function MyShelf({ displayName }: MyShelfProps) {
 
   const allProducts = shelfQuery.data?.products ?? [];
   const filteredProducts = allProducts.filter((p) => {
+    const slot = p.routineSlot as string;
     if (shelfFilter === "all") return true;
-    if (shelfFilter === "morning") return p.routineSlot === "morning" || p.routineSlot === "both";
-    if (shelfFilter === "evening") return p.routineSlot === "evening" || p.routineSlot === "both";
-    return p.routineSlot === "both";
+    if (shelfFilter === "morning") return slot === "morning" || slot === "both";
+    if (shelfFilter === "evening") return slot === "evening" || slot === "both";
+    if (shelfFilter === "occasional") return slot === "occasional";
+    if (shelfFilter === "wishlist") return slot === "wishlist";
+    return true;
   });
   const isFree = plan === "free";
   // Locked-slot placeholders only after free user has reached their limit
@@ -811,7 +815,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
 
       <div className="border-b border-border/30 px-3 py-3">
         <div className="-mx-1 flex gap-2 overflow-x-auto pb-0.5" style={{ WebkitOverflowScrolling: "touch" }}>
-          {(["all", "morning", "evening", "slotBoth"] as const).map((key) => {
+          {(["all", "morning", "evening", "occasional", "wishlist"] as const).map((key) => {
             const active = shelfFilter === key;
             return (
               <button
@@ -860,6 +864,10 @@ export function MyShelf({ displayName }: MyShelfProps) {
                 <Sun className="h-5 w-5 text-primary" />
               ) : shelfFilter === "evening" ? (
                 <Moon className="h-5 w-5 text-primary" />
+              ) : shelfFilter === "occasional" ? (
+                <Clock className="h-5 w-5 text-primary" />
+              ) : shelfFilter === "wishlist" ? (
+                <Heart className="h-5 w-5 text-primary" />
               ) : (
                 <Layers className="h-5 w-5 text-primary" />
               )}
@@ -871,7 +879,9 @@ export function MyShelf({ displayName }: MyShelfProps) {
                   ? t("myShelf.emptyMorning")
                   : shelfFilter === "evening"
                     ? t("myShelf.emptyEvening")
-                    : t("myShelf.emptySlotBoth")}
+                    : shelfFilter === "occasional"
+                      ? t("myShelf.emptyOccasional")
+                      : t("myShelf.emptyWishlist")}
             </p>
             {shelfQuery.isSuccess && allProducts.length === 0 ? (
               <div className="mt-3">
@@ -898,7 +908,9 @@ export function MyShelf({ displayName }: MyShelfProps) {
                     ? t("myShelf.addFirstMorning")
                     : shelfFilter === "evening"
                       ? t("myShelf.addFirstEvening")
-                      : t("myShelf.addFirstSlotBoth")}
+                      : shelfFilter === "occasional"
+                        ? t("myShelf.addFirstOccasional")
+                        : t("myShelf.addFirstWishlist")}
               </p>
             )}
           </div>
