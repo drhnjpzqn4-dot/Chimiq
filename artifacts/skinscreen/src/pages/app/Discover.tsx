@@ -137,8 +137,8 @@ export default function DiscoverScreen() {
     >
       {/* AI chat hero */}
       <section className="mb-6 animate-pop-in">
-        <div className="relative overflow-hidden rounded-3xl p-5 text-white shadow-xl" style={{ backgroundColor: "#284430" }}>
-          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full blur-3xl" style={{ backgroundColor: "rgba(123,175,122,0.35)" }} aria-hidden />
+        <div className="relative overflow-hidden rounded-3xl bg-sage-deep p-5 text-white shadow-xl">
+          <div className="absolute -right-12 -top-12 h-48 w-48 bg-sage/35 rounded-full blur-3xl" aria-hidden />
           <div className="relative flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10">
               <MessageCircle className="h-6 w-6 text-primary" />

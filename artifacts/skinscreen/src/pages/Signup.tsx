@@ -221,32 +221,31 @@ export default function Signup() {
               </button>
             </div>
 
-            <div className="relative rounded-3xl border border-[#D29A55]/40 shadow-xl p-7 flex flex-col overflow-hidden" style={{ backgroundColor: "#F4D8A2" }}>
-              <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: "rgba(210,154,85,0.25)" }} />
+            <div className="relative rounded-3xl border border-premium-gold/40 bg-premium-bg shadow-xl p-7 flex flex-col overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-premium-gold/25 rounded-full blur-3xl pointer-events-none" />
               <div className="relative mb-5">
-                <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "#8A6217" }}>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-2 text-amber-deep">
                   {t("pricing.premium")}
                 </p>
                 <div className="flex items-end gap-1">
-                  <span className="text-3xl font-bold" style={{ color: "#2C1A0E" }}>490</span>
-                  <span className="text-base font-semibold mb-0.5" style={{ color: "rgba(44,26,14,0.65)" }}>SEK</span>
-                  <span className="mb-0.5" style={{ color: "rgba(44,26,14,0.45)" }}>/{t("pricing.year")}</span>
+                  <span className="text-3xl font-bold text-ink">490</span>
+                  <span className="text-base font-semibold mb-0.5 text-ink/65">SEK</span>
+                  <span className="mb-0.5 text-ink/45">/{t("pricing.year")}</span>
                 </div>
-                <p className="text-xs mt-1" style={{ color: "rgba(44,26,14,0.40)" }}>{t("pricing.yearlyHintShort")}</p>
+                <p className="text-xs mt-1 text-ink/40">{t("pricing.yearlyHintShort")}</p>
               </div>
               <ul className="space-y-2.5 flex-1 relative">
                 {PREMIUM_FEATURES.map((label) => (
                   <li key={label} className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 shrink-0" style={{ color: "#8A6217" }} aria-hidden="true" />
-                    <span className="text-sm" style={{ color: "rgba(44,26,14,0.80)" }}>{label}</span>
+                    <Check className="w-4 h-4 shrink-0 text-amber-deep" aria-hidden="true" />
+                    <span className="text-sm text-ink/80">{label}</span>
                   </li>
                 ))}
               </ul>
               <button
                 type="button"
                 onClick={() => triggerSignup("compare_premium")}
-                className="mt-6 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors"
-                style={{ backgroundColor: "#D29A55", color: "white" }}
+                className="mt-6 w-full py-2.5 rounded-xl text-sm font-semibold bg-premium-gold text-white transition-colors"
               >
                 {t("signup.startFreeUpgradeLater")}
               </button>
