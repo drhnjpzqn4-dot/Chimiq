@@ -44,18 +44,24 @@ function DiscoverThumb({
     );
   }
 
-  // Slug-seeded hue so each article gets a stable, distinct gradient.
-  let seed = 0;
-  for (let i = 0; i < item.slug.length; i++) seed = (seed * 31 + item.slug.charCodeAt(i)) >>> 0;
-  const hue = seed % 360;
-  const grad =
-    tone === "mistake"
-      ? `linear-gradient(135deg, hsl(${hue} 70% 88%), hsl(${(hue + 40) % 360} 65% 78%))`
-      : `linear-gradient(135deg, hsl(${hue} 60% 90%), hsl(${(hue + 60) % 360} 55% 80%))`;
+  // Brand-aligned gradients — mistakes use warm/alert tones, worries use sage/calm tones.
+  // Rank within each tone rotates through 3 brand color pairs so cards feel distinct.
+  const mistakeGrads = [
+    "linear-gradient(135deg, var(--rose-soft), var(--rose-gold))",      // rose
+    "linear-gradient(135deg, var(--gold-soft), var(--gold))",            // gold
+    "linear-gradient(135deg, var(--cream-warm), var(--rose-gold-deep))", // warm cream
+  ];
+  const worryGrads = [
+    "linear-gradient(135deg, var(--green-soft), var(--sage))",           // sage
+    "linear-gradient(135deg, var(--cream-warm), var(--gold))",           // cream-gold
+    "linear-gradient(135deg, var(--gold-soft), var(--sage-deep))",       // gold-sage
+  ];
+  const grads = tone === "mistake" ? mistakeGrads : worryGrads;
+  const grad = grads[(item.rank - 1) % grads.length];
   return (
     <div
       aria-hidden
-      className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center font-serif font-medium text-2xl text-foreground/60"
+      className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center font-serif font-medium text-2xl text-ink/50"
       style={{ background: grad }}
     >
       {item.rank}
@@ -67,10 +73,10 @@ function MistakeCard({ item, index }: { item: MistakeItem; index: number }) {
   const { t } = useTranslation();
   const severityClass =
     item.severity === "HIGH"
-      ? "bg-red-100 text-red-700 border-red-200"
+      ? "bg-[var(--red-soft)] text-[var(--red-deep)] border-[var(--rose-soft)]"
       : item.severity === "MEDIUM"
-        ? "bg-amber-100 text-amber-700 border-amber-200"
-        : "bg-sky-100 text-sky-700 border-sky-200";
+        ? "bg-amber-soft text-amber-deep border-[var(--gold-soft)]"
+        : "bg-green-soft text-sage-deep border-[var(--green-soft)]";
 
   return (
     <FadeIn delay={index * 0.04} fullWidth>
@@ -110,10 +116,10 @@ function WorryCard({ item, index }: { item: WorryItem; index: number }) {
   const { t } = useTranslation();
   const freqClass =
     item.frequency === "VERY_COMMON"
-      ? "bg-primary/10 text-primary border-primary/20"
+      ? "bg-green-soft text-sage-deep border-[var(--green-soft)]"
       : item.frequency === "COMMON"
-        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-        : "bg-purple-50 text-purple-700 border-purple-200";
+        ? "bg-[var(--cream-warm)] text-[var(--ink-soft)] border-[var(--line)]"
+        : "bg-[var(--rose-soft)] text-[var(--rose-gold-deep)] border-[var(--rose-soft)]";
 
   return (
     <FadeIn delay={index * 0.04} fullWidth>
