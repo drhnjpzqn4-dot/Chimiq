@@ -35,7 +35,7 @@
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
 
-  /* ── Brand palette tokens (for Tailwind class usage, e.g. bg-ink, text-amber-deep) ── */
+  /* ── Brand palette tokens (for Tailwind class usage) ── */
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-sage: var(--sage);
@@ -46,6 +46,13 @@
   --color-amber-soft: var(--amber-soft);
   --color-premium-bg: var(--premium-bg);
   --color-premium-gold: var(--premium-gold);
+  --color-cream: var(--cream);
+  --color-cream-warm: var(--cream-warm);
+  --color-line: var(--line);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-green-soft: var(--green-soft);
+  --color-rose-soft: var(--rose-soft);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -55,17 +62,17 @@
 }
 
 :root {
-  --rose-gold: #B5705B;
-  --rose-gold-deep: #8A4F3B;
-  --sage: #3C5C44;
-  --sage-deep: #284430;
-  --gold: #BC8F3D;
-  --gold-soft: #EEDFB8;
-  --cream: #F1EFE8;
-  --cream-warm: #E5E2D8;
-  --ink: #2C1A0E;
-  --ink-soft: #4D5450;
-  --line: #DDDAD0;
+  --rose-gold: #C9967E;
+  --rose-gold-deep: #A06D54;
+  --sage: #7BAF7A;
+  --sage-deep: #5B8F5A;
+  --gold: #D29A55;
+  --gold-soft: #F4D8A2;
+  --cream: #FAF6F2;
+  --cream-warm: #F5EFE8;
+  --ink: #1F1A17;
+  --ink-soft: #5E544C;
+  --line: #EAE3DC;
   --green-soft: #DCE7DC;
   --rose-soft: #F2DECE;
   --amber-deep: #8B6A1F;
@@ -76,6 +83,11 @@
   /* ── Premium / gold tier ── */
   --premium-bg: #F4D8A2;   /* card background — warm sandy gold */
   --premium-gold: #D29A55; /* button, highlights, accents */
+
+  /* ── Elevation / shadow (brief sektion 6) ── */
+  /* Lyfta kort: subtil, aldrig stor drop-shadow */
+  --shadow-card: 0 1px 2px rgba(31,26,23,.06), 0 8px 24px rgba(31,26,23,.04);
+  --shadow-card-hover: 0 2px 4px rgba(31,26,23,.08), 0 12px 32px rgba(31,26,23,.07);
   --font-serif: "Source Serif 4", "Iowan Old Style", Georgia, serif;
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
@@ -85,15 +97,16 @@
   --tab-bar-height: 64px;
 
   /* shadcn / Tailwind tokens (HSL channel values; used as hsl(var(--token))) */
-  --background: 48 24% 93%;
-  --foreground: 24 49% 11%;
+  /* Updated 2026-05-13 to match design brief palette */
+  --background: 30 44% 97%;       /* cream  #FAF6F2 */
+  --foreground: 23 15% 11%;       /* ink    #1F1A17 */
 
-  --primary: 140 21% 30%;
+  --primary: 119 25% 58%;         /* sage      #7BAF7A */
   --primary-foreground: 0 0% 100%;
-  --primary-strong: 140 27% 18%;
+  --primary-strong: 119 23% 46%;  /* sage-deep #5B8F5A */
 
-  --muted: 48 14% 88%;
-  --muted-foreground: 140 5% 32%;
+  --muted: 30 25% 93%;            /* cream-warm adjacent */
+  --muted-foreground: 26 11% 33%; /* ink-soft  #5E544C */
 
   --accent: 140 18% 92%;
   --accent-foreground: 140 26% 20%;
@@ -194,7 +207,12 @@
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif tracking-tight;
-    font-weight: 500; /* Source Serif 4 at 500 — never let browser default to 700 */
+    font-weight: 500;       /* Source Serif 4 at 500 — never let browser default to 700 */
+    line-height: 1.2;       /* brief: tight serif headings */
+    text-wrap: pretty;      /* brief: no orphaned words */
+  }
+  p, li, td, th {
+    line-height: 1.5;       /* brief: all body text 1.5 */
   }
   /* Tap-friendly: never below 44px in tab bar / nav controls */
   [data-touch-target] {
