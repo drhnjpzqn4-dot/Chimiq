@@ -14,8 +14,9 @@ import {
 import type { RoutineConflict, RoutineConflictResponse } from "@workspace/api-client-react";
 import {
   Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle,
-  CheckCircle2, X, ShieldCheck, ShieldOff, Loader2,
+  X, ShieldCheck, ShieldOff, Loader2,
   ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus, Sparkles, Check,
+  Clock, Heart,
 } from "lucide-react";
 import { FadeIn } from "@/components/FadeIn";
 import {
@@ -33,6 +34,42 @@ import { cn } from "@/lib/utils";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useTranslation } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
+import {
+  IngredientStatusDot,
+  ShelfConflictBanner,
+  type IngredientStatusLevel,
+} from "@/components/IngredientStatusDot";
+
+function normName(s: string) {
+  return s.trim().toLowerCase();
+}
+
+function conflictsInvolvingProduct(
+  productName: string,
+  conflicts: RoutineConflict[] | undefined,
+): RoutineConflict[] {
+  if (!conflicts?.length) return [];
+  const n = normName(productName);
+  return conflicts.filter(
+    (c) => normName(c.product1Name) === n || normName(c.product2Name) === n,
+  );
+}
+
+function dotForConflicts(pc: RoutineConflict[]): IngredientStatusLevel {
+  const substantive = pc.filter((c) => c.severity !== "SAFE");
+  if (!substantive.length) return "safe";
+  if (substantive.some((c) => c.severity === "HIGH_RISK")) return "high";
+  if (substantive.some((c) => c.severity === "CAUTION")) return "caution";
+  return "safe";
+}
+
+function pickBannerConflict(pc: RoutineConflict[]): RoutineConflict | null {
+  const substantive = pc.filter((c) => c.severity !== "SAFE");
+  if (!substantive.length) return null;
+  const hi = substantive.find((c) => c.severity === "HIGH_RISK");
+  if (hi) return hi;
+  return substantive[0] ?? null;
+}
 
 type RoutineSlot = "morning" | "evening" | "both";
 
@@ -490,7 +527,7 @@ const DEMO_PRODUCTS = [
   },
 ];
 
-type ShelfTab = "morning" | "evening" | "both";
+type ShelfFilter = "all" | "morning" | "evening" | "occasional" | "wishlist";
 
 const FREE_TIER_LIMIT = 2;
 
@@ -636,7 +673,7 @@ function LockedSlotCard({ index, onUpgrade }: { index: number; onUpgrade: () => 
   return (
     <button
       onClick={onUpgrade}
-      className="w-full group flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#FAFAF8] border border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/[0.04] transition-colors text-left"
+      className="group flex w-full min-h-[160px] items-center gap-3 rounded-2xl border border-dashed border-primary/30 bg-[#FAFAF8] px-4 py-2.5 text-left transition-colors hover:border-primary/60 hover:bg-primary/[0.04]"
     >
       <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
         <Lock className="w-3 h-3 text-primary" />
@@ -653,7 +690,7 @@ function LockedSlotCard({ index, onUpgrade }: { index: number; onUpgrade: () => 
 
 export function MyShelf({ displayName }: MyShelfProps) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<ShelfTab>("morning");
+  const [shelfFilter, setShelfFilter] = useState<ShelfFilter>("all");
   const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
@@ -670,8 +707,12 @@ export function MyShelf({ displayName }: MyShelfProps) {
 
   const allProducts = shelfQuery.data?.products ?? [];
   const filteredProducts = allProducts.filter((p) => {
-    if (tab === "morning") return p.routineSlot === "morning" || p.routineSlot === "both";
-    if (tab === "evening") return p.routineSlot === "evening" || p.routineSlot === "both";
+    const slot = p.routineSlot as string;
+    if (shelfFilter === "all") return true;
+    if (shelfFilter === "morning") return slot === "morning" || slot === "both";
+    if (shelfFilter === "evening") return slot === "evening" || slot === "both";
+    if (shelfFilter === "occasional") return slot === "occasional";
+    if (shelfFilter === "wishlist") return slot === "wishlist";
     return true;
   });
   const isFree = plan === "free";
@@ -772,43 +813,75 @@ export function MyShelf({ displayName }: MyShelfProps) {
         </div>
       </div>
 
-      <div className="flex border-b border-border/30">
-        {(["morning", "evening", "both"] as ShelfTab[]).map((tabKey) => (
-          <button
-            key={tabKey}
-            onClick={() => setTab(tabKey)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-semibold uppercase tracking-widest transition-colors ${
-              tab === tabKey
-                ? "text-foreground border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tabKey === "morning" && <Sun className="w-3.5 h-3.5 text-[#F59E0B]" />}
-            {tabKey === "evening" && <Moon className="w-3.5 h-3.5 text-primary" />}
-            {tabKey === "both" && <Layers className="w-3.5 h-3.5 text-primary" />}
-            {tabKey === "morning" ? t("myShelf.morning") : tabKey === "evening" ? t("myShelf.evening") : t("myShelf.tabBoth")}
-          </button>
-        ))}
+      <div className="border-b border-border/30 px-3 py-3">
+        <div className="-mx-1 flex gap-2 overflow-x-auto pb-0.5" style={{ WebkitOverflowScrolling: "touch" }}>
+          {(["all", "morning", "evening", "occasional", "wishlist"] as const).map((key) => {
+            const active = shelfFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setShelfFilter(key)}
+                data-touch-target
+                className="shrink-0 whitespace-nowrap transition-colors"
+                style={{
+                  borderRadius: 8,
+                  padding: "10px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontFamily: "var(--font-sans, ui-sans-serif, system-ui, sans-serif)",
+                  ...(active
+                    ? {
+                        backgroundColor: "#7BAF7A",
+                        color: "#FFFFFF",
+                        border: "1px solid transparent",
+                      }
+                    : {
+                        backgroundColor: "#FAF6F2",
+                        color: "#5E544C",
+                        border: "1px solid #EAE3DC",
+                      }),
+                }}
+              >
+                {t(`myShelf.filter.${key}`)}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="p-4 space-y-2 min-h-[160px]">
+      <div className="min-h-[160px] p-4" style={{ backgroundColor: "#FAF6F2" }}>
         {shelfQuery.isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-10 rounded-xl bg-[#F5F5F7] animate-pulse" />
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-40 rounded-2xl bg-white/80 animate-pulse" style={{ borderRadius: 16 }} />
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
-              {tab === "morning" ? (
-                <Sun className="w-5 h-5 text-primary" />
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
+              {shelfFilter === "morning" ? (
+                <Sun className="h-5 w-5 text-primary" />
+              ) : shelfFilter === "evening" ? (
+                <Moon className="h-5 w-5 text-primary" />
+              ) : shelfFilter === "occasional" ? (
+                <Clock className="h-5 w-5 text-primary" />
+              ) : shelfFilter === "wishlist" ? (
+                <Heart className="h-5 w-5 text-primary" />
               ) : (
-                <Moon className="w-5 h-5 text-primary" />
+                <Layers className="h-5 w-5 text-primary" />
               )}
             </div>
             <p className="text-sm text-muted-foreground">
-              {tab === "morning" ? t("myShelf.emptyMorning") : tab === "evening" ? t("myShelf.emptyEvening") : t("myShelf.emptyBoth")}
+              {shelfFilter === "all"
+                ? t("myShelf.emptyAll")
+                : shelfFilter === "morning"
+                  ? t("myShelf.emptyMorning")
+                  : shelfFilter === "evening"
+                    ? t("myShelf.emptyEvening")
+                    : shelfFilter === "occasional"
+                      ? t("myShelf.emptyOccasional")
+                      : t("myShelf.emptyWishlist")}
             </p>
             {shelfQuery.isSuccess && allProducts.length === 0 ? (
               <div className="mt-3">
@@ -816,67 +889,105 @@ export function MyShelf({ displayName }: MyShelfProps) {
                   type="button"
                   onClick={handleLoadDemo}
                   disabled={loadingDemo}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/15 px-3 py-1.5 rounded-full transition-colors disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-60"
                 >
                   {loadingDemo ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
-                    <Zap className="w-3 h-3" />
+                    <Zap className="h-3 w-3" />
                   )}
                   {loadingDemo ? t("myShelf.loading") : t("myShelf.loadExample")}
                 </button>
-                <p className="text-[11px] text-muted-foreground/50 mt-1.5">
-                  {t("myShelf.threeRealProducts")}
-                </p>
+                <p className="mt-1.5 text-[11px] text-muted-foreground/50">{t("myShelf.threeRealProducts")}</p>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                {tab === "morning" ? t("myShelf.addFirstMorning") : tab === "evening" ? t("myShelf.addFirstEvening") : t("myShelf.addFirstBoth")}
+              <p className="mt-1 text-xs text-muted-foreground/70">
+                {shelfFilter === "all"
+                  ? t("myShelf.addFirstAny")
+                  : shelfFilter === "morning"
+                    ? t("myShelf.addFirstMorning")
+                    : shelfFilter === "evening"
+                      ? t("myShelf.addFirstEvening")
+                      : shelfFilter === "occasional"
+                        ? t("myShelf.addFirstOccasional")
+                        : t("myShelf.addFirstWishlist")}
               </p>
             )}
           </div>
         ) : (
-          <>
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="relative rounded-xl border border-border/30 bg-[#FAFAF8] py-2.5 pl-4 pr-11 transition-colors hover:border-border/50"
-              >
-                <button
-                  type="button"
-                  onClick={() =>
-                    setRemoveTarget({ id: product.id, name: product.productName })
-                  }
-                  disabled={removeMutation.isPending}
-                  className="absolute right-2 top-2 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-red-50 hover:text-red-600"
-                  aria-label={t("myShelf.removeProduct")}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-                <div className="flex min-w-0 items-center gap-3">
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#22C55E]" />
-                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                    {product.productName}
-                  </span>
-                  {product.routineSlot === "both" && (
-                    <span className="shrink-0 text-[10px] text-muted-foreground/60">AM+PM</span>
+          <div className="grid grid-cols-2 gap-3">
+            {filteredProducts.map((product) => {
+              const pc = conflictsInvolvingProduct(product.productName, analysisData?.conflicts);
+              const dot = dotForConflicts(pc);
+              const bannerC = pickBannerConflict(pc);
+              return (
+                <div key={product.id} className="flex min-w-0 flex-col gap-2">
+                  <div
+                    className="relative flex min-h-[160px] flex-col items-center bg-white text-center transition-[transform,box-shadow] duration-200"
+                    style={{
+                      borderRadius: 16,
+                      padding: 16,
+                      boxShadow: "0 1px 0 rgba(31,26,23,0.04)",
+                    }}
+                  >
+                    <div className="pointer-events-none absolute right-3 top-3">
+                      <IngredientStatusDot status={dot} />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveTarget({ id: product.id, name: product.productName })}
+                      disabled={removeMutation.isPending}
+                      className="absolute left-2 top-2 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-red-50 hover:text-red-600"
+                      style={{ pointerEvents: "auto" }}
+                      aria-label={t("myShelf.removeProduct")}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <div
+                      className="mb-3 mt-6 flex h-16 w-16 shrink-0 items-center justify-center text-3xl leading-none"
+                      aria-hidden
+                    >
+                      📦
+                    </div>
+                    <p
+                      className="line-clamp-3 w-full px-0.5 text-center leading-snug"
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 600,
+                        fontFamily: "var(--font-sans, ui-sans-serif, system-ui, sans-serif)",
+                        color: "#1F1A17",
+                      }}
+                    >
+                      {product.productName}
+                    </p>
+                    {product.routineSlot === "both" && (
+                      <span className="mt-2 text-[10px] font-medium" style={{ color: "#5E544C" }}>
+                        AM+PM
+                      </span>
+                    )}
+                  </div>
+                  {bannerC && (
+                    <ShelfConflictBanner>
+                      <span className="block font-medium">{bannerC.pair}</span>
+                      <span className="mt-1 block font-normal leading-snug" style={{ color: "#8E3A26" }}>
+                        {bannerC.explanation}
+                      </span>
+                    </ShelfConflictBanner>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
-            {isFree && lockedSlotsCount > 0 && (
-              <div className="space-y-2 pt-1">
-                {Array.from({ length: lockedSlotsCount }).map((_, i) => (
-                  <LockedSlotCard
-                    key={`locked-${i}`}
-                    index={allProducts.length + i + 1}
-                    onUpgrade={handleUpgrade}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+            {isFree &&
+              lockedSlotsCount > 0 &&
+              Array.from({ length: lockedSlotsCount }).map((_, i) => (
+                <LockedSlotCard
+                  key={`locked-${i}`}
+                  index={allProducts.length + i + 1}
+                  onUpgrade={handleUpgrade}
+                />
+              ))}
+          </div>
         )}
       </div>
 
