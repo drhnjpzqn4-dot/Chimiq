@@ -25,10 +25,10 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
             <img
               src="/favicon.svg"
               alt=""
-              width={28}
-              height={28}
+              width={24}
+              height={24}
               className="shrink-0 object-contain"
-              style={{ width: 28, height: 28, objectFit: "contain" }}
+              style={{ width: 24, height: 24, objectFit: "contain" }}
               aria-hidden
             />
             <span
@@ -36,9 +36,9 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
               className="leading-none tracking-tight"
               style={{
                 fontFamily: '"Iowan Old Style", Georgia, serif',
-                color: "#A06D54",
+                color: "var(--rose-gold-deep, #A06D54)",
                 fontWeight: 600,
-                fontSize: 28,
+                fontSize: 18,
                 letterSpacing: "-0.01em",
               }}
             >

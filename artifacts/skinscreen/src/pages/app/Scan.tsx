@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  Camera,
   Search,
   ChevronRight,
   AlertTriangle,
@@ -10,6 +9,7 @@ import {
   Sparkles,
   Compass,
   PackageSearch,
+  Check,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { IngredientScanner } from "@/components/IngredientScanner";
@@ -290,7 +290,7 @@ export default function ScanScreen() {
   return (
     <AppShell title={t("scan.title")} subtitle={t("scan.subtitle")}>
       <div className="-mx-4 space-y-5 px-4 pb-6 sm:space-y-6" style={{ backgroundColor: "#FAF6F2" }}>
-      {/* SCAN PRODUCT — Variant A "morphing search" (camera viewfinder + search) */}
+      {/* SCAN PRODUCT — V11 choice cards (scan vs database) */}
       <section className="mb-6 animate-pop-in">
         <div className="mb-2 flex items-center justify-between">
           <p
@@ -335,49 +335,82 @@ export default function ScanScreen() {
           )}
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm">
-          {/* Camera viewfinder card — tap anywhere to open scanner */}
+        <div
+          className="mx-auto flex w-full max-w-md flex-col"
+          style={{ gap: 16 }}
+        >
           <BarcodeScanButton
             onResult={handleScannedFromCard}
-            triggerClassName="block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            triggerClassName="block w-full rounded-[16px] border-[1.5px] border-[#EAE3DC] bg-white text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[#7BAF7A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7BAF7A]/40"
             triggerContent={
-              <div className="relative flex h-[200px] items-center justify-center bg-black">
-                {/* Faux viewfinder frame */}
-                <div className="relative h-[120px] w-[240px] rounded-xl border-2 border-white/40">
-                  <div
-                    className="absolute left-0 right-0 top-1/2 h-0.5 bg-primary"
-                    style={{
-                      boxShadow: "0 0 8px hsl(var(--primary))",
-                      animation: "scan 2s ease-in-out infinite",
-                    }}
+              <div
+                className="flex min-h-[160px] flex-col items-center justify-center text-center"
+                style={{ padding: "32px 24px" }}
+              >
+                <span
+                  className="mb-4 flex h-14 w-14 shrink-0 items-center justify-center"
+                  style={{ borderRadius: 16, backgroundColor: "#DCE7DC" }}
+                >
+                  <Check
+                    className="shrink-0"
+                    width={28}
+                    height={28}
+                    strokeWidth={2.25}
+                    style={{ color: "#7BAF7A" }}
+                    aria-hidden
                   />
-                </div>
-                {/* Hint copy (Variant B) */}
-                <div className="absolute bottom-4 left-0 right-0 text-center text-[13px] font-medium text-white/95">
-                  {t("scan.viewfinderHint")}
-                </div>
-                {/* Tap hint top-right */}
-                <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
-                  <Camera className="h-3 w-3" />
-                  {t("scan.tap")}
-                </div>
+                </span>
+                <span
+                  style={{
+                    fontFamily: '"Iowan Old Style", Georgia, serif',
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: "#1F1A17",
+                  }}
+                >
+                  {t("scan.choiceNewTitle")}
+                </span>
+                <span className="mt-2 max-w-[280px] text-[12px] leading-snug" style={{ color: "#5E544C" }}>
+                  {t("scan.choiceNewSubtitle")}
+                </span>
               </div>
             }
           />
 
-          {/* Collapsed text input */}
           <button
             type="button"
             onClick={() => navigate("/app/browse")}
             data-touch-target
-            className="flex w-full items-center gap-3 border-t border-border/60 px-4 py-3 text-left transition-colors hover:bg-muted/40"
-            aria-label={t("scan.searchByName")}
+            className="flex min-h-[160px] w-full flex-col items-center justify-center rounded-[16px] border-[1.5px] border-[#B5705B] text-center transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[#A06D54] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B5705B]/35"
+            style={{ backgroundColor: "#F2DECE", padding: "32px 24px" }}
+            aria-label={t("scan.choiceSearchTitle")}
           >
-            <Search className="h-5 w-5 text-muted-foreground" />
-            <span className="flex-1 text-[15px] text-muted-foreground">
-              {t("scan.orTypeProduct")}
+            <span
+              className="mb-4 flex h-14 w-14 shrink-0 items-center justify-center"
+              style={{ borderRadius: 16, backgroundColor: "rgba(181, 112, 91, 0.15)" }}
+            >
+              <Search
+                className="shrink-0"
+                width={28}
+                height={28}
+                strokeWidth={2.25}
+                style={{ color: "#A06D54" }}
+                aria-hidden
+              />
             </span>
-            <PackageSearch className="h-5 w-5 text-muted-foreground" />
+            <span
+              style={{
+                fontFamily: '"Iowan Old Style", Georgia, serif',
+                fontSize: 18,
+                fontWeight: 600,
+                color: "#1F1A17",
+              }}
+            >
+              {t("scan.choiceSearchTitle")}
+            </span>
+            <span className="mt-2 max-w-[280px] text-[12px] leading-snug" style={{ color: "#5E544C" }}>
+              {t("scan.choiceSearchSubtitle")}
+            </span>
           </button>
         </div>
       </section>
@@ -611,14 +644,6 @@ export default function ScanScreen() {
         />
       </section>
 
-      {/* viewfinder scan-line keyframes — local to this page so we don't
-          touch global stylesheets. */}
-      <style>{`
-        @keyframes scan {
-          0%, 100% { transform: translateY(-58px); }
-          50% { transform: translateY(58px); }
-        }
-      `}</style>
       </div>
     </AppShell>
   );
