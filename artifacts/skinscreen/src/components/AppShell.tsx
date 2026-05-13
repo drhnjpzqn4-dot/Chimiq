@@ -25,10 +25,10 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
             <img
               src="/favicon.svg"
               alt=""
-              width={24}
-              height={24}
+              width={32}
+              height={32}
               className="shrink-0 object-contain"
-              style={{ width: 24, height: 24, objectFit: "contain" }}
+              style={{ width: 32, height: 32, objectFit: "contain" }}
               aria-hidden
             />
             <span

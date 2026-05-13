@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import {
   Search,
   ChevronRight,
@@ -7,8 +7,7 @@ import {
   Loader2,
   Gift,
   Sparkles,
-  Compass,
-  PackageSearch,
+  FileText,
   Check,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -16,6 +15,7 @@ import { IngredientScanner } from "@/components/IngredientScanner";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useTranslation } from "@/lib/i18n";
+import { isNative } from "@/lib/native";
 
 interface PendingScan {
   barcode: string;
@@ -126,8 +126,20 @@ export default function ScanScreen() {
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [scansToday, setScansToday] = useState<number>(() => readScanCount());
   const [recent, setRecent] = useState<RecentScan[]>(() => readRecent());
+  const [showScanner, setShowScanner] = useState(false);
   const { isPremium, trialEligible, trialDays } = useUserPlan();
   const { t, locale } = useTranslation();
+
+  // true on native (iOS/Android) or browsers with BarcodeDetector (Chrome on Android/desktop-with-camera)
+  const canScanBarcode =
+    typeof window !== "undefined" && (isNative() || "BarcodeDetector" in window);
+
+  const openScanner = () => {
+    setShowScanner(true);
+    setTimeout(() => {
+      document.getElementById("scanner-input")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
 
   // Pull the authoritative per-user count from the server. Falls back to
   // the localStorage estimate while loading or for anon users.
@@ -339,10 +351,52 @@ export default function ScanScreen() {
           className="mx-auto flex w-full max-w-md flex-col"
           style={{ gap: 16 }}
         >
-          <BarcodeScanButton
-            onResult={handleScannedFromCard}
-            triggerClassName="block w-full rounded-[16px] border-[1.5px] border-[var(--line)] bg-white text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
-            triggerContent={
+          {canScanBarcode ? (
+            <BarcodeScanButton
+              onResult={handleScannedFromCard}
+              triggerClassName="block w-full rounded-[16px] border-[1.5px] border-[var(--line)] bg-white text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
+              triggerContent={
+                <div
+                  className="flex min-h-[160px] flex-col items-center justify-center text-center"
+                  style={{ padding: "32px 24px" }}
+                >
+                  <span
+                    className="mb-4 flex h-14 w-14 shrink-0 items-center justify-center"
+                    style={{ borderRadius: 16, backgroundColor: "#DCE7DC" }}
+                  >
+                    <Check
+                      className="shrink-0"
+                      width={28}
+                      height={28}
+                      strokeWidth={2.25}
+                      style={{ color: "var(--sage)" }}
+                      aria-hidden
+                    />
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
+                      fontSize: 18,
+                      fontWeight: 600,
+                      color: "var(--ink)",
+                    }}
+                  >
+                    {t("scan.choiceNewTitle")}
+                  </span>
+                  <span className="mt-2 max-w-[280px] text-[12px] leading-snug" style={{ color: "#5E544C" }}>
+                    {t("scan.choiceNewSubtitle")}
+                  </span>
+                </div>
+              }
+            />
+          ) : (
+            /* Desktop fallback: no camera API → open manual ingredient entry */
+            <button
+              type="button"
+              onClick={openScanner}
+              data-touch-target
+              className="block w-full rounded-[16px] border-[1.5px] border-[var(--line)] bg-white text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
+            >
               <div
                 className="flex min-h-[160px] flex-col items-center justify-center text-center"
                 style={{ padding: "32px 24px" }}
@@ -351,7 +405,7 @@ export default function ScanScreen() {
                   className="mb-4 flex h-14 w-14 shrink-0 items-center justify-center"
                   style={{ borderRadius: 16, backgroundColor: "#DCE7DC" }}
                 >
-                  <Check
+                  <FileText
                     className="shrink-0"
                     width={28}
                     height={28}
@@ -374,8 +428,8 @@ export default function ScanScreen() {
                   {t("scan.choiceNewSubtitle")}
                 </span>
               </div>
-            }
-          />
+            </button>
+          )}
 
           <button
             type="button"
@@ -480,88 +534,7 @@ export default function ScanScreen() {
         </section>
       )}
 
-      {/* RECENT SCANS — empty state hint with browse / discover quick links */}
-      {!seed && recent.length === 0 && (
-        <section className="mb-6">
-          <p
-            className="mb-3 text-[11px] font-bold uppercase"
-            style={{ letterSpacing: "0.08em", color: "#5E544C" }}
-          >
-            {t("scan.getStarted")}
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => navigate("/app/browse")}
-              data-touch-target
-              className="flex flex-col items-center bg-white text-center transition-[transform,border-color] hover:-translate-y-0.5 border-[1.5px] border-[var(--line)] hover:border-[var(--sage)]"
-              style={{
-                borderRadius: 18,
-                padding: "22px 18px",
-              }}
-            >
-              <span
-                className="mb-3 flex h-14 w-14 shrink-0 items-center justify-center"
-                style={{ borderRadius: 16, backgroundColor: "#E8F2E5" }}
-              >
-                <PackageSearch className="h-6 w-6" style={{ color: "var(--sage-deep)" }} aria-hidden />
-              </span>
-              <span
-                style={{
-                  fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-                  fontSize: 18,
-                  fontWeight: 600,
-                  color: "var(--ink)",
-                }}
-              >
-                {t("scan.browseProducts")}
-              </span>
-              <span className="mt-1 text-[12px]" style={{ color: "#5E544C" }}>
-                {t("scan.browseHint")}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/app/discover")}
-              data-touch-target
-              className="flex flex-col items-center bg-white text-center transition-[transform,border-color] hover:-translate-y-0.5 border-[1.5px] border-[var(--line)] hover:border-[var(--sage)]"
-              style={{
-                borderRadius: 18,
-                padding: "22px 18px",
-              }}
-            >
-              <span
-                className="mb-3 flex h-14 w-14 shrink-0 items-center justify-center"
-                style={{ borderRadius: 16, backgroundColor: "#E8F2E5" }}
-              >
-                <Compass className="h-6 w-6" style={{ color: "var(--sage-deep)" }} aria-hidden />
-              </span>
-              <span
-                style={{
-                  fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-                  fontSize: 18,
-                  fontWeight: 600,
-                  color: "var(--ink)",
-                }}
-              >
-                {t("scan.discoverArticles")}
-              </span>
-              <span className="mt-1 text-[12px]" style={{ color: "#5E544C" }}>
-                {t("scan.discoverHint")}
-              </span>
-            </button>
-          </div>
-          <Link href="/app/browse">
-            <a
-              className="mt-6 block text-center text-[12px] transition-opacity hover:opacity-80"
-              style={{ color: "#5E544C" }}
-              data-touch-target
-            >
-              {t("browse.addAProduct")} →
-            </a>
-          </Link>
-        </section>
-      )}
+      {/* GET STARTED section removed — browse/discover live in the bottom tab bar */}
 
       {/* Scans-today summary — sits next to the gamification chip so free
           users always see how many scans they've done today and what the
@@ -627,22 +600,24 @@ export default function ScanScreen() {
         </button>
       )}
 
-      {/* RESULTS / SCANNER ENGINE — appears below as you scroll */}
-      <section
-        id="scanner-input"
-        className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm sm:p-6"
-      >
-        <IngredientScanner
-          seed={seed}
-          scanVisualStyle
-          onSeedConsumed={() => {
-            // Clear local seed once IngredientScanner has applied it, so the
-            // lookup-home Recents / Get Started sections re-appear and the
-            // user can do another lookup from the top.
-            setSeed(null);
-          }}
-        />
-      </section>
+      {/* RESULTS / SCANNER ENGINE — shown after a card is tapped or a barcode is scanned */}
+      {(showScanner || seed !== null) && (
+        <section
+          id="scanner-input"
+          className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm sm:p-6"
+        >
+          <IngredientScanner
+            seed={seed}
+            scanVisualStyle
+            onSeedConsumed={() => {
+              // Clear the seed once IngredientScanner has applied it, but keep
+              // showScanner=true so the user can do another manual lookup without
+              // having to tap the card again.
+              setSeed(null);
+            }}
+          />
+        </section>
+      )}
 
       </div>
     </AppShell>
