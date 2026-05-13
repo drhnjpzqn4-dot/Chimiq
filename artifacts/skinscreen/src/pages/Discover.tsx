@@ -1,11 +1,8 @@
 import { Link } from "wouter";
 import { FadeIn } from "@/components/FadeIn";
-import { useState } from "react";
 import {
   TOP_MISTAKES,
   TOP_WORRIES,
-  getDiscoverImage,
-  type DiscoverItem,
   type MistakeItem,
   type WorryItem,
 } from "@/lib/discover-content";
@@ -15,59 +12,6 @@ import { useTranslation } from "@/lib/i18n";
 
 const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
-/**
- * Square thumbnail for a Discover card. Uses the article's content-hashed
- * image URL when available, falls back to a slug-seeded gradient on
- * missing-asset (404) or when the article has no `image` field set, so
- * cards never show a broken icon while images are being added.
- */
-function DiscoverThumb({
-  item,
-  tone,
-}: {
-  item: DiscoverItem;
-  tone: "mistake" | "worry";
-}) {
-  const img = getDiscoverImage(item);
-  const [failed, setFailed] = useState(false);
-  const showImg = img.hasImage && !failed;
-
-  if (showImg) {
-    return (
-      <img
-        src={img.src}
-        alt=""
-        loading="lazy"
-        className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover bg-muted"
-        onError={() => setFailed(true)}
-      />
-    );
-  }
-
-  // Brand-aligned gradients — mistakes use warm/alert tones, worries use sage/calm tones.
-  // Rank within each tone rotates through 3 brand color pairs so cards feel distinct.
-  const mistakeGrads = [
-    "linear-gradient(135deg, var(--rose-soft), var(--rose-gold))",      // rose
-    "linear-gradient(135deg, var(--gold-soft), var(--gold))",            // gold
-    "linear-gradient(135deg, var(--cream-warm), var(--rose-gold-deep))", // warm cream
-  ];
-  const worryGrads = [
-    "linear-gradient(135deg, var(--green-soft), var(--sage))",           // sage
-    "linear-gradient(135deg, var(--cream-warm), var(--gold))",           // cream-gold
-    "linear-gradient(135deg, var(--gold-soft), var(--sage-deep))",       // gold-sage
-  ];
-  const grads = tone === "mistake" ? mistakeGrads : worryGrads;
-  const grad = grads[(item.rank - 1) % grads.length];
-  return (
-    <div
-      aria-hidden
-      className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center font-serif font-medium text-2xl text-ink/50"
-      style={{ background: grad }}
-    >
-      {item.rank}
-    </div>
-  );
-}
 
 function MistakeCard({ item, index }: { item: MistakeItem; index: number }) {
   const { t } = useTranslation();
@@ -84,28 +28,24 @@ function MistakeCard({ item, index }: { item: MistakeItem; index: number }) {
         href={`/discover/mistakes/${item.slug}`}
         className="group block h-full p-5 sm:p-6 bg-white rounded-2xl border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
       >
-        <div className="flex items-start gap-4">
-          <DiscoverThumb item={item} tone="mistake" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3 mb-1.5">
-              <h3 className="text-base sm:text-lg font-serif font-medium text-foreground leading-snug">
-                {item.title}
-              </h3>
-              <span
-                className={cn(
-                  "shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border whitespace-nowrap",
-                  severityClass,
-                )}
-              >
-                <AlertTriangle className="w-2.5 h-2.5" />
-                {t(`severity.${item.severity}`)}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">{item.hook}</p>
-            <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:gap-2 transition-all">
-              {t("discoverPage.readMore")} <ArrowRight className="w-3 h-3" />
-            </div>
-          </div>
+        <div className="flex items-center gap-2 mb-3">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border whitespace-nowrap",
+              severityClass,
+            )}
+          >
+            <AlertTriangle className="w-3 h-3" />
+            {t(`severity.${item.severity}`)}
+          </span>
+          <span className="text-xs text-muted-foreground/50 font-medium">#{item.rank}</span>
+        </div>
+        <h3 className="text-base sm:text-lg font-serif font-medium text-foreground leading-snug mb-1.5">
+          {item.title}
+        </h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">{item.hook}</p>
+        <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:gap-2 transition-all">
+          {t("discoverPage.readMore")} <ArrowRight className="w-3 h-3" />
         </div>
       </Link>
     </FadeIn>
@@ -127,28 +67,24 @@ function WorryCard({ item, index }: { item: WorryItem; index: number }) {
         href={`/discover/worries/${item.slug}`}
         className="group block h-full p-5 sm:p-6 bg-white rounded-2xl border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
       >
-        <div className="flex items-start gap-4">
-          <DiscoverThumb item={item} tone="worry" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3 mb-1.5">
-              <h3 className="text-base sm:text-lg font-serif font-medium text-foreground leading-snug">
-                {item.title}
-              </h3>
-              <span
-                className={cn(
-                  "shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border whitespace-nowrap",
-                  freqClass,
-                )}
-              >
-                <HeartPulse className="w-2.5 h-2.5" />
-                {t(`frequency.${item.frequency}`)}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">{item.hook}</p>
-            <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:gap-2 transition-all">
-              {t("discoverPage.readMore")} <ArrowRight className="w-3 h-3" />
-            </div>
-          </div>
+        <div className="flex items-center gap-2 mb-3">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border whitespace-nowrap",
+              freqClass,
+            )}
+          >
+            <HeartPulse className="w-3 h-3" />
+            {t(`frequency.${item.frequency}`)}
+          </span>
+          <span className="text-xs text-muted-foreground/50 font-medium">#{item.rank}</span>
+        </div>
+        <h3 className="text-base sm:text-lg font-serif font-medium text-foreground leading-snug mb-1.5">
+          {item.title}
+        </h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">{item.hook}</p>
+        <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:gap-2 transition-all">
+          {t("discoverPage.readMore")} <ArrowRight className="w-3 h-3" />
         </div>
       </Link>
     </FadeIn>
