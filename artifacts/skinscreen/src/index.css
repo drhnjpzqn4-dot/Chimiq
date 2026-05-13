@@ -178,6 +178,7 @@
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif tracking-tight;
+    font-weight: 500; /* Source Serif 4 at 500 — never let browser default to 700 */
   }
   /* Tap-friendly: never below 44px in tab bar / nav controls */
   [data-touch-target] {

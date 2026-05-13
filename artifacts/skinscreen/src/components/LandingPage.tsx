@@ -350,12 +350,28 @@ export function LandingPage({ config }: LandingPageProps) {
       {/* TOP NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-border/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <a href="#hero" className="flex items-center">
+          <a href="#hero" className="flex items-center gap-2" aria-label="Chimiq">
             <img
-              src={`${import.meta.env.BASE_URL}images/logo-chimiq-long.png`}
-              alt="Chimiq"
-              style={{ height: 32, width: "auto", objectFit: "contain" }}
+              src="/favicon.svg"
+              alt=""
+              aria-hidden
+              width={32}
+              height={32}
+              style={{ width: 32, height: 32, objectFit: "contain", flexShrink: 0 }}
             />
+            <span
+              aria-hidden
+              style={{
+                fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
+                color: "var(--rose-gold-deep)",
+                fontWeight: 500,
+                fontSize: 18,
+                letterSpacing: "-0.01em",
+                lineHeight: 1,
+              }}
+            >
+              Chimiq
+            </span>
           </a>
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSelector />
