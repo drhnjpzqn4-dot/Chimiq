@@ -35,9 +35,9 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
               aria-hidden
               className="leading-none tracking-tight"
               style={{
-                fontFamily: "var(--font-serif)",
+                fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
                 color: "var(--rose-gold-deep)",
-                fontWeight: 600,
+                fontWeight: 500,
                 fontSize: 18,
                 letterSpacing: "-0.01em",
               }}
@@ -62,10 +62,10 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
               <h1
                 className="leading-tight"
                 style={{
-                  fontFamily: "var(--font-serif)",
+                  fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
                   fontSize: 28,
                   color: "var(--ink)",
-                  fontWeight: 600,
+                  fontWeight: 500,
                 }}
               >
                 {title}

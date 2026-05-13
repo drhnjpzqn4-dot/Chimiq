@@ -77,7 +77,7 @@ export default function HomeScreen() {
           <h1
             className="leading-tight"
             style={{
-              fontFamily: '"Iowan Old Style", Georgia, serif',
+              fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
               fontSize: 28,
               fontWeight: 600,
               color: "var(--ink)",
@@ -179,7 +179,7 @@ export default function HomeScreen() {
               <CardTitle
                 className="text-lg leading-tight"
                 style={{
-                  fontFamily: '"Iowan Old Style", Georgia, serif',
+                  fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
                   fontWeight: 600,
                   color: "var(--ink)",
                 }}

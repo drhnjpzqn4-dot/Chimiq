@@ -187,7 +187,7 @@ export default function DiscoverScreen() {
           <h2
             className="leading-tight"
             style={{
-              fontFamily: '"Iowan Old Style", Georgia, serif',
+              fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
               fontSize: 28,
               fontWeight: 600,
               color: "var(--ink)",
@@ -333,7 +333,7 @@ export default function DiscoverScreen() {
           <h2
             className="leading-tight"
             style={{
-              fontFamily: '"Iowan Old Style", Georgia, serif',
+              fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
               fontSize: 28,
               fontWeight: 600,
               color: "var(--ink)",

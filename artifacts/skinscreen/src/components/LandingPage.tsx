@@ -665,7 +665,7 @@ export function LandingPage({ config }: LandingPageProps) {
               </p>
               <h2
                 style={{
-                  fontFamily: "'Playfair Display', Georgia, serif",
+                  fontFamily: "'Source Serif 4', 'Iowan Old Style', Georgia, serif",
                   fontSize: "clamp(38px, 5vw, 44px)",
                   fontWeight: 700,
                   color: "#1A1A1A",

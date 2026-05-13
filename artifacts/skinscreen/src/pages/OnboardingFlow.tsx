@@ -54,7 +54,7 @@ function SelectableCard({
       <p
         className="text-base font-semibold leading-snug"
         style={{
-          fontFamily: '"Iowan Old Style", Georgia, serif',
+          fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
           color: "var(--ink)",
         }}
       >
@@ -69,7 +69,7 @@ function SelectableCard({
 
 function headingStyle(): CSSProperties {
   return {
-    fontFamily: '"Iowan Old Style", Georgia, serif',
+    fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
     fontSize: 26,
     fontWeight: 600,
     color: "var(--ink)",
@@ -189,7 +189,7 @@ export default function OnboardingFlow() {
             <h1
               className="mt-6 leading-tight"
               style={{
-                fontFamily: '"Iowan Old Style", Georgia, serif',
+                fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
                 fontSize: 28,
                 fontWeight: 600,
                 color: "var(--ink)",
