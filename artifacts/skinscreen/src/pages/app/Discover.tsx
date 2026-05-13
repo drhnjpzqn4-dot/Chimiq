@@ -9,6 +9,9 @@ import {
   Trophy,
   Info,
   ArrowRight,
+  Loader2,
+  Send,
+  Heart,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { FindDermatologist } from "@/components/FindDermatologist";

@@ -770,7 +770,7 @@ components:
           type: boolean
     RoutineSlot:
       type: string
-      enum: [morning, evening, both]
+      enum: [morning, evening, both, occasional, wishlist]
     ShelfProduct:
       type: object
       required: [id, productName, ingredients, routineSlot, addedAt]

@@ -193,6 +193,9 @@ export const GetMeResponse = zod.object({
     .describe(
       "True when the OIDC identity provider returned a verified email claim.",
     ),
+  onboardingCompleted: zod
+    .boolean()
+    .describe("False until the in-app onboarding wizard is completed."),
 });
 
 /**
@@ -218,7 +221,9 @@ export const GetCurrentAuthUserResponse = zod.object({
         .describe(
           "True when the OIDC identity provider returned a verified email claim.",
         ),
-      onboardingCompleted: zod.boolean(),
+      onboardingCompleted: zod
+        .boolean()
+        .describe("False until the in-app onboarding wizard is completed."),
     }),
     zod.null(),
   ]),
@@ -324,7 +329,13 @@ export const GetShelfResponse = zod.object({
       id: zod.number(),
       productName: zod.string(),
       ingredients: zod.string(),
-      routineSlot: zod.enum(["morning", "evening", "both"]),
+      routineSlot: zod.enum([
+        "morning",
+        "evening",
+        "both",
+        "occasional",
+        "wishlist",
+      ]),
       addedAt: zod.date(),
     }),
   ),
@@ -347,14 +358,22 @@ export const addToShelfBodyIngredientsMax = 5000;
 export const AddToShelfBody = zod.object({
   productName: zod.string().max(addToShelfBodyProductNameMax),
   ingredients: zod.string().max(addToShelfBodyIngredientsMax),
-  routineSlot: zod.enum(["morning", "evening", "both"]).optional(),
+  routineSlot: zod
+    .enum(["morning", "evening", "both", "occasional", "wishlist"])
+    .optional(),
 });
 
 export const AddToShelfResponse = zod.object({
   id: zod.number(),
   productName: zod.string(),
   ingredients: zod.string(),
-  routineSlot: zod.enum(["morning", "evening", "both"]),
+  routineSlot: zod.enum([
+    "morning",
+    "evening",
+    "both",
+    "occasional",
+    "wishlist",
+  ]),
   addedAt: zod.date(),
 });
 
