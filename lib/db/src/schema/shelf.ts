@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./auth";
 
-export const routineSlotEnum = ["morning", "evening", "both"] as const;
+export const routineSlotEnum = ["morning", "evening", "both", "occasional", "wishlist"] as const;
 export type RoutineSlot = (typeof routineSlotEnum)[number];
 
 export const shelfProductsTable = pgTable("shelf_products", {

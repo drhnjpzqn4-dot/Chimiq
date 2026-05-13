@@ -8,16 +8,26 @@ import {
   useProductLookup,
   useSuggestAlternatives,
   getProductLookupQueryKey,
+  getGetShelfQueryKey,
+  useGetShelf,
 } from "@workspace/api-client-react";
-import type { IngredientFlag, SkinProfile, AlternativeSuggestion } from "@workspace/api-client-react";
+import type {
+  IngredientFlag,
+  SkinProfile,
+  AlternativeSuggestion,
+  ShelfProduct,
+} from "@workspace/api-client-react";
+import { useAuth } from "@workspace/replit-auth-web";
+import { useQueryClient } from "@tanstack/react-query";
 import { DangerCard } from "@/components/DangerCard";
 import { IngredientDetailSheet, type IngredientDetailFlag } from "@/components/IngredientDetailSheet";
 import { ProductRating } from "@/components/ProductRating";
 import { InlineGapFill } from "@/components/InlineGapFill";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { FadeIn } from "@/components/FadeIn";
 import { StepHeader, VerdictCard } from "@/components/scanner/ScannerStep";
-import { useTranslation } from "@/lib/i18n";
+import { useTranslation, type Locale } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import {
   Loader2,
@@ -44,6 +54,285 @@ import type { ConflictResult } from "@workspace/api-client-react";
 const PLACEHOLDER_SINGLE = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, Cetearyl Alcohol, DMDM Hydantoin, Sodium Hyaluronate, Butylene Glycol, Fragrance, Carbomer`;
 const PLACEHOLDER_1 = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, Cetearyl Alcohol, Phenoxyethanol, Sodium Hyaluronate, Butylene Glycol, Carbomer`;
 const PLACEHOLDER_2 = `Aqua, Ascorbic Acid (Vitamin C 20%), Glycolic Acid, Propylene Glycol, Tocopherol, Ferulic Acid, Sodium Hydroxide, Panthenol`;
+
+type RoutineSlotChoice = "morning" | "evening" | "occasional" | "wishlist";
+
+const ROUTINE_LOCALE: Record<
+  Locale,
+  {
+    addCta: string;
+    changeCta: string;
+    sheetMorning: string;
+    sheetEvening: string;
+    sheetOccasional: string;
+    sheetOccasionalHint: string;
+    sheetWishlist: string;
+    sheetWishlistHint: string;
+    remove: string;
+    saved: string;
+    removed: string;
+    err: string;
+    signInHint: string;
+    shelfLimit: string;
+  }
+> = {
+  en: {
+    addCta: "Add to my routine",
+    changeCta: "Change category",
+    sheetMorning: "Daily routine — Morning",
+    sheetEvening: "Daily routine — Evening",
+    sheetOccasional: "Occasional routine",
+    sheetOccasionalHint: "Sunscreen, peel, mask",
+    sheetWishlist: "Save for later",
+    sheetWishlistHint: "We will remember it for next time",
+    remove: "Remove from shelf",
+    saved: "Saved to your shelf",
+    removed: "Removed from shelf",
+    err: "Could not update shelf",
+    signInHint: "Sign in to save this product to your shelf.",
+    shelfLimit: "Shelf limit reached — Premium unlocks more.",
+  },
+  sv: {
+    addCta: "Lägg till i min rutin",
+    changeCta: "Ändra kategori",
+    sheetMorning: "Daglig rutin — Morgon",
+    sheetEvening: "Daglig rutin — Kväll",
+    sheetOccasional: "Ibland-rutin",
+    sheetOccasionalHint: "Solskydd, peeling, mask",
+    sheetWishlist: "Spara till senare",
+    sheetWishlistHint: "Kommer ihåg den till nästa gång",
+    remove: "Ta bort från hyllan",
+    saved: "Sparat på din hylla",
+    removed: "Borttagen från hyllan",
+    err: "Kunde inte uppdatera hyllan",
+    signInHint: "Logga in för att spara produkten på hyllan.",
+    shelfLimit: "Hyllgräns nådd — Premium ger fler platser.",
+  },
+  fr: {
+    addCta: "Ajouter à ma routine",
+    changeCta: "Changer de catégorie",
+    sheetMorning: "Routine quotidienne — Matin",
+    sheetEvening: "Routine quotidienne — Soir",
+    sheetOccasional: "Routine occasionnelle",
+    sheetOccasionalHint: "Solaire, peeling, masque",
+    sheetWishlist: "Enregistrer pour plus tard",
+    sheetWishlistHint: "On s'en souviendra pour la prochaine fois",
+    remove: "Retirer de l'étagère",
+    saved: "Enregistré sur votre étagère",
+    removed: "Retiré de l'étagère",
+    err: "Impossible de mettre à jour l'étagère",
+    signInHint: "Connectez-vous pour enregistrer ce produit.",
+    shelfLimit: "Limite d'étagère atteinte — Premium débloque plus d'emplacements.",
+  },
+  es: {
+    addCta: "Añadir a mi rutina",
+    changeCta: "Cambiar categoría",
+    sheetMorning: "Rutina diaria — Mañana",
+    sheetEvening: "Rutina diaria — Noche",
+    sheetOccasional: "Rutina ocasional",
+    sheetOccasionalHint: "Protector solar, peeling, mascarilla",
+    sheetWishlist: "Guardar para más tarde",
+    sheetWishlistHint: "Lo recordaremos la próxima vez",
+    remove: "Quitar del estante",
+    saved: "Guardado en tu estante",
+    removed: "Quitado del estante",
+    err: "No se pudo actualizar el estante",
+    signInHint: "Inicia sesión para guardar este producto.",
+    shelfLimit: "Límite del estante alcanzado — Premium desbloquea más espacio.",
+  },
+};
+
+function normRoutineIngredients(s: string) {
+  return s.trim().replace(/\s+/g, " ");
+}
+
+function findMatchingShelfProduct(
+  products: ShelfProduct[] | undefined,
+  name: string,
+  ingredients: string,
+): ShelfProduct | undefined {
+  if (!products?.length) return undefined;
+  const n = name.trim().toLowerCase();
+  const ing = normRoutineIngredients(ingredients);
+  return products.find(
+    (p) => p.productName.trim().toLowerCase() === n && normRoutineIngredients(p.ingredients) === ing,
+  );
+}
+
+function ScannerRoutineShelfBlock({
+  productName,
+  ingredients,
+}: {
+  productName: string;
+  ingredients: string;
+}) {
+  const { locale, t } = useTranslation();
+  const copy = ROUTINE_LOCALE[locale] ?? ROUTINE_LOCALE.en;
+  const effectiveName = productName.trim() || t("scanner.scannedProductFallback");
+  const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const shelfQuery = useGetShelf({
+    query: {
+      enabled: isAuthenticated && Boolean(ingredients.trim()),
+    },
+  });
+
+  const existing = findMatchingShelfProduct(shelfQuery.data?.products, effectiveName, ingredients);
+
+  const persistSlot = async (slot: RoutineSlotChoice) => {
+    setBusy(true);
+    try {
+      if (existing) {
+        const r = await fetch(`/api/shelf/${existing.id}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ routineSlot: slot }),
+        });
+        if (!r.ok) throw new Error(String(r.status));
+      } else {
+        const r = await fetch("/api/shelf", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productName: effectiveName,
+            ingredients: ingredients.trim(),
+            routineSlot: slot,
+          }),
+        });
+        if (r.status === 402) {
+          toast.error(copy.shelfLimit);
+          return;
+        }
+        if (!r.ok) throw new Error(String(r.status));
+      }
+      await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
+      toast.success(copy.saved);
+      setSheetOpen(false);
+      trackEvent("scanner_routine_slot", { slot, mode: existing ? "update" : "add" });
+    } catch {
+      toast.error(copy.err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeFromShelf = async () => {
+    if (!existing) return;
+    setBusy(true);
+    try {
+      const r = await fetch(`/api/shelf/${existing.id}`, { method: "DELETE", credentials: "include" });
+      if (!r.ok) throw new Error(String(r.status));
+      await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
+      toast.success(copy.removed);
+      setSheetOpen(false);
+      trackEvent("scanner_routine_slot", { slot: "remove", mode: "delete" });
+    } catch {
+      toast.error(copy.err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const choices: {
+    slot: RoutineSlotChoice;
+    title: string;
+    hint?: string;
+    emoji: string;
+  }[] = [
+    { slot: "morning", title: copy.sheetMorning, emoji: "🌅" },
+    { slot: "evening", title: copy.sheetEvening, emoji: "🌙" },
+    {
+      slot: "occasional",
+      title: copy.sheetOccasional,
+      hint: copy.sheetOccasionalHint,
+      emoji: "✨",
+    },
+    {
+      slot: "wishlist",
+      title: copy.sheetWishlist,
+      hint: copy.sheetWishlistHint,
+      emoji: "🔖",
+    },
+  ];
+
+  if (!isAuthenticated) {
+    return (
+      <p className="text-center text-sm text-muted-foreground" data-testid="scanner-routine-signin-hint">
+        {copy.signInHint}
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        data-touch-target
+        disabled={busy || !ingredients.trim()}
+        onClick={() => setSheetOpen(true)}
+        className="w-full rounded-full py-3 text-[15px] font-semibold text-white shadow-md transition-opacity disabled:opacity-50"
+        style={{ minHeight: 48, backgroundColor: "var(--sage)" }}
+      >
+        {existing ? copy.changeCta : copy.addCta}
+      </button>
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-3xl border-t-0 max-h-[88vh] overflow-y-auto p-0 z-[60]"
+        >
+          <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/20" />
+          <SheetHeader className="px-5 pt-4 pb-2 text-left">
+            <SheetTitle className="font-serif text-lg">
+              {existing ? copy.changeCta : copy.addCta}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex flex-col gap-3 px-5 pb-8 pt-2">
+            {choices.map((c) => (
+              <button
+                key={c.slot}
+                type="button"
+                data-touch-target
+                disabled={busy}
+                onClick={() => void persistSlot(c.slot)}
+                className="w-full rounded-2xl border border-[var(--line)] bg-white p-4 text-left transition-[transform,border-color] hover:-translate-y-0.5 hover:border-[var(--sage)] disabled:opacity-50"
+              >
+                <p className="text-[16px] font-semibold text-[var(--ink)]">
+                  <span className="mr-2" aria-hidden>
+                    {c.emoji}
+                  </span>
+                  {c.title}
+                </p>
+                {c.hint && <p className="mt-1 text-[13px] text-muted-foreground leading-snug">{c.hint}</p>}
+              </button>
+            ))}
+            {existing && (
+              <button
+                type="button"
+                data-touch-target
+                disabled={busy}
+                onClick={() => void removeFromShelf()}
+                className="w-full rounded-2xl border border-destructive/30 bg-destructive/5 py-3 text-[15px] font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
+              >
+                {copy.remove}
+              </button>
+            )}
+            {busy && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
 
 function readStoredSkinProfile(): SkinProfile | undefined {
   if (typeof window === "undefined") return undefined;
@@ -1462,6 +1751,10 @@ export function IngredientScanner({
             }
             summary={singleResult.verdictSummary ?? undefined}
           />
+
+          <FadeIn>
+            <ScannerRoutineShelfBlock productName={productName} ingredients={ingredients} />
+          </FadeIn>
 
           {/* Compact ingredient chip strip (Variant C styling) — every parsed
               ingredient as a small pill, with flagged ones tinted by severity.

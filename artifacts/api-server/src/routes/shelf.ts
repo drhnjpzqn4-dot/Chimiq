@@ -11,10 +11,16 @@ import {
 
 const router: IRouter = Router();
 
+const routineSlotSchema = z.enum(["morning", "evening", "both", "occasional", "wishlist"]);
+
 const AddToShelfBodySchema = z.object({
   productName: z.string().min(1).max(200),
   ingredients: z.string().min(1).max(5000),
-  routineSlot: z.enum(["morning", "evening", "both"]).optional().default("both"),
+  routineSlot: routineSlotSchema.optional().default("both"),
+});
+
+const PatchShelfBodySchema = z.object({
+  routineSlot: routineSlotSchema,
 });
 
 router.get("/shelf", async (req: Request, res: Response) => {
@@ -77,6 +83,33 @@ router.post("/shelf", async (req: Request, res: Response) => {
     })
     .returning();
   res.json(product);
+});
+
+router.patch("/shelf/:id", async (req: Request, res: Response) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const id = parseInt(req.params.id as string, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const parsed = PatchShelfBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  const [updated] = await db
+    .update(shelfProductsTable)
+    .set({ routineSlot: parsed.data.routineSlot })
+    .where(and(eq(shelfProductsTable.id, id), eq(shelfProductsTable.userId, req.user.id)))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Product not found on shelf" });
+    return;
+  }
+  res.json(updated);
 });
 
 router.delete("/shelf/:id", async (req: Request, res: Response) => {
@@ -193,7 +226,6 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
     return;
   }
 
-  
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -208,23 +240,25 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
     .where(eq(shelfProductsTable.userId, req.user.id))
     .orderBy(shelfProductsTable.addedAt);
 
-  if (products.length < 2) {
-    res.status(400).json({ error: "You need at least 2 products on your shelf to analyse your routine." });
-    return;
-  }
-
   const MAX_PRODUCTS = 10;
   const CONCURRENCY = 3;
 
   // Cap to most recently-added products to limit LLM cost
   const cappedProducts = products.slice(-MAX_PRODUCTS);
+  // Wishlist items are not part of routine conflict analysis (SS-023).
+  const forAnalysis = cappedProducts.filter((p) => p.routineSlot !== "wishlist");
+
+  if (forAnalysis.length < 2) {
+    res.status(400).json({ error: "You need at least 2 products on your shelf to analyse your routine." });
+    return;
+  }
 
   const anthropic = new Anthropic({ apiKey });
 
   // Generate all unique product pairs
   const pairs: Array<{ i: number; j: number }> = [];
-  for (let i = 0; i < cappedProducts.length - 1; i++) {
-    for (let j = i + 1; j < cappedProducts.length; j++) {
+  for (let i = 0; i < forAnalysis.length - 1; i++) {
+    for (let j = i + 1; j < forAnalysis.length; j++) {
       pairs.push({ i, j });
     }
   }
@@ -249,8 +283,8 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
 
   try {
     const tasks = pairs.map(({ i, j }) => async () => {
-      const p1 = cappedProducts[i];
-      const p2 = cappedProducts[j];
+      const p1 = forAnalysis[i];
+      const p2 = forAnalysis[j];
       const conflicts = await analyzePair(
         anthropic,
         p1.productName,
