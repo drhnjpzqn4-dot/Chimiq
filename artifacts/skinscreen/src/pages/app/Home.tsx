@@ -79,7 +79,7 @@ export default function HomeScreen() {
             style={{
               fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
               fontSize: 28,
-              fontWeight: 600,
+              fontWeight: 500,
               color: "var(--ink)",
             }}
           >
@@ -180,7 +180,7 @@ export default function HomeScreen() {
                 className="text-lg leading-tight"
                 style={{
                   fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-                  fontWeight: 600,
+                  fontWeight: 500,
                   color: "var(--ink)",
                 }}
               >

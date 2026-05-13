@@ -145,7 +145,7 @@ export default function DiscoverScreen() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-widest text-primary/80">{t("discover.aiAskAnything")}</p>
-              <p className="mt-0.5 font-serif text-xl font-semibold leading-tight">
+              <p className="mt-0.5 font-serif text-xl font-medium leading-tight">
                 {t("discover.aiTitle")}
               </p>
               <p className="mt-1 text-sm text-white/70">
@@ -171,7 +171,7 @@ export default function DiscoverScreen() {
               <Trophy className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-serif text-base font-semibold text-foreground">{t("discover.leaderboardTitle")}</p>
+              <p className="font-serif text-base font-medium text-foreground">{t("discover.leaderboardTitle")}</p>
               <p className="text-xs text-muted-foreground">
                 {t("discover.leaderboardSubtitle")}
               </p>
@@ -189,7 +189,7 @@ export default function DiscoverScreen() {
             style={{
               fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
               fontSize: 28,
-              fontWeight: 600,
+              fontWeight: 500,
               color: "var(--ink)",
             }}
           >
@@ -232,7 +232,7 @@ export default function DiscoverScreen() {
                           </div>
                         )}
                       </div>
-                      <p className="font-serif text-sm font-semibold leading-snug text-foreground line-clamp-2">
+                      <p className="font-serif text-sm font-medium leading-snug text-foreground line-clamp-2">
                         {r.title}
                       </p>
                     </CardContent>
@@ -264,7 +264,7 @@ export default function DiscoverScreen() {
               <Compass className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-serif text-base font-semibold text-foreground">
+              <p className="font-serif text-base font-medium text-foreground">
                 {t("discover.diyProblemsTitle")}
               </p>
               <p className="text-xs text-muted-foreground">{t("discover.diyProblemsSubtitle")}</p>
@@ -279,7 +279,7 @@ export default function DiscoverScreen() {
         <section className="mb-6">
           <div className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-serif text-base font-semibold text-foreground">{t("discover.shareTip")}</h2>
+              <h2 className="font-serif text-base font-medium text-foreground">{t("discover.shareTip")}</h2>
               <Link href="/app/rewards">
                 <a className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-strong hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-strong focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded">
                   <Info className="h-3 w-3" /> {t("discover.rewards")}
@@ -335,7 +335,7 @@ export default function DiscoverScreen() {
             style={{
               fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
               fontSize: 28,
-              fontWeight: 600,
+              fontWeight: 500,
               color: "var(--ink)",
             }}
           >
