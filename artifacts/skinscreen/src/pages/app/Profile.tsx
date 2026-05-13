@@ -462,8 +462,8 @@ export default function ProfileScreen() {
                     key={s.id}
                     className={`rounded-2xl border p-3 ${
                       isRejected
-                        ? "border-[#EAE3DC]"
-                        : "border-[#EAE3DC]"
+                        ? "border-[var(--line)]"
+                        : "border-[var(--line)]"
                     }`}
                     style={
                       isRejected
@@ -489,7 +489,7 @@ export default function ProfileScreen() {
                           isApproved
                             ? {
                                 backgroundColor: "#E8F2E5",
-                                color: "#5B8F5A",
+                                color: "var(--sage-deep)",
                                 fontSize: 10,
                                 padding: "3px 8px",
                                 fontWeight: 600,
@@ -585,12 +585,12 @@ export default function ProfileScreen() {
                     ? "#8C2A1A"
                     : r.riskLevel === "caution"
                       ? "#8A6217"
-                      : "#5B8F5A";
+                      : "var(--sage-deep)";
                 const cardTone = isChanges
-                  ? "border-[#EAE3DC]"
+                  ? "border-[var(--line)]"
                   : isRejected
-                    ? "border-[#EAE3DC]"
-                    : "border-[#EAE3DC]";
+                    ? "border-[var(--line)]"
+                    : "border-[var(--line)]";
                 const cardBg =
                   isChanges
                     ? { backgroundColor: "rgba(251, 243, 220, 0.45)" }
@@ -601,7 +601,7 @@ export default function ProfileScreen() {
                   isApproved
                     ? {
                         backgroundColor: "#E8F2E5",
-                        color: "#5B8F5A",
+                        color: "var(--sage-deep)",
                         fontSize: 10,
                         padding: "3px 8px",
                         fontWeight: 600,
@@ -623,7 +623,7 @@ export default function ProfileScreen() {
                             fontWeight: 600,
                           }
                         : {
-                            backgroundColor: "#FAF6F2",
+                            backgroundColor: "var(--cream)",
                             color: "#5E544C",
                             fontSize: 10,
                             padding: "3px 8px",
@@ -776,7 +776,7 @@ export default function ProfileScreen() {
                 <span className="text-muted-foreground">{t("scan.toGoFmt", { remaining })}</span>
               </p>
             </div>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-[#7BAF7A] shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-[var(--sage)] shadow-sm">
               <Gift className="h-5 w-5" />
             </div>
           </div>
@@ -785,7 +785,7 @@ export default function ProfileScreen() {
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${progressPct}%`,
-                backgroundColor: "#7BAF7A",
+                backgroundColor: "var(--sage)",
               }}
             />
           </div>

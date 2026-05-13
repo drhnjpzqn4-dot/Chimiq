@@ -46,8 +46,6 @@ const LEGAL_BASE = (() => {
   return `${base}/legal`;
 })();
 
-const MEDICAL_SAGE = "#7BAF7A";
-
 type ConsentStep = "terms" | "medical";
 
 interface ProviderProps {
@@ -384,7 +382,7 @@ export function ConsentGateProvider({ children }: ProviderProps) {
                     disabled={!checked}
                     data-testid="consent-medical-continue"
                     className="px-5 py-2.5 rounded-full text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
-                    style={{ backgroundColor: MEDICAL_SAGE }}
+                    style={{ backgroundColor: "var(--sage)" }}
                   >
                     {t("consent.medical.continue")}
                   </button>

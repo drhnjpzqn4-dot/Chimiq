@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { useTranslation } from "@/lib/i18n";
 
-const SAGE = "#7BAF7A";
-const ROSE_GOLD = "#C9967E";
+const SAGE = "var(--sage)";
+const ROSE_GOLD = "var(--rose-gold)";
 
 const BENEFIT_KEYS = ["paywall.benefit1", "paywall.benefit2", "paywall.benefit3"] as const;
 

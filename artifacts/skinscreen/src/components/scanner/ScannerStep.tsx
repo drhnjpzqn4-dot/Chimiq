@@ -33,13 +33,13 @@ export function StepHeader({
                 : "bg-primary"
               : "bg-muted-foreground/40",
           )}
-          style={scan && active ? { backgroundColor: "#7BAF7A" } : undefined}
+          style={scan && active ? { backgroundColor: "var(--sage)" } : undefined}
         >
           {index}
         </div>
         {hasConnector && (
           <div
-            className={cn("w-px flex-1 mt-2", scan ? "bg-[#7BAF7A]/25" : "bg-primary/25")}
+            className={cn("w-px flex-1 mt-2", scan ? "bg-[color-mix(in_srgb,var(--sage)_25%,transparent)]" : "bg-primary/25")}
             style={{ minHeight: 24 }}
           />
         )}
@@ -47,7 +47,7 @@ export function StepHeader({
       <div className="flex-1 min-w-0 pb-8">
         <h3
           className={cn("mb-0.5 mt-1.5 text-[17px] font-bold", scan ? "tracking-[0.08em]" : "text-foreground")}
-          style={scan ? { color: "#1F1A17" } : undefined}
+          style={scan ? { color: "var(--ink)" } : undefined}
         >
           {title}
         </h3>
@@ -72,17 +72,17 @@ interface VerdictCardProps {
 export function VerdictCard({ tone, icon, title, summary }: VerdictCardProps) {
   const wrapStyle =
     tone === "safe"
-      ? { backgroundColor: "#E8F2E5", border: "1px solid #EAE3DC" }
+      ? { backgroundColor: "#E8F2E5", border: "1px solid var(--line)" }
       : tone === "high"
-        ? { backgroundColor: "rgba(252, 228, 224, 0.65)", border: "1px solid #EAE3DC" }
-        : { backgroundColor: "rgba(251, 243, 220, 0.55)", border: "1px solid #EAE3DC" };
+        ? { backgroundColor: "rgba(252, 228, 224, 0.65)", border: "1px solid var(--line)" }
+        : { backgroundColor: "rgba(251, 243, 220, 0.55)", border: "1px solid var(--line)" };
   const iconWrapStyle =
     tone === "safe"
       ? { backgroundColor: "#E8F2E5" }
       : tone === "high"
         ? { backgroundColor: "#FCE4E0" }
         : { backgroundColor: "#FBF3DC" };
-  const titleColor = tone === "safe" ? "#5B8F5A" : tone === "high" ? "#8C2A1A" : "#8A6217";
+  const titleColor = tone === "safe" ? "var(--sage-deep)" : tone === "high" ? "#8C2A1A" : "#8A6217";
   const summaryColor = tone === "safe" ? "#5E544C" : tone === "high" ? "#8C2A1A" : "#8A6217";
 
   return (

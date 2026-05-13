@@ -57,8 +57,8 @@ export function PWAInstallBanner() {
     >
       <div className="bg-white border border-[#E8F0E8] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] overflow-hidden">
         <div className="flex items-start gap-3 p-3">
-          <div className="w-10 h-10 rounded-xl bg-[#7BAF7A]/10 flex items-center justify-center shrink-0">
-            <Smartphone className="w-5 h-5 text-[#7BAF7A]" />
+          <div className="w-10 h-10 rounded-xl bg-[color-mix(in_srgb,var(--sage)_10%,transparent)] flex items-center justify-center shrink-0">
+            <Smartphone className="w-5 h-5 text-[var(--sage)]" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground leading-tight">
@@ -70,7 +70,7 @@ export function PWAInstallBanner() {
             {!expanded && (
               <button
                 onClick={() => setExpanded(true)}
-                className="text-xs font-medium text-[#7BAF7A] mt-2 hover:underline"
+                className="text-xs font-medium text-[var(--sage)] mt-2 hover:underline"
               >
                 Show me how
               </button>
@@ -93,7 +93,7 @@ export function PWAInstallBanner() {
                 <ol className="list-decimal pl-4 space-y-1">
                   <li className="flex items-center gap-1.5 flex-wrap">
                     <span>Tap</span>
-                    <Share className="inline w-3.5 h-3.5 text-[#7BAF7A]" />
+                    <Share className="inline w-3.5 h-3.5 text-[var(--sage)]" />
                     <span>the Share button</span>
                   </li>
                   <li>Scroll and choose <strong>Add to Home Screen</strong></li>
@@ -106,7 +106,7 @@ export function PWAInstallBanner() {
                 <ol className="list-decimal pl-4 space-y-1">
                   <li className="flex items-center gap-1.5 flex-wrap">
                     <span>Tap the</span>
-                    <MoreVertical className="inline w-3.5 h-3.5 text-[#7BAF7A]" />
+                    <MoreVertical className="inline w-3.5 h-3.5 text-[var(--sage)]" />
                     <span>menu</span>
                   </li>
                   <li>Choose <strong>Install app</strong> or <strong>Add to Home screen</strong></li>

@@ -275,8 +275,8 @@ function ConflictCard({ conflict, delay }: { conflict: RoutineConflict; delay?: 
         className="rounded-2xl border p-4"
         style={
           isHighRisk
-            ? { backgroundColor: "rgba(252, 228, 224, 0.55)", borderColor: "#EAE3DC" }
-            : { backgroundColor: "rgba(251, 243, 220, 0.5)", borderColor: "#EAE3DC" }
+            ? { backgroundColor: "rgba(252, 228, 224, 0.55)", borderColor: "var(--line)" }
+            : { backgroundColor: "rgba(251, 243, 220, 0.5)", borderColor: "var(--line)" }
         }
       >
         <div className="flex items-start justify-between gap-2 mb-2">
@@ -401,7 +401,7 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
           aria-expanded={open}
         >
           {overallSafe ? (
-            <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: "#5B8F5A" }} />
+            <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: "var(--sage-deep)" }} />
           ) : highRiskCount > 0 ? (
             <ShieldOff className="h-4 w-4 shrink-0" style={{ color: "#8C2A1A" }} />
           ) : (
@@ -469,11 +469,11 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
           {overallSafe ? (
             <div
               className="flex items-center gap-3 rounded-2xl border p-4"
-              style={{ backgroundColor: "#E8F2E5", borderColor: "#EAE3DC" }}
+              style={{ backgroundColor: "#E8F2E5", borderColor: "var(--line)" }}
             >
-              <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: "#5B8F5A" }} />
+              <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: "var(--sage-deep)" }} />
               <div>
-                <p className="text-sm font-semibold" style={{ color: "#5B8F5A" }}>
+                <p className="text-sm font-semibold" style={{ color: "var(--sage-deep)" }}>
                   {t("myShelf.noConflicts")}
                 </p>
                 <p className="mt-0.5 text-xs" style={{ color: "#5E544C" }}>
@@ -779,7 +779,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
                 className="inline-flex items-center gap-1 rounded-full font-semibold"
                 style={{
                   backgroundColor: "#E8F2E5",
-                  color: "#5B8F5A",
+                  color: "var(--sage-deep)",
                   fontSize: 10,
                   padding: "3px 8px",
                   fontWeight: 600,
@@ -832,14 +832,14 @@ export function MyShelf({ displayName }: MyShelfProps) {
                   fontFamily: "var(--font-sans, ui-sans-serif, system-ui, sans-serif)",
                   ...(active
                     ? {
-                        backgroundColor: "#7BAF7A",
+                        backgroundColor: "var(--sage)",
                         color: "#FFFFFF",
                         border: "1px solid transparent",
                       }
                     : {
-                        backgroundColor: "#FAF6F2",
+                        backgroundColor: "var(--cream)",
                         color: "#5E544C",
-                        border: "1px solid #EAE3DC",
+                        border: "1px solid var(--line)",
                       }),
                 }}
               >
@@ -850,7 +850,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
         </div>
       </div>
 
-      <div className="min-h-[160px] p-4" style={{ backgroundColor: "#FAF6F2" }}>
+      <div className="min-h-[160px] p-4" style={{ backgroundColor: "var(--cream)" }}>
         {shelfQuery.isLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
@@ -955,7 +955,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
                         fontSize: 17,
                         fontWeight: 600,
                         fontFamily: "var(--font-sans, ui-sans-serif, system-ui, sans-serif)",
-                        color: "#1F1A17",
+                        color: "var(--ink)",
                       }}
                     >
                       {product.productName}
@@ -1109,7 +1109,7 @@ export function MyShelfSection() {
 
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Moon className="w-4 h-4 text-[#7BAF7A]" />
+            <Moon className="w-4 h-4 text-[var(--sage)]" />
             <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("myShelf.evening")}</span>
           </div>
           <div className="space-y-2">
