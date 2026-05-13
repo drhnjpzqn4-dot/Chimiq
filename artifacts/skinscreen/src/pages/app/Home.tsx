@@ -80,7 +80,7 @@ export default function HomeScreen() {
               fontFamily: '"Iowan Old Style", Georgia, serif',
               fontSize: 28,
               fontWeight: 600,
-              color: "#1F1A17",
+              color: "var(--ink)",
             }}
           >
             {t("home.greetingFmt", { name: firstName })}
@@ -97,7 +97,7 @@ export default function HomeScreen() {
 
         {/* Sektion 2 — Min hylla (preview) */}
         <section>
-          <Card className="border-[#EAE3DC] bg-white shadow-sm">
+          <Card className="border-[var(--line)] bg-white shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="font-serif text-lg">{t("home.shelfPreviewTitle")}</CardTitle>
               <Link href="/app/shelf">
@@ -129,7 +129,7 @@ export default function HomeScreen() {
                     <li
                       key={p.id}
                       className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5"
-                      style={{ borderColor: "#EAE3DC", backgroundColor: "#FFFFFF" }}
+                      style={{ borderColor: "var(--line)", backgroundColor: "#FFFFFF" }}
                     >
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                         {p.productName}
@@ -151,7 +151,7 @@ export default function HomeScreen() {
 
         {/* Sektion 3 — Bidragsstatus (kompakt) */}
         <section>
-          <Card className="border-[#EAE3DC] bg-white shadow-sm">
+          <Card className="border-[var(--line)] bg-white shadow-sm">
             <CardContent className="pt-6">
               <p className="mb-3 text-sm font-medium text-foreground">
                 {t("home.contributionCompactFmt", {
@@ -164,7 +164,7 @@ export default function HomeScreen() {
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${progressPct}%`,
-                    backgroundColor: "#7BAF7A",
+                    backgroundColor: "var(--sage)",
                   }}
                 />
               </div>
@@ -174,14 +174,14 @@ export default function HomeScreen() {
 
         {/* Sektion 4 — Veckans ingrediens */}
         <section>
-          <Card className="border-[#EAE3DC] bg-white shadow-sm">
+          <Card className="border-[var(--line)] bg-white shadow-sm">
             <CardHeader>
               <CardTitle
                 className="text-lg leading-tight"
                 style={{
                   fontFamily: '"Iowan Old Style", Georgia, serif',
                   fontWeight: 600,
-                  color: "#1F1A17",
+                  color: "var(--ink)",
                 }}
               >
                 {t("home.ingredientWeekTitle")}
@@ -198,7 +198,7 @@ export default function HomeScreen() {
 
         {/* Sektion 5 — Discover Problems */}
         <section>
-          <Card className="border-[#EAE3DC] bg-white shadow-sm">
+          <Card className="border-[var(--line)] bg-white shadow-sm">
             <CardContent className="pt-6">
               <Link href="/app/problems">
                 <a

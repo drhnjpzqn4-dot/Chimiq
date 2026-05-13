@@ -319,8 +319,8 @@ function FlagCard({
         )}
         style={
           isHighRisk
-            ? { backgroundColor: "rgba(252, 228, 224, 0.65)", borderColor: "#EAE3DC" }
-            : { backgroundColor: "rgba(251, 243, 220, 0.55)", borderColor: "#EAE3DC" }
+            ? { backgroundColor: "rgba(252, 228, 224, 0.65)", borderColor: "var(--line)" }
+            : { backgroundColor: "rgba(251, 243, 220, 0.55)", borderColor: "var(--line)" }
         }
       >
         <button
@@ -438,7 +438,7 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
     <FadeIn delay={delay} fullWidth>
       <div
         className="flex h-full flex-col justify-between rounded-3xl border bg-white p-6 shadow-sm sm:p-8"
-        style={{ borderColor: "#EAE3DC" }}
+        style={{ borderColor: "var(--line)" }}
       >
         <div>
           <div className="mb-4 flex items-start justify-between gap-4">
@@ -449,7 +449,7 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
               className="inline-flex shrink-0 items-center gap-1 rounded-full font-semibold uppercase tracking-wide"
               style={{
                 backgroundColor: "#E8F2E5",
-                color: "#5B8F5A",
+                color: "var(--sage-deep)",
                 fontSize: 10,
                 padding: "3px 8px",
                 fontWeight: 600,
@@ -743,7 +743,7 @@ function ProductImageThumb({
           border: "1px solid #C9E4C9",
         }}
       >
-        <FlaskConical style={{ width: size * 0.45, height: size * 0.45, color: "#7BAF7A" }} />
+        <FlaskConical style={{ width: size * 0.45, height: size * 0.45, color: "var(--sage)" }} />
       </div>
     );
   }
@@ -1123,9 +1123,9 @@ export function IngredientScanner({
               )}
               style={
                 ss && mode === "single"
-                  ? { backgroundColor: "#7BAF7A" }
+                  ? { backgroundColor: "var(--sage)" }
                   : ss && mode !== "single"
-                    ? { color: "#7BAF7A" }
+                    ? { color: "var(--sage)" }
                     : undefined
               }
             >
@@ -1148,9 +1148,9 @@ export function IngredientScanner({
               )}
               style={
                 ss && mode === "compare"
-                  ? { backgroundColor: "#7BAF7A" }
+                  ? { backgroundColor: "var(--sage)" }
                   : ss && mode !== "compare"
-                    ? { color: "#7BAF7A" }
+                    ? { color: "var(--sage)" }
                     : undefined
               }
             >
@@ -1169,7 +1169,7 @@ export function IngredientScanner({
                   className={cn(
                     "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border",
                     ss
-                      ? "bg-[#7BAF7A]/20 text-[#2f5530] border-[#7BAF7A]/40"
+                      ? "bg-[color-mix(in_srgb,var(--sage)_20%,transparent)] text-[var(--sage-deep)] border-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
                       : "bg-indigo-100 text-indigo-700 border-indigo-300",
                   )}
                 >
@@ -1181,7 +1181,7 @@ export function IngredientScanner({
                   "flex-1 min-w-0",
                   ss && "rounded-xl border-l-4 border-transparent bg-[#FFFDFB] shadow-sm pl-4 pr-3 py-3",
                 )}
-                style={ss ? { borderLeftColor: "#7BAF7A" } : undefined}
+                style={ss ? { borderLeftColor: "var(--sage)" } : undefined}
               >
                 <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.choosePopular")}</h4>
                 <p className="text-xs text-muted-foreground mb-3">{t("scanner.choosePopularHint")}</p>
@@ -1221,7 +1221,7 @@ export function IngredientScanner({
                   className={cn(
                     "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border",
                     ss
-                      ? "bg-[#7BAF7A]/20 text-[#2f5530] border-[#7BAF7A]/40"
+                      ? "bg-[color-mix(in_srgb,var(--sage)_20%,transparent)] text-[var(--sage-deep)] border-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
                       : "bg-amber-100 text-amber-700 border-amber-300",
                   )}
                 >
@@ -1233,7 +1233,7 @@ export function IngredientScanner({
                   "flex-1 min-w-0",
                   ss && "rounded-xl border-l-4 border-transparent bg-[#FFFDFB] shadow-sm pl-4 pr-3 py-3",
                 )}
-                style={ss ? { borderLeftColor: "#7BAF7A" } : undefined}
+                style={ss ? { borderLeftColor: "var(--sage)" } : undefined}
               >
                 <h4 className="font-semibold text-[14px] text-foreground mb-0.5">{t("scanner.scanOwn")}</h4>
                 <p className="text-xs text-muted-foreground mb-3">{t("scanner.scanOwnHint")}</p>
@@ -1359,7 +1359,7 @@ export function IngredientScanner({
             style={
               ss
                 ? {
-                    backgroundColor: "#7BAF7A",
+                    backgroundColor: "var(--sage)",
                     color: "#FFFFFF",
                     borderRadius: 999,
                     padding: 14,
@@ -1445,7 +1445,7 @@ export function IngredientScanner({
             }
             icon={
               singleResult.overallSafe ? (
-                <ShieldCheck className="h-6 w-6" style={{ color: "#5B8F5A" }} />
+                <ShieldCheck className="h-6 w-6" style={{ color: "var(--sage-deep)" }} />
               ) : (
                 <AlertTriangle
                   className="h-6 w-6"
@@ -1521,7 +1521,7 @@ export function IngredientScanner({
                           }
                           aria-label={t("scanner.seeDetailsForFmt", { name: ing })}
                           className={cn(
-                            "cursor-pointer rounded-full leading-snug transition-colors hover:brightness-95 active:brightness-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7BAF7A]/40",
+                            "cursor-pointer rounded-full leading-snug transition-colors hover:brightness-95 active:brightness-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]",
                           )}
                           style={
                             tone === "high"
@@ -1542,7 +1542,7 @@ export function IngredientScanner({
                                   }
                                 : {
                                     backgroundColor: "#E8F2E5",
-                                    color: "#5B8F5A",
+                                    color: "var(--sage-deep)",
                                     fontSize: 10,
                                     padding: "3px 8px",
                                     fontWeight: 600,
@@ -1683,9 +1683,12 @@ export function IngredientScanner({
                   canvas.width = W; canvas.height = H;
                   const ctx = canvas.getContext("2d");
                   if (!ctx) return;
+                  const sage =
+                    getComputedStyle(document.documentElement).getPropertyValue("--sage").trim() ||
+                    "#3C5C44";
                   ctx.fillStyle = "#F7FAF7"; ctx.fillRect(0, 0, W, H);
-                  ctx.fillStyle = "#7BAF7A"; ctx.fillRect(0, 0, W, 10);
-                  ctx.fillStyle = "#7BAF7A"; ctx.font = "600 28px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText("Chimiq", 80, 90);
+                  ctx.fillStyle = sage; ctx.fillRect(0, 0, W, 10);
+                  ctx.fillStyle = sage; ctx.font = "600 28px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText("Chimiq", 80, 90);
                   ctx.fillStyle = "#1A1A1A"; ctx.font = "700 52px Georgia, serif"; ctx.textAlign = "center";
                   const name = productName || t("scanner.scannedProductFallback");
                   ctx.fillText(name.length > 36 ? name.slice(0, 35) + "…" : name, W / 2, 240);
@@ -1703,7 +1706,7 @@ export function IngredientScanner({
                     }
                     if (line.trim()) ctx.fillText(line.trim(), W/2, y);
                   }
-                  ctx.fillStyle = "#7BAF7A"; ctx.font = "600 34px Inter, sans-serif"; ctx.textAlign = "center"; ctx.fillText("chimiq.com", W / 2, H - 80);
+                  ctx.fillStyle = sage; ctx.font = "600 34px Inter, sans-serif"; ctx.textAlign = "center"; ctx.fillText("chimiq.com", W / 2, H - 80);
                   canvas.toBlob((blob) => {
                     if (!blob) return;
                     const file = new File([blob], "chimiq-result.png", { type: "image/png" });
@@ -1808,7 +1811,7 @@ export function IngredientScanner({
             }
             icon={
               compareResult.overallSafe && compareConflicts.length === 0 ? (
-                <ShieldCheck className="h-6 w-6" style={{ color: "#5B8F5A" }} />
+                <ShieldCheck className="h-6 w-6" style={{ color: "var(--sage-deep)" }} />
               ) : (
                 <AlertTriangle
                   className="h-6 w-6"
@@ -1893,13 +1896,13 @@ export function IngredientScanner({
           {safeConflicts.length > 0 && (
             <div>
               <FadeIn>
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: "#5B8F5A" }}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold" style={{ color: "var(--sage-deep)" }}>
                   {t("scanner.commonlySafe")}
                   <span
                     className="inline-flex items-center rounded-full font-semibold"
                     style={{
                       backgroundColor: "#E8F2E5",
-                      color: "#5B8F5A",
+                      color: "var(--sage-deep)",
                       fontSize: 10,
                       padding: "3px 8px",
                       fontWeight: 600,

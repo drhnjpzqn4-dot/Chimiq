@@ -56,19 +56,19 @@ export default function RecipeDetailPage() {
   > = useMemo(
     () => ({
       safe: {
-        panelStyle: { backgroundColor: "#E8F2E5", border: "1px solid #EAE3DC" },
-        headerColor: "#5B8F5A",
+        panelStyle: { backgroundColor: "#E8F2E5", border: "1px solid var(--line)" },
+        headerColor: "var(--sage-deep)",
         label: t("recipeDetail.riskSafe"),
         Icon: Check,
       },
       caution: {
-        panelStyle: { backgroundColor: "#FBF3DC", border: "1px solid #EAE3DC" },
+        panelStyle: { backgroundColor: "#FBF3DC", border: "1px solid var(--line)" },
         headerColor: "#8A6217",
         label: t("recipeDetail.riskCaution"),
         Icon: AlertTriangle,
       },
       high_risk: {
-        panelStyle: { backgroundColor: "#FCE4E0", border: "1px solid #EAE3DC" },
+        panelStyle: { backgroundColor: "#FCE4E0", border: "1px solid var(--line)" },
         headerColor: "#8C2A1A",
         label: t("recipeDetail.riskHigh"),
         Icon: Ban,

@@ -63,7 +63,7 @@ export default function RecipesPage() {
   > = useMemo(
     () => ({
       safe: {
-        pill: { backgroundColor: "#E8F2E5", color: "#5B8F5A" },
+        pill: { backgroundColor: "#E8F2E5", color: "var(--sage-deep)" },
         label: t("recipes.badgeSafe"),
         Icon: Check,
       },
@@ -278,9 +278,9 @@ function FilterRow<T extends string>({
               className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
                 active
                   ? "text-white"
-                  : "border-[#EAE3DC] bg-white text-[#1F1A17] hover:bg-[#FAF6F2]"
+                  : "border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--cream)]"
               }`}
-              style={active ? { borderColor: "#7BAF7A", backgroundColor: "#7BAF7A" } : { borderColor: "#EAE3DC" }}
+              style={active ? { borderColor: "var(--sage)", backgroundColor: "var(--sage)" } : { borderColor: "var(--line)" }}
             >
               {displayLabel ? displayLabel(o) : o}
             </button>

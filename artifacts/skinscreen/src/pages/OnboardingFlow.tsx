@@ -22,7 +22,7 @@ function ProgressDots({ activeIndex }: { activeIndex: number }) {
         <span
           key={i}
           className="h-2 w-2 rounded-full"
-          style={{ backgroundColor: i <= activeIndex ? "#7BAF7A" : "#EAE3DC" }}
+          style={{ backgroundColor: i <= activeIndex ? "var(--sage)" : "var(--line)" }}
         />
       ))}
     </div>
@@ -47,7 +47,7 @@ function SelectableCard({
       data-touch-target
       className="w-full rounded-2xl border-[1.5px] p-4 text-left transition-colors"
       style={{
-        borderColor: selected ? "#7BAF7A" : "#EAE3DC",
+        borderColor: selected ? "var(--sage)" : "var(--line)",
         backgroundColor: selected ? "#E8F2E5" : "#FFFFFF",
       }}
     >
@@ -55,7 +55,7 @@ function SelectableCard({
         className="text-base font-semibold leading-snug"
         style={{
           fontFamily: '"Iowan Old Style", Georgia, serif',
-          color: "#1F1A17",
+          color: "var(--ink)",
         }}
       >
         {title}
@@ -72,7 +72,7 @@ function headingStyle(): CSSProperties {
     fontFamily: '"Iowan Old Style", Georgia, serif',
     fontSize: 26,
     fontWeight: 600,
-    color: "#1F1A17",
+    color: "var(--ink)",
   };
 }
 
@@ -111,7 +111,7 @@ export default function OnboardingFlow() {
     return (
       <div
         className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: "#FAF6F2" }}
+        style={{ backgroundColor: "var(--cream)" }}
       >
         <p className="text-sm" style={{ color: "#5E544C" }}>
           {t("common.loading")}
@@ -129,7 +129,7 @@ export default function OnboardingFlow() {
   }
 
   const primaryButtonStyle = (enabled: boolean): CSSProperties => ({
-    backgroundColor: enabled ? "#7BAF7A" : "#EAE3DC",
+    backgroundColor: enabled ? "var(--sage)" : "var(--line)",
     color: enabled ? "#FFFFFF" : "#5E544C",
     boxShadow: enabled ? "0 2px 6px rgba(91,143,90,.25)" : "none",
   });
@@ -170,7 +170,7 @@ export default function OnboardingFlow() {
   return (
     <div
       className="min-h-screen px-5 pb-10 pt-[max(1.5rem,var(--safe-top))]"
-      style={{ backgroundColor: "#FAF6F2" }}
+      style={{ backgroundColor: "var(--cream)" }}
     >
       <div className="mx-auto w-full max-w-md">
         {step >= 1 && step <= 4 && <ProgressDots activeIndex={progressIndex} />}
@@ -192,7 +192,7 @@ export default function OnboardingFlow() {
                 fontFamily: '"Iowan Old Style", Georgia, serif',
                 fontSize: 28,
                 fontWeight: 600,
-                color: "#1F1A17",
+                color: "var(--ink)",
               }}
             >
               {t("onboarding.welcomeTitle")}
@@ -221,7 +221,7 @@ export default function OnboardingFlow() {
               {t("onboarding.nameHint")}
             </p>
             <Input
-              className="mt-6 h-12 rounded-xl border-[#EAE3DC] bg-white"
+              className="mt-6 h-12 rounded-xl border-[var(--line)] bg-white"
               placeholder={t("onboarding.namePlaceholder")}
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}

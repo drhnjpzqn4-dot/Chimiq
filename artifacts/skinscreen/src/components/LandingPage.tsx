@@ -171,7 +171,7 @@ function ContactFooterForm() {
         onChange={(e) => setName(e.target.value)}
         placeholder={t("footer.namePlaceholder")}
         required
-        className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/30 focus:border-[#7BAF7A]/50"
+        className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--sage)_30%,transparent)] focus:border-[color-mix(in_srgb,var(--sage)_50%,transparent)]"
       />
       <input
         type="email"
@@ -179,7 +179,7 @@ function ContactFooterForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder={t("footer.emailPlaceholder")}
         required
-        className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/30 focus:border-[#7BAF7A]/50"
+        className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--sage)_30%,transparent)] focus:border-[color-mix(in_srgb,var(--sage)_50%,transparent)]"
       />
       <textarea
         value={message}
@@ -187,7 +187,7 @@ function ContactFooterForm() {
         placeholder={t("footer.messagePlaceholder")}
         rows={4}
         required
-        className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/30 focus:border-[#7BAF7A]/50 resize-none"
+        className="w-full px-4 py-2.5 rounded-xl border border-[#DCE9DC] bg-white text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--sage)_30%,transparent)] focus:border-[color-mix(in_srgb,var(--sage)_50%,transparent)] resize-none"
       />
       <button
         type="submit"
@@ -536,7 +536,7 @@ export function LandingPage({ config }: LandingPageProps) {
                 <div className="mb-5">
                   <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="10" y="5" width="50" height="56" rx="8" fill="white" stroke="#DCE9DC" strokeWidth="1.5"/>
-                    <rect x="19" y="16" width="24" height="3" rx="1.5" fill="#7BAF7A"/>
+                    <rect x="19" y="16" width="24" height="3" rx="1.5" fill="var(--sage)"/>
                     <rect x="19" y="24" width="32" height="2" rx="1" fill="#C8DCC8"/>
                     <rect x="19" y="29" width="27" height="2" rx="1" fill="#C8DCC8"/>
                     <rect x="19" y="34" width="30" height="2" rx="1" fill="#C8DCC8"/>
@@ -572,12 +572,12 @@ export function LandingPage({ config }: LandingPageProps) {
                   <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
                     {/* Bottle 1 — left */}
                     <rect x="8" y="30" width="16" height="32" rx="5" fill="#A8CFA7"/>
-                    <rect x="11" y="22" width="10" height="10" rx="3" fill="#7BAF7A"/>
+                    <rect x="11" y="22" width="10" height="10" rx="3" fill="var(--sage)"/>
                     <rect x="13" y="18" width="6" height="6" rx="2" fill="#5A9959"/>
                     <rect x="10" y="42" width="12" height="2" rx="1" fill="white" opacity="0.5"/>
                     <rect x="10" y="46" width="8" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
                     {/* Bottle 2 — centre (taller) */}
-                    <rect x="32" y="24" width="16" height="38" rx="5" fill="#7BAF7A"/>
+                    <rect x="32" y="24" width="16" height="38" rx="5" fill="var(--sage)"/>
                     <rect x="35" y="16" width="10" height="10" rx="3" fill="#5A9959"/>
                     <rect x="37" y="12" width="6" height="6" rx="2" fill="#3E7A3D"/>
                     <rect x="34" y="38" width="12" height="2" rx="1" fill="white" opacity="0.5"/>
@@ -585,7 +585,7 @@ export function LandingPage({ config }: LandingPageProps) {
                     {/* Bottle 3 — right */}
                     <rect x="56" y="30" width="16" height="32" rx="5" fill="#B8D9B7"/>
                     <rect x="59" y="22" width="10" height="10" rx="3" fill="#8FC48E"/>
-                    <rect x="61" y="18" width="6" height="6" rx="2" fill="#7BAF7A"/>
+                    <rect x="61" y="18" width="6" height="6" rx="2" fill="var(--sage)"/>
                     <rect x="58" y="42" width="12" height="2" rx="1" fill="white" opacity="0.5"/>
                     <rect x="58" y="46" width="8" height="1.5" rx="0.75" fill="white" opacity="0.35"/>
                   </svg>

@@ -190,7 +190,7 @@ export default function DiscoverScreen() {
               fontFamily: '"Iowan Old Style", Georgia, serif',
               fontSize: 28,
               fontWeight: 600,
-              color: "#1F1A17",
+              color: "var(--ink)",
             }}
           >
             {t("discover.diyTitle")}
@@ -336,7 +336,7 @@ export default function DiscoverScreen() {
               fontFamily: '"Iowan Old Style", Georgia, serif',
               fontSize: 28,
               fontWeight: 600,
-              color: "#1F1A17",
+              color: "var(--ink)",
             }}
           >
             {t("discover.topTips")}

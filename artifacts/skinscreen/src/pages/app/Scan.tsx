@@ -289,7 +289,7 @@ export default function ScanScreen() {
 
   return (
     <AppShell title={t("scan.title")} subtitle={t("scan.subtitle")}>
-      <div className="-mx-4 space-y-5 px-4 pb-6 sm:space-y-6" style={{ backgroundColor: "#FAF6F2" }}>
+      <div className="-mx-4 space-y-5 px-4 pb-6 sm:space-y-6" style={{ backgroundColor: "var(--cream)" }}>
       {/* SCAN PRODUCT — V11 choice cards (scan vs database) */}
       <section className="mb-6 animate-pop-in">
         <div className="mb-2 flex items-center justify-between">
@@ -341,7 +341,7 @@ export default function ScanScreen() {
         >
           <BarcodeScanButton
             onResult={handleScannedFromCard}
-            triggerClassName="block w-full rounded-[16px] border-[1.5px] border-[#EAE3DC] bg-white text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[#7BAF7A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7BAF7A]/40"
+            triggerClassName="block w-full rounded-[16px] border-[1.5px] border-[var(--line)] bg-white text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
             triggerContent={
               <div
                 className="flex min-h-[160px] flex-col items-center justify-center text-center"
@@ -356,7 +356,7 @@ export default function ScanScreen() {
                     width={28}
                     height={28}
                     strokeWidth={2.25}
-                    style={{ color: "#7BAF7A" }}
+                    style={{ color: "var(--sage)" }}
                     aria-hidden
                   />
                 </span>
@@ -365,7 +365,7 @@ export default function ScanScreen() {
                     fontFamily: '"Iowan Old Style", Georgia, serif',
                     fontSize: 18,
                     fontWeight: 600,
-                    color: "#1F1A17",
+                    color: "var(--ink)",
                   }}
                 >
                   {t("scan.choiceNewTitle")}
@@ -381,7 +381,7 @@ export default function ScanScreen() {
             type="button"
             onClick={() => navigate("/app/browse")}
             data-touch-target
-            className="flex min-h-[160px] w-full flex-col items-center justify-center rounded-[16px] border-[1.5px] border-[#B5705B] text-center transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[#A06D54] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B5705B]/35"
+            className="flex min-h-[160px] w-full flex-col items-center justify-center rounded-[16px] border-[1.5px] border-[#B5705B] text-center transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--rose-gold-deep)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B5705B]/35"
             style={{ backgroundColor: "#F2DECE", padding: "32px 24px" }}
             aria-label={t("scan.choiceSearchTitle")}
           >
@@ -394,7 +394,7 @@ export default function ScanScreen() {
                 width={28}
                 height={28}
                 strokeWidth={2.25}
-                style={{ color: "#A06D54" }}
+                style={{ color: "var(--rose-gold-deep)" }}
                 aria-hidden
               />
             </span>
@@ -403,7 +403,7 @@ export default function ScanScreen() {
                 fontFamily: '"Iowan Old Style", Georgia, serif',
                 fontSize: 18,
                 fontWeight: 600,
-                color: "#1F1A17",
+                color: "var(--ink)",
               }}
             >
               {t("scan.choiceSearchTitle")}
@@ -419,7 +419,7 @@ export default function ScanScreen() {
       {(seedLoading || seedErrorKey) && (
         <div
           className="mb-3 flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm"
-          style={{ borderColor: "#EAE3DC", backgroundColor: "#FFFFFF" }}
+          style={{ borderColor: "var(--line)", backgroundColor: "#FFFFFF" }}
         >
           {seedLoading ? (
             <Loader2 className="h-4 w-4 shrink-0 animate-spin" style={{ color: "#5E544C" }} />
@@ -459,7 +459,7 @@ export default function ScanScreen() {
                   style={{
                     backgroundColor:
                       r.verdict === "safe"
-                        ? "#5B8F5A"
+                        ? "var(--sage-deep)"
                         : r.verdict === "high"
                           ? "#8C2A1A"
                           : "#8A6217",
@@ -494,7 +494,7 @@ export default function ScanScreen() {
               type="button"
               onClick={() => navigate("/app/browse")}
               data-touch-target
-              className="flex flex-col items-center bg-white text-center transition-[transform,border-color] hover:-translate-y-0.5 border-[1.5px] border-[#EAE3DC] hover:border-[#7BAF7A]"
+              className="flex flex-col items-center bg-white text-center transition-[transform,border-color] hover:-translate-y-0.5 border-[1.5px] border-[var(--line)] hover:border-[var(--sage)]"
               style={{
                 borderRadius: 18,
                 padding: "22px 18px",
@@ -504,14 +504,14 @@ export default function ScanScreen() {
                 className="mb-3 flex h-14 w-14 shrink-0 items-center justify-center"
                 style={{ borderRadius: 16, backgroundColor: "#E8F2E5" }}
               >
-                <PackageSearch className="h-6 w-6" style={{ color: "#5B8F5A" }} aria-hidden />
+                <PackageSearch className="h-6 w-6" style={{ color: "var(--sage-deep)" }} aria-hidden />
               </span>
               <span
                 style={{
                   fontFamily: '"Iowan Old Style", Georgia, serif',
                   fontSize: 18,
                   fontWeight: 600,
-                  color: "#1F1A17",
+                  color: "var(--ink)",
                 }}
               >
                 {t("scan.browseProducts")}
@@ -524,7 +524,7 @@ export default function ScanScreen() {
               type="button"
               onClick={() => navigate("/app/discover")}
               data-touch-target
-              className="flex flex-col items-center bg-white text-center transition-[transform,border-color] hover:-translate-y-0.5 border-[1.5px] border-[#EAE3DC] hover:border-[#7BAF7A]"
+              className="flex flex-col items-center bg-white text-center transition-[transform,border-color] hover:-translate-y-0.5 border-[1.5px] border-[var(--line)] hover:border-[var(--sage)]"
               style={{
                 borderRadius: 18,
                 padding: "22px 18px",
@@ -534,14 +534,14 @@ export default function ScanScreen() {
                 className="mb-3 flex h-14 w-14 shrink-0 items-center justify-center"
                 style={{ borderRadius: 16, backgroundColor: "#E8F2E5" }}
               >
-                <Compass className="h-6 w-6" style={{ color: "#5B8F5A" }} aria-hidden />
+                <Compass className="h-6 w-6" style={{ color: "var(--sage-deep)" }} aria-hidden />
               </span>
               <span
                 style={{
                   fontFamily: '"Iowan Old Style", Georgia, serif',
                   fontSize: 18,
                   fontWeight: 600,
-                  color: "#1F1A17",
+                  color: "var(--ink)",
                 }}
               >
                 {t("scan.discoverArticles")}
@@ -572,7 +572,7 @@ export default function ScanScreen() {
           aria-live="polite"
         >
           <span>
-            <span className="font-semibold" style={{ color: "#1F1A17" }}>
+            <span className="font-semibold" style={{ color: "var(--ink)" }}>
               {scansToday === 1
                 ? t("scan.scansTodayOneFmt", { count: scansToday })
                 : t("scan.scansTodayManyFmt", { count: scansToday })}

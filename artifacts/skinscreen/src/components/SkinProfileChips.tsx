@@ -10,8 +10,6 @@ const SKIN_PROFILE_OPTIONS: { value: SkinProfile; labelKey: string }[] = [
   { value: "pregnant", labelKey: "scanner.skinType.pregnant" },
 ];
 
-const SAGE = "#7BAF7A";
-
 function readStored(): SkinProfile | undefined {
   if (typeof window === "undefined") return undefined;
   try {
@@ -58,14 +56,14 @@ export function SkinProfileChips() {
               onClick={() => setValue((v) => (v === p.value ? undefined : p.value))}
               className={cn(
                 "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-150",
-                "focus:outline-none focus:ring-2 focus:ring-[#7BAF7A]/40 focus:ring-offset-2 focus:ring-offset-white",
+                "focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)] focus:ring-offset-2 focus:ring-offset-white",
                 value === p.value
                   ? "border-transparent text-white shadow-sm"
-                  : "border-border/60 bg-white text-muted-foreground hover:border-[#7BAF7A]/50 hover:text-foreground",
+                  : "border-border/60 bg-white text-muted-foreground hover:border-[color-mix(in_srgb,var(--sage)_50%,transparent)] hover:text-foreground",
               )}
               style={
                 value === p.value
-                  ? { backgroundColor: SAGE, borderColor: SAGE, color: "#fff" }
+                  ? { backgroundColor: "var(--sage)", borderColor: "var(--sage)", color: "#fff" }
                   : undefined
               }
               data-touch-target

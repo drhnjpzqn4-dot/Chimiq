@@ -12,7 +12,7 @@ const DOT: Record<IngredientStatusLevel, CSSProperties> = {
     height: 10,
     borderRadius: "50%",
     backgroundColor: "#DCE7DC",
-    border: "1.5px solid #7BAF7A",
+    border: "1.5px solid var(--sage)",
     boxSizing: "border-box",
     flexShrink: 0,
   },
