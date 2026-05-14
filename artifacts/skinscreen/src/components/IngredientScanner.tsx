@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import {
@@ -50,6 +50,27 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConflictResult } from "@workspace/api-client-react";
+
+/** SS-025 / Sprint 6: detect LLM “routine advice” copy to swap for CosIng fact line. */
+const ROUTINE_ADVICE_RE =
+  /rutin|routine|skippa|skip|ikväll|i\s*kväll|tonight|funkar\s+bra|works\s+well|with\s+your\s+routine/i;
+
+function containsRoutineAdviceText(title: string, summary: string): boolean {
+  return ROUTINE_ADVICE_RE.test(`${title}\n${summary}`);
+}
+
+function cosIngFactSuffix(locale: Locale): string {
+  switch (locale) {
+    case "sv":
+      return "Källa: EU CosIng";
+    case "fr":
+      return "Source : CosIng UE";
+    case "es":
+      return "Fuente: CosIng UE";
+    default:
+      return "Source: EU CosIng";
+  }
+}
 
 const PLACEHOLDER_SINGLE = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, Cetearyl Alcohol, DMDM Hydantoin, Sodium Hyaluronate, Butylene Glycol, Fragrance, Carbomer`;
 const PLACEHOLDER_1 = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, Cetearyl Alcohol, Phenoxyethanol, Sodium Hyaluronate, Butylene Glycol, Carbomer`;
@@ -1150,7 +1171,7 @@ export function IngredientScanner({
   /** SS-015: Scan page palette for toggle, A/B cards, and Analyze control. */
   scanVisualStyle?: boolean;
 } = {}) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const ss = scanVisualStyle === true;
   const [mode, setMode] = useState<"single" | "compare">("single");
   const [ingredients, setIngredients] = useState("");
@@ -1352,6 +1373,40 @@ export function IngredientScanner({
 
   const singleHighRisk = singleResult?.flags.filter((f) => f.severity === "HIGH_RISK") ?? [];
   const singleCaution = singleResult?.flags.filter((f) => f.severity === "CAUTION") ?? [];
+
+  const singleScanHero = useMemo(() => {
+    if (!singleResult) return { title: "", summary: undefined as string | undefined };
+    if (singleResult.overallSafe) {
+      const title = "No major concerns found";
+      const summary = singleResult.verdictSummary ?? "";
+      if (ingredients.trim() && containsRoutineAdviceText(title, summary)) {
+        const rows = ingredients.split(",").map((s) => s.trim()).filter(Boolean);
+        const flagged = new Set(singleResult.flags.map((f) => f.ingredient.toLowerCase().trim()));
+        const nSafe = rows.filter((ing) => !flagged.has(ing.toLowerCase())).length;
+        const nHigh = singleResult.flags.filter((f) => f.severity === "HIGH_RISK").length;
+        const nCaution = singleResult.flags.filter((f) => f.severity === "CAUTION").length;
+        return {
+          title,
+          summary: `${nSafe} ✓ · ${nCaution} ⚠ · ${nHigh} ⊘ — ${cosIngFactSuffix(locale)}`,
+        };
+      }
+      return { title, summary: summary || undefined };
+    }
+    const title = singleResult.verdictTitle;
+    const summary = singleResult.verdictSummary ?? "";
+    if (!ingredients.trim() || !containsRoutineAdviceText(title, summary)) {
+      return { title, summary: summary || undefined };
+    }
+    const rows = ingredients.split(",").map((s) => s.trim()).filter(Boolean);
+    const flagged = new Set(singleResult.flags.map((f) => f.ingredient.toLowerCase().trim()));
+    const nSafe = rows.filter((ing) => !flagged.has(ing.toLowerCase())).length;
+    const nHigh = singleResult.flags.filter((f) => f.severity === "HIGH_RISK").length;
+    const nCaution = singleResult.flags.filter((f) => f.severity === "CAUTION").length;
+    return {
+      title: `${nSafe} ✓ · ${nCaution} ⚠ · ${nHigh} ⊘`,
+      summary: cosIngFactSuffix(locale),
+    };
+  }, [singleResult, ingredients, locale]);
 
   const compareConflicts = compareResult?.conflicts ?? [];
   const highRiskConflicts = compareConflicts.filter((c) => c.severity === "HIGH_RISK");
@@ -1744,22 +1799,15 @@ export function IngredientScanner({
                 />
               )
             }
-            title={
-              singleResult.overallSafe
-                ? "No major concerns found"
-                : singleResult.verdictTitle
-            }
-            summary={singleResult.verdictSummary ?? undefined}
+            title={singleScanHero.title}
+            summary={singleScanHero.summary}
           />
 
           <FadeIn>
             <ScannerRoutineShelfBlock productName={productName} ingredients={ingredients} />
           </FadeIn>
 
-          {/* Compact ingredient chip strip (Variant C styling) — every parsed
-              ingredient as a small pill, with flagged ones tinted by severity.
-              Sits between the verdict and the detailed flag cards so users get
-              a quick visual scan of what was found. */}
+          {/* SS-025: tapbare ingrediens-rader → IngredientDetailSheet */}
           {ingredients.trim() && (
             <FadeIn>
               <div className="space-y-2.5">
@@ -1779,7 +1827,7 @@ export function IngredientScanner({
                     })()}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-1.5 rounded-2xl border border-border/50 bg-white p-3.5">
+                <div className="divide-y divide-border/50 overflow-hidden rounded-2xl border border-border/50 bg-white">
                   {ingredients
                     .split(",")
                     .map((s) => s.trim())
@@ -1794,6 +1842,36 @@ export function IngredientScanner({
                       );
                       const tone = high ? "high" : caution ? "caution" : "neutral";
                       const flagSource = high ?? caution ?? null;
+                      const pillStyle =
+                        tone === "high"
+                          ? {
+                              backgroundColor: "#FCE4E0",
+                              color: "#8C2A1A",
+                              fontSize: 10,
+                              padding: "3px 8px",
+                              fontWeight: 600,
+                            }
+                          : tone === "caution"
+                            ? {
+                                backgroundColor: "#FBF3DC",
+                                color: "#8A6217",
+                                fontSize: 10,
+                                padding: "3px 8px",
+                                fontWeight: 600,
+                              }
+                            : {
+                                backgroundColor: "#E8F2E5",
+                                color: "var(--sage-deep)",
+                                fontSize: 10,
+                                padding: "3px 8px",
+                                fontWeight: 600,
+                              };
+                      const pillLabel =
+                        tone === "high"
+                          ? t("scanner.highRisk")
+                          : tone === "caution"
+                            ? t("scanner.caution")
+                            : t("scanner.safe");
                       return (
                         <button
                           type="button"
@@ -1814,35 +1892,28 @@ export function IngredientScanner({
                           }
                           aria-label={t("scanner.seeDetailsForFmt", { name: ing })}
                           className={cn(
-                            "cursor-pointer rounded-full leading-snug transition-colors hover:brightness-95 active:brightness-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]",
+                            "flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-black/[0.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]",
                           )}
                           style={
-                            tone === "high"
-                              ? {
-                                  backgroundColor: "#FCE4E0",
-                                  color: "#8C2A1A",
-                                  fontSize: 10,
-                                  padding: "3px 8px",
-                                  fontWeight: 600,
-                                }
-                              : tone === "caution"
-                                ? {
-                                    backgroundColor: "#FBF3DC",
-                                    color: "#8A6217",
-                                    fontSize: 10,
-                                    padding: "3px 8px",
-                                    fontWeight: 600,
-                                  }
-                                : {
-                                    backgroundColor: "#E8F2E5",
-                                    color: "var(--sage-deep)",
-                                    fontSize: 10,
-                                    padding: "3px 8px",
-                                    fontWeight: 600,
-                                  }
+                            tone === "high" || tone === "caution"
+                              ? { backgroundColor: "#FFFBF2" }
+                              : undefined
                           }
+                          data-touch-target
                         >
-                          {ing}
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{ing}</span>
+                          <span
+                            className="inline-flex shrink-0 items-center rounded-full leading-snug font-semibold uppercase tracking-wide"
+                            style={pillStyle}
+                          >
+                            {pillLabel}
+                          </span>
+                          <ChevronRight
+                            className="h-[14px] w-[14px] shrink-0"
+                            strokeWidth={1.75}
+                            style={{ color: "var(--ink-soft)" }}
+                            aria-hidden
+                          />
                         </button>
                       );
                     })}
