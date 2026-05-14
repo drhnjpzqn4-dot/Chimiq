@@ -181,6 +181,16 @@
 .animate-tap-bounce { animation: tap-bounce 0.18s ease-out; }
 .animate-ring-pulse { animation: ring-pulse 1.6s ease-out infinite; }
 
+@layer utilities {
+  @keyframes pulse-warning {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  .animate-pulse-warning {
+    animation: pulse-warning 2.4s ease-in-out infinite;
+  }
+}
+
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -264,6 +274,7 @@
   .animate-pop-in,
   .animate-tap-bounce,
   .animate-ring-pulse,
+  .animate-pulse-warning,
   .skeleton {
     animation: none !important;
   }

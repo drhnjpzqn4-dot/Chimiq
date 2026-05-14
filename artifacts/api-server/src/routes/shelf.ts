@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
-import { db, shelfProductsTable, getUserPlan } from "@workspace/db";
+import { db, shelfProductsTable, getUserPlan, type ShelfProduct } from "@workspace/db";
 import { eq, and, count } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
 import {
@@ -212,6 +212,29 @@ async function analyzePair(
     return [];
   }
 }
+
+router.get("/shelf/status", async (req: Request, res: Response) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ hasConflicts: false, hasRecall: false });
+    return;
+  }
+  try {
+    const products = await db
+      .select()
+      .from(shelfProductsTable)
+      .where(eq(shelfProductsTable.userId, req.user.id));
+
+    const hasConflicts = products.some(
+      (p: ShelfProduct) => (p as Record<string, unknown>).routineConflict === true,
+    );
+    const hasRecall = products.some(
+      (p: ShelfProduct) => (p as Record<string, unknown>).recallActive === true,
+    );
+    res.json({ hasConflicts, hasRecall });
+  } catch {
+    res.status(500).json({ hasConflicts: false, hasRecall: false });
+  }
+});
 
 // Why no premium gate: this endpoint runs N×(N-1)/2 Sonnet calls across the
 // user's shelf, but the shelf itself is already plan-bounded — free users

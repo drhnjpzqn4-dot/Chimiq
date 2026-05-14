@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { BottomTabBar } from "@/components/BottomTabBar";
+import { WarningIndicator } from "@/components/WarningIndicator";
 
 interface AppShellProps {
   title?: string;
@@ -46,13 +47,9 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
             </span>
             <span className="sr-only">Chimiq</span>
           </a>
-          <div
-            className="flex min-h-[2.25rem] min-w-[2.25rem] items-center justify-end gap-2"
-            style={{ opacity: rightSlot ? 1 : 0 }}
-            aria-hidden={!rightSlot}
-          >
-            {rightSlot}
-            {/* SS-016: reserved for active conflict warning (V8); profile avatar removed from top bar */}
+          <div className="flex min-h-[2.25rem] items-center justify-end gap-1">
+            <WarningIndicator />
+            {rightSlot && <div className="flex items-center">{rightSlot}</div>}
           </div>
         </div>
 
