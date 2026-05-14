@@ -153,23 +153,44 @@ export default function DiscoverScreen() {
           <div className="absolute -right-12 -top-12 h-48 w-48 bg-sage/35 rounded-full blur-3xl" aria-hidden />
           <div className="relative flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10">
-              <MessageCircle className="h-6 w-6 text-primary" />
+              <MessageCircle className="h-6 w-6 text-white/90" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary/80">{t("discover.aiAskAnything")}</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{t("discover.aiAskAnything")}</p>
               <p className="mt-0.5 font-serif text-xl font-medium leading-tight">
                 {t("discover.aiTitle")}
               </p>
               <p className="mt-1 text-sm text-white/70">
                 {t("discover.aiSubtitle")}
               </p>
-              <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+              <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-white/80">
                 <Sparkles className="h-3.5 w-3.5" />
                 {t("discover.aiHint")}
               </p>
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Problems deep-link — direkt efter AI-chat, före Top 5 */}
+      <section className="mb-4 animate-pop-in">
+        <Link href="/app/problems">
+          <a
+            data-touch-target
+            className="flex items-center gap-3 rounded-3xl border border-border/50 bg-white p-4 shadow-sm transition-transform hover:-translate-y-0.5"
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Compass className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-serif text-base font-medium text-foreground">
+                {t("discover.diyProblemsTitle")}
+              </p>
+              <p className="text-xs text-muted-foreground">{t("discover.diyProblemsSubtitle")}</p>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          </a>
+        </Link>
       </section>
 
       {/* Top mistakes (curated) */}
@@ -314,24 +335,6 @@ export default function DiscoverScreen() {
             </a>
           </Link>
         </div>
-
-        <Link href="/app/problems">
-          <a
-            data-touch-target
-            className="mt-4 flex items-center gap-3 rounded-3xl border border-border/50 bg-white p-4 shadow-sm transition-transform hover:-translate-y-0.5"
-          >
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Compass className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-serif text-base font-medium text-foreground">
-                {t("discover.diyProblemsTitle")}
-              </p>
-              <p className="text-xs text-muted-foreground">{t("discover.diyProblemsSubtitle")}</p>
-            </div>
-            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-          </a>
-        </Link>
       </section>
 
       {/* Tip composer */}
