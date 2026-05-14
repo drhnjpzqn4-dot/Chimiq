@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Redirect, useLocation } from "wouter";
-import { useAuth, AUTH_REFRESH_EVENT } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -163,22 +162,10 @@ export default function OnboardingFlow() {
     setSubmitting(true);
     setError(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) {
-        setError(t("onboarding.saveError"));
-        setSubmitting(false);
-        return;
-      }
-
+      console.info("[Chimiq onboarding] Done: POST /api/profile/onboarding (apiFetch)");
       const res = await apiFetch("/api/profile/onboarding", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
           firstName: firstName.trim(),
@@ -188,18 +175,27 @@ export default function OnboardingFlow() {
           parentalConsentGiven: age === "under16" ? parentalConsentGiven : false,
         }),
       });
+      console.info("[Chimiq onboarding] POST response", res.status, res.statusText);
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
+        console.warn("[Chimiq onboarding] POST failed", j);
         setError(j.error ?? t("onboarding.saveError"));
         setSubmitting(false);
         return;
       }
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event(AUTH_REFRESH_EVENT));
+      const nextUser = await refetch();
+      console.info("[Chimiq onboarding] Profil omhämtad efter save", {
+        onboardingCompleted: nextUser?.onboardingCompleted,
+        redirect: "/app/scan",
+      });
+      if (nextUser && nextUser.onboardingCompleted !== true) {
+        console.warn(
+          "[Chimiq onboarding] onboardingCompleted är fortfarande false i /api/auth/user — kontrollera Postgres users-raden (Chimiq DB, inte Supabase Auth metadata).",
+        );
       }
-      refetch();
       navigate("/app/scan", { replace: true });
-    } catch {
+    } catch (err) {
+      console.error("[Chimiq onboarding] submitAll error", err);
       setError(t("onboarding.saveError"));
       setSubmitting(false);
     }

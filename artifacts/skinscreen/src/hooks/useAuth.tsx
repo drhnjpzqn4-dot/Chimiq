@@ -46,7 +46,8 @@ interface AuthState {
   isAuthenticated: boolean;
   login: (returnTo?: string) => void;
   logout: () => Promise<void>;
-  refetch: () => void;
+  /** Hämtar om session + backend-profil (t.ex. efter onboarding). Returnerar aktuell AuthUser efter uppdatering. */
+  refetch: () => Promise<AuthUser | null>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -72,20 +73,20 @@ async function fetchBackendUserProfile(
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [refetchTick, setRefetchTick] = useState(0);
 
-  const applySession = useCallback(async (session: Session | null) => {
+  const applySession = useCallback(async (session: Session | null): Promise<AuthUser | null> => {
     if (!session?.user) {
       setUser(null);
       setIsLoading(false);
-      return;
+      return null;
     }
     const token = session.access_token;
     const extra = await fetchBackendUserProfile(token);
-    setUser(
-      mapSupabaseUserToAuthUser(session.user, extra?.onboardingCompleted ?? false),
-    );
+    const onboardingCompleted = extra?.onboardingCompleted ?? false;
+    const nextUser = mapSupabaseUserToAuthUser(session.user, onboardingCompleted);
+    setUser(nextUser);
     setIsLoading(false);
+    return nextUser;
   }, []);
 
   useEffect(() => {
@@ -99,22 +100,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [applySession]);
 
+  const refetch = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return applySession(session);
+  }, [applySession]);
+
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      void applySession(session);
-    });
-  }, [applySession, refetchTick]);
+    void refetch();
+  }, [refetch]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const onRefresh = () => setRefetchTick((n) => n + 1);
+    const onRefresh = () => {
+      void refetch();
+    };
     window.addEventListener(AUTH_REFRESH_EVENT, onRefresh);
     return () => window.removeEventListener(AUTH_REFRESH_EVENT, onRefresh);
-  }, []);
-
-  const refetch = useCallback(() => {
-    setRefetchTick((n) => n + 1);
-  }, []);
+  }, [refetch]);
 
   const login = useCallback((returnTo?: string) => {
     const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "/";
