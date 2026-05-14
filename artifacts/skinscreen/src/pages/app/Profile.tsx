@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { ChevronRight, CreditCard, Loader2, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SkinProfileChips } from "@/components/SkinProfileChips";
 import PaywallModal from "@/components/PaywallModal";
@@ -162,7 +162,8 @@ export default function ProfileScreen() {
               CURRENT PLAN
             </p>
             <h3 className="mb-1 font-serif text-lg font-medium" style={{ color: "var(--ink)" }}>
-              ✨ Premium
+              <Sparkles className="h-4 w-4 inline mr-1" aria-hidden />
+              Premium
             </h3>
             <p className="mb-3 text-[12px]" style={{ color: "#4A2D10" }}>
               Obegränsad hylla, AI-chatt, hela rutinen i kombo-check.
@@ -181,8 +182,10 @@ export default function ProfileScreen() {
             >
               {portalLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              ) : null}
-              💳 Hantera betalning
+              ) : (
+                <CreditCard className="h-4 w-4 inline mr-1" aria-hidden />
+              )}
+              Hantera betalning
             </button>
           </div>
         ) : (
@@ -210,7 +213,17 @@ export default function ProfileScreen() {
                 style={{ background: "var(--sage)" }}
                 data-touch-target
               >
-                {trialEligible ? "✨ Testa Premium fritt i 14 dagar" : `✨ ${t("profileCard.upgradeToPremium")}`}
+                {trialEligible ? (
+                  <>
+                    <Sparkles className="h-4 w-4 inline mr-1" aria-hidden />
+                    Testa Premium fritt i 14 dagar
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 inline mr-1" aria-hidden />
+                    {t("profileCard.upgradeToPremium")}
+                  </>
+                )}
               </button>
             )}
           </div>
