@@ -336,17 +336,21 @@ Anthropic äger INTE Voyage AI. Voyage AI köptes av **MongoDB** (inte Anthropic
 - **Källa:** Cowork-session 2026-05-11 eftermiddag, Pias direkt-bekräftelse.
 
 ## BESLUT-SS-019: Åldersgrupper i onboarding — medicinskt motiverade
-- **Datum:** 2026-05-12
-- **Status:** Aktiv
-- **Beslut:** Onboarding frågar om ålder i 5 grupper baserade på när huden faktiskt förändras medicinskt:
+- **Datum:** 2026-05-12 (profil-tillägg dokumenterat 2026-05-14)
+- **Status:** Aktiv — reviderad 2026-05-14 (profil + mål)
+- **Beslut (onboarding, oförändrat innehåll):** Onboarding frågar om ålder i 5 grupper baserade på när huden faktiskt förändras medicinskt:
   - **Under 18** — puberteten, ökad talgproduktion, akne vanligt, känslig för hormoner
   - **18–25** — huden fortfarande oljig/blandhy, akne kan kvarstå, börjar behöva mer fukt
   - **26–35** — huden börjar tappa elasticitet, first fine lines, mer återfuktning
   - **36–45** — kollagenproduktionen minskar märkbart, pigmentfläckar kan dyka upp
   - **46+** — klimakteriet påverkar huden kraftigt (torrhet, tunnare hud)
-- **Bakgrund:** Tidigare förslag (13-15 / 16-19 / 20-29 / 30+) var inte medicinskt motiverade. Pia ville att förklaringstexterna visas i onboarding så användaren förstår varför vi frågar.
-- **Konsekvens:** Onboarding-sprinten (V10) implementerar dessa grupper med förklaringstext under varje alternativ. Ingrediensvarningar och råd ska filtreras per åldersgrupp i backend.
-- **Källa:** Cowork-session 2026-05-12, Pias beslut.
+- **Bakgrund (onboarding):** Tidigare förslag (13-15 / 16-19 / 20-29 / 30+) var inte medicinskt motiverade. Pia ville att förklaringstexterna visas i onboarding så användaren förstår varför vi frågar.
+- **Konsekvens (onboarding):** Onboarding-sprinten (V10) implementerar dessa grupper med förklaringstext under varje alternativ. Ingrediensvarningar och råd ska filtreras per åldersgrupp i backend.
+- **Tillägg 2026-05-14 — profil (SkinScreen):** Utöver hudtyp (`skinscreen.skinProfile`, oförändrat för skanner-backend) ska **Profil** även samla **åldersgrupp** och **hudvårdsmål (fritext)** så att vi kan testa copy och framtida personalisering utan att röra skannerns localStorage-nyckel.
+  - **UI:** `artifacts/skinscreen/src/components/SkinProfileChips.tsx` — sektioner *Ålder* (chip-val) och *Mitt mål* (textarea, max 200 tecken), efter befintliga hudtyp-chips.
+  - **Buckets i profilen (Fas 1):** `13-15` | `16-17` | `18-20` | `21+` — tonårsnära uppdelning för målgruppen 13–20 och snabb iteration i UI; **ej** samma indelning som onboarding ovan. I **Fas 2 (Supabase-sync)** ska en gemensam användarprofil-modell slå ihop eller mappa dessa fält mot onboarding-grupperna så vi inte bygger två sanningar långsiktigt.
+  - **Lagring (Fas 1):** `localStorage`-nycklar `chimiq.ageGroup` respektive `chimiq.skinGoal` (trimmat; tom värde = nyckeln tas bort). Ingen API-trafik i detta steg.
+- **Källa:** Cowork-session 2026-05-12 (onboarding); Cursor-implementering + Pia 2026-05-14 (profil).
 
 ## BESLUT-SS-020: Dark chocolate `#2C1A0E` ersätter ink/svart
 - **Datum:** 2026-05-12
@@ -414,4 +418,4 @@ Anthropic äger INTE Voyage AI. Voyage AI köptes av **MongoDB** (inte Anthropic
 
 ---
 
-*Senast uppdaterad: 2026-05-13 av Cowork (UX-redesign-session dag 3).*
+*Senast uppdaterad: 2026-05-14 (BESLUT-SS-019 profil-tillägg: ålder + mål i `SkinProfileChips`).*
