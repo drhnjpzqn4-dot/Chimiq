@@ -1,16 +1,6 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
-import {
-  db,
-  usersTable,
-  scanEventsTable,
-  shelfProductsTable,
-  checkoutEventsTable,
-  checkoutAbandonmentEventsTable,
-  checkoutRecoveryEventsTable,
-  subscriptionEventsTable,
-} from "@workspace/db";
-import { sql, and, gte, eq, count, countDistinct } from "drizzle-orm";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 import { isRequestAdmin } from "../lib/admin.js";
 
 const router: IRouter = Router();
@@ -45,87 +35,26 @@ router.get("/admin/funnel", async (req, res) => {
   const since = periodToDate(period);
 
   try {
-    const [signups, scans, shelfSaves, checkouts, checkoutAbandoned, recoveryClicks, recoveryDismissals, subscriptions] =
-      await Promise.all([
-        db
-          .select({ count: count() })
-          .from(usersTable)
-          .where(since ? gte(usersTable.createdAt, since) : sql`true`),
-
-        db
-          .select({ count: countDistinct(scanEventsTable.userId) })
-          .from(scanEventsTable)
-          .where(
-            and(
-              sql`${scanEventsTable.userId} IS NOT NULL`,
-              since ? gte(scanEventsTable.createdAt, since) : sql`true`,
-            ),
-          ),
-
-        db
-          .select({ count: countDistinct(shelfProductsTable.userId) })
-          .from(shelfProductsTable)
-          .where(since ? gte(shelfProductsTable.addedAt, since) : sql`true`),
-
-        db
-          .select({ count: countDistinct(checkoutEventsTable.userId) })
-          .from(checkoutEventsTable)
-          .where(
-            since ? gte(checkoutEventsTable.createdAt, since) : sql`true`,
-          ),
-
-        db
-          .select({ count: countDistinct(checkoutAbandonmentEventsTable.userId) })
-          .from(checkoutAbandonmentEventsTable)
-          .where(
-            since ? gte(checkoutAbandonmentEventsTable.createdAt, since) : sql`true`,
-          ),
-
-        db
-          .select({ count: countDistinct(checkoutRecoveryEventsTable.userId) })
-          .from(checkoutRecoveryEventsTable)
-          .where(
-            and(
-              eq(checkoutRecoveryEventsTable.action, "click"),
-              since ? gte(checkoutRecoveryEventsTable.createdAt, since) : sql`true`,
-            ),
-          ),
-
-        db
-          .select({ count: countDistinct(checkoutRecoveryEventsTable.userId) })
-          .from(checkoutRecoveryEventsTable)
-          .where(
-            and(
-              eq(checkoutRecoveryEventsTable.action, "dismissed"),
-              since ? gte(checkoutRecoveryEventsTable.createdAt, since) : sql`true`,
-            ),
-          ),
-
-        db
-          .select({ count: countDistinct(subscriptionEventsTable.userId) })
-          .from(subscriptionEventsTable)
-          .where(
-            and(
-              sql`${subscriptionEventsTable.status} IN ('active', 'trialing')`,
-              since
-                ? gte(subscriptionEventsTable.createdAt, since)
-                : sql`true`,
-            ),
-          ),
-      ]);
+    const supabase = supabaseAdmin;
+    const { data, error } = await supabase.rpc("admin_funnel_counts", {
+      p_since: since?.toISOString() ?? null,
+    });
+    if (error) throw error;
+    const counts = data as Record<string, number> | null;
+    const c = counts ?? {};
 
     const steps = [
-      { key: "signups", label: "Sign-ups", count: Number(signups[0]?.count ?? 0) },
-      { key: "scans", label: "Scans", count: Number(scans[0]?.count ?? 0) },
-      { key: "shelfSaves", label: "Shelf saves", count: Number(shelfSaves[0]?.count ?? 0) },
-      { key: "checkouts", label: "Checkout starts", count: Number(checkouts[0]?.count ?? 0) },
-      { key: "checkoutAbandoned", label: "Checkout abandoned", count: Number(checkoutAbandoned[0]?.count ?? 0) },
-      { key: "recoveryClicks", label: "Recovery clicks", count: Number(recoveryClicks[0]?.count ?? 0) },
-      { key: "recoveryDismissals", label: "Recovery dismissed", count: Number(recoveryDismissals[0]?.count ?? 0) },
+      { key: "signups", label: "Sign-ups", count: Number(c.signups ?? 0) },
+      { key: "scans", label: "Scans", count: Number(c.scans ?? 0) },
+      { key: "shelfSaves", label: "Shelf saves", count: Number(c.shelfSaves ?? 0) },
+      { key: "checkouts", label: "Checkout starts", count: Number(c.checkouts ?? 0) },
+      { key: "checkoutAbandoned", label: "Checkout abandoned", count: Number(c.checkoutAbandoned ?? 0) },
+      { key: "recoveryClicks", label: "Recovery clicks", count: Number(c.recoveryClicks ?? 0) },
+      { key: "recoveryDismissals", label: "Recovery dismissed", count: Number(c.recoveryDismissals ?? 0) },
       {
         key: "subscriptions",
         label: "Subscriptions",
-        count: Number(subscriptions[0]?.count ?? 0),
+        count: Number(c.subscriptions ?? 0),
       },
     ];
 
@@ -160,6 +89,16 @@ router.get("/admin/funnel", async (req, res) => {
   }
 });
 
+type SeriesRow = { date: string; count: number };
+
+function parseSeries(raw: unknown): SeriesRow[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((r) => {
+    const o = r as Record<string, unknown>;
+    return { date: String(o.date ?? ""), count: Number(o.count ?? 0) };
+  });
+}
+
 router.get("/admin/funnel/trend", async (req, res) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Authentication required." });
@@ -180,119 +119,47 @@ router.get("/admin/funnel/trend", async (req, res) => {
   const granularity = period === "7d" || period === "30d" ? "day" : "week";
 
   try {
-    const truncLiteral = sql.raw(`'${granularity}'`);
-    const bucket = (col: Parameters<typeof gte>[0]) =>
-      sql<string>`to_char(date_trunc(${truncLiteral}, ${col}), 'YYYY-MM-DD')`;
-    const bucketGroup = (col: Parameters<typeof gte>[0]) =>
-      sql`date_trunc(${truncLiteral}, ${col})`;
-    const sinceFilter = (col: Parameters<typeof gte>[0]) =>
-      since ? gte(col, since) : sql`true`;
+    const supabase = supabaseAdmin;
+    const { data, error } = await supabase.rpc("admin_funnel_series", {
+      p_since: since?.toISOString() ?? null,
+      p_granularity: granularity,
+    });
+    if (error) throw error;
+    const bundle = data as Record<string, unknown> | null;
+    if (!bundle) {
+      res.json({ period, granularity, series: [] });
+      return;
+    }
 
-    const [signupRows, scanRows, shelfRows, checkoutRows, abandonedRows, recoveryClickRows, recoveryDismissalRows, subRows] =
-      await Promise.all([
-        db
-          .select({
-            date: bucket(usersTable.createdAt).as("date"),
-            count: count(),
-          })
-          .from(usersTable)
-          .where(sinceFilter(usersTable.createdAt))
-          .groupBy(bucketGroup(usersTable.createdAt))
-          .orderBy(bucketGroup(usersTable.createdAt)),
+    const signupRows = parseSeries(bundle.signups);
+    const scanRows = parseSeries(bundle.scans);
+    const shelfRows = parseSeries(bundle.shelfSaves);
+    const checkoutRows = parseSeries(bundle.checkouts);
+    const abandonedRows = parseSeries(bundle.checkoutAbandoned);
+    const recoveryClickRows = parseSeries(bundle.recoveryClicks);
+    const recoveryDismissalRows = parseSeries(bundle.recoveryDismissals);
+    const subRows = parseSeries(bundle.subscriptions);
 
-        db
-          .select({
-            date: bucket(scanEventsTable.createdAt).as("date"),
-            count: countDistinct(scanEventsTable.userId),
-          })
-          .from(scanEventsTable)
-          .where(
-            and(
-              sql`${scanEventsTable.userId} IS NOT NULL`,
-              sinceFilter(scanEventsTable.createdAt),
-            ),
-          )
-          .groupBy(bucketGroup(scanEventsTable.createdAt))
-          .orderBy(bucketGroup(scanEventsTable.createdAt)),
-
-        db
-          .select({
-            date: bucket(shelfProductsTable.addedAt).as("date"),
-            count: countDistinct(shelfProductsTable.userId),
-          })
-          .from(shelfProductsTable)
-          .where(sinceFilter(shelfProductsTable.addedAt))
-          .groupBy(bucketGroup(shelfProductsTable.addedAt))
-          .orderBy(bucketGroup(shelfProductsTable.addedAt)),
-
-        db
-          .select({
-            date: bucket(checkoutEventsTable.createdAt).as("date"),
-            count: countDistinct(checkoutEventsTable.userId),
-          })
-          .from(checkoutEventsTable)
-          .where(sinceFilter(checkoutEventsTable.createdAt))
-          .groupBy(bucketGroup(checkoutEventsTable.createdAt))
-          .orderBy(bucketGroup(checkoutEventsTable.createdAt)),
-
-        db
-          .select({
-            date: bucket(checkoutAbandonmentEventsTable.createdAt).as("date"),
-            count: countDistinct(checkoutAbandonmentEventsTable.userId),
-          })
-          .from(checkoutAbandonmentEventsTable)
-          .where(sinceFilter(checkoutAbandonmentEventsTable.createdAt))
-          .groupBy(bucketGroup(checkoutAbandonmentEventsTable.createdAt))
-          .orderBy(bucketGroup(checkoutAbandonmentEventsTable.createdAt)),
-
-        db
-          .select({
-            date: bucket(checkoutRecoveryEventsTable.createdAt).as("date"),
-            count: countDistinct(checkoutRecoveryEventsTable.userId),
-          })
-          .from(checkoutRecoveryEventsTable)
-          .where(
-            and(
-              eq(checkoutRecoveryEventsTable.action, "click"),
-              sinceFilter(checkoutRecoveryEventsTable.createdAt),
-            ),
-          )
-          .groupBy(bucketGroup(checkoutRecoveryEventsTable.createdAt))
-          .orderBy(bucketGroup(checkoutRecoveryEventsTable.createdAt)),
-
-        db
-          .select({
-            date: bucket(checkoutRecoveryEventsTable.createdAt).as("date"),
-            count: countDistinct(checkoutRecoveryEventsTable.userId),
-          })
-          .from(checkoutRecoveryEventsTable)
-          .where(
-            and(
-              eq(checkoutRecoveryEventsTable.action, "dismissed"),
-              sinceFilter(checkoutRecoveryEventsTable.createdAt),
-            ),
-          )
-          .groupBy(bucketGroup(checkoutRecoveryEventsTable.createdAt))
-          .orderBy(bucketGroup(checkoutRecoveryEventsTable.createdAt)),
-
-        db
-          .select({
-            date: bucket(subscriptionEventsTable.createdAt).as("date"),
-            count: countDistinct(subscriptionEventsTable.userId),
-          })
-          .from(subscriptionEventsTable)
-          .where(
-            and(
-              sql`${subscriptionEventsTable.status} IN ('active', 'trialing')`,
-              sinceFilter(subscriptionEventsTable.createdAt),
-            ),
-          )
-          .groupBy(bucketGroup(subscriptionEventsTable.createdAt))
-          .orderBy(bucketGroup(subscriptionEventsTable.createdAt)),
-      ]);
-
-    type BucketCounts = { signups: number; scans: number; shelfSaves: number; checkouts: number; checkoutAbandoned: number; recoveryClicks: number; recoveryDismissals: number; subscriptions: number };
-    const emptyBucket = (): BucketCounts => ({ signups: 0, scans: 0, shelfSaves: 0, checkouts: 0, checkoutAbandoned: 0, recoveryClicks: 0, recoveryDismissals: 0, subscriptions: 0 });
+    type BucketCounts = {
+      signups: number;
+      scans: number;
+      shelfSaves: number;
+      checkouts: number;
+      checkoutAbandoned: number;
+      recoveryClicks: number;
+      recoveryDismissals: number;
+      subscriptions: number;
+    };
+    const emptyBucket = (): BucketCounts => ({
+      signups: 0,
+      scans: 0,
+      shelfSaves: 0,
+      checkouts: 0,
+      checkoutAbandoned: 0,
+      recoveryClicks: 0,
+      recoveryDismissals: 0,
+      subscriptions: 0,
+    });
 
     const dateMap = new Map<string, BucketCounts>();
 

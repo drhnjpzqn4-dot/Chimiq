@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { db, checkoutRecoveryEventsTable } from "@workspace/db";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
 
 const RecordBody = z.object({
@@ -27,10 +27,12 @@ router.post("/checkout-recovery", limiter, async (req, res) => {
   const { action } = parsed.data;
 
   try {
-    await db.insert(checkoutRecoveryEventsTable).values({
-      userId,
+    const supabase = supabaseAdmin;
+    const { error } = await supabase.from("checkout_recovery_events").insert({
+      user_id: userId,
       action,
     });
+    if (error) throw error;
     res.json({ ok: true });
   } catch (err) {
     req.log.warn({ err }, "Failed to record checkout recovery event");

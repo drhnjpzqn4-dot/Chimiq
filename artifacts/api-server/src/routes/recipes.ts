@@ -1,18 +1,14 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import {
-  db,
-  recipesTable,
-  recipeEditEventsTable,
-  usersTable,
   RECIPE_RISK_LEVELS,
   RECIPE_STATUSES,
   type RecipeIngredient,
-} from "@workspace/db";
+} from "@workspace/db/schema";
 import { isRequestAdmin } from "../lib/admin.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
 import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 import {
   scanRecipeSafety,
   RecipeSafetyUnavailableError,
@@ -64,6 +60,152 @@ const ListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(60).optional(),
 });
 
+type RecipeStatus = (typeof RECIPE_STATUSES)[number];
+type RecipeRiskLevel = (typeof RECIPE_RISK_LEVELS)[number];
+
+type RecipeRow = {
+  id: string;
+  submitter_id: string;
+  title: string;
+  category: string;
+  skin_types: string[];
+  ingredients: RecipeIngredient[];
+  method: string;
+  photo_url: string | null;
+  ai_verdict: unknown | null;
+  risk_level: RecipeRiskLevel | null;
+  status: RecipeStatus;
+  admin_note: string | null;
+  reviewed_by_id: string | null;
+  reviewed_at: string | null;
+  review_seen_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+function mapRecipeRow(row: RecipeRow) {
+  return {
+    id: row.id,
+    submitterId: row.submitter_id,
+    title: row.title,
+    category: row.category,
+    skinTypes: row.skin_types,
+    ingredients: row.ingredients,
+    method: row.method,
+    photoUrl: row.photo_url,
+    aiVerdict: row.ai_verdict,
+    riskLevel: row.risk_level,
+    status: row.status,
+    adminNote: row.admin_note,
+    reviewedById: row.reviewed_by_id,
+    reviewedAt: row.reviewed_at,
+    reviewSeenAt: row.review_seen_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapRecipeCardRow(row: Pick<
+  RecipeRow,
+  | "id"
+  | "title"
+  | "category"
+  | "skin_types"
+  | "ingredients"
+  | "risk_level"
+  | "photo_url"
+  | "ai_verdict"
+  | "created_at"
+>) {
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    skinTypes: row.skin_types,
+    ingredients: row.ingredients,
+    riskLevel: row.risk_level,
+    photoUrl: row.photo_url,
+    aiVerdict: row.ai_verdict,
+    createdAt: row.created_at,
+  };
+}
+
+function mapMineRow(row: Pick<
+  RecipeRow,
+  | "id"
+  | "title"
+  | "category"
+  | "skin_types"
+  | "ingredients"
+  | "method"
+  | "photo_url"
+  | "ai_verdict"
+  | "risk_level"
+  | "status"
+  | "admin_note"
+  | "created_at"
+  | "updated_at"
+  | "reviewed_at"
+>) {
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    skinTypes: row.skin_types,
+    ingredients: row.ingredients,
+    method: row.method,
+    photoUrl: row.photo_url,
+    aiVerdict: row.ai_verdict,
+    riskLevel: row.risk_level,
+    status: row.status,
+    adminNote: row.admin_note,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    reviewedAt: row.reviewed_at,
+  };
+}
+
+function mapNotificationRow(row: {
+  id: string;
+  title: string;
+  status: RecipeStatus;
+  admin_note: string | null;
+  reviewed_at: string | null;
+}) {
+  return {
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    adminNote: row.admin_note,
+    reviewedAt: row.reviewed_at,
+  };
+}
+
+function isUnseenReview(row: { reviewed_at: string | null; review_seen_at: string | null }) {
+  if (!row.reviewed_at) return false;
+  if (!row.review_seen_at) return true;
+  return new Date(row.review_seen_at).getTime() < new Date(row.reviewed_at).getTime();
+}
+
+async function countRowsSince24h(
+  table: "recipes" | "recipe_edit_events",
+  submitterId: string,
+  sinceIso: string,
+): Promise<number> {
+  const supabase = supabaseAdmin;
+  const { count, error } = await supabase
+    .from(table)
+    .select("*", { count: "exact", head: true })
+    .eq("submitter_id", submitterId)
+    .gte("created_at", sinceIso);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+function sanitizeNeedle(value: string): string {
+  return value.toLocaleLowerCase();
+}
+
 // Public read endpoints — rate-limited per-IP to blunt scraping & DB abuse.
 const publicReadLimit = ipRateLimit({
   windowMs: 60_000,
@@ -82,35 +224,40 @@ router.get("/recipes", publicReadLimit, async (req, res) => {
     return;
   }
   const { category, skinType, riskLevel, limit } = parsed.data;
-  const conds = [eq(recipesTable.status, "approved")];
-  if (category) conds.push(eq(recipesTable.category, category));
-  if (riskLevel) conds.push(eq(recipesTable.riskLevel, riskLevel));
+  const supabase = supabaseAdmin;
+
+  let query = supabase
+    .from("recipes")
+    .select("id,title,category,skin_types,ingredients,risk_level,photo_url,ai_verdict,created_at")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(limit ?? 30);
+  if (category) query = query.eq("category", category);
+  if (riskLevel) query = query.eq("risk_level", riskLevel);
   if (skinType) {
-    // skinTypes is a jsonb array; match if it contains the requested type
-    // OR contains "all".
-    conds.push(
-      sql`(${recipesTable.skinTypes} @> ${JSON.stringify([skinType])}::jsonb
-        OR ${recipesTable.skinTypes} @> '["all"]'::jsonb)`,
+    query = query.or(
+      `skin_types.cs.${JSON.stringify([skinType])},skin_types.cs.${JSON.stringify(["all"])}`,
     );
   }
+
   try {
-    const rows = await db
-      .select({
-        id: recipesTable.id,
-        title: recipesTable.title,
-        category: recipesTable.category,
-        skinTypes: recipesTable.skinTypes,
-        ingredients: recipesTable.ingredients,
-        riskLevel: recipesTable.riskLevel,
-        photoUrl: recipesTable.photoUrl,
-        aiVerdict: recipesTable.aiVerdict,
-        createdAt: recipesTable.createdAt,
-      })
-      .from(recipesTable)
-      .where(and(...conds))
-      .orderBy(desc(recipesTable.createdAt))
-      .limit(limit ?? 30);
-    res.json({ recipes: rows });
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = (data ?? []) as Array<
+      Pick<
+        RecipeRow,
+        | "id"
+        | "title"
+        | "category"
+        | "skin_types"
+        | "ingredients"
+        | "risk_level"
+        | "photo_url"
+        | "ai_verdict"
+        | "created_at"
+      >
+    >;
+    res.json({ recipes: rows.map(mapRecipeCardRow) });
   } catch (err) {
     req.log.error({ err }, "public recipes list failed");
     res.status(500).json({ error: "Failed to load recipes." });
@@ -129,47 +276,48 @@ router.get("/recipes/mine", async (req, res) => {
     res.status(401).json({ error: "Sign in to view your recipes." });
     return;
   }
+  const supabase = supabaseAdmin;
   try {
-    const rows = await db
-      .select({
-        id: recipesTable.id,
-        title: recipesTable.title,
-        category: recipesTable.category,
-        skinTypes: recipesTable.skinTypes,
-        ingredients: recipesTable.ingredients,
-        method: recipesTable.method,
-        photoUrl: recipesTable.photoUrl,
-        aiVerdict: recipesTable.aiVerdict,
-        riskLevel: recipesTable.riskLevel,
-        status: recipesTable.status,
-        adminNote: recipesTable.adminNote,
-        createdAt: recipesTable.createdAt,
-        updatedAt: recipesTable.updatedAt,
-        reviewedAt: recipesTable.reviewedAt,
-      })
-      .from(recipesTable)
-      .where(eq(recipesTable.submitterId, req.user.id))
-      .orderBy(desc(recipesTable.updatedAt))
+    const { data, error } = await supabase
+      .from("recipes")
+      .select(
+        "id,title,category,skin_types,ingredients,method,photo_url,ai_verdict,risk_level,status,admin_note,created_at,updated_at,reviewed_at",
+      )
+      .eq("submitter_id", req.user.id)
+      .order("updated_at", { ascending: false })
       .limit(50);
-    // Unseen review count powers the notification banner + bottom-tab dot
-    // (#70). A recipe is "unseen" iff it has been reviewed by an admin
-    // AND its per-recipe reviewSeenAt is either NULL or strictly older
-    // than reviewedAt. Counted separately from `rows` because rows is
-    // capped at 50 and a user with >50 recipes could otherwise miss
-    // feedback on an older one.
-    const unseenCountRows = await db
-      .select({ c: sql<number>`count(*)::int` })
-      .from(recipesTable)
-      .where(
-        and(
-          eq(recipesTable.submitterId, req.user.id),
-          sql`${recipesTable.reviewedAt} IS NOT NULL`,
-          sql`(${recipesTable.reviewSeenAt} IS NULL
-                OR ${recipesTable.reviewSeenAt} < ${recipesTable.reviewedAt})`,
-        ),
-      );
-    const unseenCount = unseenCountRows[0]?.c ?? 0;
-    res.json({ recipes: rows, unseenCount });
+    if (error) throw error;
+    const rows = (data ?? []) as Array<
+      Pick<
+        RecipeRow,
+        | "id"
+        | "title"
+        | "category"
+        | "skin_types"
+        | "ingredients"
+        | "method"
+        | "photo_url"
+        | "ai_verdict"
+        | "risk_level"
+        | "status"
+        | "admin_note"
+        | "created_at"
+        | "updated_at"
+        | "reviewed_at"
+      >
+    >;
+
+    const { data: unseenRows, error: unseenError } = await supabase
+      .from("recipes")
+      .select("reviewed_at,review_seen_at")
+      .eq("submitter_id", req.user.id)
+      .not("reviewed_at", "is", null);
+    if (unseenError) throw unseenError;
+    const unseenCount = (unseenRows ?? []).filter((row) =>
+      isUnseenReview(row as { reviewed_at: string | null; review_seen_at: string | null }),
+    ).length;
+
+    res.json({ recipes: rows.map(mapMineRow), unseenCount });
   } catch (err) {
     req.log.error({ err }, "GET /recipes/mine failed");
     res.status(500).json({ error: "Failed to load your recipes." });
@@ -186,19 +334,18 @@ router.get("/recipes/mine/unseen-count", async (req, res) => {
     res.json({ unseenCount: 0 });
     return;
   }
+  const supabase = supabaseAdmin;
   try {
-    const [row] = await db
-      .select({ c: sql<number>`count(*)::int` })
-      .from(recipesTable)
-      .where(
-        and(
-          eq(recipesTable.submitterId, req.user.id),
-          sql`${recipesTable.reviewedAt} IS NOT NULL`,
-          sql`(${recipesTable.reviewSeenAt} IS NULL
-                OR ${recipesTable.reviewSeenAt} < ${recipesTable.reviewedAt})`,
-        ),
-      );
-    res.json({ unseenCount: row?.c ?? 0 });
+    const { data, error } = await supabase
+      .from("recipes")
+      .select("reviewed_at,review_seen_at")
+      .eq("submitter_id", req.user.id)
+      .not("reviewed_at", "is", null);
+    if (error) throw error;
+    const unseenCount = (data ?? []).filter((row) =>
+      isUnseenReview(row as { reviewed_at: string | null; review_seen_at: string | null }),
+    ).length;
+    res.json({ unseenCount });
   } catch (err) {
     req.log.error({ err }, "GET /recipes/mine/unseen-count failed");
     res.status(500).json({ error: "Failed to load unseen count." });
@@ -216,32 +363,34 @@ router.get("/recipes/mine/notifications", async (req, res) => {
     res.json({ notifications: [] });
     return;
   }
+  const supabase = supabaseAdmin;
   try {
-    const rows = await db
-      .select({
-        id: recipesTable.id,
-        title: recipesTable.title,
-        status: recipesTable.status,
-        adminNote: recipesTable.adminNote,
-        reviewedAt: recipesTable.reviewedAt,
-      })
-      .from(recipesTable)
-      .where(
-        and(
-          eq(recipesTable.submitterId, req.user.id),
-          sql`${recipesTable.reviewedAt} IS NOT NULL`,
-          sql`(${recipesTable.reviewSeenAt} IS NULL
-                OR ${recipesTable.reviewSeenAt} < ${recipesTable.reviewedAt})`,
-          // Rejected recipes can't be edited or viewed publicly, so a
-          // tap on a rejected notification would land on a non-editable
-          // error screen. Filter them out — the rejection note is still
-          // visible in the My Recipes list further down on Profile.
-          inArray(recipesTable.status, ["approved", "changes_requested"]),
-        ),
+    const { data, error } = await supabase
+      .from("recipes")
+      .select("id,title,status,admin_note,reviewed_at,review_seen_at")
+      .eq("submitter_id", req.user.id)
+      .not("reviewed_at", "is", null)
+      .in("status", ["approved", "changes_requested"])
+      .order("reviewed_at", { ascending: false });
+    if (error) throw error;
+
+    const notifications = (data ?? [])
+      .filter((row) =>
+        isUnseenReview(row as { reviewed_at: string | null; review_seen_at: string | null }),
       )
-      .orderBy(desc(recipesTable.reviewedAt))
-      .limit(20);
-    res.json({ notifications: rows });
+      .slice(0, 20)
+      .map((row) =>
+        mapNotificationRow(
+          row as {
+            id: string;
+            title: string;
+            status: RecipeStatus;
+            admin_note: string | null;
+            reviewed_at: string | null;
+          },
+        ),
+      );
+    res.json({ notifications });
   } catch (err) {
     req.log.error({ err }, "GET /recipes/mine/notifications failed");
     res.status(500).json({ error: "Failed to load notifications." });
@@ -265,18 +414,17 @@ router.post("/recipes/mine/:id/seen", async (req, res) => {
     res.status(400).json({ error: "Invalid recipe ID." });
     return;
   }
+  const supabase = supabaseAdmin;
   try {
-    const result = await db
-      .update(recipesTable)
-      .set({ reviewSeenAt: new Date() })
-      .where(
-        and(
-          eq(recipesTable.id, id),
-          eq(recipesTable.submitterId, req.user.id),
-        ),
-      )
-      .returning({ id: recipesTable.id });
-    if (!result.length) {
+    const { data, error } = await supabase
+      .from("recipes")
+      .update({ review_seen_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("submitter_id", req.user.id)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) {
       res.status(404).json({ error: "Recipe not found." });
       return;
     }
@@ -327,29 +475,52 @@ router.get("/recipes/:id", publicReadLimit, async (req, res) => {
     res.status(400).json({ error: "Invalid recipe ID." });
     return;
   }
+  const supabase = supabaseAdmin;
   try {
-    const [row] = await db
-      .select({
-        id: recipesTable.id,
-        title: recipesTable.title,
-        category: recipesTable.category,
-        skinTypes: recipesTable.skinTypes,
-        ingredients: recipesTable.ingredients,
-        method: recipesTable.method,
-        photoUrl: recipesTable.photoUrl,
-        aiVerdict: recipesTable.aiVerdict,
-        riskLevel: recipesTable.riskLevel,
-        adminNote: recipesTable.adminNote,
-        createdAt: recipesTable.createdAt,
-        updatedAt: recipesTable.updatedAt,
-      })
-      .from(recipesTable)
-      .where(and(eq(recipesTable.id, id), eq(recipesTable.status, "approved")));
-    if (!row) {
+    const { data, error } = await supabase
+      .from("recipes")
+      .select(
+        "id,title,category,skin_types,ingredients,method,photo_url,ai_verdict,risk_level,admin_note,created_at,updated_at",
+      )
+      .eq("id", id)
+      .eq("status", "approved")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) {
       res.status(404).json({ error: "Recipe not found." });
       return;
     }
-    res.json({ recipe: row });
+    const row = data as Pick<
+      RecipeRow,
+      | "id"
+      | "title"
+      | "category"
+      | "skin_types"
+      | "ingredients"
+      | "method"
+      | "photo_url"
+      | "ai_verdict"
+      | "risk_level"
+      | "admin_note"
+      | "created_at"
+      | "updated_at"
+    >;
+    res.json({
+      recipe: {
+        id: row.id,
+        title: row.title,
+        category: row.category,
+        skinTypes: row.skin_types,
+        ingredients: row.ingredients,
+        method: row.method,
+        photoUrl: row.photo_url,
+        aiVerdict: row.ai_verdict,
+        riskLevel: row.risk_level,
+        adminNote: row.admin_note,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      },
+    });
   } catch (err) {
     req.log.error({ err }, "public recipe detail failed");
     res.status(500).json({ error: "Failed to load recipe." });
@@ -410,46 +581,28 @@ router.post("/recipes", async (req, res) => {
     throw err;
   }
 
-  // Cheap pre-check: short-circuit obviously-over-limit users BEFORE we spend
-  // money on a model call. This is racy — the in-transaction advisory-lock
-  // check below is the source of truth for correctness — but it stops simple
-  // cost-amplification abuse without holding a long lock.
   const submitterId = req.user.id;
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  // Unified daily cap: created recipes + edit-resubmits in last 24h. This
-  // matches PUT /recipes/:id so a user can't bypass the limit by mixing
-  // edits and new submissions (#69).
-  const [preCreated] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(recipesTable)
-    .where(
-      and(
-        eq(recipesTable.submitterId, submitterId),
-        gte(recipesTable.createdAt, since),
-      ),
-    );
-  const [preEdits] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(recipeEditEventsTable)
-    .where(
-      and(
-        eq(recipeEditEventsTable.submitterId, submitterId),
-        gte(recipeEditEventsTable.createdAt, since),
-      ),
-    );
-  if (preCreated.count + preEdits.count >= 5) {
-    res.status(429).json({
-      error:
-        "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
-    });
+  const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const [preCreated, preEdits] = await Promise.all([
+      countRowsSince24h("recipes", submitterId, sinceIso),
+      countRowsSince24h("recipe_edit_events", submitterId, sinceIso),
+    ]);
+    if (preCreated + preEdits >= 5) {
+      res.status(429).json({
+        error:
+          "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
+      });
+      return;
+    }
+  } catch (err) {
+    req.log.error({ err }, "recipe pre-rate-limit check failed");
+    res.status(500).json({ error: "Failed to save recipe. Please try again." });
     return;
   }
 
-  // AI safety scan (synchronous so users see the verdict before final submit).
-  // Run this BEFORE entering the rate-limit transaction so a slow model call
-  // does not hold a lock for ~10s.
   let aiVerdict: Awaited<ReturnType<typeof scanRecipeSafety>> = null;
-  let riskLevel: (typeof RECIPE_RISK_LEVELS)[number] | null = null;
+  let riskLevel: RecipeRiskLevel | null = null;
   let scannerUnavailable = false;
   try {
     aiVerdict = await scanRecipeSafety({
@@ -469,52 +622,13 @@ router.post("/recipes", async (req, res) => {
     }
   }
 
-  // Daily rate limit: 5 submissions / user / 24h. We hold a per-user advisory
-  // lock for the duration of the transaction so concurrent requests serialize
-  // and cannot bypass the count.
+  const supabase = supabaseAdmin;
   try {
-    const result = await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${submitterId}))`);
-      const [{ count: createdToday }] = await tx
-        .select({ count: sql<number>`count(*)::int` })
-        .from(recipesTable)
-        .where(
-          and(
-            eq(recipesTable.submitterId, submitterId),
-            gte(recipesTable.createdAt, since),
-          ),
-        );
-      const [{ count: editsToday }] = await tx
-        .select({ count: sql<number>`count(*)::int` })
-        .from(recipeEditEventsTable)
-        .where(
-          and(
-            eq(recipeEditEventsTable.submitterId, submitterId),
-            gte(recipeEditEventsTable.createdAt, since),
-          ),
-        );
-      if (createdToday + editsToday >= 5) {
-        return { rateLimited: true as const };
-      }
-      const [created] = await tx
-        .insert(recipesTable)
-        .values({
-          submitterId,
-          title,
-          category: parsed.data.category,
-          skinTypes: parsed.data.skinTypes,
-          ingredients: cleanIngredients,
-          method,
-          photoUrl: parsed.data.photoUrl ?? null,
-          aiVerdict: aiVerdict ?? null,
-          riskLevel,
-          status: "pending",
-        })
-        .returning();
-      return { rateLimited: false as const, recipe: created };
-    });
-
-    if (result.rateLimited) {
+    const [createdToday, editsToday] = await Promise.all([
+      countRowsSince24h("recipes", submitterId, sinceIso),
+      countRowsSince24h("recipe_edit_events", submitterId, sinceIso),
+    ]);
+    if (createdToday + editsToday >= 5) {
       res.status(429).json({
         error:
           "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
@@ -522,8 +636,26 @@ router.post("/recipes", async (req, res) => {
       return;
     }
 
+    const { data, error } = await supabase
+      .from("recipes")
+      .insert({
+        submitter_id: submitterId,
+        title,
+        category: parsed.data.category,
+        skin_types: parsed.data.skinTypes,
+        ingredients: cleanIngredients,
+        method,
+        photo_url: parsed.data.photoUrl ?? null,
+        ai_verdict: aiVerdict ?? null,
+        risk_level: riskLevel,
+        status: "pending",
+      })
+      .select()
+      .single();
+    if (error) throw error;
+
     res.status(201).json({
-      recipe: result.recipe,
+      recipe: mapRecipeRow(data as RecipeRow),
       aiVerdict,
       scannerUnavailable,
     });
@@ -565,20 +697,23 @@ router.put("/recipes/:id", async (req, res) => {
     return;
   }
 
-  // Ownership + editable-status check before doing any work.
+  const supabase = supabaseAdmin;
   const submitterId = req.user.id;
-  const [existing] = await db
-    .select({
-      submitterId: recipesTable.submitterId,
-      status: recipesTable.status,
-    })
-    .from(recipesTable)
-    .where(eq(recipesTable.id, id));
+  const { data: existing, error: existingError } = await supabase
+    .from("recipes")
+    .select("submitter_id,status")
+    .eq("id", id)
+    .maybeSingle();
+  if (existingError) {
+    req.log.error({ err: existingError }, "recipe ownership check failed");
+    res.status(500).json({ error: "Failed to save recipe. Please try again." });
+    return;
+  }
   if (!existing) {
     res.status(404).json({ error: "Recipe not found." });
     return;
   }
-  if (existing.submitterId !== submitterId) {
+  if (existing.submitter_id !== submitterId) {
     res.status(403).json({ error: "You can only edit your own recipes." });
     return;
   }
@@ -621,39 +756,27 @@ router.put("/recipes/:id", async (req, res) => {
     throw err;
   }
 
-  // Pre-flight rate-limit check (cheap path before LLM scan). The
-  // authoritative count happens inside the transaction below; this is just
-  // a fast-fail to avoid burning Anthropic tokens for users already at
-  // their daily cap.
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [{ count: preCreated }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(recipesTable)
-    .where(
-      and(
-        eq(recipesTable.submitterId, submitterId),
-        gte(recipesTable.createdAt, since),
-      ),
-    );
-  const [{ count: preEdits }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(recipeEditEventsTable)
-    .where(
-      and(
-        eq(recipeEditEventsTable.submitterId, submitterId),
-        gte(recipeEditEventsTable.createdAt, since),
-      ),
-    );
-  if (preCreated + preEdits >= 5) {
-    res.status(429).json({
-      error:
-        "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
-    });
+  const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const [preCreated, preEdits] = await Promise.all([
+      countRowsSince24h("recipes", submitterId, sinceIso),
+      countRowsSince24h("recipe_edit_events", submitterId, sinceIso),
+    ]);
+    if (preCreated + preEdits >= 5) {
+      res.status(429).json({
+        error:
+          "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
+      });
+      return;
+    }
+  } catch (err) {
+    req.log.error({ err }, "recipe edit pre-rate-limit check failed");
+    res.status(500).json({ error: "Failed to save recipe. Please try again." });
     return;
   }
 
   let aiVerdict: Awaited<ReturnType<typeof scanRecipeSafety>> = null;
-  let riskLevel: (typeof RECIPE_RISK_LEVELS)[number] | null = null;
+  let riskLevel: RecipeRiskLevel | null = null;
   let scannerUnavailable = false;
   try {
     aiVerdict = await scanRecipeSafety({
@@ -673,93 +796,55 @@ router.put("/recipes/:id", async (req, res) => {
     }
   }
 
-  // Authoritative atomic step: lock the user, recount under the lock,
-  // insert an edit-event row, and update the recipe — all in one
-  // transaction. Concurrent PUTs serialize on the advisory lock, so two
-  // requests near the boundary cannot both pass.
   try {
-    const result = await db.transaction(async (tx) => {
-      await tx.execute(
-        sql`SELECT pg_advisory_xact_lock(hashtext(${submitterId}))`,
-      );
-      const [{ count: createdToday }] = await tx
-        .select({ count: sql<number>`count(*)::int` })
-        .from(recipesTable)
-        .where(
-          and(
-            eq(recipesTable.submitterId, submitterId),
-            gte(recipesTable.createdAt, since),
-          ),
-        );
-      const [{ count: editsToday }] = await tx
-        .select({ count: sql<number>`count(*)::int` })
-        .from(recipeEditEventsTable)
-        .where(
-          and(
-            eq(recipeEditEventsTable.submitterId, submitterId),
-            gte(recipeEditEventsTable.createdAt, since),
-          ),
-        );
-      if (createdToday + editsToday >= 5) {
-        return { kind: "limit" as const };
-      }
-      // Re-assert editable status inside the transaction. Without this,
-      // an admin who flips the recipe to approved/rejected between our
-      // pre-check (above) and this UPDATE could be overwritten back to
-      // pending by the submitter (TOCTOU on moderation state).
-      const [updated] = await tx
-        .update(recipesTable)
-        .set({
-          title,
-          category: parsed.data.category,
-          skinTypes: parsed.data.skinTypes,
-          ingredients: cleanIngredients,
-          method,
-          photoUrl: parsed.data.photoUrl ?? null,
-          aiVerdict: aiVerdict ?? null,
-          riskLevel,
-          status: "pending",
-          // Clear the prior admin note so the resubmitted recipe shows
-          // clean in the queue; admins write a new note if they request
-          // more changes. `reviewedAt` is preserved so the audit history
-          // stays intact across resubmissions.
-          adminNote: null,
-        })
-        .where(
-          and(
-            eq(recipesTable.id, id),
-            eq(recipesTable.submitterId, submitterId),
-            inArray(recipesTable.status, ["pending", "changes_requested"]),
-          ),
-        )
-        .returning();
-      if (!updated) {
-        // Either the row vanished or its status moved to approved/rejected
-        // between the pre-check and the transactional update.
-        return { kind: "conflict" as const };
-      }
-      await tx.insert(recipeEditEventsTable).values({
-        submitterId,
-        recipeId: id,
-        action: "edit",
-      });
-      return { kind: "ok" as const, updated };
-    });
-    if (result.kind === "limit") {
+    const [createdToday, editsToday] = await Promise.all([
+      countRowsSince24h("recipes", submitterId, sinceIso),
+      countRowsSince24h("recipe_edit_events", submitterId, sinceIso),
+    ]);
+    if (createdToday + editsToday >= 5) {
       res.status(429).json({
         error:
           "You've reached today's submission limit (5 per day, edits included). Please try again tomorrow.",
       });
       return;
     }
-    if (result.kind === "conflict") {
+
+    const { data: updated, error: updateError } = await supabase
+      .from("recipes")
+      .update({
+        title,
+        category: parsed.data.category,
+        skin_types: parsed.data.skinTypes,
+        ingredients: cleanIngredients,
+        method,
+        photo_url: parsed.data.photoUrl ?? null,
+        ai_verdict: aiVerdict ?? null,
+        risk_level: riskLevel,
+        status: "pending",
+        admin_note: null,
+      })
+      .eq("id", id)
+      .eq("submitter_id", submitterId)
+      .in("status", ["pending", "changes_requested"])
+      .select()
+      .maybeSingle();
+    if (updateError) throw updateError;
+    if (!updated) {
       res.status(409).json({
         error:
           "This recipe can no longer be edited (it has been approved or rejected).",
       });
       return;
     }
-    res.json({ recipe: result.updated, aiVerdict, scannerUnavailable });
+
+    const { error: eventError } = await supabase.from("recipe_edit_events").insert({
+      submitter_id: submitterId,
+      recipe_id: id,
+      action: "edit",
+    });
+    if (eventError) throw eventError;
+
+    res.json({ recipe: mapRecipeRow(updated as RecipeRow), aiVerdict, scannerUnavailable });
   } catch (err) {
     req.log.error({ err }, "recipe edit update failed");
     res.status(500).json({ error: "Failed to save recipe. Please try again." });
@@ -795,31 +880,30 @@ router.get("/admin/recipes", async (req, res) => {
     return;
   }
   const { status, category, riskLevel, q, limit } = parsed.data;
-  const conds = [];
-  if (status && status !== "all") conds.push(eq(recipesTable.status, status));
-  else if (!status) conds.push(eq(recipesTable.status, "pending"));
-  if (category) conds.push(eq(recipesTable.category, category));
-  if (riskLevel) conds.push(eq(recipesTable.riskLevel, riskLevel));
-  if (q) {
-    const needle = `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
-    conds.push(
-      or(
-        ilike(recipesTable.title, needle),
-        sql`EXISTS (
-          SELECT 1 FROM jsonb_array_elements(${recipesTable.ingredients}) AS ing
-          WHERE ing->>'name' ILIKE ${needle}
-        )`,
-      )!,
-    );
-  }
+  const supabase = supabaseAdmin;
+
+  let query = supabase.from("recipes").select("*").order("created_at", { ascending: false });
+  if (status && status !== "all") query = query.eq("status", status);
+  else if (!status) query = query.eq("status", "pending");
+  if (category) query = query.eq("category", category);
+  if (riskLevel) query = query.eq("risk_level", riskLevel);
+  if (!q) query = query.limit(limit ?? 200);
+
   try {
-    const rows = await db
-      .select()
-      .from(recipesTable)
-      .where(conds.length ? and(...conds) : undefined)
-      .orderBy(desc(recipesTable.createdAt))
-      .limit(limit ?? 200);
-    res.json({ recipes: rows });
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = (data ?? []) as RecipeRow[];
+    const needle = q ? sanitizeNeedle(q) : null;
+    const filtered = needle
+      ? rows.filter((row) => {
+          const inTitle = row.title.toLocaleLowerCase().includes(needle);
+          if (inTitle) return true;
+          return (row.ingredients ?? []).some((ing) =>
+            (ing?.name ?? "").toLocaleLowerCase().includes(needle),
+          );
+        })
+      : rows;
+    res.json({ recipes: filtered.slice(0, limit ?? 200).map(mapRecipeRow) });
   } catch (err) {
     req.log.error({ err }, "admin recipes list failed");
     res.status(500).json({ error: "Failed to load recipes." });
@@ -855,7 +939,7 @@ router.patch("/admin/recipes/:id", async (req, res) => {
     return;
   }
 
-  const update: Partial<typeof recipesTable.$inferInsert> = {};
+  const update: Record<string, unknown> = {};
   try {
     if (parsed.data.title !== undefined) {
       update.title = sanitizeText(parsed.data.title, {
@@ -890,24 +974,27 @@ router.patch("/admin/recipes/:id", async (req, res) => {
     throw err;
   }
   if (parsed.data.category !== undefined) update.category = parsed.data.category;
-  if (parsed.data.skinTypes !== undefined) update.skinTypes = parsed.data.skinTypes;
+  if (parsed.data.skinTypes !== undefined) update.skin_types = parsed.data.skinTypes;
 
   if (Object.keys(update).length === 0) {
     res.status(400).json({ error: "No fields to update." });
     return;
   }
 
+  const supabase = supabaseAdmin;
   try {
-    const [updated] = await db
-      .update(recipesTable)
-      .set(update)
-      .where(eq(recipesTable.id, id))
-      .returning();
-    if (!updated) {
+    const { data, error } = await supabase
+      .from("recipes")
+      .update(update)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) {
       res.status(404).json({ error: "Recipe not found." });
       return;
     }
-    res.json({ recipe: updated });
+    res.json({ recipe: mapRecipeRow(data as RecipeRow) });
   } catch (err) {
     req.log.error({ err }, "admin recipe edit failed");
     res.status(500).json({ error: "Failed to update recipe." });
@@ -959,49 +1046,44 @@ router.post("/admin/recipes/bulk", async (req, res) => {
   }
 
   const reviewerId = req.user?.id ?? null;
-  let updated: { id: string; submitterId: string; title: string }[];
+  const supabase = supabaseAdmin;
+  let updated: { id: string; submitter_id: string; title: string }[];
   try {
-    updated = await db
-      .update(recipesTable)
-      .set({
+    const { data, error } = await supabase
+      .from("recipes")
+      .update({
         status,
-        adminNote: note,
-        reviewedById: reviewerId,
-        reviewedAt: new Date(),
-        // Reset per-recipe ack so the new review surfaces a fresh
-        // notification even if the user previously seen older feedback.
-        reviewSeenAt: null,
+        admin_note: note,
+        reviewed_by_id: reviewerId,
+        reviewed_at: new Date().toISOString(),
+        review_seen_at: null,
       })
-      .where(inArray(recipesTable.id, parsed.data.ids))
-      .returning({
-        id: recipesTable.id,
-        submitterId: recipesTable.submitterId,
-        title: recipesTable.title,
-      });
+      .in("id", parsed.data.ids)
+      .select("id,submitter_id,title");
+    if (error) throw error;
+    updated = (data ?? []) as { id: string; submitter_id: string; title: string }[];
   } catch (err) {
     req.log.error({ err }, "admin recipe bulk action failed");
     res.status(500).json({ error: "Failed to apply bulk action." });
     return;
   }
-  // Log-only transactional "email" — separated from the moderation
-  // transaction so a logging / lookup failure can never roll back or
-  // 500 the (already committed) status change. Replace with a real
-  // provider when one is wired up (#70).
+
   if (updated.length) {
     try {
-      const submitterIds = Array.from(new Set(updated.map((u) => u.submitterId)));
-      const submitters = await db
-        .select({ id: usersTable.id, email: usersTable.email })
-        .from(usersTable)
-        .where(inArray(usersTable.id, submitterIds));
-      const emailById = new Map(submitters.map((s) => [s.id, s.email]));
+      const submitterIds = Array.from(new Set(updated.map((u) => u.submitter_id)));
+      const { data: submitters, error: submitterError } = await supabase
+        .from("users")
+        .select("id,email")
+        .in("id", submitterIds);
+      if (submitterError) throw submitterError;
+      const emailById = new Map((submitters ?? []).map((s) => [s.id as string, s.email ?? null]));
       for (const row of updated) {
         req.log.info(
           {
             event: "recipe.notify",
             recipeId: row.id,
-            submitterId: row.submitterId,
-            submitterEmail: emailById.get(row.submitterId) ?? null,
+            submitterId: row.submitter_id,
+            submitterEmail: emailById.get(row.submitter_id) ?? null,
             status,
           },
           `recipe ${row.id} ${status} (bulk) — would send transactional email`,
@@ -1051,40 +1133,41 @@ async function adminUpdateStatus(
   }
 
   const reviewerId = req.user?.id ?? null;
+  const supabase = supabaseAdmin;
   try {
-    const [updated] = await db
-      .update(recipesTable)
-      .set({
+    const { data, error } = await supabase
+      .from("recipes")
+      .update({
         status,
-        adminNote: note,
-        reviewedById: reviewerId,
-        reviewedAt: new Date(),
-        // Reset per-recipe ack so the new review surfaces a fresh
-        // notification even if the user previously acked older feedback.
-        reviewSeenAt: null,
+        admin_note: note,
+        reviewed_by_id: reviewerId,
+        reviewed_at: new Date().toISOString(),
+        review_seen_at: null,
       })
-      .where(eq(recipesTable.id, id))
-      .returning();
-    if (!updated) {
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) {
       res.status(404).json({ error: "Recipe not found." });
       return;
     }
-    res.json({ recipe: updated });
-    // Fire-and-forget log-only notification (#70). Done AFTER the
-    // response so a logging or lookup failure can never roll back or
-    // 500 the moderation action that has already committed.
+    const updated = data as RecipeRow;
+    res.json({ recipe: mapRecipeRow(updated) });
+
     void (async () => {
       try {
-        const [submitter] = await db
-          .select({ email: usersTable.email })
-          .from(usersTable)
-          .where(eq(usersTable.id, updated.submitterId))
-          .limit(1);
+        const { data: submitter, error: submitterError } = await supabase
+          .from("users")
+          .select("email")
+          .eq("id", updated.submitter_id)
+          .maybeSingle();
+        if (submitterError) throw submitterError;
         req.log.info(
           {
             event: "recipe.notify",
             recipeId: updated.id,
-            submitterId: updated.submitterId,
+            submitterId: updated.submitter_id,
             submitterEmail: submitter?.email ?? null,
             status,
           },

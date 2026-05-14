@@ -4,13 +4,8 @@ import {
   ExchangeMobileAuthorizationCodeBody,
   LogoutMobileSessionResponse,
 } from "@workspace/api-zod";
-import { db, usersTable, legalConsentsTable } from "@workspace/db";
-import { and, desc, eq } from "drizzle-orm";
-import {
-  getSupabaseAdminClient,
-  getSupabaseClient,
-  verifyJWT,
-} from "../lib/auth.js";
+import { verifyJWT } from "../lib/auth.js";
+import { supabaseAdmin, supabaseAnon } from "../lib/supabase-admin.js";
 
 const router: IRouter = Router();
 
@@ -44,15 +39,18 @@ router.post("/legal/consent", async (req: Request, res: Response) => {
 
   try {
     const now = new Date();
+    const supabase = supabaseAdmin;
+    const consentRow = {
+      user_id: userId,
+      terms_version: bodyVersion,
+      accepted_at: now.toISOString(),
+      ip,
+      user_agent: userAgent,
+    };
 
     if (bodyVersion === MEDICAL_DISCLAIMER_VERSION) {
-      await db.insert(legalConsentsTable).values({
-        userId,
-        termsVersion: MEDICAL_DISCLAIMER_VERSION,
-        acceptedAt: now,
-        ip,
-        userAgent,
-      });
+      const { error } = await supabase.from("legal_consents").insert(consentRow);
+      if (error) throw error;
       res.json({
         ok: true,
         acceptedMedicalDisclaimerVersion: MEDICAL_DISCLAIMER_VERSION,
@@ -66,17 +64,17 @@ router.post("/legal/consent", async (req: Request, res: Response) => {
       return;
     }
 
-    await db.insert(legalConsentsTable).values({
-      userId,
-      termsVersion: bodyVersion,
-      acceptedAt: now,
-      ip,
-      userAgent,
-    });
-    await db
-      .update(usersTable)
-      .set({ acceptedTermsVersion: bodyVersion, acceptedTermsAt: now })
-      .where(eq(usersTable.id, userId));
+    const { error: insErr } = await supabase.from("legal_consents").insert(consentRow);
+    if (insErr) throw insErr;
+    const { error: updErr } = await supabase
+      .from("users")
+      .update({
+        accepted_terms_version: bodyVersion,
+        accepted_terms_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      })
+      .eq("id", userId);
+    if (updErr) throw updErr;
     res.json({
       ok: true,
       acceptedVersion: bodyVersion,
@@ -101,38 +99,35 @@ router.get("/legal/consent", async (req: Request, res: Response) => {
     return;
   }
   try {
-    const [row] = await db
-      .select({
-        acceptedTermsVersion: usersTable.acceptedTermsVersion,
-        acceptedTermsAt: usersTable.acceptedTermsAt,
-      })
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user.id))
-      .limit(1);
+    const supabase = supabaseAdmin;
+    const { data: row, error: uErr } = await supabase
+      .from("users")
+      .select("accepted_terms_version, accepted_terms_at")
+      .eq("id", req.user.id)
+      .maybeSingle();
+    if (uErr) throw uErr;
 
-    const [medRow] = await db
-      .select({ acceptedAt: legalConsentsTable.acceptedAt })
-      .from(legalConsentsTable)
-      .where(
-        and(
-          eq(legalConsentsTable.userId, req.user.id),
-          eq(legalConsentsTable.termsVersion, MEDICAL_DISCLAIMER_VERSION),
-        ),
-      )
-      .orderBy(desc(legalConsentsTable.acceptedAt))
+    const { data: medRows, error: mErr } = await supabase
+      .from("legal_consents")
+      .select("accepted_at")
+      .eq("user_id", req.user.id)
+      .eq("terms_version", MEDICAL_DISCLAIMER_VERSION)
+      .order("accepted_at", { ascending: false })
       .limit(1);
+    if (mErr) throw mErr;
+    const medRow = medRows?.[0];
 
     res.json({
-      acceptedVersion: row?.acceptedTermsVersion ?? null,
+      acceptedVersion: (row?.accepted_terms_version as string | null) ?? null,
       currentVersion: CURRENT_TERMS_VERSION,
-      acceptedAt: row?.acceptedTermsAt
-        ? new Date(row.acceptedTermsAt).toISOString()
+      acceptedAt: row?.accepted_terms_at
+        ? new Date(row.accepted_terms_at as string).toISOString()
         : null,
       acceptedMedicalDisclaimerVersion: medRow
         ? MEDICAL_DISCLAIMER_VERSION
         : null,
-      acceptedMedicalDisclaimerAt: medRow?.acceptedAt
-        ? new Date(medRow.acceptedAt).toISOString()
+      acceptedMedicalDisclaimerAt: medRow?.accepted_at
+        ? new Date(medRow.accepted_at as string).toISOString()
         : null,
       currentMedicalDisclaimerVersion: MEDICAL_DISCLAIMER_VERSION,
     });
@@ -148,14 +143,17 @@ const handleAuthUserGet = async (req: Request, res: Response) => {
     return;
   }
   try {
-    const [row] = await db
-      .select({ onboardingCompleted: usersTable.onboardingCompleted })
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user.id));
+    const supabase = supabaseAdmin;
+    const { data: row, error } = await supabase
+      .from("users")
+      .select("onboarding_completed")
+      .eq("id", req.user.id)
+      .maybeSingle();
+    if (error) throw error;
     const user = {
       ...req.user,
       emailVerified: req.user.emailVerified === true,
-      onboardingCompleted: row?.onboardingCompleted ?? false,
+      onboardingCompleted: (row?.onboarding_completed as boolean | undefined) ?? false,
     };
     res.json(GetCurrentAuthUserResponse.parse({ user }));
   } catch (err) {
@@ -192,7 +190,7 @@ router.post("/auth/forgot-password", async (req: Request, res: Response) => {
     return;
   }
   try {
-    const supabase = getSupabaseClient();
+    const supabase = supabaseAnon;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: "https://www.chimiq.com/reset-password",
     });
@@ -218,7 +216,7 @@ router.post("/auth/reset-password", async (req: Request, res: Response) => {
       res.status(401).json({ error: "Invalid or expired reset link" });
       return;
     }
-    const supabase = getSupabaseAdminClient();
+    const supabase = supabaseAdmin;
     const { error } = await supabase.auth.admin.updateUserById(
       payload.sub as string,
       { password },

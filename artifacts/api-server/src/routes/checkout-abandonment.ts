@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { db, checkoutAbandonmentEventsTable } from "@workspace/db";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
 
 const RecordBody = z.object({
@@ -28,11 +28,13 @@ router.post("/checkout-abandonment", limiter, async (req, res) => {
   const { planType, source } = parsed.data;
 
   try {
-    await db.insert(checkoutAbandonmentEventsTable).values({
-      userId,
-      planType,
+    const supabase = supabaseAdmin;
+    const { error } = await supabase.from("checkout_abandonment_events").insert({
+      user_id: userId,
+      plan_type: planType,
       source: source ?? null,
     });
+    if (error) throw error;
     res.json({ ok: true });
   } catch (err) {
     req.log.warn({ err }, "Failed to record checkout abandonment event");

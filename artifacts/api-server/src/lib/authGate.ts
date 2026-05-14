@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { getUserPlan } from "@workspace/db";
+import { getUserPlan } from "./userPlan.js";
 
 /**
  * Small, composable middleware helpers used to guard the AI/LLM endpoints.

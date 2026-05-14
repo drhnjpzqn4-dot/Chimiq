@@ -2,8 +2,6 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { type Request } from "express";
 import { supabaseAdmin } from "./supabase-admin.js";
 
-export { getSupabaseAdminClient, getSupabaseClient } from "./supabaseClients.js";
-
 interface SupabaseUser {
   id: string;
   email?: string;

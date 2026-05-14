@@ -1,8 +1,9 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
-import { db, shelfProductsTable, getUserPlan, type ShelfProduct } from "@workspace/db";
-import { eq, and, count } from "drizzle-orm";
+import type { ShelfProduct } from "@workspace/db/schema";
 import Anthropic from "@anthropic-ai/sdk";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
+import { getUserPlan } from "../lib/userPlan.js";
 import {
   sanitizeProductName,
   sanitizeIngredients,
@@ -10,6 +11,17 @@ import {
 } from "../lib/sanitize.js";
 
 const router: IRouter = Router();
+
+function mapShelfRow(row: Record<string, unknown>): ShelfProduct {
+  return {
+    id: row.id as number,
+    userId: row.user_id as string,
+    productName: row.product_name as string,
+    ingredients: row.ingredients as string,
+    routineSlot: row.routine_slot as ShelfProduct["routineSlot"],
+    addedAt: new Date(row.added_at as string),
+  };
+}
 
 const routineSlotSchema = z.enum(["morning", "evening", "both", "occasional", "wishlist"]);
 
@@ -28,12 +40,18 @@ router.get("/shelf", async (req: Request, res: Response) => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  const products = await db
-    .select()
-    .from(shelfProductsTable)
-    .where(eq(shelfProductsTable.userId, req.user.id))
-    .orderBy(shelfProductsTable.addedAt);
-  res.json({ products });
+  const supabase = supabaseAdmin;
+  const { data, error } = await supabase
+    .from("shelf_products")
+    .select("*")
+    .eq("user_id", req.user.id)
+    .order("added_at", { ascending: true });
+  if (error) {
+    req.log?.error?.({ err: error }, "shelf list failed");
+    res.status(500).json({ error: "Failed to load shelf" });
+    return;
+  }
+  res.json({ products: (data ?? []).map((r) => mapShelfRow(r as Record<string, unknown>)) });
 });
 
 router.post("/shelf", async (req: Request, res: Response) => {
@@ -44,11 +62,14 @@ router.post("/shelf", async (req: Request, res: Response) => {
 
   const plan = await getUserPlan(req.user.id);
   if (plan === "free") {
-    const [{ total }] = await db
-      .select({ total: count() })
-      .from(shelfProductsTable)
-      .where(eq(shelfProductsTable.userId, req.user.id));
-    if (total >= 2) {
+    const supabase = supabaseAdmin;
+    const { count, error } = await supabase
+      .from("shelf_products")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", req.user.id);
+    if (error) {
+      req.log?.warn?.({ err: error }, "shelf count failed");
+    } else if ((count ?? 0) >= 2) {
       res.status(402).json({ error: "upgrade_required" });
       return;
     }
@@ -73,16 +94,23 @@ router.post("/shelf", async (req: Request, res: Response) => {
     throw err;
   }
 
-  const [product] = await db
-    .insert(shelfProductsTable)
-    .values({
-      userId: req.user.id,
-      productName: safeName,
+  const supabase = supabaseAdmin;
+  const { data: product, error } = await supabase
+    .from("shelf_products")
+    .insert({
+      user_id: req.user.id,
+      product_name: safeName,
       ingredients: safeIngredients,
-      routineSlot: parsed.data.routineSlot,
+      routine_slot: parsed.data.routineSlot,
     })
-    .returning();
-  res.json(product);
+    .select()
+    .single();
+  if (error || !product) {
+    req.log?.error?.({ err: error }, "shelf insert failed");
+    res.status(500).json({ error: "Failed to add product" });
+    return;
+  }
+  res.json(mapShelfRow(product as Record<string, unknown>));
 });
 
 router.patch("/shelf/:id", async (req: Request, res: Response) => {
@@ -100,16 +128,24 @@ router.patch("/shelf/:id", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid input" });
     return;
   }
-  const [updated] = await db
-    .update(shelfProductsTable)
-    .set({ routineSlot: parsed.data.routineSlot })
-    .where(and(eq(shelfProductsTable.id, id), eq(shelfProductsTable.userId, req.user.id)))
-    .returning();
+  const supabase = supabaseAdmin;
+  const { data: updated, error } = await supabase
+    .from("shelf_products")
+    .update({ routine_slot: parsed.data.routineSlot })
+    .eq("id", id)
+    .eq("user_id", req.user.id)
+    .select()
+    .maybeSingle();
+  if (error) {
+    req.log?.error?.({ err: error }, "shelf patch failed");
+    res.status(500).json({ error: "Failed to update" });
+    return;
+  }
   if (!updated) {
     res.status(404).json({ error: "Product not found on shelf" });
     return;
   }
-  res.json(updated);
+  res.json(mapShelfRow(updated as Record<string, unknown>));
 });
 
 router.delete("/shelf/:id", async (req: Request, res: Response) => {
@@ -122,11 +158,19 @@ router.delete("/shelf/:id", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  const deleted = await db
-    .delete(shelfProductsTable)
-    .where(and(eq(shelfProductsTable.id, id), eq(shelfProductsTable.userId, req.user.id)))
-    .returning();
-  if (deleted.length === 0) {
+  const supabase = supabaseAdmin;
+  const { data: deleted, error } = await supabase
+    .from("shelf_products")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", req.user.id)
+    .select("id");
+  if (error) {
+    req.log?.error?.({ err: error }, "shelf delete failed");
+    res.status(500).json({ error: "Failed to delete" });
+    return;
+  }
+  if (!deleted?.length) {
     res.status(404).json({ error: "Product not found on shelf" });
     return;
   }
@@ -215,15 +259,17 @@ async function analyzePair(
 
 router.get("/shelf/status", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
-    res.status(401).json({ hasConflicts: false, hasRecall: false });
+    res.json({ hasConflicts: false, hasRecall: false });
     return;
   }
   try {
-    const products = await db
-      .select()
-      .from(shelfProductsTable)
-      .where(eq(shelfProductsTable.userId, req.user.id));
-
+    const supabase = supabaseAdmin;
+    const { data: rows, error } = await supabase
+      .from("shelf_products")
+      .select("*")
+      .eq("user_id", req.user.id);
+    if (error) throw error;
+    const products = (rows ?? []).map((r) => mapShelfRow(r as Record<string, unknown>));
     const hasConflicts = products.some(
       (p: ShelfProduct) => (p as Record<string, unknown>).routineConflict === true,
     );
@@ -236,13 +282,6 @@ router.get("/shelf/status", async (req: Request, res: Response) => {
   }
 });
 
-// Why no premium gate: this endpoint runs N×(N-1)/2 Sonnet calls across the
-// user's shelf, but the shelf itself is already plan-bounded — free users
-// are capped at 2 products by the POST /shelf gate above (max 1 LLM pair),
-// premium users are capped at MAX_PRODUCTS=10 (max 45 pairs) and CONCURRENCY
-// is held at 3. So spend is bounded per user even without a price-tier
-// check, and we want free users to see the value of routine analysis on
-// their two products before upgrading.
 router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -257,18 +296,23 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
     return;
   }
 
-  const products = await db
-    .select()
-    .from(shelfProductsTable)
-    .where(eq(shelfProductsTable.userId, req.user.id))
-    .orderBy(shelfProductsTable.addedAt);
+  const supabase = supabaseAdmin;
+  const { data: rows, error } = await supabase
+    .from("shelf_products")
+    .select("*")
+    .eq("user_id", req.user.id)
+    .order("added_at", { ascending: true });
+  if (error) {
+    req.log.error({ err: error }, "shelf analyze load failed");
+    res.status(500).json({ error: "Failed to load shelf." });
+    return;
+  }
+  const products = (rows ?? []).map((r) => mapShelfRow(r as Record<string, unknown>));
 
   const MAX_PRODUCTS = 10;
   const CONCURRENCY = 3;
 
-  // Cap to most recently-added products to limit LLM cost
   const cappedProducts = products.slice(-MAX_PRODUCTS);
-  // Wishlist items are not part of routine conflict analysis (SS-023).
   const forAnalysis = cappedProducts.filter((p) => p.routineSlot !== "wishlist");
 
   if (forAnalysis.length < 2) {
@@ -278,7 +322,6 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
 
   const anthropic = new Anthropic({ apiKey });
 
-  // Generate all unique product pairs
   const pairs: Array<{ i: number; j: number }> = [];
   for (let i = 0; i < forAnalysis.length - 1; i++) {
     for (let j = i + 1; j < forAnalysis.length; j++) {
@@ -286,7 +329,6 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
     }
   }
 
-  // Concurrency-limited executor
   async function runWithConcurrency<T>(
     tasks: Array<() => Promise<T>>,
     limit: number,
@@ -324,7 +366,6 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
 
     const pairResults = await runWithConcurrency(tasks, CONCURRENCY);
 
-    // Flatten, deduplicate by pair name, sort by severity
     const severityOrder = { HIGH_RISK: 0, CAUTION: 1, SAFE: 2 };
     const seen = new Set<string>();
     const allConflicts = pairResults
@@ -333,7 +374,7 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
         const key = `${c.product1Name}|${c.product2Name}|${c.pair}`;
         if (seen.has(key)) return false;
         seen.add(key);
-        return c.severity !== "SAFE"; // Only show real issues
+        return c.severity !== "SAFE";
       })
       .sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 

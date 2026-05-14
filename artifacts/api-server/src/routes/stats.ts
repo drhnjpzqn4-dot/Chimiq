@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, shelfProductsTable, usersTable, getUserPlan } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
+import { getUserPlan } from "../lib/userPlan.js";
 import {
   FREE_DAILY_SCAN_LIMIT,
   getTodayScanCount,
@@ -74,13 +74,13 @@ router.get("/stats", async (req, res) => {
   }
 
   try {
-    const [productsResult, usersResult] = await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(shelfProductsTable),
-      db.select({ count: sql<number>`count(*)` }).from(usersTable),
+    const supabase = supabaseAdmin;
+    const [productsCount, usersCount] = await Promise.all([
+      supabase.from("shelf_products").select("*", { count: "exact", head: true }),
+      supabase.from("users").select("*", { count: "exact", head: true }),
     ]);
-
-    const products = Number(productsResult[0]?.count ?? 0);
-    const users = Number(usersResult[0]?.count ?? 0);
+    const products = productsCount.count ?? 0;
+    const users = usersCount.count ?? 0;
     const analyses = Math.max(products * 3 + 12, 20);
 
     cachedStats = { analyses, products, users, updatedAt: now };

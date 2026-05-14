@@ -1,6 +1,5 @@
 import type { Logger } from "pino";
-import { eq, or } from "drizzle-orm";
-import { db, usersTable, paymentTestChargesTable, subscriptionEventsTable } from "@workspace/db";
+import { supabaseAdmin } from "./lib/supabase-admin.js";
 
 // ---------------------------------------------------------------------------
 // Minimal local interfaces — duck-typed to match the Stripe shapes we use.
@@ -40,20 +39,22 @@ interface StripeCharge {
  *
  * The Stripe sync library verifies the signature and mirrors raw Stripe
  * objects into Postgres. This layer maps the lifecycle events we care about
- * onto our `users.plan` / `users.stripeSubscriptionId` columns so the rest of
+ * onto our `users.plan` / `users.stripe_subscription_id` columns so the rest of
  * the app (paywall, shelf limit, badges, etc.) reflects the user's true
  * billing state.
  *
- * Important: we never clear `users.premiumUntil` here — that field is owned
+ * Important: we never clear `users.premium_until` here — that field is owned
  * by the gamification flow (contribution rewards) and is independent of the
  * paid subscription. `getUserPlan` already grants premium when EITHER
- * `plan === "premium"` OR `premiumUntil > now`, so a downgrade here just
+ * `plan === "premium"` OR `premium_until > now`, so a downgrade here just
  * removes the paid grant and leaves any earned-premium time intact.
  */
 export async function applyStripeEventToUser(
   event: StripeEvent,
   log: Logger,
 ): Promise<void> {
+  const supabase = supabaseAdmin;
+
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as unknown as StripeCheckoutSession;
@@ -74,26 +75,26 @@ export async function applyStripeEventToUser(
           ? session.customer
           : (session.customer?.id ?? null);
 
-      await db
-        .update(usersTable)
-        .set({
-          plan: "premium",
-          ...(subscriptionId ? { stripeSubscriptionId: subscriptionId } : {}),
-          ...(customerId ? { stripeCustomerId: customerId } : {}),
-        })
-        .where(eq(usersTable.id, userId));
+      const patch: Record<string, unknown> = { plan: "premium" };
+      if (subscriptionId) patch.stripe_subscription_id = subscriptionId;
+      if (customerId) patch.stripe_customer_id = customerId;
+
+      const { error: upErr } = await supabase.from("users").update(patch).eq("id", userId);
+      if (upErr) {
+        log.warn({ err: upErr, userId }, "Failed to update user after checkout");
+        return;
+      }
 
       if (subscriptionId && customerId) {
-        try {
-          await db.insert(subscriptionEventsTable).values({
-            userId,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
-            status: "active",
-            eventType: "checkout.session.completed",
-          });
-        } catch (err) {
-          log.warn({ err, userId }, "Failed to record subscription event from checkout");
+        const { error: evErr } = await supabase.from("subscription_events").insert({
+          user_id: userId,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          status: "active",
+          event_type: "checkout.session.completed",
+        });
+        if (evErr) {
+          log.warn({ err: evErr, userId }, "Failed to record subscription event from checkout");
         }
       }
 
@@ -109,48 +110,49 @@ export async function applyStripeEventToUser(
       const sub = event.data.object as unknown as StripeSubscription;
       const customerId =
         typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-      // active or trialing => keep / grant premium; anything else => downgrade
       const isActive = sub.status === "active" || sub.status === "trialing";
-      // Always mirror Stripe's status + trial end onto the user row so the
-      // admin Users dashboard can show "trial / paid / past_due / etc"
-      // without a per-row Stripe API call.
       const trialEndsAt =
-        typeof sub.trial_end === "number" ? new Date(sub.trial_end * 1000) : null;
-      await db
-        .update(usersTable)
-        .set(
-          isActive
-            ? {
-                plan: "premium",
-                stripeSubscriptionId: sub.id,
-                subscriptionStatus: sub.status,
-                trialEndsAt,
-              }
-            : {
-                plan: "free",
-                stripeSubscriptionId: null,
-                subscriptionStatus: sub.status,
-                trialEndsAt,
-              },
-        )
-        .where(eq(usersTable.stripeCustomerId, customerId));
+        typeof sub.trial_end === "number" ? new Date(sub.trial_end * 1000).toISOString() : null;
+
+      const patch = isActive
+        ? {
+            plan: "premium",
+            stripe_subscription_id: sub.id,
+            subscription_status: sub.status,
+            trial_ends_at: trialEndsAt,
+          }
+        : {
+            plan: "free",
+            stripe_subscription_id: null,
+            subscription_status: sub.status,
+            trial_ends_at: trialEndsAt,
+          };
+
+      const { error: upErr } = await supabase
+        .from("users")
+        .update(patch)
+        .eq("stripe_customer_id", customerId);
+      if (upErr) {
+        log.warn({ err: upErr, customerId }, "Failed to sync subscription to user");
+        return;
+      }
 
       if (isActive) {
-        const [user] = await db
-          .select({ id: usersTable.id })
-          .from(usersTable)
-          .where(eq(usersTable.stripeCustomerId, customerId));
-        if (user) {
-          try {
-            await db.insert(subscriptionEventsTable).values({
-              userId: user.id,
-              stripeCustomerId: customerId,
-              stripeSubscriptionId: sub.id,
-              status: sub.status,
-              eventType: event.type,
-            });
-          } catch (err) {
-            log.warn({ err, customerId }, "Failed to record subscription event");
+        const { data: user, error: selErr } = await supabase
+          .from("users")
+          .select("id")
+          .eq("stripe_customer_id", customerId)
+          .maybeSingle();
+        if (!selErr && user?.id) {
+          const { error: evErr } = await supabase.from("subscription_events").insert({
+            user_id: user.id as string,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: sub.id,
+            status: sub.status,
+            event_type: event.type,
+          });
+          if (evErr) {
+            log.warn({ err: evErr, customerId }, "Failed to record subscription event");
           }
         }
       }
@@ -166,14 +168,18 @@ export async function applyStripeEventToUser(
       const sub = event.data.object as unknown as StripeSubscription;
       const customerId =
         typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-      await db
-        .update(usersTable)
-        .set({
+      const { error } = await supabase
+        .from("users")
+        .update({
           plan: "free",
-          stripeSubscriptionId: null,
-          subscriptionStatus: sub.status,
+          stripe_subscription_id: null,
+          subscription_status: sub.status,
         })
-        .where(eq(usersTable.stripeCustomerId, customerId));
+        .eq("stripe_customer_id", customerId);
+      if (error) {
+        log.warn({ err: error, customerId }, "Failed to downgrade user on subscription delete");
+        return;
+      }
       log.info(
         { customerId, subscriptionId: sub.id },
         "Subscription deleted — downgraded user to free",
@@ -193,32 +199,30 @@ export async function applyStripeEventToUser(
         typeof charge.payment_intent === "string"
           ? charge.payment_intent
           : (charge.payment_intent?.id ?? null);
-      const matchClauses = [];
+
+      let auditMatched = false;
+      const orParts: string[] = [];
       if (paymentIntentId) {
-        matchClauses.push(
-          eq(paymentTestChargesTable.paymentIntentId, paymentIntentId),
-        );
+        orParts.push(`payment_intent_id.eq.${paymentIntentId}`);
       }
       if (charge.id) {
-        matchClauses.push(eq(paymentTestChargesTable.chargeId, charge.id));
+        orParts.push(`charge_id.eq.${charge.id}`);
       }
-      let auditMatched = false;
-      if (matchClauses.length > 0) {
-        const matchExpr =
-          matchClauses.length === 1 ? matchClauses[0] : or(...matchClauses);
-        const updated = await db
-          .update(paymentTestChargesTable)
-          .set({
-            webhookReceivedAt: new Date(),
-            webhookEventId: event.id,
-            ...(charge.id ? { chargeId: charge.id } : {}),
+      if (orParts.length > 0) {
+        const { data: updatedRows, error: audErr } = await supabase
+          .from("payment_test_charges")
+          .update({
+            webhook_received_at: new Date().toISOString(),
+            webhook_event_id: event.id,
+            ...(charge.id ? { charge_id: charge.id } : {}),
           })
-          .where(matchExpr!)
-          .returning({
-            paymentIntentId: paymentTestChargesTable.paymentIntentId,
-          });
-        auditMatched = updated.length > 0;
+          .or(orParts.join(","))
+          .select("payment_intent_id");
+        if (!audErr && updatedRows && updatedRows.length > 0) {
+          auditMatched = true;
+        }
       }
+
       if (auditMatched || charge.metadata?.purpose === "go_live_test_charge") {
         log.info(
           {
@@ -248,14 +252,18 @@ export async function applyStripeEventToUser(
         );
         return;
       }
-      await db
-        .update(usersTable)
-        .set({
+      const { error: downErr } = await supabase
+        .from("users")
+        .update({
           plan: "free",
-          stripeSubscriptionId: null,
-          subscriptionStatus: "canceled",
+          stripe_subscription_id: null,
+          subscription_status: "canceled",
         })
-        .where(eq(usersTable.stripeCustomerId, customerId));
+        .eq("stripe_customer_id", customerId);
+      if (downErr) {
+        log.warn({ err: downErr, customerId }, "Failed to downgrade after refund");
+        return;
+      }
       log.info(
         { customerId, chargeId: charge.id },
         "Charge fully refunded — downgraded user to free",

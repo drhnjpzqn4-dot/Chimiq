@@ -1,13 +1,4 @@
 import { Router, type IRouter } from "express";
-import {
-  db,
-  cachedProductsTable,
-  analysisCacheTable,
-  productRatingsTable,
-  userSubmittedProductsTable,
-  shelfProductsTable,
-} from "@workspace/db";
-import { and, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
 import { computeSingleHash } from "../lib/analysis-cache.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
 import {
@@ -17,6 +8,7 @@ import {
   SanitizationError,
 } from "../lib/sanitize.js";
 import { uploadBufferToGcs } from "../lib/objectStorage.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 import { randomUUID } from "crypto";
 
 const router: IRouter = Router();
@@ -45,14 +37,28 @@ function deriveCategory(name: string, brand: string | null): string {
   return "other";
 }
 
-function categoryFilter(category: string): SQL | undefined {
+function escapeFilterValue(value: string): string {
+  return value.replaceAll("\\", "\\\\").replaceAll(",", "\\,").replaceAll("(", "\\(").replaceAll(")", "\\)");
+}
+
+function keywordOrFilter(keywords: string[]): string {
+  return keywords
+    .flatMap((k) => {
+      const needle = `%${escapeFilterValue(k)}%`;
+      return [`product_name.ilike.${needle}`, `brand.ilike.${needle}`];
+    })
+    .join(",");
+}
+
+function categoryOrFilter(category: string): string | null {
   const keywords = CATEGORY_KEYWORDS[category];
-  if (!keywords?.length) return undefined;
-  const ors = keywords.flatMap((k) => [
-    ilike(cachedProductsTable.productName, `%${k}%`),
-    ilike(cachedProductsTable.brand, `%${k}%`),
-  ]);
-  return or(...ors);
+  if (!keywords?.length) return null;
+  return keywordOrFilter(keywords);
+}
+
+function searchOrFilter(query: string): string {
+  const needle = `%${escapeFilterValue(query)}%`;
+  return `product_name.ilike.${needle},brand.ilike.${needle}`;
 }
 
 // Inspect a cached AI verdict and decide whether it counts as "safe".
@@ -81,22 +87,19 @@ async function lookupSafety(
     hashToBarcode.set(computeSingleHash(ing, undefined), barcode);
   }
   if (hashToBarcode.size === 0) return out;
-  const rows = await db
-    .select({
-      hash: analysisCacheTable.hash,
-      resultJson: analysisCacheTable.resultJson,
-    })
-    .from(analysisCacheTable)
-    .where(
-      and(
-        eq(analysisCacheTable.scanType, "single"),
-        inArray(analysisCacheTable.hash, Array.from(hashToBarcode.keys())),
-      ),
-    );
+  const supabase = supabaseAdmin;
+  const hashes = Array.from(hashToBarcode.keys());
+  const { data, error } = await supabase
+    .from("analysis_cache")
+    .select("hash,result_json")
+    .eq("scan_type", "single")
+    .in("hash", hashes);
+  if (error) throw error;
+  const rows = (data ?? []) as Array<{ hash: string; result_json: string }>;
   for (const row of rows) {
     const barcode = hashToBarcode.get(row.hash);
     if (!barcode) continue;
-    out.set(barcode, isSafeVerdict(row.resultJson));
+    out.set(barcode, isSafeVerdict(row.result_json));
   }
   return out;
 }
@@ -113,59 +116,62 @@ router.get("/products", async (req, res) => {
   const category = ALLOWED_CATEGORIES.has(categoryRaw) ? categoryRaw : "";
 
   try {
-    const filters: SQL[] = [];
+    const supabase = supabaseAdmin;
+    let dataQuery = supabase
+      .from("cached_products")
+      .select("barcode,product_name,brand,ingredients,image_url,cached_at")
+      .order("cached_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+    let countQuery = supabase
+      .from("cached_products")
+      .select("barcode", { count: "exact", head: true });
+
     if (q) {
-      const search = or(
-        ilike(cachedProductsTable.productName, `%${q}%`),
-        ilike(cachedProductsTable.brand, `%${q}%`),
-      );
-      if (search) filters.push(search);
+      const search = searchOrFilter(q);
+      dataQuery = dataQuery.or(search);
+      countQuery = countQuery.or(search);
     }
     if (category) {
-      const catFilter = categoryFilter(category);
-      if (catFilter) filters.push(catFilter);
+      const catFilter = categoryOrFilter(category);
+      if (catFilter) {
+        dataQuery = dataQuery.or(catFilter);
+        countQuery = countQuery.or(catFilter);
+      }
     }
-    const where = filters.length ? and(...filters) : undefined;
 
-    const rows = await db
-      .select({
-        barcode: cachedProductsTable.barcode,
-        productName: cachedProductsTable.productName,
-        brand: cachedProductsTable.brand,
-        ingredients: cachedProductsTable.ingredients,
-        imageUrl: cachedProductsTable.imageUrl,
-        cachedAt: cachedProductsTable.cachedAt,
-      })
-      .from(cachedProductsTable)
-      .where(where)
-      .orderBy(desc(cachedProductsTable.cachedAt))
-      .limit(limit)
-      .offset(offset);
+    const [
+      { data: listRows, error: listError },
+      { count, error: countError },
+    ] = await Promise.all([dataQuery, countQuery]);
+    if (listError) throw listError;
+    if (countError) throw countError;
 
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(cachedProductsTable)
-      .where(where);
+    const rows = (listRows ?? []) as Array<{
+      barcode: string;
+      product_name: string;
+      brand: string | null;
+      ingredients: string;
+      image_url: string | null;
+      cached_at: string;
+    }>;
 
     const ingMap = new Map<string, string>();
-    rows.forEach((r) => ingMap.set(r.barcode, r.ingredients));
+    rows.forEach((r) => ingMap.set(r.barcode, r.ingredients ?? ""));
     const safetyMap = await lookupSafety(ingMap);
 
     res.json({
       products: rows.map((p) => ({
         barcode: p.barcode,
-        productName: p.productName,
-        brand: p.brand,
-        imageUrl: p.imageUrl,
-        cachedAt: p.cachedAt.toISOString(),
-        category: deriveCategory(p.productName, p.brand),
+        productName: p.product_name,
+        brand: p.brand ?? "",
+        imageUrl: p.image_url,
+        cachedAt: new Date(p.cached_at).toISOString(),
+        category: deriveCategory(p.product_name, p.brand),
         verifiedSafe: safetyMap.get(p.barcode) === true,
         ingredientsPreview:
-          p.ingredients.length > 140
-            ? `${p.ingredients.slice(0, 140)}…`
-            : p.ingredients,
+          p.ingredients.length > 140 ? `${p.ingredients.slice(0, 140)}…` : p.ingredients,
       })),
-      total: count,
+      total: count ?? 0,
       limit,
       offset,
       categories: Array.from(ALLOWED_CATEGORIES),
@@ -185,25 +191,36 @@ router.get("/products/:barcode", async (req, res) => {
     return;
   }
   try {
-    const rows = await db
-      .select()
-      .from(cachedProductsTable)
-      .where(eq(cachedProductsTable.barcode, barcode))
-      .limit(1);
-    const product = rows[0];
+    const supabase = supabaseAdmin;
+    const { data, error } = await supabase
+      .from("cached_products")
+      .select("barcode,product_name,brand,ingredients,image_url,cached_at")
+      .eq("barcode", barcode)
+      .maybeSingle();
+    if (error) throw error;
+    const product = data as
+      | {
+          barcode: string;
+          product_name: string;
+          brand: string | null;
+          ingredients: string;
+          image_url: string | null;
+          cached_at: string;
+        }
+      | null;
     if (!product) {
       res.status(404).json({ error: "Product not found." });
       return;
     }
-    const safetyMap = await lookupSafety(new Map([[barcode, product.ingredients]]));
+    const safetyMap = await lookupSafety(new Map([[barcode, product.ingredients ?? ""]]));
     res.json({
       barcode: product.barcode,
-      productName: product.productName,
-      brand: product.brand,
-      imageUrl: product.imageUrl,
+      productName: product.product_name,
+      brand: product.brand ?? "",
+      imageUrl: product.image_url,
       ingredients: product.ingredients,
-      cachedAt: product.cachedAt.toISOString(),
-      category: deriveCategory(product.productName, product.brand),
+      cachedAt: new Date(product.cached_at).toISOString(),
+      category: deriveCategory(product.product_name, product.brand),
       verifiedSafe: safetyMap.get(barcode) === true,
     });
   } catch (err) {
@@ -224,17 +241,17 @@ async function checkRatingEligibility(
   barcode: string,
   productNameHint: string | null,
 ): Promise<{ eligible: boolean; reason?: "scanned" | "shelf" }> {
+  const supabase = supabaseAdmin;
+
   // (a) Scanned/contributed this barcode themselves.
-  const [submission] = await db
-    .select({ id: userSubmittedProductsTable.id })
-    .from(userSubmittedProductsTable)
-    .where(
-      and(
-        eq(userSubmittedProductsTable.barcode, barcode),
-        eq(userSubmittedProductsTable.submittedBy, userId),
-      ),
-    )
-    .limit(1);
+  const { data: submission, error: submissionError } = await supabase
+    .from("user_submitted_products")
+    .select("id")
+    .eq("barcode", barcode)
+    .eq("submitted_by", userId)
+    .limit(1)
+    .maybeSingle();
+  if (submissionError) throw submissionError;
   if (submission) return { eligible: true, reason: "scanned" };
 
   // (b) Has the product on their shelf — match by exact (case-insensitive)
@@ -242,27 +259,26 @@ async function checkRatingEligibility(
   // product name up from cached_products.
   let nameToMatch = (productNameHint ?? "").trim();
   if (!nameToMatch) {
-    const [cached] = await db
-      .select({ productName: cachedProductsTable.productName })
-      .from(cachedProductsTable)
-      .where(eq(cachedProductsTable.barcode, barcode))
-      .limit(1);
-    nameToMatch = cached?.productName ?? "";
+    const { data: cached, error: cachedError } = await supabase
+      .from("cached_products")
+      .select("product_name")
+      .eq("barcode", barcode)
+      .maybeSingle();
+    if (cachedError) throw cachedError;
+    nameToMatch = (cached as { product_name: string } | null)?.product_name ?? "";
   }
   if (nameToMatch) {
-    // Exact case-insensitive equality only — never feed user input straight
-    // into ILIKE (treats `%`/`_` as wildcards, which would let a user with
-    // any shelf row claim eligibility for any product).
-    const [shelfRow] = await db
-      .select({ id: shelfProductsTable.id })
-      .from(shelfProductsTable)
-      .where(
-        and(
-          eq(shelfProductsTable.userId, userId),
-          sql`lower(${shelfProductsTable.productName}) = lower(${nameToMatch})`,
-        ),
-      )
-      .limit(1);
+    const { data: shelfRows, error: shelfError } = await supabase
+      .from("shelf_products")
+      .select("id,product_name")
+      .eq("user_id", userId)
+      .limit(500);
+    if (shelfError) throw shelfError;
+    const shelfRow = (shelfRows ?? []).find(
+      (row) =>
+        String((row as { product_name?: string | null }).product_name ?? "").toLocaleLowerCase() ===
+        nameToMatch.toLocaleLowerCase(),
+    );
     if (shelfRow) return { eligible: true, reason: "shelf" };
   }
 
@@ -270,31 +286,22 @@ async function checkRatingEligibility(
 }
 
 async function loadRatingAggregate(barcode: string, userId: string | null) {
-  const [agg] = await db
-    .select({
-      avg: sql<number | null>`avg(${productRatingsTable.stars})::float`,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(productRatingsTable)
-    .where(eq(productRatingsTable.barcode, barcode));
-  let myRating: number | null = null;
-  if (userId) {
-    const [mine] = await db
-      .select({ stars: productRatingsTable.stars })
-      .from(productRatingsTable)
-      .where(
-        and(
-          eq(productRatingsTable.barcode, barcode),
-          eq(productRatingsTable.userId, userId),
-        ),
-      )
-      .limit(1);
-    myRating = mine?.stars ?? null;
-  }
+  const supabase = supabaseAdmin;
+  const { data, error } = await supabase
+    .from("product_ratings")
+    .select("stars,user_id")
+    .eq("barcode", barcode);
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<{ stars: number; user_id: string }>;
+  const count = rows.length;
+  const avg = count > 0 ? rows.reduce((sum, row) => sum + row.stars, 0) / count : null;
+  const mine = userId ? rows.find((row) => row.user_id === userId) : null;
+
   return {
-    avg: agg?.avg ?? null,
-    count: agg?.count ?? 0,
-    myRating,
+    avg,
+    count,
+    myRating: mine?.stars ?? null,
   };
 }
 
@@ -392,13 +399,17 @@ router.post("/products/:barcode/rating", ratingRateLimit, async (req, res) => {
       return;
     }
 
-    await db
-      .insert(productRatingsTable)
-      .values({ barcode, userId, stars })
-      .onConflictDoUpdate({
-        target: [productRatingsTable.barcode, productRatingsTable.userId],
-        set: { stars, updatedAt: new Date() },
-      });
+    const supabase = supabaseAdmin;
+    const { error: saveError } = await supabase.from("product_ratings").upsert(
+      {
+        barcode,
+        user_id: userId,
+        stars,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "barcode,user_id" },
+    );
+    if (saveError) throw saveError;
 
     const aggregate = await loadRatingAggregate(barcode, userId);
     res.json({ ...aggregate, eligible: true, eligibilityReason: elig.reason });
@@ -430,22 +441,33 @@ router.get("/products/:barcode/gaps", async (req, res) => {
     return;
   }
   try {
-    const [cached] = await db
-      .select()
-      .from(cachedProductsTable)
-      .where(eq(cachedProductsTable.barcode, barcode))
+    const supabase = supabaseAdmin;
+    const { data, error } = await supabase
+      .from("cached_products")
+      .select("barcode,product_name,brand,ingredients,image_url")
+      .eq("barcode", barcode)
       .limit(1);
+    if (error) throw error;
+    const cached = ((data ?? [])[0] ?? null) as
+      | {
+          barcode: string;
+          product_name: string;
+          brand: string | null;
+          ingredients: string;
+          image_url: string | null;
+        }
+      | null;
     res.json({
       barcode,
-      productName: cached?.productName ?? null,
+      productName: cached?.product_name ?? null,
       brand: cached?.brand ?? null,
       hasIngredients: Boolean(cached?.ingredients && cached.ingredients.trim().length > 0),
-      hasFrontImage: Boolean(cached?.imageUrl && cached.imageUrl.trim().length > 0),
+      hasFrontImage: Boolean(cached?.image_url && cached.image_url.trim().length > 0),
       missing: {
-        productName: !cached?.productName || cached.productName.trim().length === 0,
+        productName: !cached?.product_name || cached.product_name.trim().length === 0,
         brand: !cached?.brand || cached.brand.trim().length === 0,
         ingredients: !cached?.ingredients || cached.ingredients.trim().length === 0,
-        frontImage: !cached?.imageUrl || cached.imageUrl.trim().length === 0,
+        frontImage: !cached?.image_url || cached.image_url.trim().length === 0,
       },
     });
   } catch (err) {
@@ -509,7 +531,10 @@ router.patch(
     }
 
     // Optional photo uploads — base64 PNG/JPEG, capped at ~6 MB raw.
-    async function tryUpload(b64: unknown, kind: "front" | "ingredients"): Promise<string | null> {
+    async function tryUpload(
+      b64: unknown,
+      _kind: "front" | "ingredients",
+    ): Promise<string | null> {
       if (typeof b64 !== "string" || b64.length === 0) return null;
       if (b64.length > 8_500_000) {
         throw new SanitizationError("Image is too large (max ~6 MB).");
@@ -540,6 +565,7 @@ router.patch(
     }
 
     try {
+      const supabase = supabaseAdmin;
       const elig = await checkRatingEligibility(
         userId,
         barcode,
@@ -554,43 +580,55 @@ router.patch(
 
       // Insert a new submission row (the AI/admin review pipeline will pick
       // it up). Status stays "pending" so it's auditable.
-      const [created] = await db
-        .insert(userSubmittedProductsTable)
-        .values({
+      const { data: created, error: insertError } = await supabase
+        .from("user_submitted_products")
+        .insert({
           barcode,
-          productName: updates.productName ?? null,
+          product_name: updates.productName ?? null,
           brand: updates.brand ?? null,
           ingredients: updates.ingredients ?? null,
-          frontImageUrl: updates.frontImageUrl ?? null,
-          ingredientsImageUrl: updates.ingredientsImageUrl ?? null,
-          submittedBy: userId,
+          front_image_url: updates.frontImageUrl ?? null,
+          ingredients_image_url: updates.ingredientsImageUrl ?? null,
+          submitted_by: userId,
           status: "pending",
         })
-        .returning({ id: userSubmittedProductsTable.id });
+        .select("id")
+        .maybeSingle();
+      if (insertError) throw insertError;
 
       // Additive cache patch: only fill empty columns on cached_products so
       // we never overwrite verified data with an unreviewed contribution.
-      const [cached] = await db
-        .select()
-        .from(cachedProductsTable)
-        .where(eq(cachedProductsTable.barcode, barcode))
+      const { data: cachedData, error: cachedError } = await supabase
+        .from("cached_products")
+        .select("barcode,product_name,brand,image_url")
+        .eq("barcode", barcode)
         .limit(1);
+      if (cachedError) throw cachedError;
+      const cached = ((cachedData ?? [])[0] ?? null) as
+        | {
+            barcode: string;
+            product_name: string;
+            brand: string | null;
+            image_url: string | null;
+          }
+        | null;
       if (cached) {
         const patch: Record<string, string> = {};
-        if (updates.productName && (!cached.productName || cached.productName.trim() === "")) {
-          patch["productName"] = updates.productName;
+        if (updates.productName && (!cached.product_name || cached.product_name.trim() === "")) {
+          patch["product_name"] = updates.productName;
         }
-        if (updates.brand && (!cached.brand || cached.brand.trim() === "")) {
+        if (updates.brand && (!cached.brand || String(cached.brand).trim() === "")) {
           patch["brand"] = updates.brand;
         }
-        if (updates.frontImageUrl && (!cached.imageUrl || cached.imageUrl.trim() === "")) {
-          patch["imageUrl"] = updates.frontImageUrl;
+        if (updates.frontImageUrl && (!cached.image_url || cached.image_url.trim() === "")) {
+          patch["image_url"] = updates.frontImageUrl;
         }
         if (Object.keys(patch).length > 0) {
-          await db
-            .update(cachedProductsTable)
-            .set(patch)
-            .where(eq(cachedProductsTable.barcode, barcode));
+          const { error: patchError } = await supabase
+            .from("cached_products")
+            .update(patch)
+            .eq("barcode", barcode);
+          if (patchError) throw patchError;
         }
       }
 

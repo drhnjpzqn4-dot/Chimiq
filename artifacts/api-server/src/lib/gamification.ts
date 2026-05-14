@@ -1,18 +1,8 @@
-import {
-  db,
-  badgesTable,
-  userBadgesTable,
-  usersTable,
-  tipWinnersTable,
-  tipsTable,
-  tipVotesTable,
-  monthlyTopTenResolutionsTable,
-  BADGE_CATALOG_SEED,
-  type BadgeCatalogId,
-} from "@workspace/db";
-import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { BADGE_CATALOG_SEED, type BadgeCatalogId } from "@workspace/db/schema";
+import { supabaseAdmin } from "./supabase-admin.js";
 
 const PREMIUM_DURATION_DAYS = 30;
+const PAGE_SIZE = 1000;
 
 /**
  * Idempotently insert the badge catalog rows. Safe to call on every boot.
@@ -21,10 +11,18 @@ let seeded = false;
 export async function seedBadgeCatalog(): Promise<void> {
   if (seeded) return;
   try {
-    await db
-      .insert(badgesTable)
-      .values(BADGE_CATALOG_SEED.map((b: (typeof BADGE_CATALOG_SEED)[number]) => ({ ...b })))
-      .onConflictDoNothing({ target: badgesTable.id });
+    const supabase = supabaseAdmin;
+    const rows = BADGE_CATALOG_SEED.map((badge: (typeof BADGE_CATALOG_SEED)[number]) => ({
+      id: badge.id,
+      title: badge.title,
+      description: badge.description,
+      emoji: badge.emoji,
+      sort_order: badge.sortOrder,
+    }));
+    const { error } = await supabase
+      .from("badges")
+      .upsert(rows, { onConflict: "id", ignoreDuplicates: true });
+    if (error) throw error;
     seeded = true;
   } catch {
     // best-effort; don't crash boot
@@ -37,14 +35,23 @@ async function awardBadgeOnce(
   weekKey?: string,
 ): Promise<boolean> {
   try {
-    const inserted = await db
-      .insert(userBadgesTable)
-      .values({ userId, badgeId, weekKey: weekKey ?? null })
-      .onConflictDoNothing({
-        target: [userBadgesTable.userId, userBadgesTable.badgeId],
-      })
-      .returning({ id: userBadgesTable.id });
-    return inserted.length > 0;
+    const supabase = supabaseAdmin;
+    const { data, error } = await supabase
+      .from("user_badges")
+      .upsert(
+        {
+          user_id: userId,
+          badge_id: badgeId,
+          week_key: weekKey ?? null,
+        },
+        {
+          onConflict: "user_id,badge_id",
+          ignoreDuplicates: true,
+        },
+      )
+      .select("id");
+    if (error) throw error;
+    return (data?.length ?? 0) > 0;
   } catch {
     return false;
   }
@@ -86,59 +93,280 @@ export interface LeaderboardRow {
 }
 
 export async function getAllTimeLeaderboard(limit = 25): Promise<LeaderboardRow[]> {
-  const rows = await db
-    .select({
-      userId: usersTable.id,
-      firstName: usersTable.firstName,
-      email: usersTable.email,
-      contributions: usersTable.acceptedContributions,
-    })
-    .from(usersTable)
-    .where(sql`${usersTable.acceptedContributions} > 0`)
-    .orderBy(desc(usersTable.acceptedContributions))
+  const supabase = supabaseAdmin;
+  const { data, error } = await supabase
+    .from("users")
+    .select("id,first_name,email,accepted_contributions")
+    .gt("accepted_contributions", 0)
+    .order("accepted_contributions", { ascending: false })
     .limit(limit);
+  if (error) throw error;
+  const rows = (data ?? []) as Array<{
+    id: string;
+    first_name: string | null;
+    email: string | null;
+    accepted_contributions: number;
+  }>;
 
   return rows.map((r, i) => ({
-    userId: r.userId,
-    displayName: formatDisplayName(r.firstName, r.email),
-    contributions: r.contributions,
+    userId: r.id,
+    displayName: formatDisplayName(r.first_name, r.email),
+    contributions: Number(r.accepted_contributions),
     rank: i + 1,
   }));
 }
 
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function aggregateApprovedContributionsSince(
+  startIso: string,
+  endExclusiveIso?: string,
+): Promise<Map<string, number>> {
+  const supabase = supabaseAdmin;
+  const contributions = new Map<string, number>();
+  let offset = 0;
+
+  for (;;) {
+    let query = supabase
+      .from("user_submitted_products")
+      .select("submitted_by,submitted_at")
+      .eq("status", "approved")
+      .eq("reward_granted", true)
+      .gte("submitted_at", startIso)
+      .order("submitted_at", { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (endExclusiveIso) {
+      query = query.lt("submitted_at", endExclusiveIso);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = (data ?? []) as Array<{ submitted_by: string | null }>;
+    if (rows.length === 0) break;
+
+    for (const row of rows) {
+      if (!row.submitted_by) continue;
+      contributions.set(row.submitted_by, (contributions.get(row.submitted_by) ?? 0) + 1);
+    }
+
+    if (rows.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return contributions;
+}
+
+async function getUsersByIds(
+  userIds: string[],
+): Promise<Map<string, { first_name: string | null; email: string | null }>> {
+  if (userIds.length === 0) return new Map();
+  const supabase = supabaseAdmin;
+  const { data, error } = await supabase
+    .from("users")
+    .select("id,first_name,email")
+    .in("id", userIds);
+  if (error) throw error;
+  const rows = (data ?? []) as Array<{ id: string; first_name: string | null; email: string | null }>;
+  return new Map(
+    rows.map((row) => [row.id, { first_name: row.first_name, email: row.email }] as const),
+  );
+}
+
+function selectBestTipByVotes(
+  tips: Array<{ id: string; author_id: string; body: string; created_at: string }>,
+  voteCounts: Map<string, number>,
+): { id: string; author_id: string; body: string; vote_count: number } | null {
+  let best: { id: string; author_id: string; body: string; vote_count: number } | null = null;
+  let bestCreatedAtMs = Number.POSITIVE_INFINITY;
+
+  for (const tip of tips) {
+    const votes = voteCounts.get(tip.id) ?? 0;
+    if (votes <= 0) continue;
+    const createdAtMs = new Date(tip.created_at).getTime();
+    if (!best || votes > best.vote_count || (votes === best.vote_count && createdAtMs < bestCreatedAtMs)) {
+      best = {
+        id: tip.id,
+        author_id: tip.author_id,
+        body: tip.body,
+        vote_count: votes,
+      };
+      bestCreatedAtMs = createdAtMs;
+    }
+  }
+  return best;
+}
+
+async function listTipsCreatedBetween(
+  startIso: string,
+  endIso: string,
+): Promise<Array<{ id: string; author_id: string; body: string; created_at: string }>> {
+  const supabase = supabaseAdmin;
+  const tips: Array<{ id: string; author_id: string; body: string; created_at: string }> = [];
+  let offset = 0;
+
+  for (;;) {
+    const { data, error } = await supabase
+      .from("tips")
+      .select("id,author_id,body,created_at")
+      .eq("hidden", 0)
+      .gte("created_at", startIso)
+      .lt("created_at", endIso)
+      .order("created_at", { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as Array<{
+      id: string;
+      author_id: string;
+      body: string;
+      created_at: string;
+    }>;
+    if (rows.length === 0) break;
+    tips.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return tips;
+}
+
+async function countVotesForTipIdsUntil(
+  tipIds: string[],
+  endIso: string,
+): Promise<Map<string, number>> {
+  const supabase = supabaseAdmin;
+  const voteCounts = new Map<string, number>();
+  if (tipIds.length === 0) return voteCounts;
+
+  for (const tipIdChunk of chunkArray(tipIds, 200)) {
+    let offset = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("tip_votes")
+        .select("tip_id")
+        .in("tip_id", tipIdChunk)
+        .lt("created_at", endIso)
+        .order("created_at", { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ tip_id: string }>;
+      if (rows.length === 0) break;
+      for (const row of rows) {
+        voteCounts.set(row.tip_id, (voteCounts.get(row.tip_id) ?? 0) + 1);
+      }
+      if (rows.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+  }
+
+  return voteCounts;
+}
+
+async function computeTipStats(
+  tipIds: string[],
+  viewerId: string | null,
+): Promise<{ voteCounts: Map<string, number>; viewerVoted: Set<string> }> {
+  const supabase = supabaseAdmin;
+  const voteCounts = new Map<string, number>();
+  const viewerVoted = new Set<string>();
+  if (tipIds.length === 0) return { voteCounts, viewerVoted };
+
+  for (const tipIdChunk of chunkArray(tipIds, 200)) {
+    let offset = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from("tip_votes")
+        .select("tip_id,voter_id")
+        .in("tip_id", tipIdChunk)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ tip_id: string; voter_id: string }>;
+      if (rows.length === 0) break;
+      for (const row of rows) {
+        voteCounts.set(row.tip_id, (voteCounts.get(row.tip_id) ?? 0) + 1);
+        if (viewerId && row.voter_id === viewerId) {
+          viewerVoted.add(row.tip_id);
+        }
+      }
+      if (rows.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+  }
+  return { voteCounts, viewerVoted };
+}
+
+async function listTipsSince(sinceIso: string): Promise<
+  Array<{ id: string; body: string; created_at: string; author_id: string }>
+> {
+  const supabase = supabaseAdmin;
+  const tips: Array<{ id: string; body: string; created_at: string; author_id: string }> = [];
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("tips")
+      .select("id,body,created_at,author_id")
+      .eq("hidden", 0)
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as Array<{
+      id: string;
+      body: string;
+      created_at: string;
+      author_id: string;
+    }>;
+    if (rows.length === 0) break;
+    tips.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return tips;
+}
+
+type CreateTipRateLimitRpcResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: "rate_limited"; recent: number };
+
+function parseCreateTipRateLimitRpcResult(value: unknown): CreateTipRateLimitRpcResult {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("create_tip_with_rate_limit RPC returned invalid payload");
+  }
+
+  const record = value as Record<string, unknown>;
+  if (record.ok === true && typeof record.id === "string") {
+    return { ok: true, id: record.id };
+  }
+  if (record.ok === false && record.reason === "rate_limited") {
+    const recent = typeof record.recent === "number" ? record.recent : Number(record.recent ?? 0);
+    return { ok: false, reason: "rate_limited", recent: Number.isFinite(recent) ? recent : 0 };
+  }
+
+  throw new Error("create_tip_with_rate_limit RPC returned unexpected shape");
+}
+
 export async function getMonthlyLeaderboard(limit = 25): Promise<LeaderboardRow[]> {
-  // Computed from approved submissions in the current calendar month.
-  // Cheap: indexed scan on user_submitted_products by status, filtered in
-  // memory by month — table is small (<10k expected) at this stage.
   const startOfMonth = new Date();
   startOfMonth.setUTCDate(1);
   startOfMonth.setUTCHours(0, 0, 0, 0);
+  const contributionMap = await aggregateApprovedContributionsSince(startOfMonth.toISOString());
+  const ranked = Array.from(contributionMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit);
+  const users = await getUsersByIds(ranked.map(([userId]) => userId));
 
-  const rows = await db.execute(sql`
-    SELECT
-      u.id          AS user_id,
-      u.first_name  AS first_name,
-      u.email       AS email,
-      COUNT(*)::int AS contributions
-    FROM user_submitted_products p
-    JOIN users u ON u.id = p.submitted_by
-    WHERE p.status = 'approved'
-      AND p.reward_granted = true
-      AND p.submitted_at >= ${startOfMonth.toISOString()}
-    GROUP BY u.id, u.first_name, u.email
-    ORDER BY contributions DESC
-    LIMIT ${limit}
-  `);
-
-  return (rows.rows as Array<{
-    user_id: string;
-    first_name: string | null;
-    email: string | null;
-    contributions: number;
-  }>).map((r, i) => ({
-    userId: r.user_id,
-    displayName: formatDisplayName(r.first_name, r.email),
-    contributions: Number(r.contributions),
+  return ranked.map(([userId, contributions], i) => ({
+    userId,
+    displayName: formatDisplayName(
+      users.get(userId)?.first_name ?? null,
+      users.get(userId)?.email ?? null,
+    ),
+    contributions,
     rank: i + 1,
   }));
 }
@@ -194,92 +422,96 @@ export async function resolveBestTipOfWeek(now: Date = new Date()): Promise<{
   const endLastWeek = startThisWeek;
   const startLastWeek = new Date(endLastWeek.getTime() - 7 * 24 * 3600 * 1000);
   const lastWeekKey = isoWeekKey(new Date(startLastWeek.getTime() + 24 * 3600 * 1000));
+  const supabase = supabaseAdmin;
 
-  // Already resolved?
-  const [existing] = await db
-    .select({
-      weekKey: tipWinnersTable.weekKey,
-      tipId: tipWinnersTable.tipId,
-      winnerUserId: tipWinnersTable.winnerUserId,
-      voteCount: tipWinnersTable.voteCount,
-    })
-    .from(tipWinnersTable)
-    .where(eq(tipWinnersTable.weekKey, lastWeekKey));
+  const { data: existing, error: existingError } = await supabase
+    .from("tip_winners")
+    .select("week_key,tip_id,winner_user_id,vote_count")
+    .eq("week_key", lastWeekKey)
+    .maybeSingle();
+  if (existingError) throw existingError;
 
   if (existing) {
-    const summary = await loadTipWinnerSummary(existing.tipId, existing.weekKey, existing.voteCount);
+    const summary = await loadTipWinnerSummary(
+      existing.tip_id,
+      existing.week_key,
+      Number(existing.vote_count),
+    );
     return { weekKey: lastWeekKey, winner: summary, newlyResolved: false };
   }
 
-  // Find top tip from last week (most votes, ties broken by oldest).
-  // CRITICAL: only count votes cast WITHIN the target week so late votes
-  // never change a finalized previous-week winner. Computed-on-read
-  // semantics demand vote_count be deterministic at any future read time.
-  const candidates = await db.execute(sql`
-    SELECT t.id, t.author_id, t.body, COUNT(v.id)::int AS vote_count
-    FROM tips t
-    LEFT JOIN tip_votes v
-      ON v.tip_id = t.id
-     AND v.created_at <  ${endLastWeek.toISOString()}
-    WHERE t.created_at >= ${startLastWeek.toISOString()}
-      AND t.created_at <  ${endLastWeek.toISOString()}
-      AND t.hidden = 0
-    GROUP BY t.id, t.author_id, t.body
-    HAVING COUNT(v.id) > 0
-    ORDER BY vote_count DESC, t.created_at ASC
-    LIMIT 1
-  `);
-
-  const top = candidates.rows[0] as
-    | { id: string; author_id: string; body: string; vote_count: number }
-    | undefined;
+  const tips = await listTipsCreatedBetween(startLastWeek.toISOString(), endLastWeek.toISOString());
+  const voteCounts = await countVotesForTipIdsUntil(
+    tips.map((tip) => tip.id),
+    endLastWeek.toISOString(),
+  );
+  const top = selectBestTipByVotes(tips, voteCounts);
   if (!top) {
     return { weekKey: lastWeekKey, winner: null, newlyResolved: false };
   }
 
-  // Insert winner with weekKey as PK lock; if another worker raced us, abort.
-  const inserted = await db
-    .insert(tipWinnersTable)
-    .values({
-      weekKey: lastWeekKey,
-      tipId: top.id,
-      winnerUserId: top.author_id,
-      voteCount: Number(top.vote_count),
-    })
-    .onConflictDoNothing({ target: tipWinnersTable.weekKey })
-    .returning({ weekKey: tipWinnersTable.weekKey });
+  const { data: inserted, error: insertError } = await supabase
+    .from("tip_winners")
+    .upsert(
+      {
+        week_key: lastWeekKey,
+        tip_id: top.id,
+        winner_user_id: top.author_id,
+        vote_count: Number(top.vote_count),
+      },
+      {
+        onConflict: "week_key",
+        ignoreDuplicates: true,
+      },
+    )
+    .select("week_key");
+  if (insertError) throw insertError;
 
-  if (inserted.length === 0) {
-    // Another worker won the race. Re-read the persisted winner row so we
-    // never return a locally-computed (and possibly stale) `top` instead.
-    const [persisted] = await db
-      .select({
-        tipId: tipWinnersTable.tipId,
-        voteCount: tipWinnersTable.voteCount,
-      })
-      .from(tipWinnersTable)
-      .where(eq(tipWinnersTable.weekKey, lastWeekKey));
+  if ((inserted?.length ?? 0) === 0) {
+    const { data: persisted, error: persistedError } = await supabase
+      .from("tip_winners")
+      .select("tip_id,vote_count")
+      .eq("week_key", lastWeekKey)
+      .maybeSingle();
+    if (persistedError) throw persistedError;
     if (!persisted) return { weekKey: lastWeekKey, winner: null, newlyResolved: false };
-    const summary = await loadTipWinnerSummary(persisted.tipId, lastWeekKey, persisted.voteCount);
+    const summary = await loadTipWinnerSummary(
+      persisted.tip_id,
+      lastWeekKey,
+      Number(persisted.vote_count),
+    );
     return { weekKey: lastWeekKey, winner: summary, newlyResolved: false };
   }
 
-  // Grant rewards. Premium grant uses MAX(existing, +30d) to never shrink it.
   const grantUntil = new Date();
   grantUntil.setUTCDate(grantUntil.getUTCDate() + PREMIUM_DURATION_DAYS);
-  await db
-    .update(usersTable)
-    .set({
-      premiumUntil: sql`GREATEST(COALESCE(${usersTable.premiumUntil}, NOW()), ${grantUntil.toISOString()}::timestamptz)`,
-    })
-    .where(eq(usersTable.id, top.author_id));
+
+  const { data: winnerUser, error: userReadError } = await supabase
+    .from("users")
+    .select("premium_until")
+    .eq("id", top.author_id)
+    .maybeSingle();
+  if (userReadError) throw userReadError;
+  const existingPremium = winnerUser?.premium_until
+    ? new Date(winnerUser.premium_until as string)
+    : null;
+  const premiumUntil =
+    existingPremium && existingPremium.getTime() > grantUntil.getTime()
+      ? existingPremium
+      : grantUntil;
+  const { error: userUpdateError } = await supabase
+    .from("users")
+    .update({ premium_until: premiumUntil.toISOString() })
+    .eq("id", top.author_id);
+  if (userUpdateError) throw userUpdateError;
 
   await awardBadgeOnce(top.author_id, "verified_tipster", lastWeekKey);
 
-  await db
-    .update(tipWinnersTable)
-    .set({ premiumGranted: 1 })
-    .where(eq(tipWinnersTable.weekKey, lastWeekKey));
+  const { error: grantFlagError } = await supabase
+    .from("tip_winners")
+    .update({ premium_granted: 1 })
+    .eq("week_key", lastWeekKey);
+  if (grantFlagError) throw grantFlagError;
 
   const summary = await loadTipWinnerSummary(top.id, lastWeekKey, Number(top.vote_count));
   return { weekKey: lastWeekKey, winner: summary, newlyResolved: true };
@@ -298,25 +530,26 @@ async function loadTipWinnerSummary(
   weekKey: string,
   voteCount: number,
 ): Promise<TipWinnerSummary | null> {
-  const [tip] = await db
-    .select({
-      id: tipsTable.id,
-      body: tipsTable.body,
-      authorId: tipsTable.authorId,
-    })
-    .from(tipsTable)
-    .where(eq(tipsTable.id, tipId));
+  const supabase = supabaseAdmin;
+  const { data: tip, error: tipError } = await supabase
+    .from("tips")
+    .select("id,body,author_id")
+    .eq("id", tipId)
+    .maybeSingle();
+  if (tipError) throw tipError;
   if (!tip) return null;
-  const [author] = await db
-    .select({ firstName: usersTable.firstName, email: usersTable.email })
-    .from(usersTable)
-    .where(eq(usersTable.id, tip.authorId));
+  const { data: author, error: authorError } = await supabase
+    .from("users")
+    .select("first_name,email")
+    .eq("id", tip.author_id)
+    .maybeSingle();
+  if (authorError) throw authorError;
   return {
     weekKey,
     tipId: tip.id,
     body: tip.body,
     voteCount,
-    authorDisplayName: formatDisplayName(author?.firstName ?? null, author?.email ?? null),
+    authorDisplayName: formatDisplayName(author?.first_name ?? null, author?.email ?? null),
   };
 }
 
@@ -337,54 +570,40 @@ export async function listTopTipsLast30Days(
   limit = 30,
 ): Promise<TipFeedItem[]> {
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const rows = await db.execute(sql`
-    SELECT
-      t.id, t.body, t.created_at, t.author_id,
-      COUNT(v.id)::int AS vote_count,
-      ${viewerId ? sql`bool_or(v.voter_id = ${viewerId})` : sql`false`} AS viewer_voted
-    FROM tips t
-    LEFT JOIN tip_votes v ON v.tip_id = t.id
-    WHERE t.created_at >= ${since.toISOString()}
-      AND t.hidden = 0
-    GROUP BY t.id
-    ORDER BY vote_count DESC, t.created_at DESC
-    LIMIT ${limit}
-  `);
+  const tips = await listTipsSince(since.toISOString());
+  if (tips.length === 0) return [];
 
-  const items = rows.rows as Array<{
-    id: string;
-    body: string;
-    created_at: string;
-    author_id: string;
-    vote_count: number;
-    viewer_voted: boolean | null;
-  }>;
-  if (items.length === 0) return [];
-
-  const authorIds = Array.from(new Set(items.map((r) => r.author_id)));
-  const authors = await db
-    .select({
-      id: usersTable.id,
-      firstName: usersTable.firstName,
-      email: usersTable.email,
+  const { voteCounts, viewerVoted } = await computeTipStats(
+    tips.map((tip) => tip.id),
+    viewerId,
+  );
+  const ranked = tips
+    .map((tip) => ({
+      ...tip,
+      vote_count: voteCounts.get(tip.id) ?? 0,
+      viewer_voted: viewerVoted.has(tip.id),
+    }))
+    .sort((a, b) => {
+      if (b.vote_count !== a.vote_count) return b.vote_count - a.vote_count;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     })
-    .from(usersTable)
-    .where(inArray(usersTable.id, authorIds));
-  const authorMap = new Map(authors.map((a) => [a.id, a] as const));
+    .slice(0, limit);
 
-  return items.map((r) => {
-    const author = authorMap.get(r.author_id);
+  const users = await getUsersByIds(Array.from(new Set(ranked.map((tip) => tip.author_id))));
+
+  return ranked.map((tip) => {
+    const author = users.get(tip.author_id);
     return {
-      id: r.id,
-      body: r.body,
-      createdAt: new Date(r.created_at).toISOString(),
-      authorId: r.author_id,
+      id: tip.id,
+      body: tip.body,
+      createdAt: new Date(tip.created_at).toISOString(),
+      authorId: tip.author_id,
       authorDisplayName: formatDisplayName(
-        author?.firstName ?? null,
+        author?.first_name ?? null,
         author?.email ?? null,
       ),
-      voteCount: Number(r.vote_count),
-      viewerHasVoted: !!r.viewer_voted,
+      voteCount: Number(tip.vote_count),
+      viewerHasVoted: tip.viewer_voted,
     };
   });
 }
@@ -393,11 +612,14 @@ export async function countTipsByAuthorSince(
   authorId: string,
   since: Date,
 ): Promise<number> {
-  const [row] = await db
-    .select({ c: sql<number>`count(*)::int` })
-    .from(tipsTable)
-    .where(and(eq(tipsTable.authorId, authorId), gte(tipsTable.createdAt, since)));
-  return Number(row?.c ?? 0);
+  const supabase = supabaseAdmin;
+  const { count, error } = await supabase
+    .from("tips")
+    .select("id", { head: true, count: "exact" })
+    .eq("author_id", authorId)
+    .gte("created_at", since.toISOString());
+  if (error) throw error;
+  return count ?? 0;
 }
 
 /**
@@ -416,26 +638,15 @@ export async function createTipWithRateLimit(
   limit: number,
   windowMs: number,
 ): Promise<{ ok: true; id: string } | { ok: false; reason: "rate_limited"; recent: number }> {
-  const since = new Date(Date.now() - windowMs);
-  // Stable 64-bit key derived from the author id; pg_advisory_xact_lock
-  // accepts a bigint (or two ints). hashtextextended ensures uniform
-  // distribution and no cross-user lock collisions for typical UUIDs.
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${"tips_rl:" + authorId}, 0))`);
-    const [row] = await tx
-      .select({ c: sql<number>`count(*)::int` })
-      .from(tipsTable)
-      .where(and(eq(tipsTable.authorId, authorId), gte(tipsTable.createdAt, since)));
-    const recent = Number(row?.c ?? 0);
-    if (recent >= limit) {
-      return { ok: false as const, reason: "rate_limited" as const, recent };
-    }
-    const [created] = await tx
-      .insert(tipsTable)
-      .values({ authorId, body })
-      .returning({ id: tipsTable.id });
-    return { ok: true as const, id: created!.id };
+  const supabase = supabaseAdmin;
+  const { data, error } = await supabase.rpc("create_tip_with_rate_limit", {
+    p_author_id: authorId,
+    p_body: body,
+    p_limit: limit,
+    p_window_ms: Math.trunc(windowMs),
   });
+  if (error) throw error;
+  return parseCreateTipRateLimitRpcResult(data);
 }
 
 // ===== Monthly Top 10 badge =====
@@ -461,40 +672,42 @@ export async function resolveTopTenMonth(now: Date = new Date()): Promise<string
     startLastMonth.getUTCMonth() + 1,
   ).padStart(2, "0")}`;
 
-  // Try to claim the lock. If another worker already resolved this month,
-  // the insert is a no-op and we return null.
-  const claimed = await db
-    .insert(monthlyTopTenResolutionsTable)
-    .values({ monthKey, awardCount: 0 })
-    .onConflictDoNothing({ target: monthlyTopTenResolutionsTable.monthKey })
-    .returning({ monthKey: monthlyTopTenResolutionsTable.monthKey });
+  const supabase = supabaseAdmin;
+  const { data: claimed, error: claimedError } = await supabase
+    .from("monthly_top_ten_resolutions")
+    .upsert(
+      {
+        month_key: monthKey,
+        award_count: 0,
+      },
+      {
+        onConflict: "month_key",
+        ignoreDuplicates: true,
+      },
+    )
+    .select("month_key");
+  if (claimedError) throw claimedError;
+  if ((claimed?.length ?? 0) === 0) return null;
 
-  if (claimed.length === 0) return null;
-
-  // Compute top 10 contributors for the previous calendar month.
-  const winners = await db.execute(sql`
-    SELECT u.id AS user_id, COUNT(*)::int AS contributions
-    FROM user_submitted_products p
-    JOIN users u ON u.id = p.submitted_by
-    WHERE p.status = 'approved'
-      AND p.reward_granted = true
-      AND p.submitted_at >= ${startLastMonth.toISOString()}
-      AND p.submitted_at <  ${endLastMonth.toISOString()}
-    GROUP BY u.id
-    ORDER BY contributions DESC
-    LIMIT 10
-  `);
+  const contributionMap = await aggregateApprovedContributionsSince(
+    startLastMonth.toISOString(),
+    endLastMonth.toISOString(),
+  );
+  const winners = Array.from(contributionMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
 
   let awarded = 0;
-  for (const row of winners.rows as Array<{ user_id: string; contributions: number }>) {
-    const won = await awardBadgeOnce(row.user_id, "top_ten_month", monthKey);
+  for (const [winnerUserId] of winners) {
+    const won = await awardBadgeOnce(winnerUserId, "top_ten_month", monthKey);
     if (won) awarded += 1;
   }
 
-  await db
-    .update(monthlyTopTenResolutionsTable)
-    .set({ awardCount: awarded })
-    .where(eq(monthlyTopTenResolutionsTable.monthKey, monthKey));
+  const { error: updateError } = await supabase
+    .from("monthly_top_ten_resolutions")
+    .update({ award_count: awarded })
+    .eq("month_key", monthKey);
+  if (updateError) throw updateError;
 
   return monthKey;
 }
@@ -504,25 +717,60 @@ export async function resolveTopTenMonth(now: Date = new Date()): Promise<string
 export async function getUserBadges(userId: string): Promise<
   Array<{ id: string; title: string; description: string; emoji: string; awardedAt: string }>
 > {
-  const rows = await db
-    .select({
-      id: badgesTable.id,
-      title: badgesTable.title,
-      description: badgesTable.description,
-      emoji: badgesTable.emoji,
-      awardedAt: userBadgesTable.awardedAt,
-      sortOrder: badgesTable.sortOrder,
+  const supabase = supabaseAdmin;
+  const { data: awardedRows, error: awardedError } = await supabase
+    .from("user_badges")
+    .select("badge_id,awarded_at")
+    .eq("user_id", userId);
+  if (awardedError) throw awardedError;
+  const awards = (awardedRows ?? []) as Array<{ badge_id: string; awarded_at: string }>;
+  if (awards.length === 0) return [];
+
+  const badgeIds = Array.from(new Set(awards.map((row) => row.badge_id)));
+  const { data: badgeRows, error: badgesError } = await supabase
+    .from("badges")
+    .select("id,title,description,emoji,sort_order")
+    .in("id", badgeIds);
+  if (badgesError) throw badgesError;
+  const badges = (badgeRows ?? []) as Array<{
+    id: string;
+    title: string;
+    description: string;
+    emoji: string;
+    sort_order: number;
+  }>;
+  const badgeMap = new Map(
+    badges.map((row) => [
+      row.id,
+      {
+        title: row.title,
+        description: row.description,
+        emoji: row.emoji,
+        sortOrder: row.sort_order,
+      },
+    ]),
+  );
+
+  return awards
+    .map((award) => {
+      const badge = badgeMap.get(award.badge_id);
+      if (!badge) return null;
+      return {
+        id: award.badge_id,
+        title: badge.title,
+        description: badge.description,
+        emoji: badge.emoji,
+        awardedAt: new Date(award.awarded_at).toISOString(),
+        sortOrder: badge.sortOrder,
+      };
     })
-    .from(userBadgesTable)
-    .innerJoin(badgesTable, eq(badgesTable.id, userBadgesTable.badgeId))
-    .where(eq(userBadgesTable.userId, userId));
-  return rows
+    .filter((row): row is { id: string; title: string; description: string; emoji: string; awardedAt: string; sortOrder: number } => row !== null)
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((r) => ({
       id: r.id,
       title: r.title,
       description: r.description,
       emoji: r.emoji,
-      awardedAt: r.awardedAt.toISOString(),
+      awardedAt: r.awardedAt,
     }));
 }
