@@ -1201,6 +1201,7 @@ const en: Dict = {
   "scan.yesterdayLabel": "yesterday",
   "scan.choiceNewTitle": "Scan a new product",
   "scan.choiceNewSubtitle": "Point at a barcode or ingredient list",
+  "scan.openCamera": "Open camera",
   "scan.choiceSearchTitle": "Search the database",
   "scan.choiceSearchSubtitle": "Find a product by name or browse the catalogue",
 
@@ -2502,6 +2503,7 @@ const sv: Dict = {
   "scan.yesterdayLabel": "igår",
   "scan.choiceNewTitle": "Skanna ny produkt",
   "scan.choiceNewSubtitle": "Rikta mot en streckkod eller ingredienslista",
+  "scan.openCamera": "Öppna kamera",
   "scan.choiceSearchTitle": "Sök i databas",
   "scan.choiceSearchSubtitle": "Hitta produkt via namn eller bläddra i katalogen",
 
@@ -3798,6 +3800,7 @@ const fr: Dict = {
   "scan.yesterdayLabel": "hier",
   "scan.choiceNewTitle": "Scanner un nouveau produit",
   "scan.choiceNewSubtitle": "Pointez un code-barres ou une liste d'ingrédients",
+  "scan.openCamera": "Ouvrir la caméra",
   "scan.choiceSearchTitle": "Rechercher dans la base",
   "scan.choiceSearchSubtitle": "Trouver un produit par nom ou parcourir le catalogue",
 
@@ -5094,6 +5097,7 @@ const es: Dict = {
   "scan.yesterdayLabel": "ayer",
   "scan.choiceNewTitle": "Escanear un producto nuevo",
   "scan.choiceNewSubtitle": "Apunta a un código de barras o a la lista de ingredientes",
+  "scan.openCamera": "Abrir la cámara",
   "scan.choiceSearchTitle": "Buscar en la base de datos",
   "scan.choiceSearchSubtitle": "Encuentra un producto por nombre o explora el catálogo",
 

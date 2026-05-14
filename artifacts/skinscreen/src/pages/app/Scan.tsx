@@ -7,8 +7,7 @@ import {
   Loader2,
   Gift,
   Sparkles,
-  FileText,
-  Check,
+  Camera,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { IngredientScanner } from "@/components/IngredientScanner";
@@ -83,38 +82,6 @@ function readRecent(): RecentScan[] {
   }
 }
 
-function relativeWhen(
-  at: number,
-  t: (key: string, vars?: Record<string, string | number>) => string,
-  locale: string,
-): string {
-  const diffMs = Date.now() - at;
-  const diffMin = Math.round(diffMs / 60000);
-  if (diffMin < 1) return t("scan.justNow");
-  if (diffMin < 60) return t("scan.minAgoFmt", { n: diffMin });
-  const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return diffHr === 1 ? t("scan.hourAgoOne") : t("scan.hoursAgoFmt", { n: diffHr });
-  const d = new Date(at);
-  const today = new Date();
-  if (
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate()
-  ) {
-    return t("scan.todayLabel");
-  }
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  if (
-    d.getFullYear() === yesterday.getFullYear() &&
-    d.getMonth() === yesterday.getMonth() &&
-    d.getDate() === yesterday.getDate()
-  ) {
-    return t("scan.yesterdayLabel");
-  }
-  return d.toLocaleDateString(locale, { weekday: "short" });
-}
-
 export default function ScanScreen() {
   const [, navigate] = useLocation();
   const [seed, setSeed] = useState<
@@ -125,10 +92,10 @@ export default function ScanScreen() {
   const [seedProductName, setSeedProductName] = useState<string | null>(null);
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [scansToday, setScansToday] = useState<number>(() => readScanCount());
-  const [recent, setRecent] = useState<RecentScan[]>(() => readRecent());
+  const [, setRecent] = useState<RecentScan[]>(() => readRecent());
   const [showScanner, setShowScanner] = useState(false);
   const { isPremium, trialEligible, trialDays } = useUserPlan();
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
 
   // true on native (iOS/Android) or browsers with BarcodeDetector (Chrome on Android/desktop-with-camera)
   const canScanBarcode =
@@ -354,22 +321,21 @@ export default function ScanScreen() {
           {canScanBarcode ? (
             <BarcodeScanButton
               onResult={handleScannedFromCard}
-              triggerClassName="block w-full rounded-[16px] border-[1.5px] border-[var(--line)] bg-white text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
+              triggerClassName="block w-full rounded-[16px] border-2 border-[var(--sage)] bg-[var(--cream-warm)] text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage-deep)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
               triggerContent={
                 <div
-                  className="flex min-h-[160px] flex-col items-center justify-center text-center"
+                  className="flex min-h-[180px] flex-col items-center justify-center text-center"
                   style={{ padding: "32px 24px" }}
                 >
                   <span
-                    className="mb-4 flex h-14 w-14 shrink-0 items-center justify-center"
-                    style={{ borderRadius: 16, backgroundColor: "#DCE7DC" }}
+                    className="mb-4 flex h-[60px] w-[60px] shrink-0 items-center justify-center"
+                    style={{ borderRadius: 16, backgroundColor: "var(--sage)" }}
                   >
-                    <Check
-                      className="shrink-0"
+                    <Camera
+                      className="shrink-0 text-white"
                       width={28}
                       height={28}
-                      strokeWidth={2.25}
-                      style={{ color: "var(--sage)" }}
+                      strokeWidth={1.75}
                       aria-hidden
                     />
                   </span>
@@ -383,7 +349,16 @@ export default function ScanScreen() {
                   >
                     {t("scan.choiceNewTitle")}
                   </span>
-                  <span className="mt-2 max-w-[280px] text-[12px] leading-snug" style={{ color: "#5E544C" }}>
+                  <span
+                    className="mt-1.5 block text-[13px] font-semibold leading-tight"
+                    style={{ color: "var(--sage-deep)" }}
+                  >
+                    {t("scan.openCamera")}
+                  </span>
+                  <span
+                    className="mt-2 max-w-[280px] text-[12px] leading-snug"
+                    style={{ color: "var(--ink-soft)" }}
+                  >
                     {t("scan.choiceNewSubtitle")}
                   </span>
                 </div>
@@ -395,22 +370,21 @@ export default function ScanScreen() {
               type="button"
               onClick={openScanner}
               data-touch-target
-              className="block w-full rounded-[16px] border-[1.5px] border-[var(--line)] bg-white text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
+              className="block w-full rounded-[16px] border-2 border-[var(--sage)] bg-[var(--cream-warm)] text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage-deep)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
             >
               <div
-                className="flex min-h-[160px] flex-col items-center justify-center text-center"
+                className="flex min-h-[180px] flex-col items-center justify-center text-center"
                 style={{ padding: "32px 24px" }}
               >
                 <span
-                  className="mb-4 flex h-14 w-14 shrink-0 items-center justify-center"
-                  style={{ borderRadius: 16, backgroundColor: "#DCE7DC" }}
+                  className="mb-4 flex h-[60px] w-[60px] shrink-0 items-center justify-center"
+                  style={{ borderRadius: 16, backgroundColor: "var(--sage)" }}
                 >
-                  <FileText
-                    className="shrink-0"
+                  <Camera
+                    className="shrink-0 text-white"
                     width={28}
                     height={28}
-                    strokeWidth={2.25}
-                    style={{ color: "var(--sage)" }}
+                    strokeWidth={1.75}
                     aria-hidden
                   />
                 </span>
@@ -424,7 +398,16 @@ export default function ScanScreen() {
                 >
                   {t("scan.choiceNewTitle")}
                 </span>
-                <span className="mt-2 max-w-[280px] text-[12px] leading-snug" style={{ color: "#5E544C" }}>
+                <span
+                  className="mt-1.5 block text-[13px] font-semibold leading-tight"
+                  style={{ color: "var(--sage-deep)" }}
+                >
+                  {t("scan.openCamera")}
+                </span>
+                <span
+                  className="mt-2 max-w-[280px] text-[12px] leading-snug"
+                  style={{ color: "var(--ink-soft)" }}
+                >
                   {t("scan.choiceNewSubtitle")}
                 </span>
               </div>
@@ -435,36 +418,43 @@ export default function ScanScreen() {
             type="button"
             onClick={() => navigate("/app/browse")}
             data-touch-target
-            className="flex min-h-[160px] w-full flex-col items-center justify-center rounded-[16px] border-[1.5px] border-[#B5705B] text-center transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--rose-gold-deep)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B5705B]/35"
-            style={{ backgroundColor: "#F2DECE", padding: "32px 24px" }}
+            className="flex w-full min-w-0 items-center gap-3 rounded-[16px] border border-[var(--line)] bg-white text-left shadow-none transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_25%,transparent)]"
+            style={{ padding: "14px 16px" }}
             aria-label={t("scan.choiceSearchTitle")}
           >
             <span
-              className="mb-4 flex h-14 w-14 shrink-0 items-center justify-center"
-              style={{ borderRadius: 16, backgroundColor: "rgba(181, 112, 91, 0.15)" }}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+              style={{ backgroundColor: "var(--green-soft)" }}
             >
               <Search
                 className="shrink-0"
-                width={28}
-                height={28}
-                strokeWidth={2.25}
-                style={{ color: "var(--rose-gold-deep)" }}
+                width={22}
+                height={22}
+                strokeWidth={1.75}
+                style={{ color: "var(--sage-deep)" }}
                 aria-hidden
               />
             </span>
-            <span
-              style={{
-                fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-                fontSize: 18,
-                fontWeight: 600,
-                color: "var(--ink)",
-              }}
-            >
-              {t("scan.choiceSearchTitle")}
-            </span>
-            <span className="mt-2 max-w-[280px] text-[12px] leading-snug" style={{ color: "#5E544C" }}>
-              {t("scan.choiceSearchSubtitle")}
-            </span>
+            <div className="min-w-0 flex-1">
+              <span
+                className="block font-semibold leading-tight text-foreground"
+                style={{
+                  fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
+                  fontSize: 15,
+                }}
+              >
+                {t("scan.choiceSearchTitle")}
+              </span>
+              <span className="mt-0.5 block text-[12px] leading-snug" style={{ color: "var(--ink-soft)" }}>
+                {t("scan.choiceSearchSubtitle")}
+              </span>
+            </div>
+            <ChevronRight
+              className="h-[18px] w-[18px] shrink-0"
+              strokeWidth={1.75}
+              style={{ color: "var(--ink-soft)" }}
+              aria-hidden
+            />
           </button>
         </div>
       </section>
@@ -488,50 +478,6 @@ export default function ScanScreen() {
                 : null}
           </span>
         </div>
-      )}
-
-      {/* RECENT SCANS — only on lookup home (when no analysis is running) */}
-      {!seed && recent.length > 0 && (
-        <section className="mb-6">
-          <p
-            className="mb-3 text-[11px] font-bold uppercase"
-            style={{ letterSpacing: "0.08em", color: "#5E544C" }}
-          >
-            {t("scan.recentScans")}
-          </p>
-          <div className="overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm">
-            {recent.map((r, i) => (
-              <div
-                key={`${r.name}-${r.at}`}
-                className={`flex items-center gap-4 px-4 py-3.5 ${
-                  i < recent.length - 1 ? "border-b border-border/60" : ""
-                }`}
-              >
-                <span
-                  aria-hidden
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{
-                    backgroundColor:
-                      r.verdict === "safe"
-                        ? "var(--sage-deep)"
-                        : r.verdict === "high"
-                          ? "#8C2A1A"
-                          : "#8A6217",
-                  }}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15px] font-medium leading-tight text-foreground">
-                    {r.name}
-                  </p>
-                  <p className="mt-0.5 text-[13px] text-muted-foreground">
-                    {relativeWhen(r.at, t, locale)}
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground/60" />
-              </div>
-            ))}
-          </div>
-        </section>
       )}
 
       {/* GET STARTED section removed — browse/discover live in the bottom tab bar */}
