@@ -1,34 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  LogOut,
-  Crown,
-  Gift,
-  CreditCard,
-  ChevronRight,
-  ShieldCheck,
-  Mail,
-  Loader2,
-  Layers,
-  Trophy,
-  Info,
-  XCircle,
-  CheckCircle2,
-  Clock,
-  Pencil,
-  Sparkles,
-  AlertTriangle,
-  ShieldAlert,
-} from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SkinProfileChips } from "@/components/SkinProfileChips";
+import PaywallModal from "@/components/PaywallModal";
 import { apiFetch } from "@/lib/api";
 import { useUserPlan } from "@/hooks/useUserPlan";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { notifyUnseenRecipesChanged } from "@/hooks/useUnseenRecipeCount";
 import { getBaseUrl } from "@/lib/base-url";
-import { isNative, openExternal, MANAGE_SUBSCRIPTION_WEB_URL } from "@/lib/native";
+import { isNative, openExternal } from "@/lib/native";
 import { useTranslation, LOCALES, type Locale } from "@/lib/i18n";
 import { PREMIUM_CONTRIBUTION_MILESTONE } from "@/pages/app/Shelf";
 
@@ -37,170 +17,62 @@ interface ContributeStats {
   premiumUntil: string | null;
 }
 
-interface BadgeItem {
-  id: string;
-  title: string;
-  description: string;
-  emoji: string;
-  awardedAt: string;
-}
+const AGE_GROUP_LABELS: Record<string, string> = {
+  "13-15": "13–15",
+  "16-17": "16–17",
+  "18-20": "18–20",
+  "21+": "21+",
+};
 
-interface MySubmission {
-  id: string;
-  barcode: string;
-  productName: string | null;
-  brand: string | null;
-  status: string;
-  reviewNote: string | null;
-  aiReviewNote: string | null;
-  submittedAt: string;
-  reviewedAt: string | null;
-}
+const SKIN_PROFILE_KEYS: Record<string, string> = {
+  sensitive: "scanner.skinType.sensitive",
+  young: "scanner.skinType.young",
+  mature: "scanner.skinType.mature",
+  pregnant: "scanner.skinType.pregnant",
+};
 
-interface MyRecipe {
-  id: string;
-  title: string;
-  category: string;
-  status: "pending" | "approved" | "changes_requested" | "rejected";
-  riskLevel: "safe" | "caution" | "high_risk" | null;
-  adminNote: string | null;
-  createdAt: string;
-  updatedAt: string;
-  reviewedAt: string | null;
+function readLs(key: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(key)?.trim() ?? "";
+  } catch {
+    return "";
+  }
 }
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
-  const { plan, isPremium, isLoading, trialEligible, trialDays } = useUserPlan();
+  const { isPremium, isLoading, trialEligible } = useUserPlan();
   const [, navigate] = useLocation();
   const { t, locale, setLocale } = useTranslation();
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
-  const { isAdmin } = useIsAdmin();
-  const [testChargeLoading, setTestChargeLoading] = useState(false);
-  const [testChargeResult, setTestChargeResult] = useState<{
-    ok: boolean;
-    livemode?: boolean;
-    chargeId?: string | null;
-    refundId?: string;
-    refundStatus?: string;
-    paymentIntentId?: string;
-    amount?: number;
-    currency?: string;
-    webhook?: {
-      chargeRefundedListenerCount: number;
-      configuredOk: boolean;
-      delivered: boolean;
-      deliveredAt: string | null;
-      eventId: string | null;
-      endpoints: Array<{
-        url: string;
-        status: string;
-        listensForChargeRefunded: boolean;
-      }>;
-    };
-    error?: string;
-    requiresConfirmation?: boolean;
-  } | null>(null);
-  const [badges, setBadges] = useState<BadgeItem[]>([]);
-  const [mySubmissions, setMySubmissions] = useState<MySubmission[]>([]);
-  const [myRecipes, setMyRecipes] = useState<MyRecipe[]>([]);
-  const [unseenRecipeCount, setUnseenRecipeCount] = useState(0);
-  const [recipeNotifications, setRecipeNotifications] = useState<
-    {
-      id: string;
-      title: string;
-      status: "pending" | "approved" | "changes_requested" | "rejected";
-      adminNote: string | null;
-      reviewedAt: string | null;
-    }[]
-  >([]);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [langSheetOpen, setLangSheetOpen] = useState(false);
+  const [prefTick, bumpPrefs] = useReducer((n: number) => n + 1, 0);
 
-  // Per-recipe ack (#70) — called when the user taps a notification entry
-  // or opens a recipe via its inline action button. Updates local state
-  // optimistically and asks the BottomTabBar to refetch its dot count.
-  const ackRecipe = (recipeId: string) => {
-    setRecipeNotifications((prev) => prev.filter((n) => n.id !== recipeId));
-    setUnseenRecipeCount((c) => Math.max(0, c - 1));
-    apiFetch(`/api/recipes/mine/${recipeId}/seen`, {
-      method: "POST",
-      credentials: "include",
-    })
-      .then(() => notifyUnseenRecipesChanged())
-      .catch(() => {});
-  };
+  const runningNative = isNative();
 
   useEffect(() => {
     apiFetch("/api/contribute/stats", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setStats(d as ContributeStats))
       .catch(() => {});
-    apiFetch("/api/badges/me", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { badges: [] }))
-      .then((d) => setBadges((d as { badges?: BadgeItem[] }).badges ?? []))
-      .catch(() => {});
-    // Pull the user's recent submissions so we can surface the admin's
-    // rejection note when present (#72). Anonymous users get an empty list.
-    apiFetch("/api/contribute/my-recent", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { submissions: [] }))
-      .then((d) => setMySubmissions((d as { submissions?: MySubmission[] }).submissions ?? []))
-      .catch(() => {});
-    // Pull the user's own recipes (#69) so they can see admin notes and
-    // edit/resubmit when status is `changes_requested`.
-    apiFetch("/api/recipes/mine", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { recipes: [], unseenCount: 0 }))
-      .then((d) => {
-        const data = d as { recipes?: MyRecipe[]; unseenCount?: number };
-        setMyRecipes(data.recipes ?? []);
-        setUnseenRecipeCount(data.unseenCount ?? 0);
-      })
-      .catch(() => {});
-    // Notification banner entries — only the recipes that are *still*
-    // unseen, so the user actively dismisses each one by tapping. (#70)
-    apiFetch("/api/recipes/mine/notifications", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { notifications: [] }))
-      .then((d) =>
-        setRecipeNotifications(
-          (d as { notifications?: typeof recipeNotifications }).notifications ?? [],
-        ),
-      )
-      .catch(() => {});
   }, []);
 
-  const runningNative = isNative();
-
-  const handleTestCharge = async (confirmTestMode = false) => {
-    setTestChargeLoading(true);
-    setTestChargeResult(null);
-    try {
-      const res = await apiFetch(`${getBaseUrl()}api/payments/admin/test-charge`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmTestMode }),
-      });
-      const data = (await res.json()) as Exclude<typeof testChargeResult, null>;
-      setTestChargeResult({ ...data, ok: res.ok && data.ok !== false });
-    } catch (e) {
-      setTestChargeResult({
-        ok: false,
-        error: (e as Error).message ?? "Network error",
-      });
-    } finally {
-      setTestChargeLoading(false);
-    }
-  };
+  useEffect(() => {
+    const onInteract = () => bumpPrefs();
+    window.addEventListener("click", onInteract, true);
+    return () => window.removeEventListener("click", onInteract, true);
+  }, []);
 
   const handleManageBilling = async () => {
     setPortalLoading(true);
     try {
       const res = await apiFetch(`${getBaseUrl()}api/payments/portal`, {
         method: "POST",
-        credentials: "include",
       });
       const data = (await res.json()) as { url?: string };
-      // On native we route through the system browser so Stripe's billing
-      // portal renders in Safari / Chrome (App Store reader-app compliance).
       if (data.url) {
         if (runningNative) {
           await openExternal(data.url);
@@ -215,951 +87,326 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleLogout = () => {
+    void logout();
+  };
+
   if (!user) return null;
-  const displayName = user.firstName ?? user.email?.split("@")[0] ?? t("common.greetingFallback");
-  const initials = (user.firstName ?? user.email ?? t("common.initialFallback")).slice(0, 1).toUpperCase();
+
+  const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+
+  const skinRaw = readLs("skinscreen.skinProfile");
+  const skinProfileKey = skinRaw ? SKIN_PROFILE_KEYS[skinRaw] : undefined;
+  const skinTypeLabel = skinProfileKey ? t(skinProfileKey) : skinRaw ? skinRaw : "Inte valt";
+
+  const ageRaw = readLs("chimiq.ageGroup");
+  const ageGroupLabel = ageRaw ? (AGE_GROUP_LABELS[ageRaw] ?? ageRaw) : "Inte valt";
+
+  const goalRaw = readLs("chimiq.skinGoal");
+  const goalLabel = goalRaw ? goalRaw : "Inte valt";
+
+  const currentLanguageLabel = LOCALES.find((l) => l.code === locale)?.label ?? locale;
 
   const milestone = PREMIUM_CONTRIBUTION_MILESTONE;
   const contributed = stats?.acceptedContributions ?? 0;
-  const nextMilestone = Math.ceil((contributed + 1) / milestone) * milestone;
-  const remaining = nextMilestone - contributed;
-  const progressInCycle =
-    contributed > 0 && contributed % milestone === 0
-      ? milestone
-      : contributed % milestone;
-  const progressPct = Math.min(100, Math.round((progressInCycle / milestone) * 100));
+
+  void prefTick;
+
+  const scrollToSkinEditor = () => {
+    document.getElementById("skin-profile-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
-    <AppShell title={t("profile.title")} subtitle={t("profile.subtitle")}>
-      {/* Identity card */}
-      <section className="mb-5 animate-pop-in">
-        <div className="rounded-3xl bg-white border border-border/40 shadow-sm p-5 flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-xl font-bold text-white shadow-md">
-            {initials}
+    <AppShell title="Profil">
+      <div className="space-y-4 pb-8">
+        <h2 className="font-serif text-[28px] font-medium leading-tight" style={{ color: "var(--ink)" }}>
+          Profil
+        </h2>
+        <p className="text-[14px]" style={{ color: "var(--ink-soft)" }}>
+          Din hud, dina mål
+        </p>
+
+        {/* 1. Avatar */}
+        <div className="rounded-3xl border border-border/40 bg-white p-5 text-center shadow-sm">
+          <div
+            className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full text-3xl"
+            style={{ background: "linear-gradient(135deg, var(--rose-gold), var(--gold))" }}
+          >
+            ✨
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-serif text-xl font-medium leading-tight text-foreground truncate">
-              {displayName}
-            </p>
-            {user.email && (
-              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground truncate">
-                <Mail className="h-3 w-3 shrink-0" />
-                <span className="truncate">{user.email}</span>
-              </p>
-            )}
-          </div>
+          <h3 className="font-serif text-lg font-medium" style={{ color: "var(--ink)" }}>
+            {user.firstName ?? user.email?.split("@")[0] ?? "Chimiq"}
+          </h3>
+          <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
+            {user.email}
+          </p>
+          <button
+            type="button"
+            className="mt-1 text-[11px] font-semibold"
+            style={{ color: "var(--rose-gold-deep)" }}
+          >
+            Byt avatar
+          </button>
         </div>
-      </section>
 
-      <SkinProfileChips />
-
-      {/* Notification banner — surfaces unseen review feedback for the
-          submitter and deep-links each entry to the right destination
-          (RecipeDetail for approved, edit form otherwise). Tapping any
-          row acks just that recipe so the dot/banner clear only for
-          notifications the user actually looked at. (#70) */}
-      {recipeNotifications.length > 0 && (
-        <section className="mb-5" data-testid="recipe-notifications">
-          <div className="rounded-3xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm">
-            <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-amber-800">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("myRecipes.heading")} · {recipeNotifications.length}
+        {/* 2. Plankort */}
+        {isPremium ? (
+          <div
+            className="rounded-3xl border p-4 shadow-sm"
+            style={{
+              background: "linear-gradient(135deg, var(--gold-soft), #E5C18A)",
+              borderColor: "var(--gold)",
+            }}
+          >
+            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: "#4A2D10" }}>
+              CURRENT PLAN
             </p>
-            <ul className="space-y-2">
-              {recipeNotifications.map((n) => {
-                const isApproved = n.status === "approved";
-                const isChanges = n.status === "changes_requested";
-                const isRejected = n.status === "rejected";
-                const label = isApproved
-                  ? t("myRecipes.status.approved")
-                  : isChanges
-                    ? t("myRecipes.status.changesRequested")
-                    : isRejected
-                      ? t("myRecipes.status.rejected")
-                      : n.status;
-                const target =
-                  isApproved
-                    ? `/recipes/${n.id}`
-                    : `/app/recipes/new?edit=${n.id}`;
-                return (
-                  <li key={n.id}>
-                    <button
-                      type="button"
-                      data-testid={`recipe-notification-${n.id}`}
-                      data-touch-target
-                      onClick={() => {
-                        ackRecipe(n.id);
-                        navigate(target);
-                      }}
-                      className="flex w-full items-start gap-3 rounded-2xl border border-amber-200/70 bg-white p-3 text-left transition-colors hover:bg-amber-50"
-                    >
-                      <span className="mt-0.5 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-foreground">
-                          {n.title}
-                        </span>
-                        <span className="mt-0.5 block text-[11px] font-semibold uppercase tracking-wide text-amber-700">
-                          {label}
-                        </span>
-                        {n.adminNote && (
-                          <span className="mt-1 block text-xs text-muted-foreground line-clamp-2">
-                            <span className="font-semibold text-foreground/80">
-                              {t("myRecipes.reviewerNote")}{" "}
-                            </span>
-                            {n.adminNote}
-                          </span>
-                        )}
-                      </span>
-                      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <h3 className="mb-1 font-serif text-lg font-medium" style={{ color: "var(--ink)" }}>
+              ✨ Premium
+            </h3>
+            <p className="mb-3 text-[12px]" style={{ color: "#4A2D10" }}>
+              Obegränsad hylla, AI-chatt, hela rutinen i kombo-check.
+            </p>
+            <button
+              type="button"
+              onClick={handleManageBilling}
+              disabled={portalLoading}
+              className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-[12px] font-semibold"
+              style={{
+                borderColor: "var(--gold)",
+                color: "#4A2D10",
+                background: "rgba(255,255,255,0.5)",
+              }}
+              data-touch-target
+            >
+              {portalLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : null}
+              💳 Hantera betalning
+            </button>
           </div>
-        </section>
-      )}
-
-      {/* Plan card */}
-      <section className="mb-5">
-        <div
-          className={`rounded-3xl border p-5 shadow-sm ${
-            isPremium
-              ? "border-amber-200 bg-gradient-to-br from-amber-50 to-white"
-              : "border-primary/20 bg-gradient-to-br from-primary/5 to-white"
-          }`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                {t("profileCard.currentPlan")}
-              </span>
-              <p className="mt-1 flex items-center gap-2 font-serif text-2xl font-medium text-foreground">
-                {isPremium ? (
-                  <>
-                    <Crown className="h-5 w-5 text-amber-500" />
-                    {t("profileCard.premium")}
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck className="h-5 w-5 text-primary-strong" />
-                    <span className="text-primary-strong">{t("profileCard.free")}</span>
-                  </>
-                )}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {isLoading
-                  ? t("profileCard.checkingPlan")
-                  : isPremium
-                    ? t("profileCard.descPremium")
-                    : t("profileCard.descFree")}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            {isPremium ? (
-              <button
-                type="button"
-                onClick={handleManageBilling}
-                disabled={portalLoading}
-                data-touch-target
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border/60 bg-white px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60"
-              >
-                {portalLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CreditCard className="h-4 w-4" />
-                )}
-                {t("profileCard.manageBilling")}
-              </button>
-            ) : runningNative ? (
-              // Reader-app compliance: native shells must not display
-              // call-to-action buttons that direct to a non-IAP purchase
-              // flow. We show a neutral status message instead and let
-              // already-subscribed users sign in.
-              <div className="flex-1 rounded-2xl border border-border/60 bg-muted/40 px-4 py-3 text-center text-xs text-muted-foreground">
+        ) : (
+          <div className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm">
+            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--ink-soft)" }}>
+              CURRENT PLAN
+            </p>
+            <h3 className="mb-1 font-serif text-lg font-medium" style={{ color: "var(--ink)" }}>
+              Gratis
+            </h3>
+            <p className="mb-3 text-[12px]" style={{ color: "var(--ink-soft)" }}>
+              {isLoading
+                ? t("profileCard.checkingPlan")
+                : "Max 2 produkter på hyllan. Uppgradera för obegränsad hylla, AI-chatt och PDF-rapport."}
+            </p>
+            {runningNative ? (
+              <div className="rounded-full border border-border/40 bg-[color-mix(in_srgb,var(--cream-warm)_80%,white)] px-4 py-2.5 text-center text-[12px]" style={{ color: "var(--ink-soft)" }}>
                 {t("profileCard.nativePremiumNotice")}
               </div>
             ) : (
-              <div className="flex flex-1 flex-col gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => navigate("/pricing")}
-                  data-touch-target
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-transform active:scale-[0.98]"
-                >
-                  <Crown className="h-4 w-4" />
-                  {trialEligible
-                    ? t("pricing.startTrialCta", { days: trialDays })
-                    : t("profileCard.upgradeToPremium")}
-                </button>
-                {trialEligible && (
-                  <p className="px-1 text-center text-[10px] leading-snug text-muted-foreground">
-                    {t("pricing.trialFinePrint", {
-                      days: trialDays,
-                      price: "49 SEK/mo",
-                    })}
-                  </p>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowPaywall(true)}
+                className="w-full rounded-full py-2.5 text-[13px] font-semibold text-white"
+                style={{ background: "var(--sage)" }}
+                data-touch-target
+              >
+                {trialEligible ? "✨ Testa Premium fritt i 14 dagar" : `✨ ${t("profileCard.upgradeToPremium")}`}
+              </button>
             )}
           </div>
-        </div>
-      </section>
+        )}
 
-      {/* Contributions */}
-      <section className="mb-5">
-        <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                {t("profileCard.contributions")}
-              </p>
-              <p className="mt-1 font-serif text-2xl font-medium text-foreground">
-                {contributed} <span className="text-base text-muted-foreground">{t("profileCard.products")}</span>
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("profileCard.moreForFreeMonthFmt", { remaining })}
-              </p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-              <Gift className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-amber-400 transition-all duration-500"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* My recent submissions — surfaces the admin's rejection note (#72). */}
-      {mySubmissions.length > 0 && (
-        <section className="mb-5">
-          <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-              {t("profileCard.recentSubmissions")}
-            </p>
-            <ul className="space-y-3">
-              {mySubmissions.slice(0, 5).map((s) => {
-                const isRejected = s.status === "rejected";
-                const isApproved = s.status === "approved";
-                const isPending =
-                  s.status === "pending" ||
-                  s.status === "needs_admin" ||
-                  s.status === "ai_reviewing";
-                const label = isApproved
-                  ? t("profileCard.statusApproved")
-                  : isRejected
-                  ? t("profileCard.statusRejected")
-                  : isPending
-                  ? t("profileCard.statusUnderReview")
-                  : s.status;
-                const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
-                return (
-                  <li
-                    key={s.id}
-                    className={`rounded-2xl border p-3 ${
-                      isRejected
-                        ? "border-[var(--line)]"
-                        : "border-[var(--line)]"
-                    }`}
-                    style={
-                      isRejected
-                        ? { backgroundColor: "rgba(252, 228, 224, 0.35)" }
-                        : { backgroundColor: "#FFFFFF" }
-                    }
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {s.productName?.trim() || s.brand?.trim() || s.barcode}
-                        </p>
-                        {s.brand && s.productName && (
-                          <p className="truncate text-xs text-muted-foreground">{s.brand}</p>
-                        )}
-                        <p className="mt-1 text-[11px] text-muted-foreground">
-                          {t("profileCard.submittedFmt", { date: new Date(s.submittedAt).toLocaleDateString(locale) })}
-                        </p>
-                      </div>
-                      <span
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full font-semibold"
-                        style={
-                          isApproved
-                            ? {
-                                backgroundColor: "#E8F2E5",
-                                color: "var(--sage-deep)",
-                                fontSize: 10,
-                                padding: "3px 8px",
-                                fontWeight: 600,
-                              }
-                            : isRejected
-                              ? {
-                                  backgroundColor: "#FCE4E0",
-                                  color: "#8C2A1A",
-                                  fontSize: 10,
-                                  padding: "3px 8px",
-                                  fontWeight: 600,
-                                }
-                              : {
-                                  backgroundColor: "#FBF3DC",
-                                  color: "#8A6217",
-                                  fontSize: 10,
-                                  padding: "3px 8px",
-                                  fontWeight: 600,
-                                }
-                        }
-                      >
-                        <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
-                        {label}
-                      </span>
-                    </div>
-                    {isRejected && s.reviewNote && (
-                      <p className="mt-2 rounded-lg bg-white/80 p-2 text-xs text-destructive">
-                        <span className="font-semibold">{t("profileCard.reviewerNote")}</span>
-                        {s.reviewNote}
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </section>
-      )}
-
-      {/* My recipes — lets submitters see admin feedback and edit/resubmit
-          changes_requested recipes (#69). */}
-      {myRecipes.length > 0 && (
-        <section className="mb-5">
-          <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
-            <div className="mb-3 flex items-center gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                {t("myRecipes.heading")}
-              </p>
-              {unseenRecipeCount > 0 && (
-                <span
-                  data-testid="my-recipes-unseen-dot"
-                  role="status"
-                  aria-live="polite"
-                  aria-label={t("myRecipes.unseenAria", {
-                    count: unseenRecipeCount,
-                  })}
-                  className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white shadow-sm"
-                >
-                  {unseenRecipeCount}
-                </span>
-              )}
-            </div>
-            <ul className="space-y-3">
-              {myRecipes.slice(0, 8).map((r) => {
-                const isApproved = r.status === "approved";
-                const isRejected = r.status === "rejected";
-                const isChanges = r.status === "changes_requested";
-                const isPending = r.status === "pending";
-                const label = isApproved
-                  ? t("myRecipes.status.approved")
-                  : isRejected
-                    ? t("myRecipes.status.rejected")
-                    : isChanges
-                      ? t("myRecipes.status.changesRequested")
-                      : t("myRecipes.status.underReview");
-                const StatusIcon = isApproved
-                  ? CheckCircle2
-                  : isRejected
-                    ? XCircle
-                    : isChanges
-                      ? AlertTriangle
-                      : Clock;
-                const RiskIcon =
-                  r.riskLevel === "high_risk"
-                    ? ShieldAlert
-                    : r.riskLevel === "caution"
-                      ? AlertTriangle
-                      : r.riskLevel === "safe"
-                        ? Sparkles
-                        : null;
-                const riskColor =
-                  r.riskLevel === "high_risk"
-                    ? "#8C2A1A"
-                    : r.riskLevel === "caution"
-                      ? "#8A6217"
-                      : "var(--sage-deep)";
-                const cardTone = isChanges
-                  ? "border-[var(--line)]"
-                  : isRejected
-                    ? "border-[var(--line)]"
-                    : "border-[var(--line)]";
-                const cardBg =
-                  isChanges
-                    ? { backgroundColor: "rgba(251, 243, 220, 0.45)" }
-                    : isRejected
-                      ? { backgroundColor: "rgba(252, 228, 224, 0.35)" }
-                      : { backgroundColor: "#FFFFFF" };
-                const recipeStatusPillStyle =
-                  isApproved
-                    ? {
-                        backgroundColor: "#E8F2E5",
-                        color: "var(--sage-deep)",
-                        fontSize: 10,
-                        padding: "3px 8px",
-                        fontWeight: 600,
-                      }
-                    : isRejected
-                      ? {
-                          backgroundColor: "#FCE4E0",
-                          color: "#8C2A1A",
-                          fontSize: 10,
-                          padding: "3px 8px",
-                          fontWeight: 600,
-                        }
-                      : isChanges
-                        ? {
-                            backgroundColor: "#FBF3DC",
-                            color: "#8A6217",
-                            fontSize: 10,
-                            padding: "3px 8px",
-                            fontWeight: 600,
-                          }
-                        : {
-                            backgroundColor: "var(--cream)",
-                            color: "#5E544C",
-                            fontSize: 10,
-                            padding: "3px 8px",
-                            fontWeight: 600,
-                          };
-                return (
-                  <li key={r.id} className={`rounded-2xl border p-3 ${cardTone}`} style={cardBg}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {r.title}
-                        </p>
-                        <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                          <span className="capitalize">{r.category}</span>
-                          {RiskIcon && (
-                            <>
-                              <span aria-hidden>·</span>
-                              <RiskIcon className="h-3 w-3 shrink-0" style={{ color: riskColor }} />
-                            </>
-                          )}
-                          <span aria-hidden>·</span>
-                          <span>
-                            {new Date(r.updatedAt).toLocaleDateString(locale)}
-                          </span>
-                        </p>
-                      </div>
-                      <span
-                        role="status"
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full font-semibold"
-                        style={recipeStatusPillStyle}
-                      >
-                        <StatusIcon className="h-3 w-3 shrink-0" aria-hidden="true" />
-                        {label}
-                      </span>
-                    </div>
-                    {(isChanges || isRejected) && r.adminNote && (
-                      <p
-                        className={`mt-2 rounded-lg bg-white/80 p-2 text-xs ${
-                          isChanges ? "text-amber-800" : "text-destructive"
-                        }`}
-                      >
-                        <span className="font-semibold">
-                          {t("myRecipes.reviewerNote")}{" "}
-                        </span>
-                        {r.adminNote}
-                      </p>
-                    )}
-                    {isChanges && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          ackRecipe(r.id);
-                          navigate(`/app/recipes/new?edit=${r.id}`);
-                        }}
-                        data-touch-target
-                        className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-primary/90"
-                      >
-                        <Pencil className="h-3 w-3" aria-hidden="true" />
-                        {t("myRecipes.editAndResubmit")}
-                      </button>
-                    )}
-                    {(isPending || isApproved) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          ackRecipe(r.id);
-                          if (isApproved) navigate(`/recipes/${r.id}`);
-                          else navigate(`/app/recipes/new?edit=${r.id}`);
-                        }}
-                        data-touch-target
-                        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
-                      >
-                        {isApproved ? (
-                          <>
-                            <ChevronRight className="h-3 w-3" aria-hidden="true" />
-                            {t("myRecipes.viewPublic")}
-                          </>
-                        ) : (
-                          <>
-                            <Pencil className="h-3 w-3" aria-hidden="true" />
-                            {t("myRecipes.editWhilePending")}
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </section>
-      )}
-
-      {/* Badges */}
-      <section className="mb-5">
-        <div className="rounded-3xl border border-border/40 bg-white p-5 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-              <Trophy className="h-3.5 w-3.5 text-amber-500" />
-              {t("profileCard.badges")}
-            </p>
+        {/* 3. Min hud */}
+        <div>
+          <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--ink-soft)" }}>
+            Min hud
+          </p>
+          <div className="overflow-hidden rounded-3xl border border-border/40 bg-white shadow-sm">
             <button
               type="button"
+              className="flex w-full items-center justify-between border-b border-border/30 px-4 py-3.5 text-left"
+              data-touch-target
+              onClick={scrollToSkinEditor}
+            >
+              <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+                Hudtyp
+              </span>
+              <span className="flex items-center gap-1 text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                {skinTypeLabel} <ChevronRight className="h-4 w-4" aria-hidden />
+              </span>
+            </button>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between border-b border-border/30 px-4 py-3.5 text-left"
+              data-touch-target
+              onClick={scrollToSkinEditor}
+            >
+              <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+                Mål
+              </span>
+              <span className="flex max-w-[55%] items-center gap-1 text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                <span className="truncate">{goalLabel}</span> <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+              </span>
+            </button>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between px-4 py-3.5 text-left"
+              data-touch-target
+              onClick={scrollToSkinEditor}
+            >
+              <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+                Ålder
+              </span>
+              <span className="flex items-center gap-1 text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                {ageGroupLabel} <ChevronRight className="h-4 w-4" aria-hidden />
+              </span>
+            </button>
+          </div>
+          <div id="skin-profile-editor" className="mt-3 scroll-mt-24">
+            <SkinProfileChips />
+          </div>
+        </div>
+
+        {/* 4. Bidrag & belöningar */}
+        <div>
+          <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--ink-soft)" }}>
+            Bidrag & belöningar
+          </p>
+          <div className="overflow-hidden rounded-3xl border border-border/40 bg-white shadow-sm">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between border-b border-border/30 px-4 py-3.5 text-left"
+              data-touch-target
               onClick={() => navigate("/app/rewards")}
-              data-touch-target
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
             >
-              <Info className="h-3 w-3" />
-              {t("profileCard.howRewardsWork")}
+              <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+                Bidragna produkter
+              </span>
+              <span className="flex items-center gap-1 text-[13px] font-semibold" style={{ color: "var(--sage-deep)" }}>
+                {contributed} / {milestone} <ChevronRight className="h-4 w-4" aria-hidden />
+              </span>
             </button>
-          </div>
-          {badges.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {t("profileCard.earnFirstBadge")}
-            </p>
-          ) : (
-            <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-              {badges.map((b) => (
-                <li
-                  key={b.id}
-                  className="flex flex-col items-center text-center"
-                  title={b.description}
-                >
-                  <div className="text-2xl" aria-hidden>
-                    {b.emoji}
-                  </div>
-                  <p className="mt-1 text-[10px] font-semibold leading-tight text-foreground">
-                    {b.title}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
-
-      {/* Contributions & rewards — milestone progress (same rule as Scan shelf). */}
-      <section className="mb-5">
-        <div className="rounded-3xl border border-border/40 bg-[#FDF8F3] p-5 shadow-sm">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                {t("profile.contributionProgress")}
-              </p>
-              <p className="mt-2 text-sm font-medium text-foreground">
-                {t("scan.contributionsProgressFmt", {
-                  current: progressInCycle,
-                  total: milestone,
-                })}{" "}
-                <span className="text-muted-foreground">{t("scan.toGoFmt", { remaining })}</span>
-              </p>
-            </div>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-[var(--sage)] shadow-sm">
-              <Gift className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-white/80">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${progressPct}%`,
-                backgroundColor: "var(--sage)",
-              }}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Settings list */}
-      <section className="mb-6">
-        <ul className="divide-y divide-border/40 overflow-hidden rounded-3xl border border-border/40 bg-white shadow-sm">
-          <li>
             <button
               type="button"
+              className="flex w-full items-center justify-between px-4 py-3.5 text-left"
+              data-touch-target
               onClick={() => navigate("/app/leaderboard")}
-              data-touch-target
-              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
             >
-              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Trophy className="h-4 w-4 text-amber-500" />
-                {t("profileCard.leaderboard")}
+              <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+                Leaderboard & badges
               </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+              <ChevronRight className="h-4 w-4" style={{ color: "var(--ink-soft)" }} aria-hidden />
             </button>
-          </li>
-          <li>
+          </div>
+        </div>
+
+        {/* 5. Appen */}
+        <div>
+          <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--ink-soft)" }}>
+            Appen
+          </p>
+          <div className="overflow-hidden rounded-3xl border border-border/40 bg-white shadow-sm">
             <button
               type="button"
-              onClick={() => navigate("/app/shelf")}
+              className="flex w-full items-center justify-between border-b border-border/30 px-4 py-3.5 text-left"
               data-touch-target
-              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+              onClick={() => setLangSheetOpen((o) => !o)}
             >
-              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Layers className="h-4 w-4 text-primary" />
-                {t("profileCard.shelfRoutine")}
+              <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+                Språk
               </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+              <span className="flex items-center gap-1 text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                {currentLanguageLabel} <ChevronRight className="h-4 w-4" aria-hidden />
+              </span>
             </button>
-          </li>
-          {!runningNative && (
-            <li>
-              <button
-                type="button"
-                onClick={() => navigate("/pricing")}
-                data-touch-target
-                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
+            {langSheetOpen && (
+              <div
+                className="border-b border-border/30 px-4 py-3"
+                style={{ backgroundColor: "var(--cream-warm)" }}
+                role="group"
+                aria-label={t("profile.language")}
               >
-                <span className="text-sm font-medium text-foreground">{t("profileCard.pricingPlans")}</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-              </button>
-            </li>
-          )}
-          <li>
-            <button
-              type="button"
-              onClick={() => navigate("/app/recipes/new")}
-              data-touch-target
-              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
-            >
-              <span className="text-sm font-medium text-foreground">{t("profileCard.shareRecipe")}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              onClick={() => navigate("/recipes")}
-              data-touch-target
-              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
-            >
-              <span className="text-sm font-medium text-foreground">{t("profileCard.browseRecipes")}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </button>
-          </li>
-          {isAdmin && (
-            <>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
-                    window.location.href = `${base}/admin/submissions`;
-                  }}
-                  data-touch-target
-                  className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
-                >
-                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    {t("profileCard.submissionQueue")}
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
-                    window.location.href = `${base}/admin/recipes`;
-                  }}
-                  data-touch-target
-                  className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
-                >
-                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    {t("profileCard.recipeQueue")}
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
-                    window.location.href = `${base}/admin/users`;
-                  }}
-                  data-touch-target
-                  className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
-                >
-                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    Users
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                </button>
-              </li>
-              {/* Go-live verification: charges 1 SEK against the admin's
-                  saved card and immediately refunds it. Used to confirm
-                  Stripe live mode and webhook delivery in seconds rather
-                  than walking through the full checkout flow manually
-                  (LAUNCH_CHECKLIST §6.4). */}
-              <li className="px-5 py-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
-                    <CreditCard className="h-4 w-4 text-primary" />
-                    Test live charge
-                  </span>
-                  <button
-                    type="button"
-                    data-testid="admin-test-charge"
-                    onClick={() => handleTestCharge(false)}
-                    disabled={testChargeLoading}
-                    data-touch-target
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-60"
-                  >
-                    {testChargeLoading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3.5 w-3.5" />
-                    )}
-                    Charge 1 SEK + refund
-                  </button>
+                <div className="flex flex-wrap gap-2">
+                  {LOCALES.map((l) => {
+                    const active = locale === l.code;
+                    return (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => {
+                          setLocale(l.code as Locale);
+                          setLangSheetOpen(false);
+                        }}
+                        data-touch-target
+                        className="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
+                        style={
+                          active
+                            ? {
+                                borderColor: "var(--sage)",
+                                backgroundColor: "var(--sage)",
+                                color: "#fff",
+                              }
+                            : {
+                                borderColor: "var(--line)",
+                                backgroundColor: "#fff",
+                                color: "var(--ink-soft)",
+                              }
+                        }
+                      >
+                        {l.label}
+                      </button>
+                    );
+                  })}
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Charges your saved card 1 SEK and refunds it immediately.
-                  Use after key rotation or domain change to verify live mode.
-                </p>
-                {testChargeResult && (
-                  <div
-                    data-testid="admin-test-charge-result"
-                    className={`mt-3 rounded-2xl border p-3 text-xs ${
-                      testChargeResult.ok
-                        ? "border-green-200 bg-green-50/60 text-foreground"
-                        : "border-destructive/30 bg-red-50/60 text-foreground"
-                    }`}
-                  >
-                    {testChargeResult.ok ? (
-                      <>
-                        <p className="flex items-center gap-1.5 font-semibold text-green-700">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Charged & refunded ·{" "}
-                          {testChargeResult.livemode ? "LIVE mode" : "TEST mode"}
-                        </p>
-                        <dl className="mt-2 space-y-1 font-mono text-[11px] text-muted-foreground">
-                          {testChargeResult.chargeId && (
-                            <div className="flex gap-2">
-                              <dt className="shrink-0">charge:</dt>
-                              <dd
-                                className="truncate text-foreground"
-                                data-testid="admin-test-charge-id"
-                              >
-                                {testChargeResult.chargeId}
-                              </dd>
-                            </div>
-                          )}
-                          {testChargeResult.refundId && (
-                            <div className="flex gap-2">
-                              <dt className="shrink-0">refund:</dt>
-                              <dd
-                                className="truncate text-foreground"
-                                data-testid="admin-test-refund-id"
-                              >
-                                {testChargeResult.refundId} ·{" "}
-                                {testChargeResult.refundStatus}
-                              </dd>
-                            </div>
-                          )}
-                          {testChargeResult.paymentIntentId && (
-                            <div className="flex gap-2">
-                              <dt className="shrink-0">intent:</dt>
-                              <dd className="truncate text-foreground">
-                                {testChargeResult.paymentIntentId}
-                              </dd>
-                            </div>
-                          )}
-                        </dl>
-                        {testChargeResult.webhook && (
-                          <div className="mt-2 space-y-1.5 border-t border-green-200/60 pt-2">
-                            {/* End-to-end delivery — the real go/no-go signal. */}
-                            <p
-                              data-testid="admin-test-charge-webhook-delivered"
-                              className={`flex items-center gap-1.5 font-semibold ${
-                                testChargeResult.webhook.delivered
-                                  ? "text-green-700"
-                                  : "text-amber-700"
-                              }`}
-                            >
-                              {testChargeResult.webhook.delivered ? (
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                              ) : (
-                                <AlertTriangle className="h-3.5 w-3.5" />
-                              )}
-                              {testChargeResult.webhook.delivered
-                                ? `Webhook delivered (${testChargeResult.webhook.eventId ?? "evt"})`
-                                : "Webhook NOT delivered within 10s — check Stripe Dashboard"}
-                            </p>
-                            {/* Configuration sanity check — secondary. */}
-                            <p className="text-[11px] text-muted-foreground">
-                              Config:{" "}
-                              {
-                                testChargeResult.webhook
-                                  .chargeRefundedListenerCount
-                              }{" "}
-                              endpoint(s) listening for charge.refunded
-                            </p>
-                            {testChargeResult.webhook.endpoints.length > 0 && (
-                              <ul className="space-y-0.5 font-mono text-[11px] text-muted-foreground">
-                                {testChargeResult.webhook.endpoints.map((e) => (
-                                  <li key={e.url} className="truncate">
-                                    {e.status === "enabled" ? "✓" : "✗"} {e.url}{" "}
-                                    {e.listensForChargeRefunded
-                                      ? ""
-                                      : "(no charge.refunded)"}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <p className="flex items-center gap-1.5 font-semibold text-destructive">
-                          <XCircle className="h-3.5 w-3.5" />
-                          {testChargeResult.error ?? "Test charge failed"}
-                        </p>
-                        {testChargeResult.requiresConfirmation && (
-                          <button
-                            type="button"
-                            onClick={() => handleTestCharge(true)}
-                            disabled={testChargeLoading}
-                            data-touch-target
-                            data-testid="admin-test-charge-confirm-test-mode"
-                            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
-                          >
-                            <AlertTriangle className="h-3 w-3" />
-                            Charge test-mode card anyway
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </li>
-            </>
-          )}
-          {runningNative && isPremium && (
-            // Reader-app compliance: only shown to users who already have an
-            // entitlement; routes to the same Stripe Billing Portal used on
-            // web for cancel/upgrade. Not a purchase CTA.
-            <li>
-              <button
-                type="button"
-                onClick={() => openExternal(MANAGE_SUBSCRIPTION_WEB_URL)}
-                data-touch-target
-                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
-              >
-                <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <CreditCard className="h-4 w-4 text-primary" />
-                  {t("profileCard.manageSubWeb")}
-                </span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-              </button>
-            </li>
-          )}
-          <li className="flex items-center justify-between gap-3 px-5 py-4">
-            <span className="text-sm font-medium text-foreground">{t("profile.language")}</span>
-            <div role="radiogroup" aria-label={t("profile.language")} className="flex items-center gap-1 rounded-full bg-muted p-1">
-              {LOCALES.map((l) => {
-                const active = locale === l.code;
-                return (
-                  <button
-                    key={l.code}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => setLocale(l.code as Locale)}
-                    data-touch-target
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                      active
-                        ? "bg-white text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {l.label}
-                  </button>
-                );
-              })}
-            </div>
-          </li>
-          <li>
+              </div>
+            )}
+            <button type="button" className="flex w-full items-center justify-between border-b border-border/30 px-4 py-3.5 text-left" data-touch-target>
+              <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+                Notiser
+              </span>
+              <ChevronRight className="h-4 w-4" style={{ color: "var(--ink-soft)" }} aria-hidden />
+            </button>
             <a
               href="mailto:hello@chimiq.com"
+              className="flex w-full items-center justify-between border-b border-border/30 px-4 py-3.5 text-left"
               data-touch-target
-              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
             >
-              <span className="text-sm font-medium text-foreground">{t("profileCard.contactSupport")}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+              <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
+                Kontakta support
+              </span>
+              <ChevronRight className="h-4 w-4" style={{ color: "var(--ink-soft)" }} aria-hidden />
             </a>
-          </li>
-          <li>
             <button
               type="button"
-              onClick={logout}
+              onClick={handleLogout}
+              className="flex w-full items-center justify-between px-4 py-3.5 text-left"
               data-touch-target
-              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left text-destructive transition-colors hover:bg-destructive/5"
             >
-              <span className="flex items-center gap-2 text-sm font-medium">
-                <LogOut className="h-4 w-4" />
-                {t("profileCard.logout")}
+              <span className="text-[14px] font-medium" style={{ color: "var(--rose-gold-deep)" }}>
+                Logga ut
               </span>
-              <ChevronRight className="h-4 w-4 text-destructive/60" />
+              <ChevronRight className="h-4 w-4" style={{ color: "var(--rose-gold-deep)" }} aria-hidden />
             </button>
-          </li>
-        </ul>
-      </section>
+          </div>
+        </div>
 
-      <nav
-        aria-label={t("footer.legalHeading")}
-        className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground"
-      >
-        <a
-          href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/legal/privacy`}
-          className="hover:text-foreground underline-offset-2 hover:underline"
-        >
-          {t("footer.legalPrivacy")}
-        </a>
-        <a
-          href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/legal/terms`}
-          className="hover:text-foreground underline-offset-2 hover:underline"
-        >
-          {t("footer.legalTerms")}
-        </a>
-        <a
-          href={`${(import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "")}/legal/medical-disclaimer`}
-          className="hover:text-foreground underline-offset-2 hover:underline"
-        >
-          {t("footer.legalDisclaimer")}
-        </a>
-      </nav>
+        {/* 6. Footer */}
+        <div className="py-4 text-center text-[11px]" style={{ color: "var(--ink-soft)" }}>
+          <a href={`${base}/legal/privacy`} style={{ color: "var(--ink-soft)" }}>
+            Privacy
+          </a>
+          {" · "}
+          <a href={`${base}/legal/terms`} style={{ color: "var(--ink-soft)" }}>
+            Terms
+          </a>
+          {" · "}
+          <a href={`${base}/legal/medical-disclaimer`} style={{ color: "var(--ink-soft)" }}>
+            Medical Disclaimer
+          </a>
+        </div>
+      </div>
 
-      <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground/40">
-        {t("profileCard.footerPlanFmt", { plan: isPremium ? t("profileCard.premium") : t("profileCard.free") })}
-      </p>
+      {!isPremium && <PaywallModal open={showPaywall} onOpenChange={setShowPaywall} />}
     </AppShell>
   );
 }
