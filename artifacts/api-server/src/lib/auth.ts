@@ -1,8 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { type Request } from "express";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { supabaseAdmin } from "./supabase-admin.js";
+
+export { getSupabaseAdminClient, getSupabaseClient } from "./supabaseClients.js";
 
 interface SupabaseUser {
   id: string;
@@ -38,54 +38,6 @@ function getSupabaseJwks() {
   return supabaseJwks;
 }
 
-let supabaseClient: ReturnType<typeof createClient> | null = null;
-
-export function getSupabaseClient() {
-  if (!supabaseClient) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error(
-        "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables",
-      );
-    }
-
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false,
-      },
-    });
-  }
-  return supabaseClient;
-}
-
-let supabaseAdminClient: ReturnType<typeof createClient> | null = null;
-
-export function getSupabaseAdminClient() {
-  if (!supabaseAdminClient) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      throw new Error(
-        "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables",
-      );
-    }
-
-    supabaseAdminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false,
-      },
-    });
-  }
-  return supabaseAdminClient;
-}
-
 export async function verifyJWT(token: string): Promise<{
   sub: string;
   email?: string;
@@ -115,25 +67,20 @@ export async function upsertAppUserFromJwtClaims(data: {
   profileImageUrl: string | null;
   emailVerified: boolean;
 }): Promise<void> {
-  const userData = {
-    id: data.id,
-    email: data.email,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    profileImageUrl: data.profileImageUrl,
-    emailVerified: data.emailVerified,
-  };
-
-  await db
-    .insert(usersTable)
-    .values(userData)
-    .onConflictDoUpdate({
-      target: usersTable.id,
-      set: {
-        ...userData,
-        updatedAt: new Date(),
-      },
-    });
+  const now = new Date().toISOString();
+  const { error } = await supabaseAdmin.from("users").upsert(
+    {
+      id: data.id,
+      email: data.email,
+      first_name: data.firstName,
+      last_name: data.lastName,
+      profile_image_url: data.profileImageUrl,
+      email_verified: data.emailVerified,
+      updated_at: now,
+    },
+    { onConflict: "id" },
+  );
+  if (error) throw error;
 }
 
 export function supabaseUserToAuthUser(supabaseUser: SupabaseUser): AuthUser {

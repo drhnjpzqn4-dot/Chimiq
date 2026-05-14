@@ -1,6 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const router: IRouter = Router();
 
@@ -54,17 +53,19 @@ router.post("/profile/onboarding", async (req: Request, res: Response) => {
   }
 
   try {
-    await db
-      .update(usersTable)
-      .set({
-        firstName: trimmed,
-        skinType,
-        ageGroup,
-        skinGoal,
-        onboardingCompleted: true,
-        updatedAt: new Date(),
+    const { error } = await supabaseAdmin
+      .from("users")
+      .update({
+        first_name: trimmed,
+        skin_type: skinType,
+        age_group: ageGroup,
+        skin_goal: skinGoal,
+        onboarding_completed: true,
+        updated_at: new Date().toISOString(),
       })
-      .where(eq(usersTable.id, req.user.id));
+      .eq("id", req.user.id);
+
+    if (error) throw error;
 
     req.log?.info(
       { parentalConsentGiven: consentFlag, ageGroup },
