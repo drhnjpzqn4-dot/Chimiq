@@ -1,23 +1,53 @@
 import { useEffect, useState } from "react";
-import type { SkinProfile } from "@workspace/api-client-react";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-const SKIN_PROFILE_OPTIONS: { value: SkinProfile; labelKey: string }[] = [
-  { value: "sensitive", labelKey: "scanner.skinType.sensitive" },
-  { value: "young", labelKey: "scanner.skinType.young" },
-  { value: "mature", labelKey: "scanner.skinType.mature" },
-  { value: "pregnant", labelKey: "scanner.skinType.pregnant" },
-];
+/** Samma värden som onboarding (`OnboardingFlow.tsx` SkinId). */
+type ProfileSkinType = "sensitive" | "oily" | "dry" | "combination";
 
-type AgeGroup = "13-15" | "16-17" | "18-20" | "21+";
+const SKIN_PROFILE_OPTIONS: ProfileSkinType[] = ["sensitive", "oily", "dry", "combination"];
 
-const AGE_GROUP_OPTIONS: { value: AgeGroup; label: string }[] = [
-  { value: "13-15", label: "13–15" },
-  { value: "16-17", label: "16–17" },
-  { value: "18-20", label: "18–20" },
-  { value: "21+", label: "21+" },
-];
+const SKIN_TITLE_KEY: Record<
+  ProfileSkinType,
+  | "onboarding.skin.sensitive.title"
+  | "onboarding.skin.oily.title"
+  | "onboarding.skin.dry.title"
+  | "onboarding.skin.combination.title"
+> = {
+  sensitive: "onboarding.skin.sensitive.title",
+  oily: "onboarding.skin.oily.title",
+  dry: "onboarding.skin.dry.title",
+  combination: "onboarding.skin.combination.title",
+};
+
+/** Samma värden som onboarding (`OnboardingFlow.tsx` AgeId). */
+type AgeGroup = "under16" | "16-17" | "18-25" | "26-35" | "36-45" | "46plus";
+
+const AGE_GROUP_OPTIONS = [
+  { value: "under16" as const },
+  { value: "16-17" as const },
+  { value: "18-25" as const },
+  { value: "26-35" as const },
+  { value: "36-45" as const },
+  { value: "46plus" as const },
+] as const;
+
+const AGE_TITLE_KEY: Record<
+  AgeGroup,
+  | "onboarding.age.under16.title"
+  | "onboarding.age.16-17.title"
+  | "onboarding.age.18-25.title"
+  | "onboarding.age.26-35.title"
+  | "onboarding.age.36-45.title"
+  | "onboarding.age.46plus.title"
+> = {
+  under16: "onboarding.age.under16.title",
+  "16-17": "onboarding.age.16-17.title",
+  "18-25": "onboarding.age.18-25.title",
+  "26-35": "onboarding.age.26-35.title",
+  "36-45": "onboarding.age.36-45.title",
+  "46plus": "onboarding.age.46plus.title",
+};
 
 function readStoredAge(): AgeGroup | undefined {
   if (typeof window === "undefined") return undefined;
@@ -39,22 +69,22 @@ function readStoredGoal(): string {
   }
 }
 
-function readStored(): SkinProfile | undefined {
+function readStoredSkin(): ProfileSkinType | undefined {
   if (typeof window === "undefined") return undefined;
   try {
     const stored = window.localStorage.getItem("skinscreen.skinProfile");
     if (!stored) return undefined;
-    const ok = SKIN_PROFILE_OPTIONS.some((o) => o.value === stored);
-    return ok ? (stored as SkinProfile) : undefined;
+    const ok = SKIN_PROFILE_OPTIONS.includes(stored as ProfileSkinType);
+    return ok ? (stored as ProfileSkinType) : undefined;
   } catch {
     return undefined;
   }
 }
 
-/** Profil-hudtyp — samma val som skannern använder via localStorage. */
+/** Profil-hudtyp — samma värden som onboarding; lagras under `skinscreen.skinProfile` (skannern). */
 export function SkinProfileChips() {
   const { t } = useTranslation();
-  const [value, setValue] = useState<SkinProfile | undefined>(() => readStored());
+  const [value, setValue] = useState<ProfileSkinType | undefined>(() => readStoredSkin());
   const [ageGroup, setAgeGroup] = useState<AgeGroup | undefined>(() => readStoredAge());
   const [goal, setGoal] = useState<string>(() => readStoredGoal());
 
@@ -100,29 +130,29 @@ export function SkinProfileChips() {
         <div className="flex flex-wrap gap-2">
           {SKIN_PROFILE_OPTIONS.map((p) => (
             <button
-              key={p.value}
+              key={p}
               type="button"
-              onClick={() => setValue((v) => (v === p.value ? undefined : p.value))}
+              onClick={() => setValue((v) => (v === p ? undefined : p))}
               className={cn(
                 "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-150",
                 "focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)] focus:ring-offset-2 focus:ring-offset-white",
-                value === p.value
+                value === p
                   ? "border-transparent text-white shadow-sm"
                   : "border-border/60 bg-white text-muted-foreground hover:border-[color-mix(in_srgb,var(--sage)_50%,transparent)] hover:text-foreground",
               )}
               style={
-                value === p.value
+                value === p
                   ? { backgroundColor: "var(--sage)", borderColor: "var(--sage)", color: "#fff" }
                   : undefined
               }
               data-touch-target
             >
-              {t(p.labelKey)}
+              {t(SKIN_TITLE_KEY[p])}
             </button>
           ))}
         </div>
 
-        {/* Åldersgrupp */}
+        {/* Åldersgrupp — samma värden som onboarding */}
         <div className="mt-4 border-t border-border/30 pt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Ålder
@@ -147,7 +177,7 @@ export function SkinProfileChips() {
                 }
                 data-touch-target
               >
-                {a.label}
+                {t(AGE_TITLE_KEY[a.value])}
               </button>
             ))}
           </div>

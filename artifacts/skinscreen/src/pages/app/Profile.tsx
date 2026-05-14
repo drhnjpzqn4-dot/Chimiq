@@ -17,15 +17,42 @@ interface ContributeStats {
   premiumUntil: string | null;
 }
 
-const AGE_GROUP_LABELS: Record<string, string> = {
-  "13-15": "13–15",
-  "16-17": "16–17",
-  "18-20": "18–20",
-  "21+": "21+",
+type OnboardingAgeId = "under16" | "16-17" | "18-25" | "26-35" | "36-45" | "46plus";
+
+const AGE_TITLE_KEY: Record<
+  OnboardingAgeId,
+  | "onboarding.age.under16.title"
+  | "onboarding.age.16-17.title"
+  | "onboarding.age.18-25.title"
+  | "onboarding.age.26-35.title"
+  | "onboarding.age.36-45.title"
+  | "onboarding.age.46plus.title"
+> = {
+  under16: "onboarding.age.under16.title",
+  "16-17": "onboarding.age.16-17.title",
+  "18-25": "onboarding.age.18-25.title",
+  "26-35": "onboarding.age.26-35.title",
+  "36-45": "onboarding.age.36-45.title",
+  "46plus": "onboarding.age.46plus.title",
 };
 
-const SKIN_PROFILE_KEYS: Record<string, string> = {
-  sensitive: "scanner.skinType.sensitive",
+const SKIN_PROFILE_KEYS: Partial<
+  Record<
+    string,
+    | "onboarding.skin.sensitive.title"
+    | "onboarding.skin.oily.title"
+    | "onboarding.skin.dry.title"
+    | "onboarding.skin.combination.title"
+    | "scanner.skinType.sensitive"
+    | "scanner.skinType.young"
+    | "scanner.skinType.mature"
+    | "scanner.skinType.pregnant"
+  >
+> = {
+  sensitive: "onboarding.skin.sensitive.title",
+  oily: "onboarding.skin.oily.title",
+  dry: "onboarding.skin.dry.title",
+  combination: "onboarding.skin.combination.title",
   young: "scanner.skinType.young",
   mature: "scanner.skinType.mature",
   pregnant: "scanner.skinType.pregnant",
@@ -97,11 +124,16 @@ export default function ProfileScreen() {
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
   const skinRaw = readLs("skinscreen.skinProfile");
-  const skinProfileKey = skinRaw ? SKIN_PROFILE_KEYS[skinRaw] : undefined;
-  const skinTypeLabel = skinProfileKey ? t(skinProfileKey) : skinRaw ? skinRaw : "Inte valt";
+  const skinI18nKey = skinRaw ? SKIN_PROFILE_KEYS[skinRaw] : undefined;
+  const skinTypeLabel = skinI18nKey ? t(skinI18nKey) : skinRaw ? skinRaw : "Inte valt";
 
   const ageRaw = readLs("chimiq.ageGroup");
-  const ageGroupLabel = ageRaw ? (AGE_GROUP_LABELS[ageRaw] ?? ageRaw) : "Inte valt";
+  const ageGroupLabel =
+    ageRaw && ageRaw in AGE_TITLE_KEY
+      ? t(AGE_TITLE_KEY[ageRaw as OnboardingAgeId])
+      : ageRaw
+        ? ageRaw
+        : "Inte valt";
 
   const goalRaw = readLs("chimiq.skinGoal");
   const goalLabel = goalRaw ? goalRaw : "Inte valt";
