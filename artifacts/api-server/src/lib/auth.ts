@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { jwtVerify } from "jose";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { type Request } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -25,9 +25,18 @@ export interface AuthUser {
   onboardingCompleted?: boolean;
 }
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.SUPABASE_JWT_SECRET || "",
-);
+let supabaseJwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+
+function getSupabaseJwks() {
+  if (supabaseJwks) return supabaseJwks;
+  const base = process.env.SUPABASE_URL?.replace(/\/+$/, "");
+  if (!base) {
+    throw new Error("SUPABASE_URL saknas — krävs för JWT-verifiering via JWKS");
+  }
+  const jwksUrl = new URL(`${base}/auth/v1/.well-known/jwks.json`);
+  supabaseJwks = createRemoteJWKSet(jwksUrl);
+  return supabaseJwks;
+}
 
 let supabaseClient: ReturnType<typeof createClient> | null = null;
 
@@ -84,8 +93,9 @@ export async function verifyJWT(token: string): Promise<{
   user_metadata?: Record<string, unknown>;
 } | null> {
   try {
-    const verified = await jwtVerify(token, JWT_SECRET);
-    return verified.payload as {
+    const JWKS = getSupabaseJwks();
+    const { payload } = await jwtVerify(token, JWKS);
+    return payload as {
       sub: string;
       email?: string;
       email_verified?: boolean;

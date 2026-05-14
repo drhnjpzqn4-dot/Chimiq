@@ -22,8 +22,8 @@ declare global {
 }
 
 /**
- * Verifierar Supabase access JWT (Authorization: Bearer) med jose + SUPABASE_JWT_SECRET.
- * Ingen sessions-tabell eller server-side session-lookup.
+ * Verifierar Supabase access JWT (Authorization: Bearer) med jose mot JWKS
+ * (ES256). Ingen sessions-tabell eller server-side session-lookup.
  *
  * - Saknas Authorization / Bearer: fortsätt anonymt (publika /api-routes).
  * - Bearer med tom eller ogiltig token: 401.
