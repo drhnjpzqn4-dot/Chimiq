@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Star } from "lucide-react";
 import { Link } from "wouter";
 import {
   Dialog,
@@ -8,9 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTranslation } from "@/lib/i18n";
-
-const SAGE = "var(--sage)";
-const ROSE_GOLD = "var(--rose-gold)";
 
 const BENEFIT_KEYS = [
   "paywall.benefit1",
@@ -40,12 +37,16 @@ export default function PaywallModal({ open, onOpenChange }: PaywallModalProps) 
           </DialogDescription>
         </DialogHeader>
 
+        {/* Benefits list */}
         <ul className="mt-5 space-y-3">
           {BENEFIT_KEYS.map((key) => (
-            <li key={key} className="flex items-start gap-2.5 text-sm leading-snug text-foreground">
+            <li
+              key={key}
+              className="flex items-start gap-2.5 text-sm leading-snug text-foreground"
+            >
               <Check
                 className="mt-0.5 h-4 w-4 shrink-0"
-                style={{ color: SAGE }}
+                style={{ color: "var(--sage)" }}
                 strokeWidth={2.5}
                 aria-hidden
               />
@@ -54,27 +55,78 @@ export default function PaywallModal({ open, onOpenChange }: PaywallModalProps) 
           ))}
         </ul>
 
-        <div className="mt-6 flex flex-col gap-3">
+        {/* Pricing cards */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          {/* Monthly */}
+          <div
+            className="rounded-xl border p-4 text-center"
+            style={{ borderColor: "var(--line)", backgroundColor: "var(--cream-warm)" }}
+          >
+            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--ink-soft)" }}>
+              {t("paywall.monthly")}
+            </p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--ink)" }}>
+              €4.99
+            </p>
+            <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
+              {t("paywall.perMonth")}
+            </p>
+          </div>
+
+          {/* Yearly — highlighted */}
+          <div
+            className="relative rounded-xl border-2 p-4 text-center"
+            style={{ borderColor: "var(--gold)", backgroundColor: "var(--gold-soft)" }}
+          >
+            {/* "Spara 18%" badge */}
+            <span
+              className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-sm"
+              style={{
+                backgroundColor: "var(--gold)",
+                color: "#fff",
+              }}
+            >
+              {t("paywall.saveBadge")}
+            </span>
+            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--ink-soft)" }}>
+              {t("paywall.yearly")}
+            </p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--ink)" }}>
+              €49
+            </p>
+            <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
+              {t("paywall.perYear")}
+            </p>
+          </div>
+        </div>
+
+        {/* CTA buttons */}
+        <div className="mt-5 flex flex-col gap-3">
           <Link href="/pricing">
             <a
               data-touch-target
               onClick={() => onOpenChange(false)}
-              className="inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-md transition-opacity hover:opacity-90"
-              style={{ backgroundColor: ROSE_GOLD }}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-md transition-opacity hover:opacity-90"
+              style={{ backgroundColor: "var(--rose-gold)" }}
             >
+              <Star className="h-4 w-4" aria-hidden />
               {t("paywall.trialCta")}
             </a>
           </Link>
           <button
-            type="button"
             data-touch-target
             onClick={() => onOpenChange(false)}
-            className="w-full rounded-2xl py-2.5 text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="block w-full text-center text-sm transition-colors hover:text-foreground"
+            style={{ color: "var(--ink-soft)" }}
           >
             {t("paywall.notNow")}
           </button>
-          <p className="text-xs text-muted-foreground text-center">{t("paywall.finePrint")}</p>
         </div>
+
+        {/* Fine print */}
+        <p className="mt-3 text-center text-xs" style={{ color: "var(--ink-soft)" }}>
+          {t("paywall.finePrint")}
+        </p>
       </DialogContent>
     </Dialog>
   );
