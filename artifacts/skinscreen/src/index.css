@@ -62,27 +62,28 @@
 }
 
 :root {
-  --rose-gold: #C9967E;
-  --rose-gold-deep: #A06D54;
-  --sage: #7BAF7A;
-  --sage-deep: #5B8F5A;
-  --gold: #D29A55;
-  --gold-soft: #F4D8A2;
-  --cream: #FAF6F2;
-  --cream-warm: #F5EFE8;
-  --ink: #1F1A17;
-  --ink-soft: #5E544C;
-  --line: #EAE3DC;
-  --green-soft: #DCE7DC;
-  --rose-soft: #F2DECE;
-  --amber-deep: #8B6A1F;
-  --amber-soft: #F0E2BC;
-  --red-deep: #8E3A26;
-  --red-soft: #EDD6CF;
+  /* ── Forest + Clay brand palette (BESLUT-SS-022, 2026-05-13) ── */
+  --rose-gold:        #B5705B;   /* Clay terrakotta — logo, h1/h2 serif, signaturelement */
+  --rose-gold-deep:   #8A4F3B;   /* AA-säker text/links på cream (≥4.5:1) */
+  --sage:             #3C5C44;   /* Skogsgrön — ALLA CTA-knappar, aktiva states */
+  --sage-deep:        #284430;   /* Sage hover, focus-ring, text på cream (AA) */
+  --gold:             #BC8F3D;   /* ENBART Premium-accent (badge, paywall CTA) */
+  --gold-soft:        #EEDFB8;   /* Premium-bakgrund, subtil */
+  --cream:            #F1EFE8;   /* Huvudbakgrund */
+  --cream-warm:       #E5E2D8;   /* Sektioner, kort-bakgrund nivå 2 */
+  --ink:              #2C1A0E;   /* All brödtext — dark chocolate (BESLUT-SS-020) */
+  --ink-soft:         #4D5450;   /* Sekundär text, inaktiva ikoner */
+  --line:             #DDDAD0;   /* Borders, dividers */
+  --green-soft:       #DCE7DC;   /* Grön pill-bakgrund (trygg-indikator) — oförändrad */
+  --rose-soft:        #F2DECE;   /* Rosa pill-bakgrund, kort B på Scan */
+  --amber-deep:       #8B6A1F;   /* Orange varningsboll text/ikon (BESLUT-SS-021) */
+  --amber-soft:       #F0E2BC;   /* Orange pill-bakgrund */
+  --red-deep:         #8E3A26;   /* Röd varningsboll + triangel text/ikon */
+  --red-soft:         #EDD6CF;   /* Röd pill-bakgrund */
 
   /* ── Premium / gold tier ── */
-  --premium-bg: #F4D8A2;   /* card background — warm sandy gold */
-  --premium-gold: #D29A55; /* button, highlights, accents */
+  --premium-bg:    #EEDFB8;   /* = gold-soft — card background */
+  --premium-gold:  #BC8F3D;   /* = gold — button, highlights */
 
   /* ── Elevation / shadow (brief sektion 6) ── */
   /* Lyfta kort: subtil, aldrig stor drop-shadow */
@@ -96,36 +97,37 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --tab-bar-height: 64px;
 
-  /* shadcn / Tailwind tokens (HSL channel values; used as hsl(var(--token))) */
-  /* Updated 2026-05-13 to match design brief palette */
-  --background: 30 44% 97%;       /* cream  #FAF6F2 */
-  --foreground: 23 15% 11%;       /* ink    #1F1A17 */
+  --background:         30 33% 94%;      /* cream  #F1EFE8 */
+  --foreground:         24 52% 11%;      /* ink    #2C1A0E */
 
-  --primary: 119 25% 58%;         /* sage      #7BAF7A */
+  --primary:            135 21% 30%;     /* sage   #3C5C44 */
   --primary-foreground: 0 0% 100%;
-  --primary-strong: 119 23% 46%;  /* sage-deep #5B8F5A */
+  --primary-strong:     135 24% 20%;     /* sage-deep #284430 */
 
-  --muted: 30 25% 93%;            /* cream-warm adjacent */
-  --muted-foreground: 26 11% 33%; /* ink-soft  #5E544C */
+  --muted:              30 20% 88%;      /* cream-warm adjacent */
+  --muted-foreground:   169 6% 30%;      /* ink-soft  #4D5450 */
 
-  --accent: 140 18% 92%;
-  --accent-foreground: 140 26% 20%;
+  --accent:             135 18% 90%;
+  --accent-foreground:  135 26% 20%;
 
-  --destructive: 12 58% 36%;
+  --destructive:        12 58% 36%;      /* red-deep #8E3A26 — oförändrad */
   --destructive-foreground: 0 0% 100%;
 
-  --warning: 42 64% 33%;
+  --warning:            38 52% 31%;      /* amber-deep #8B6A1F */
   --warning-foreground: 0 0% 100%;
 
-  --success: 140 21% 30%;
+  --success:            135 21% 30%;     /* = primary / sage */
   --success-foreground: 0 0% 100%;
 
-  --border: 48 11% 83%;
-  --input: 48 11% 83%;
-  --ring: 140 21% 30%;
+  --border:             35 16% 83%;      /* line #DDDAD0 */
+  --input:              35 16% 83%;
+  --ring:               135 21% 30%;     /* = primary */
 
-  --card: 0 0% 100%;
-  --card-foreground: 24 49% 11%;
+  --card:               30 33% 94%;      /* = background */
+  --card-foreground:    24 52% 11%;      /* = foreground */
+
+  --popover:            0 0% 100%;
+  --popover-foreground: 24 52% 11%;
 
   --radius: 0.75rem;
 }
