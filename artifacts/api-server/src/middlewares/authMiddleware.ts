@@ -1,5 +1,5 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { db, usersTable, sessionsTable } from "@workspace/db";
+import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   clearSession,
@@ -63,16 +63,13 @@ async function refreshIfExpired(
 }
 
 /**
- * Validate JWT token (for API requests with Bearer token)
+ * Validate Supabase JWT (legacy / mobile flows where Bearer is a real JWT).
  */
-async function validateJWTToken(
-  token: string
-): Promise<AuthUser | null> {
+async function validateJWTToken(token: string): Promise<AuthUser | null> {
   try {
     const payload = await verifyJWT(token);
     if (!payload || !payload.sub) return null;
 
-    // Fetch user from local database to get all fields
     const [user] = await db
       .select({
         id: usersTable.id,
@@ -102,52 +99,25 @@ async function validateJWTToken(
   }
 }
 
-export async function authMiddleware(
-  req: Request,
+/**
+ * Laddar användare från Postgres-session (sid) — samma källa som httpOnly-kakan.
+ */
+async function authenticateServerSession(
   res: Response,
-  next: NextFunction
-) {
-  req.isAuthenticated = function (this: Request) {
-    return this.user != null;
-  } as Request["isAuthenticated"];
-
-  const sid = getSessionId(req);
-  if (!sid) {
-    next();
-    return;
-  }
-
-  // Check if it's a JWT token (Bearer token) or a session ID
-  const isBearer = (req.headers["authorization"] || "").startsWith("Bearer ");
-
-  if (isBearer) {
-    // Validate JWT token directly
-    const token = sid; // sid contains the Bearer token without "Bearer " prefix
-    const user = await validateJWTToken(token);
-    if (user) {
-      req.user = user;
-    }
-    next();
-    return;
-  }
-
-  // Handle session cookie-based auth
+  sid: string
+): Promise<AuthUser | null> {
   const session = await getSession(sid);
   if (!session?.user?.id) {
     await clearSession(res, sid);
-    next();
-    return;
+    return null;
   }
 
   const refreshed = await refreshIfExpired(sid, session);
   if (!refreshed) {
     await clearSession(res, sid);
-    next();
-    return;
+    return null;
   }
 
-  // Back-fill fields that may be missing on sessions issued before a schema
-  // expansion (e.g. `emailVerified` / `onboardingCompleted`).
   let userForRequest = refreshed.user;
   if (
     userForRequest.emailVerified === undefined ||
@@ -177,6 +147,48 @@ export async function authMiddleware(
     }
   }
 
-  req.user = userForRequest;
+  return userForRequest;
+}
+
+export async function authMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  req.isAuthenticated = function (this: Request) {
+    return this.user != null;
+  } as Request["isAuthenticated"];
+
+  const sid = getSessionId(req);
+  if (!sid) {
+    next();
+    return;
+  }
+
+  const authHeader = req.headers["authorization"];
+  const isBearer =
+    typeof authHeader === "string" && authHeader.startsWith("Bearer ");
+
+  if (isBearer) {
+    // Först: Bearer-värdet är vårt server-session id (sid) — samma som i JSON { token }.
+    const fromDb = await authenticateServerSession(res, sid);
+    if (fromDb) {
+      req.user = fromDb;
+      next();
+      return;
+    }
+    // Annars: försök Supabase access JWT (äldre / specialfall).
+    const jwtUser = await validateJWTToken(sid);
+    if (jwtUser) {
+      req.user = jwtUser;
+    }
+    next();
+    return;
+  }
+
+  const user = await authenticateServerSession(res, sid);
+  if (user) {
+    req.user = user;
+  }
   next();
 }

@@ -221,7 +221,7 @@ router.get("/legal/consent", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/auth/user", async (req: Request, res: Response) => {
+const handleAuthUserGet = async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     res.json(GetCurrentAuthUserResponse.parse({ user: null }));
     return;
@@ -241,6 +241,18 @@ router.get("/auth/user", async (req: Request, res: Response) => {
     req.log?.error?.({ err }, "Failed to load user onboarding state");
     res.status(500).json({ error: "Could not load user" });
   }
+};
+
+router.get("/auth/user", handleAuthUserGet);
+router.get("/auth/me", handleAuthUserGet);
+
+/**
+ * POST /api/auth/logout — rensar server-session; fungerar med Bearer sid (SPA) eller kaka.
+ */
+router.post("/auth/logout", async (req: Request, res: Response) => {
+  const sid = getSessionId(req);
+  await clearSession(res, sid);
+  res.json({ ok: true });
 });
 
 /**
@@ -382,6 +394,7 @@ router.post("/auth/signup", async (req: Request, res: Response) => {
         ok: true,
         autoLoggedIn: true,
         user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
+        token: sid,
       });
       return;
     }
@@ -605,7 +618,11 @@ router.post("/auth/token-exchange", async (req: Request, res: Response) => {
     };
     const sid = await createSession(sessionData);
     setSessionCookie(res, sid);
-    res.json({ ok: true, user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser) });
+    res.json({
+      ok: true,
+      user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
+      token: sid,
+    });
   } catch (err) {
     req.log?.error?.({ err }, "Token exchange error");
     res.status(500).json({ error: "Token exchange failed" });

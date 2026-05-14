@@ -9,7 +9,7 @@ import { onOfflineReady } from "@/lib/register-sw";
 import { useToast } from "@/hooks/use-toast";
 import Home from "@/pages/Home";
 import { useNativeAuthDeepLink } from "@/hooks/useNativeAuthDeepLink";
-import { AUTH_REFRESH_EVENT } from "@workspace/replit-auth-web";
+import { AUTH_REFRESH_EVENT, setChimiqStoredSessionId } from "@workspace/replit-auth-web";
 import { I18nProvider } from "@/lib/i18n";
 import { ConsentGateProvider } from "@/components/ConsentGate";
 import { CookieBanner } from "@/components/CookieBanner";
@@ -97,7 +97,14 @@ function HashTokenHandler() {
       credentials: "include",
       body: JSON.stringify({ access_token, refresh_token }),
     })
-      .then((res) => { if (res.ok) window.location.reload(); })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as { ok?: boolean; token?: string };
+        if (data.ok && typeof data.token === "string" && data.token.length > 0) {
+          setChimiqStoredSessionId(data.token);
+        }
+        window.location.reload();
+      })
       .catch(console.error);
   }, []);
   return null;

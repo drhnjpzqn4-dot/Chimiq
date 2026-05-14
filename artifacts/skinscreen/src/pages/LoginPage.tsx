@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { setChimiqStoredSessionId } from "@workspace/replit-auth-web";
 
 function useNextParam(): string {
   if (typeof window === "undefined") return "/app/scan";
@@ -52,10 +53,18 @@ export default function LoginPage() {
         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json() as { error?: string; ok?: boolean; autoLoggedIn?: boolean };
+      const data = await res.json() as {
+        error?: string;
+        ok?: boolean;
+        autoLoggedIn?: boolean;
+        token?: string;
+      };
       if (!res.ok) {
         setError(data.error ?? "Something went wrong");
         return;
+      }
+      if (typeof data.token === "string" && data.token.length > 0) {
+        setChimiqStoredSessionId(data.token);
       }
       if (mode === "signup") {
         if (data.autoLoggedIn) {

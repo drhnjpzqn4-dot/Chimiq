@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import type { AuthUser } from "@workspace/api-client-react";
+import { clearChimiqStoredSessionId } from "./chimiq-session";
 
 export type { AuthUser };
 
@@ -89,7 +90,19 @@ export function useAuth(): AuthState {
       Browser.open({ url: `${NATIVE_AUTH_HOST}/api/logout`, presentationStyle: "fullscreen" });
       return;
     }
-    window.location.href = "/api/logout";
+    void (async () => {
+      try {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch {
+        // ignore — vi rensar lokalt ändå
+      }
+      clearChimiqStoredSessionId();
+      window.location.href = "/";
+    })();
   }, []);
 
   return {
