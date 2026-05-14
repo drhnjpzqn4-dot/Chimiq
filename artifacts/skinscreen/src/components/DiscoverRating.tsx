@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ThumbsUp, ThumbsDown, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 
 const SESSION_KEY = "skinscreen_discover_session_id";
 const VOTE_KEY_PREFIX = "skinscreen_discover_vote:";
@@ -51,7 +52,7 @@ export function DiscoverRating({ kind, slug }: DiscoverRatingProps) {
 
   const refreshCounts = useCallback(async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/discover/ratings/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}`,
         { credentials: "include" },
       );
@@ -70,7 +71,7 @@ export function DiscoverRating({ kind, slug }: DiscoverRatingProps) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(
+        const res = await apiFetch(
           `/api/discover/ratings/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}`,
           { credentials: "include" },
         );
@@ -95,7 +96,7 @@ export function DiscoverRating({ kind, slug }: DiscoverRatingProps) {
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/discover/ratings", {
+      const res = await apiFetch("/api/discover/ratings", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -131,7 +132,7 @@ export function DiscoverRating({ kind, slug }: DiscoverRatingProps) {
     setPending(true);
     setError(null);
     try {
-      const res = await fetch("/api/discover/ratings", {
+      const res = await apiFetch("/api/discover/ratings", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

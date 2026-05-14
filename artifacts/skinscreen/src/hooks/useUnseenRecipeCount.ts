@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { apiFetch } from "@/lib/api";
 
 const UNSEEN_EVENT = "recipes:unseen-changed";
 
@@ -19,7 +20,7 @@ export function useUnseenRecipeCount(): number {
   useEffect(() => {
     let cancelled = false;
     const load = () => {
-      fetch("/api/recipes/mine/unseen-count", { credentials: "include" })
+      apiFetch("/api/recipes/mine/unseen-count", { credentials: "include" })
         .then((r) => (r.ok ? r.json() : { unseenCount: 0 }))
         .then((d) => {
           if (cancelled) return;

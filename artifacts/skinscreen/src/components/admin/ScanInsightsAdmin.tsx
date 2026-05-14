@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-type VerdictFilter = "all" | "safe" | "warning" | "high";
+import { apiFetch } from "@/lib/api";
 type DatePreset = "7d" | "30d" | "90d" | "custom" | "all";
 
 interface ProductRow {
@@ -125,7 +125,7 @@ export function ScanInsightsAdmin() {
       if (fromStr) params.set("from", fromStr);
       if (toStr) params.set("to", toStr);
 
-      const res = await fetch(`/api/admin/scan-insights?${params.toString()}`, {
+      const res = await apiFetch(`/api/admin/scan-insights?${params.toString()}`, {
         credentials: "include",
       });
       if (!res.ok) {

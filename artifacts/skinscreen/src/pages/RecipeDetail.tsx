@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 type RiskLevel = "safe" | "caution" | "high_risk";
 
@@ -81,7 +82,7 @@ export default function RecipeDetailPage() {
     if (!id) return;
     setRecipe(null);
     setError(null);
-    fetch(`/api/recipes/${id}`, { credentials: "include" })
+    apiFetch(`/api/recipes/${id}`, { credentials: "include" })
       .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
       .then(({ ok, d }) => {
         if (!ok) {

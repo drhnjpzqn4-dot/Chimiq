@@ -18,6 +18,13 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
 
+/** När satt (t.ex. skinscreens `apiFetch`) används den istället för global `fetch`. */
+let _boundFetch: typeof fetch | null = null;
+
+export function setBoundFetch(fn: typeof fetch | null): void {
+  _boundFetch = fn;
+}
+
 /**
  * Set a base URL that is prepended to every relative request URL
  * (i.e. paths that start with `/`).
@@ -348,7 +355,11 @@ export async function customFetch<T = unknown>(
 
   // Attach bearer token when an auth getter is configured and no
   // Authorization header has been explicitly provided.
-  if (_authTokenGetter && !headers.has("authorization")) {
+  if (
+    !_boundFetch &&
+    _authTokenGetter &&
+    !headers.has("authorization")
+  ) {
     const token = await _authTokenGetter();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
@@ -357,7 +368,8 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const httpFetch = _boundFetch ?? fetch;
+  const response = await httpFetch(input, { ...init, method, headers });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

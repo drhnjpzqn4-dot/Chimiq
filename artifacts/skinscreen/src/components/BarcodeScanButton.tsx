@@ -5,6 +5,7 @@ import { ContributeModal } from "@/components/ContributeModal";
 import { isNative } from "@/lib/native";
 import { BarcodeScanner, BarcodeFormat } from "@capacitor-mlkit/barcode-scanning";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 interface BarcodeScanButtonProps {
   onResult: (ingredients: string, productName: string, barcode?: string) => void;
@@ -98,7 +99,7 @@ export function BarcodeScanButton({
       setState("loading");
 
       try {
-        const res = await fetch(`/api/barcode/${encodeURIComponent(code)}`, {
+        const res = await apiFetch(`/api/barcode/${encodeURIComponent(code)}`, {
           credentials: "include",
         });
         const data = (await res.json()) as {

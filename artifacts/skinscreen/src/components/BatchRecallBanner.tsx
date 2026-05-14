@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 interface RecallRow {
   id: number;
@@ -9,7 +10,7 @@ interface RecallRow {
 }
 
 async function fetchRecentRecalls(): Promise<RecallRow[]> {
-  const res = await fetch("/api/recalls/recent", { credentials: "include" });
+  const res = await apiFetch("/api/recalls/recent", { credentials: "include" });
   if (!res.ok) return [];
   const data = (await res.json()) as { recalls?: RecallRow[] };
   return data.recalls ?? [];

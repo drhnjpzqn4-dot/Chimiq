@@ -8,6 +8,7 @@ import BatchRecallBanner from "@/components/BatchRecallBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n";
 import { PREMIUM_CONTRIBUTION_MILESTONE } from "@/pages/app/Shelf";
+import { apiFetch } from "@/lib/api";
 
 void [
   Link,
@@ -94,7 +95,7 @@ export default function HomeScreen() {
   });
 
   useEffect(() => {
-    fetch("/api/contribute/stats", { credentials: "include" })
+    apiFetch("/api/contribute/stats", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setStats(d as ContributeStats))
       .catch(() => {});

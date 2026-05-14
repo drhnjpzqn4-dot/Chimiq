@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { apiFetch } from "@/lib/api";
 
 /**
  * Resolve whether the current viewer is an admin (super-admin allowlist
@@ -25,7 +26,7 @@ export function useIsAdmin(): { isLoading: boolean; isAdmin: boolean } {
     }
     let cancelled = false;
     setChecking(true);
-    fetch("/api/admin/check", { credentials: "include" })
+    apiFetch("/api/admin/check", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { isAdmin: false }))
       .then((data: { isAdmin?: boolean }) => {
         if (!cancelled) setIsAdmin(!!data.isAdmin);

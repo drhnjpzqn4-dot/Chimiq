@@ -7,6 +7,7 @@ import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { DangerVisual } from "@/components/DangerVisual";
 import type { ScannerSeed } from "@/components/IngredientScanner";
+import { apiFetch } from "@/lib/api";
 
 // Inlined to avoid pulling the heavy `discover-content` module (curated
 // article data, ~22 kB raw) into the marketing landing first-load. Must
@@ -258,7 +259,7 @@ export function LandingPage({ config }: LandingPageProps) {
   ];
 
   useEffect(() => {
-    fetch("/api/stats", { credentials: "include" })
+    apiFetch("/api/stats", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setStats(d as SiteStats))
       .catch(() => {});

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 interface ProductDetail {
   barcode: string;
@@ -44,7 +45,7 @@ export default function BrowseDetailScreen() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetch(`/api/products/${encodeURIComponent(barcode)}`, {
+    apiFetch(`/api/products/${encodeURIComponent(barcode)}`, {
       credentials: "include",
     })
       .then(async (r) => {

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 export interface IngredientDetailFlag {
   severity: "HIGH_RISK" | "CAUTION" | "SAFE" | string;
@@ -57,7 +58,7 @@ export function IngredientDetailSheet({
     const ctrl = new AbortController();
     setLoading(true);
     setError(null);
-    fetch(`/api/ingredients/lookup?name=${encodeURIComponent(ingredient)}`, {
+    apiFetch(`/api/ingredients/lookup?name=${encodeURIComponent(ingredient)}`, {
       credentials: "include",
       signal: ctrl.signal,
     })

@@ -12,6 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
+import { apiFetch } from "@/lib/api";
 
 interface PromoChange {
   id: number;
@@ -415,7 +416,7 @@ function AdminTesterPromoHistoryPageInner() {
       if (debouncedSearch) params.set("q", debouncedSearch);
       if (dateParams.from) params.set("from", dateParams.from);
       if (dateParams.to) params.set("to", dateParams.to);
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/admin/tester-promo/history?${params.toString()}`,
         { credentials: "include" },
       );
@@ -451,7 +452,7 @@ function AdminTesterPromoHistoryPageInner() {
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (dateParams.from) params.set("from", dateParams.from);
     if (dateParams.to) params.set("to", dateParams.to);
-    fetch(
+    apiFetch(
       `/api/admin/tester-promo/history/summary?${params.toString()}`,
       { credentials: "include" },
     )

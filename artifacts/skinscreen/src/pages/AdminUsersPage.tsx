@@ -14,6 +14,7 @@ import {
   CircleDashed,
 } from "lucide-react";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
+import { apiFetch } from "@/lib/api";
 
 type Bucket = "trial" | "premium" | "free" | "past_due" | "canceled";
 
@@ -136,7 +137,7 @@ function AdminUsersPageInner() {
         pageSize: String(PAGE_SIZE),
       });
       if (debouncedSearch) params.set("q", debouncedSearch);
-      const res = await fetch(`/api/admin/users?${params.toString()}`, {
+      const res = await apiFetch(`/api/admin/users?${params.toString()}`, {
         credentials: "include",
       });
       if (!res.ok) {

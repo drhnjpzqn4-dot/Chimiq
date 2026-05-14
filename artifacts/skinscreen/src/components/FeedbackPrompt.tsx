@@ -4,6 +4,7 @@ import { MessageSquareHeart, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { getBaseUrl } from "@/lib/base-url";
 import { trackEvent } from "@/lib/analytics";
+import { apiFetch } from "@/lib/api";
 
 const STATE_KEY = "skinscreen.feedbackPrompt.v1";
 const SESSION_COUNT_KEY = "skinscreen.feedbackPrompt.sessionCount";
@@ -164,7 +165,7 @@ export function FeedbackPrompt() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(`${getBaseUrl()}api/feedback`, {
+      const res = await apiFetch(`${getBaseUrl()}api/feedback`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SkinProfileChips } from "@/components/SkinProfileChips";
+import { apiFetch } from "@/lib/api";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { notifyUnseenRecipesChanged } from "@/hooks/useUnseenRecipeCount";
@@ -121,7 +122,7 @@ export default function ProfileScreen() {
   const ackRecipe = (recipeId: string) => {
     setRecipeNotifications((prev) => prev.filter((n) => n.id !== recipeId));
     setUnseenRecipeCount((c) => Math.max(0, c - 1));
-    fetch(`/api/recipes/mine/${recipeId}/seen`, {
+    apiFetch(`/api/recipes/mine/${recipeId}/seen`, {
       method: "POST",
       credentials: "include",
     })
@@ -130,23 +131,23 @@ export default function ProfileScreen() {
   };
 
   useEffect(() => {
-    fetch("/api/contribute/stats", { credentials: "include" })
+    apiFetch("/api/contribute/stats", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setStats(d as ContributeStats))
       .catch(() => {});
-    fetch("/api/badges/me", { credentials: "include" })
+    apiFetch("/api/badges/me", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { badges: [] }))
       .then((d) => setBadges((d as { badges?: BadgeItem[] }).badges ?? []))
       .catch(() => {});
     // Pull the user's recent submissions so we can surface the admin's
     // rejection note when present (#72). Anonymous users get an empty list.
-    fetch("/api/contribute/my-recent", { credentials: "include" })
+    apiFetch("/api/contribute/my-recent", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { submissions: [] }))
       .then((d) => setMySubmissions((d as { submissions?: MySubmission[] }).submissions ?? []))
       .catch(() => {});
     // Pull the user's own recipes (#69) so they can see admin notes and
     // edit/resubmit when status is `changes_requested`.
-    fetch("/api/recipes/mine", { credentials: "include" })
+    apiFetch("/api/recipes/mine", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { recipes: [], unseenCount: 0 }))
       .then((d) => {
         const data = d as { recipes?: MyRecipe[]; unseenCount?: number };
@@ -156,7 +157,7 @@ export default function ProfileScreen() {
       .catch(() => {});
     // Notification banner entries — only the recipes that are *still*
     // unseen, so the user actively dismisses each one by tapping. (#70)
-    fetch("/api/recipes/mine/notifications", { credentials: "include" })
+    apiFetch("/api/recipes/mine/notifications", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { notifications: [] }))
       .then((d) =>
         setRecipeNotifications(
@@ -172,7 +173,7 @@ export default function ProfileScreen() {
     setTestChargeLoading(true);
     setTestChargeResult(null);
     try {
-      const res = await fetch(`${getBaseUrl()}api/payments/admin/test-charge`, {
+      const res = await apiFetch(`${getBaseUrl()}api/payments/admin/test-charge`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -193,7 +194,7 @@ export default function ProfileScreen() {
   const handleManageBilling = async () => {
     setPortalLoading(true);
     try {
-      const res = await fetch(`${getBaseUrl()}api/payments/portal`, {
+      const res = await apiFetch(`${getBaseUrl()}api/payments/portal`, {
         method: "POST",
         credentials: "include",
       });

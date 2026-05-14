@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 const ASSET_BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
@@ -172,7 +173,7 @@ export default function OnboardingFlow() {
         return;
       }
 
-      const res = await fetch("/api/profile/onboarding", {
+      const res = await apiFetch("/api/profile/onboarding", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

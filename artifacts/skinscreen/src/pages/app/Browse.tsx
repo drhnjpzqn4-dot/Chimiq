@@ -12,6 +12,7 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { ContributeModal } from "@/components/ContributeModal";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 interface BrowseProduct {
   barcode: string;
@@ -83,7 +84,7 @@ export default function BrowseScreen() {
     if (debounced) params.set("q", debounced);
     if (category) params.set("category", category);
 
-    fetch(`/api/products?${params.toString()}`, { credentials: "include" })
+    apiFetch(`/api/products?${params.toString()}`, { credentials: "include" })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return (await r.json()) as BrowseResponse;

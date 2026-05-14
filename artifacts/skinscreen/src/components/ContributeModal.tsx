@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, Loader2, CheckCircle2, Gift, Star, X, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 interface ContributeModalProps {
   barcode?: string;
@@ -133,7 +134,7 @@ export function ContributeModal({
       return;
     }
     try {
-      const res = await fetch("/api/contribute/start", {
+      const res = await apiFetch("/api/contribute/start", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -207,7 +208,7 @@ export function ContributeModal({
     setError(null);
 
     try {
-      const res = await fetch("/api/contribute/photos", {
+      const res = await apiFetch("/api/contribute/photos", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

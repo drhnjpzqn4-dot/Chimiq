@@ -4,6 +4,7 @@ import { Star, Gift, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MyShelf } from "@/components/MyShelf";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 export const PREMIUM_CONTRIBUTION_MILESTONE = 30;
 const STARS_DISPLAYED = 5;
@@ -88,7 +89,7 @@ export default function ShelfScreen() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    fetch("/api/contribute/stats", { credentials: "include" })
+    apiFetch("/api/contribute/stats", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setStats(data as ContributeStats))
       .catch(() => {});

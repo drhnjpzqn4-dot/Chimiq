@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 const CATEGORIES = [
   "all",
@@ -88,7 +89,7 @@ export default function RecipesPage() {
     if (risk !== "all") params.set("riskLevel", risk);
     setRecipes(null);
     setError(null);
-    fetch(`/api/recipes?${params.toString()}`, { credentials: "include" })
+    apiFetch(`/api/recipes?${params.toString()}`, { credentials: "include" })
       .then((r) => r.json())
       .then((d) => {
         if (d.error) {

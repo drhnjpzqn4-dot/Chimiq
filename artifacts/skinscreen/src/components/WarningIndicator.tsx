@@ -1,6 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
 
 interface ShelfStatusResponse {
   hasConflicts: boolean;
@@ -13,7 +14,7 @@ export function WarningIndicator() {
   const { data } = useQuery<ShelfStatusResponse>({
     queryKey: ["shelf-status"],
     queryFn: async () => {
-      const res = await fetch(`${apiBase}/api/shelf/status`, {
+      const res = await apiFetch(`${apiBase}/api/shelf/status`, {
         credentials: "include",
       });
       if (!res.ok) return { hasConflicts: false, hasRecall: false };

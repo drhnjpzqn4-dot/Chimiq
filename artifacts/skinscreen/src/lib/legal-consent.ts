@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 export const TERMS_VERSION = "1.0";
 /** Versioned consent key for the in-app medical disclaimer step (V6). */
 export const MEDICAL_DISCLAIMER_VERSION = "medical_disclaimer_v1";
@@ -82,7 +83,7 @@ export function saveMedicalDisclaimerConsent(): ConsentRecord {
 export async function postServerConsent(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
-    await fetch("/api/legal/consent", {
+    await apiFetch("/api/legal/consent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -96,7 +97,7 @@ export async function postServerConsent(): Promise<void> {
 export async function postMedicalDisclaimerServerConsent(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
-    await fetch("/api/legal/consent", {
+    await apiFetch("/api/legal/consent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -142,7 +143,7 @@ export function applyServerConsentToLocalStorage(status: ServerConsentStatus): v
 export async function fetchServerConsent(): Promise<ServerConsentStatus | null> {
   if (typeof window === "undefined") return null;
   try {
-    const r = await fetch("/api/legal/consent", { credentials: "include" });
+    const r = await apiFetch("/api/legal/consent", { credentials: "include" });
     if (!r.ok) return null;
     return (await r.json()) as ServerConsentStatus;
   } catch {

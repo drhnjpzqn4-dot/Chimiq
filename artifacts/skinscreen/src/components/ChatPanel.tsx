@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetShelf } from "@workspace/api-client-react";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -80,7 +81,7 @@ export function ChatPanel({ defaultOpen = false }: { defaultOpen?: boolean } = {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await apiFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

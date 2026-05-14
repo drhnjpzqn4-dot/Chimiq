@@ -11,6 +11,7 @@ import { Browser } from "@capacitor/browser";
 import type { AuthUser } from "@workspace/api-client-react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api";
 
 export type { AuthUser };
 
@@ -54,7 +55,7 @@ async function fetchBackendUserProfile(
   accessToken: string,
 ): Promise<Partial<Pick<AuthUser, "onboardingCompleted">> | null> {
   try {
-    const res = await fetch("/api/auth/user", {
+    const res = await apiFetch("/api/auth/user", {
       credentials: "include",
       headers: { Authorization: `Bearer ${accessToken}` },
     });

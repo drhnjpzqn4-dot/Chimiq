@@ -15,6 +15,7 @@ import { FeedbackAdmin } from "@/components/admin/FeedbackAdmin";
 import { TesterPromoAdmin } from "@/components/admin/TesterPromoAdmin";
 import { ScanInsightsAdmin } from "@/components/admin/ScanInsightsAdmin";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
+import { apiFetch } from "@/lib/api";
 
 interface Submission {
   id: string;
@@ -107,7 +108,7 @@ function AdminPageInner() {
     try {
       const params = new URLSearchParams({ status: statusFilter });
       if (debouncedSearch) params.set("q", debouncedSearch);
-      const res = await fetch(`/api/admin/submissions?${params.toString()}`, {
+      const res = await apiFetch(`/api/admin/submissions?${params.toString()}`, {
         credentials: "include",
       });
       if (!res.ok) {
@@ -145,7 +146,7 @@ function AdminPageInner() {
     if (!edit?.ingredients.trim()) return;
     setActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/admin/submissions/${id}/approve`, {
+      const res = await apiFetch(`/api/admin/submissions/${id}/approve`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -191,7 +192,7 @@ function AdminPageInner() {
     }
     setActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/admin/submissions/${id}/reject`, {
+      const res = await apiFetch(`/api/admin/submissions/${id}/reject`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

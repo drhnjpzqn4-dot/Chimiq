@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Trophy, Crown, Sparkles, ChevronLeft, Info } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 /** BESLUT-SS-017: hide weekly community tip until dermatologist Q&A ships. */
 const ENABLE_COMMUNITY_TIPS = false;
@@ -38,7 +39,7 @@ export default function LeaderboardScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/leaderboard", { credentials: "include" })
+    apiFetch("/api/leaderboard", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setData(d as LeaderboardResponse))
       .catch(() => setData({ allTime: [], monthly: [], bestTipOfWeek: null, bestTipWeekKey: null }))

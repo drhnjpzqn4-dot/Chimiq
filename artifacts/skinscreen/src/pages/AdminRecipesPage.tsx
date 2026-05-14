@@ -18,6 +18,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
+import { apiFetch } from "@/lib/api";
 
 interface AiVerdict {
   riskLevel: "safe" | "caution" | "high_risk";
@@ -142,7 +143,7 @@ function AdminRecipesPageInner() {
       if (categoryFilter) params.set("category", categoryFilter);
       if (riskFilter) params.set("riskLevel", riskFilter);
       if (searchQuery) params.set("q", searchQuery);
-      const res = await fetch(`/api/admin/recipes?${params.toString()}`, {
+      const res = await apiFetch(`/api/admin/recipes?${params.toString()}`, {
         credentials: "include",
       });
       if (!res.ok) {
@@ -174,7 +175,7 @@ function AdminRecipesPageInner() {
   const act = async (id: string, action: "approve" | "request-changes" | "reject") => {
     setActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/admin/recipes/${id}/${action}`, {
+      const res = await apiFetch(`/api/admin/recipes/${id}/${action}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -214,7 +215,7 @@ function AdminRecipesPageInner() {
     if (!editingId || !editDraft) return;
     setEditSaving(true);
     try {
-      const res = await fetch(`/api/admin/recipes/${editingId}`, {
+      const res = await apiFetch(`/api/admin/recipes/${editingId}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -258,7 +259,7 @@ function AdminRecipesPageInner() {
     if (selected.size === 0) return;
     setBulkLoading(true);
     try {
-      const res = await fetch("/api/admin/recipes/bulk", {
+      const res = await apiFetch("/api/admin/recipes/bulk", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

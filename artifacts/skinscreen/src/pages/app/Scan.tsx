@@ -15,6 +15,7 @@ import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useTranslation } from "@/lib/i18n";
 import { isNative } from "@/lib/native";
+import { apiFetch } from "@/lib/api";
 
 interface PendingScan {
   barcode: string;
@@ -111,7 +112,7 @@ export default function ScanScreen() {
   // Pull the authoritative per-user count from the server. Falls back to
   // the localStorage estimate while loading or for anon users.
   const refreshServerCount = () => {
-    fetch("/api/stats/scans/today", { credentials: "include" })
+    apiFetch("/api/stats/scans/today", { credentials: "include" })
       .then((r) => r.json())
       .then(
         (d: {
@@ -172,7 +173,7 @@ export default function ScanScreen() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/contribute/stats", { credentials: "include" })
+    apiFetch("/api/contribute/stats", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setStats(d as ContributeStats))
       .catch(() => {});
@@ -205,7 +206,7 @@ export default function ScanScreen() {
     setSeedErrorKey(null);
     setSeedProductName(parsed.productName ?? null);
 
-    fetch(`/api/barcode/${encodeURIComponent(parsed.barcode)}`, {
+    apiFetch(`/api/barcode/${encodeURIComponent(parsed.barcode)}`, {
       credentials: "include",
     })
       .then((r) => r.json())

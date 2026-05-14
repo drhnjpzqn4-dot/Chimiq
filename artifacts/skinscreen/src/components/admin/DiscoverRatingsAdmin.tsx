@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, ThumbsUp, ThumbsDown, MessageSquare, TrendingUp, TrendingDown } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 interface Aggregate {
   slug: string;
@@ -39,7 +40,7 @@ export function DiscoverRatingsAdmin() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/admin/discover/ratings", { credentials: "include" });
+        const res = await apiFetch("/api/admin/discover/ratings", { credentials: "include" });
         if (!res.ok) {
           const body = (await res.json().catch(() => ({}))) as { error?: string };
           if (!cancelled) setError(body.error ?? "Failed to load ratings.");

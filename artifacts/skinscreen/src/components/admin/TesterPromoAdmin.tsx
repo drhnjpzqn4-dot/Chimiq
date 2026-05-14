@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Loader2, Ticket, AlertTriangle, Plus, Sparkles, History, Mail } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 interface TesterPromo {
   code: string;
@@ -52,7 +53,7 @@ export function TesterPromoAdmin() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/tester-promo", {
+      const res = await apiFetch("/api/admin/tester-promo", {
         credentials: "include",
       });
       if (!res.ok) {
@@ -72,7 +73,7 @@ export function TesterPromoAdmin() {
   const loadHistory = async () => {
     setHistoryError(null);
     try {
-      const res = await fetch("/api/admin/tester-promo/history", {
+      const res = await apiFetch("/api/admin/tester-promo/history", {
         credentials: "include",
       });
       if (!res.ok) {
@@ -110,7 +111,7 @@ export function TesterPromoAdmin() {
     setSubmitting(true);
     setActionError(null);
     try {
-      const res = await fetch("/api/admin/tester-promo/raise-cap", {
+      const res = await apiFetch("/api/admin/tester-promo/raise-cap", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -148,7 +149,7 @@ export function TesterPromoAdmin() {
     setSubmitting(true);
     setActionError(null);
     try {
-      const res = await fetch("/api/admin/tester-promo/mint", {
+      const res = await apiFetch("/api/admin/tester-promo/mint", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

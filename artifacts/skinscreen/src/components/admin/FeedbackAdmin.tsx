@@ -12,7 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const PAGE_SIZE = 50;
+import { apiFetch } from "@/lib/api";
 
 type FeedbackStatus = "new" | "read" | "archived";
 type StatusFilter = FeedbackStatus | "all";
@@ -102,7 +102,7 @@ export function FeedbackAdmin() {
         end.setHours(23, 59, 59, 999);
         if (!Number.isNaN(end.getTime())) params.set("to", end.toISOString());
       }
-      const res = await fetch(`/api/admin/feedback?${params.toString()}`, {
+      const res = await apiFetch(`/api/admin/feedback?${params.toString()}`, {
         credentials: "include",
       });
       if (!res.ok) {
@@ -126,7 +126,7 @@ export function FeedbackAdmin() {
   const updateStatus = async (id: number, next: FeedbackStatus) => {
     setActionLoading((prev) => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/admin/feedback/${id}/status`, {
+      const res = await apiFetch(`/api/admin/feedback/${id}/status`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

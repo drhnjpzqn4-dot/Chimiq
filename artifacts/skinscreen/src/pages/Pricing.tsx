@@ -16,6 +16,7 @@ import {
   setStoredBillingPreference,
 } from "@/lib/billing-preference";
 import { trackEvent } from "@/lib/analytics";
+import { apiFetch } from "@/lib/api";
 
 export default function Pricing() {
   const [, navigate] = useLocation();
@@ -69,7 +70,7 @@ export default function Pricing() {
         plan_type: meta.plan_type ?? "unknown",
         source: meta.source ?? "unknown",
       });
-      fetch(`${getBaseUrl()}api/checkout-abandonment`, {
+      apiFetch(`${getBaseUrl()}api/checkout-abandonment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -159,7 +160,7 @@ export default function Pricing() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${getBaseUrl()}api/payments/checkout`, {
+      const res = await apiFetch(`${getBaseUrl()}api/payments/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -224,7 +225,7 @@ export default function Pricing() {
                 <button
                   onClick={() => {
                     trackEvent("checkout_recovery_click");
-                    fetch(`${getBaseUrl()}api/checkout-recovery`, {
+                    apiFetch(`${getBaseUrl()}api/checkout-recovery`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       credentials: "include",
@@ -240,7 +241,7 @@ export default function Pricing() {
                 <button
                   onClick={() => {
                     trackEvent("checkout_recovery_dismissed");
-                    fetch(`${getBaseUrl()}api/checkout-recovery`, {
+                    apiFetch(`${getBaseUrl()}api/checkout-recovery`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       credentials: "include",

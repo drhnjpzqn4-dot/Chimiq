@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 const CATEGORIES = [
   "cleanser",
@@ -103,7 +104,7 @@ export default function RecipeSubmitScreen() {
       navigate(`/signup?next=${encodeURIComponent(base + "/app/recipes/new")}`);
       return;
     }
-    fetch("/api/recipes/eligibility", { credentials: "include" })
+    apiFetch("/api/recipes/eligibility", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setEligibility(d as Eligibility))
       .catch(() => setEligibility({ canSubmit: false, emailVerified: false, reason: "auth_required" }));
@@ -118,7 +119,7 @@ export default function RecipeSubmitScreen() {
     let cancelled = false;
     setEditLoading(true);
     setEditLoadError(null);
-    fetch("/api/recipes/mine", { credentials: "include" })
+    apiFetch("/api/recipes/mine", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("auth"))))
       .then((d) => {
         if (cancelled) return;
@@ -230,7 +231,7 @@ export default function RecipeSubmitScreen() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         editId ? `/api/recipes/${editId}` : "/api/recipes",
         {
           method: editId ? "PUT" : "POST",

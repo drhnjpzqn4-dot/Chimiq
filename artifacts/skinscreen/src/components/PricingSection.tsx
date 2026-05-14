@@ -12,6 +12,7 @@ import {
   setStoredBillingPreference,
 } from "@/lib/billing-preference";
 import { trackEvent } from "@/lib/analytics";
+import { apiFetch } from "@/lib/api";
 
 export function PricingSection() {
   const [, navigate] = useLocation();
@@ -37,7 +38,7 @@ export function PricingSection() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${getBaseUrl()}api/payments/checkout`, {
+      const res = await apiFetch(`${getBaseUrl()}api/payments/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

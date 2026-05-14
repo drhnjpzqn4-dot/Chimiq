@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 import { FunnelTrendChart } from "@/components/admin/FunnelTrendChart";
+import { apiFetch } from "@/lib/api";
 
 type Period = "7d" | "30d" | "90d" | "all";
 
@@ -76,7 +77,7 @@ function AdminFunnelPageInner() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/funnel?period=${period}`, {
+      const res = await apiFetch(`/api/admin/funnel?period=${period}`, {
         credentials: "include",
       });
       if (!res.ok) {

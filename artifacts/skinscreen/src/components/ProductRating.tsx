@@ -10,6 +10,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { apiFetch } from "@/lib/api";
+
 interface RatingSummary {
   avg: number | null;
   count: number;
@@ -44,7 +46,7 @@ export function ProductRating({
     setLoading(true);
     const url = new URL("/api/products/" + encodeURIComponent(barcode) + "/rating", window.location.origin);
     if (productName) url.searchParams.set("name", productName);
-    fetch(url.toString(), { credentials: "include", signal: ctrl.signal })
+    apiFetch(url.toString(), { credentials: "include", signal: ctrl.signal })
       .then((r) => (r.ok ? (r.json() as Promise<RatingSummary>) : null))
       .then((d) => setSummary(d))
       .catch(() => {})
@@ -56,7 +58,7 @@ export function ProductRating({
     if (!summary?.eligible || submitting) return;
     setSubmitting(true);
     try {
-      const r = await fetch("/api/products/" + encodeURIComponent(barcode) + "/rating", {
+      const r = await apiFetch("/api/products/" + encodeURIComponent(barcode) + "/rating", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

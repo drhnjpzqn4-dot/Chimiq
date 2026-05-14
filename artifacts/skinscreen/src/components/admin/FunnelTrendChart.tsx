@@ -15,6 +15,8 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 
+import { apiFetch } from "@/lib/api";
+
 interface TrendPoint {
   date: string;
   signups: number;
@@ -68,7 +70,7 @@ export function FunnelTrendChart({ period }: FunnelTrendChartProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/funnel/trend?period=${period}`, {
+      const res = await apiFetch(`/api/admin/funnel/trend?period=${period}`, {
         credentials: "include",
       });
       if (!res.ok) {

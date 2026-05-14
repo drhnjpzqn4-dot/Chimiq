@@ -15,7 +15,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 
-type ChartMode = "total" | "verdict";
+import { apiFetch } from "@/lib/api";
 
 interface TimeseriesPoint {
   date: string;
@@ -66,7 +66,7 @@ export function ScanTrendChart({ from, to }: ScanTrendChartProps) {
       if (from) params.set("from", from);
       if (to) params.set("to", to);
 
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/admin/scan-insights/timeseries?${params.toString()}`,
         { credentials: "include" },
       );

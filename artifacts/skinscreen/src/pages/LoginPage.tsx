@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api";
 
 function useNextParam(): string {
   if (typeof window === "undefined") return "/app/scan";
@@ -28,7 +29,7 @@ export default function LoginPage() {
 
     if (mode === "forgot") {
       try {
-        await fetch("/api/auth/forgot-password", {
+        await apiFetch("/api/auth/forgot-password", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),

@@ -16,6 +16,7 @@ import { FindDermatologist } from "@/components/FindDermatologist";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 /** BESLUT-SS-017: community tips UI off until dermatologist Q&A ships. */
 const ENABLE_COMMUNITY_TIPS = false;
@@ -63,7 +64,7 @@ export default function DiscoverScreen() {
   const featuredRecipesQuery = useQuery({
     queryKey: ["discover-recipes-featured"],
     queryFn: async (): Promise<FeaturedRecipe[]> => {
-      const res = await fetch("/api/recipes?limit=3", { credentials: "include" });
+      const res = await apiFetch("/api/recipes?limit=3", { credentials: "include" });
       if (!res.ok) return [];
       const data = (await res.json()) as { recipes?: FeaturedRecipe[] };
       return (data.recipes ?? []).slice(0, 3);
@@ -73,7 +74,7 @@ export default function DiscoverScreen() {
 
   const loadTips = () => {
     setLoading(true);
-    fetch("/api/tips", { credentials: "include" })
+    apiFetch("/api/tips", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setTips((d as { tips?: TipFeedItem[] }).tips ?? []))
       .catch(() => setTips([]))
@@ -94,7 +95,7 @@ export default function DiscoverScreen() {
     setPosting(true);
     setPostError(null);
     try {
-      const res = await fetch("/api/tips", {
+      const res = await apiFetch("/api/tips", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -129,7 +130,7 @@ export default function DiscoverScreen() {
     );
     try {
       const method = tip.viewerHasVoted ? "DELETE" : "POST";
-      const res = await fetch(`/api/tips/${tip.id}/vote`, {
+      const res = await apiFetch(`/api/tips/${tip.id}/vote`, {
         method,
         credentials: "include",
       });

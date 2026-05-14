@@ -5,6 +5,7 @@ import { Camera, Check, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 interface GapsResponse {
   barcode: string;
@@ -54,7 +55,7 @@ export function InlineGapFill({
   useEffect(() => {
     if (!barcode) return;
     const ctrl = new AbortController();
-    fetch(`/api/products/${encodeURIComponent(barcode)}/gaps`, {
+    apiFetch(`/api/products/${encodeURIComponent(barcode)}/gaps`, {
       credentials: "include",
       signal: ctrl.signal,
     })
@@ -76,7 +77,7 @@ export function InlineGapFill({
   const submit = async (payload: Record<string, string>, field: FieldKey) => {
     setSubmitting(true);
     try {
-      const r = await fetch(
+      const r = await apiFetch(
         `/api/products/${encodeURIComponent(barcode)}/contribute`,
         {
           method: "PATCH",

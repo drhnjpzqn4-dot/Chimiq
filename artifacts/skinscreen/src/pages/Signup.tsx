@@ -11,6 +11,7 @@ import { ExitIntentPopup } from "@/components/ExitIntentPopup";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { getFreeFeatures, getPremiumFeatures } from "@/lib/pricing-features";
+import { apiFetch } from "@/lib/api";
 
 interface SiteStats {
   analyses: number;
@@ -51,7 +52,7 @@ export default function Signup() {
   }, [isLoginMode]);
 
   useEffect(() => {
-    fetch("/api/stats", { credentials: "include" })
+    apiFetch("/api/stats", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setStats(d as SiteStats))
       .catch(() => {});

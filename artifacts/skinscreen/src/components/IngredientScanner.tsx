@@ -23,6 +23,7 @@ import { DangerCard } from "@/components/DangerCard";
 import { IngredientDetailSheet, type IngredientDetailFlag } from "@/components/IngredientDetailSheet";
 import { ProductRating } from "@/components/ProductRating";
 import { InlineGapFill } from "@/components/InlineGapFill";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { FadeIn } from "@/components/FadeIn";
@@ -207,7 +208,7 @@ function ScannerRoutineShelfBlock({
     setBusy(true);
     try {
       if (existing) {
-        const r = await fetch(`/api/shelf/${existing.id}`, {
+        const r = await apiFetch(`/api/shelf/${existing.id}`, {
           method: "PATCH",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -215,7 +216,7 @@ function ScannerRoutineShelfBlock({
         });
         if (!r.ok) throw new Error(String(r.status));
       } else {
-        const r = await fetch("/api/shelf", {
+        const r = await apiFetch("/api/shelf", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -246,7 +247,7 @@ function ScannerRoutineShelfBlock({
     if (!existing) return;
     setBusy(true);
     try {
-      const r = await fetch(`/api/shelf/${existing.id}`, { method: "DELETE", credentials: "include" });
+      const r = await apiFetch(`/api/shelf/${existing.id}`, { method: "DELETE", credentials: "include" });
       if (!r.ok) throw new Error(String(r.status));
       await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
       toast.success(copy.removed);
@@ -1214,7 +1215,7 @@ export function IngredientScanner({
       verdict: extra?.verdict,
     });
     if (extra?.verdict) {
-      fetch("/api/scan-events", {
+      apiFetch("/api/scan-events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1277,7 +1278,7 @@ export function IngredientScanner({
   const flagOutdated = async (hash: string | undefined) => {
     if (!hash) return;
     try {
-      const res = await fetch("/api/analysis-cache/flag", {
+      const res = await apiFetch("/api/analysis-cache/flag", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
