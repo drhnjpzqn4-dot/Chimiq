@@ -1,7 +1,9 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
-import { verifyJWT, upsertAppUserFromJwtClaims, type AuthUser } from "../lib/auth.js";
+import {
+  verifyJWT,
+  upsertAppUserFromJwtClaims,
+  type AuthUser,
+} from "../lib/auth.js";
 
 declare global {
   namespace Express {
@@ -20,8 +22,11 @@ declare global {
 }
 
 /**
- * Verifierar Supabase access JWT (Authorization: Bearer) och sätter req.user.
- * Ingen server-side sessions-tabell eller cookies.
+ * Verifierar Supabase access JWT (Authorization: Bearer) med jose + SUPABASE_JWT_SECRET.
+ * Ingen sessions-tabell eller server-side session-lookup.
+ *
+ * - Saknas Authorization / Bearer: fortsätt anonymt (publika /api-routes).
+ * - Bearer med tom eller ogiltig token: 401.
  */
 export async function authMiddleware(
   req: Request,
@@ -32,21 +37,21 @@ export async function authMiddleware(
     return this.user != null;
   } as Request["isAuthenticated"];
 
-  const authHeader = req.headers["authorization"];
-  if (typeof authHeader !== "string" || !authHeader.startsWith("Bearer ")) {
+  const raw = req.headers["authorization"];
+  if (typeof raw !== "string" || !raw.toLowerCase().startsWith("bearer ")) {
     next();
     return;
   }
 
-  const token = authHeader.slice(7).trim();
+  const token = raw.slice(7).trim();
   if (!token) {
-    next();
+    res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
   const payload = await verifyJWT(token);
   if (!payload?.sub) {
-    next();
+    res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
@@ -69,12 +74,6 @@ export async function authMiddleware(
     emailVerified,
   });
 
-  const [row] = await db
-    .select({ onboardingCompleted: usersTable.onboardingCompleted })
-    .from(usersTable)
-    .where(eq(usersTable.id, payload.sub))
-    .limit(1);
-
   req.user = {
     id: payload.sub,
     email,
@@ -82,7 +81,7 @@ export async function authMiddleware(
     lastName,
     profileImageUrl,
     emailVerified,
-    onboardingCompleted: row?.onboardingCompleted ?? false,
+    onboardingCompleted: false,
   };
 
   next();
