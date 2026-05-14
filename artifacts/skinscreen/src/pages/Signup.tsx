@@ -4,7 +4,7 @@ import {
   Check, X, ShieldCheck, ScanLine, Sparkles, Lock, ArrowRight,
   ChevronDown, Star,
 } from "lucide-react";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { useLoginWithConsent } from "@/components/ConsentGate";
 import { useTranslation } from "@/lib/i18n";
 import { ExitIntentPopup } from "@/components/ExitIntentPopup";

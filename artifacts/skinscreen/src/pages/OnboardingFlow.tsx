@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Redirect, useLocation } from "wouter";
-import { useAuth, AUTH_REFRESH_EVENT } from "@workspace/replit-auth-web";
+import { useAuth, AUTH_REFRESH_EVENT } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";

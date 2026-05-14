@@ -1,11 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { jwtVerify } from "jose";
-import crypto from "crypto";
-import { type Request, type Response } from "express";
-import { db, sessionsTable } from "@workspace/db";
+import { type Request } from "express";
+import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
-// Supabase client types
 interface SupabaseUser {
   id: string;
   email?: string;
@@ -24,52 +22,13 @@ export interface AuthUser {
   lastName: string | null;
   profileImageUrl: string | null;
   emailVerified: boolean;
-  /** False until the in-app onboarding wizard is completed (V10). */
   onboardingCompleted?: boolean;
 }
 
-export const SESSION_COOKIE = "sid";
-export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
-
-/**
- * Shared flags for auth cookies.
- * Live: `Secure` + HTTPS (NODE_ENV=production på Railway, se railway.toml).
- * Lokal HTTP: sätt SESSION_COOKIE_INSECURE=true om du behöver testa utan HTTPS.
- */
-export function baseAuthCookieOptions(): {
-  httpOnly: boolean;
-  secure: boolean;
-  sameSite: "lax";
-  path: string;
-} {
-  const secure =
-    process.env.SESSION_COOKIE_INSECURE === "true"
-      ? false
-      : process.env.NODE_ENV === "production" ||
-        process.env.RAILWAY_ENVIRONMENT === "production";
-  return {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-  };
-}
-
-export interface SessionData {
-  user: AuthUser;
-  access_token: string;
-  refresh_token?: string;
-  expires_at?: number;
-}
-
-// JWT secret for verifying Supabase JWTs
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.SUPABASE_JWT_SECRET || ""
+  process.env.SUPABASE_JWT_SECRET || "",
 );
 
-/**
- * Get or create Supabase client (singleton pattern)
- */
 let supabaseClient: ReturnType<typeof createClient> | null = null;
 
 export function getSupabaseClient() {
@@ -79,7 +38,7 @@ export function getSupabaseClient() {
 
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error(
-        "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables"
+        "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables",
       );
     }
 
@@ -94,9 +53,6 @@ export function getSupabaseClient() {
   return supabaseClient;
 }
 
-/**
- * Get admin Supabase client with service role key (for server-side user operations)
- */
 let supabaseAdminClient: ReturnType<typeof createClient> | null = null;
 
 export function getSupabaseAdminClient() {
@@ -106,7 +62,7 @@ export function getSupabaseAdminClient() {
 
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       throw new Error(
-        "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables"
+        "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables",
       );
     }
 
@@ -121,9 +77,6 @@ export function getSupabaseAdminClient() {
   return supabaseAdminClient;
 }
 
-/**
- * Verify and decode a Supabase JWT token
- */
 export async function verifyJWT(token: string): Promise<{
   sub: string;
   email?: string;
@@ -143,87 +96,37 @@ export async function verifyJWT(token: string): Promise<{
   }
 }
 
-/**
- * Create a new session in the database
- */
-export async function createSession(data: SessionData): Promise<string> {
-  const sid = crypto.randomBytes(32).toString("hex");
-  await db.insert(sessionsTable).values({
-    sid,
-    sess: data as unknown as Record<string, unknown>,
-    expire: new Date(Date.now() + SESSION_TTL),
-  });
-  return sid;
-}
+/** Synkar users-rad från Supabase JWT (för FK och onboarding). */
+export async function upsertAppUserFromJwtClaims(data: {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  profileImageUrl: string | null;
+  emailVerified: boolean;
+}): Promise<void> {
+  const userData = {
+    id: data.id,
+    email: data.email,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    profileImageUrl: data.profileImageUrl,
+    emailVerified: data.emailVerified,
+  };
 
-/**
- * Get a session from the database
- */
-export async function getSession(sid: string): Promise<SessionData | null> {
-  const [row] = await db
-    .select()
-    .from(sessionsTable)
-    .where(eq(sessionsTable.sid, sid));
-
-  if (!row || row.expire < new Date()) {
-    if (row) await deleteSession(sid);
-    return null;
-  }
-
-  return row.sess as unknown as SessionData;
-}
-
-/**
- * Update an existing session
- */
-export async function updateSession(
-  sid: string,
-  data: SessionData
-): Promise<void> {
   await db
-    .update(sessionsTable)
-    .set({
-      sess: data as unknown as Record<string, unknown>,
-      expire: new Date(Date.now() + SESSION_TTL),
-    })
-    .where(eq(sessionsTable.sid, sid));
+    .insert(usersTable)
+    .values(userData)
+    .onConflictDoUpdate({
+      target: usersTable.id,
+      set: {
+        ...userData,
+        updatedAt: new Date(),
+      },
+    });
 }
 
-/**
- * Delete a session from the database
- */
-export async function deleteSession(sid: string): Promise<void> {
-  await db.delete(sessionsTable).where(eq(sessionsTable.sid, sid));
-}
-
-/**
- * Clear session cookie and optionally delete session from DB
- */
-export async function clearSession(
-  res: Response,
-  sid?: string
-): Promise<void> {
-  if (sid) await deleteSession(sid);
-  res.clearCookie(SESSION_COOKIE, baseAuthCookieOptions());
-}
-
-/**
- * Extract session ID from request (from Bearer token or cookie)
- */
-export function getSessionId(req: Request): string | undefined {
-  const authHeader = req.headers["authorization"];
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.slice(7);
-  }
-  return req.cookies?.[SESSION_COOKIE];
-}
-
-/**
- * Convert Supabase user to AuthUser format
- */
-export function supabaseUserToAuthUser(
-  supabaseUser: SupabaseUser
-): AuthUser {
+export function supabaseUserToAuthUser(supabaseUser: SupabaseUser): AuthUser {
   const emailVerified =
     supabaseUser.email_confirmed_at != null &&
     supabaseUser.email_confirmed_at !== "";
@@ -237,4 +140,13 @@ export function supabaseUserToAuthUser(
     emailVerified,
     onboardingCompleted: false,
   };
+}
+
+/** @deprecated — endast om någon route fortfarande läser sid ur cookie (ska tas bort). */
+export function getBearerToken(req: Request): string | undefined {
+  const authHeader = req.headers["authorization"];
+  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+    return authHeader.slice(7).trim();
+  }
+  return undefined;
 }

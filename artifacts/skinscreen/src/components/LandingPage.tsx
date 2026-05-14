@@ -32,7 +32,7 @@ const PricingSection = lazy(() =>
   import("@/components/PricingSection").then((m) => ({ default: m.PricingSection })),
 );
 import type { LandingConfig } from "@/lib/landing-config";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";

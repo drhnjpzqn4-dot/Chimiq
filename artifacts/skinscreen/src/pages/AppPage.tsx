@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { ChatPanelLauncher } from "@/components/ChatPanelLauncher";
 import { trackEvent, trackMetaStandard } from "@/lib/analytics";
 import { useUserPlan } from "@/hooks/useUserPlan";

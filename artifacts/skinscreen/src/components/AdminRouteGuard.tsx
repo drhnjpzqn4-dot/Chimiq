@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { useLoginWithConsent } from "@/components/ConsentGate";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 

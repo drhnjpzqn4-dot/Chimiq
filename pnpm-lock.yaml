@@ -422,6 +422,9 @@ importers:
 
   artifacts/skinscreen:
     dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.49.0
+        version: 2.105.4
       workbox-window:
         specifier: ^7.4.0
         version: 7.4.0
@@ -558,9 +561,6 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
-      '@workspace/replit-auth-web':
-        specifier: workspace:*
-        version: link:../../lib/replit-auth-web
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1

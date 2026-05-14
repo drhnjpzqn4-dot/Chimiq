@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { ScanLine, Sparkles } from "lucide-react";
 import { generalConfig } from "@/lib/landing-config";
 import { useTranslation } from "@/lib/i18n";

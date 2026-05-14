@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Resolve whether the current viewer is an admin (super-admin allowlist

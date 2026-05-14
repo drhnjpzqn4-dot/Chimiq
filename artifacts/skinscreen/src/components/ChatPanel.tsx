@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Loader2, Bot, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { useGetShelf } from "@workspace/api-client-react";
 import { useTranslation } from "@/lib/i18n";
 

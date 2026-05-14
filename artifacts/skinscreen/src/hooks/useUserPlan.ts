@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { getBaseUrl } from "@/lib/base-url";
 
 export type UserPlan = "free" | "premium";

@@ -14,7 +14,7 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { FindDermatologist } from "@/components/FindDermatologist";
 import { Card, CardContent } from "@/components/ui/card";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 
 /** BESLUT-SS-017: community tips UI off until dermatologist Q&A ships. */

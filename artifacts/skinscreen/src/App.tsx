@@ -9,7 +9,8 @@ import { onOfflineReady } from "@/lib/register-sw";
 import { useToast } from "@/hooks/use-toast";
 import Home from "@/pages/Home";
 import { useNativeAuthDeepLink } from "@/hooks/useNativeAuthDeepLink";
-import { AUTH_REFRESH_EVENT, setChimiqStoredSessionId } from "@workspace/replit-auth-web";
+import { AUTH_REFRESH_EVENT, AuthProvider } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { I18nProvider } from "@/lib/i18n";
 import { ConsentGateProvider } from "@/components/ConsentGate";
 import { CookieBanner } from "@/components/CookieBanner";
@@ -66,9 +67,8 @@ function RouteFallback() {
 }
 
 /**
- * Handles Supabase hash tokens in the URL (#access_token=...).
- * Occurs after magic links and password reset links.
- * Exchanges the token for a server session cookie.
+ * Supabase lägger återställnings-/magic-länkar i URL-hashen.
+ * Recovery: skicka vidare till reset-sidan. Övrigt: sätt session via klienten.
  */
 function HashTokenHandler() {
   useEffect(() => {
@@ -80,32 +80,30 @@ function HashTokenHandler() {
     const type = params.get("type");
     if (!access_token) return;
 
-    // Clear the hash from the URL immediately
-    window.history.replaceState({}, "", window.location.pathname + window.location.search);
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + window.location.search,
+    );
 
     if (type === "recovery") {
-      // Password reset — go to reset page with token in query string
       const dest = `/reset-password?access_token=${encodeURIComponent(access_token)}${refresh_token ? `&refresh_token=${encodeURIComponent(refresh_token)}` : ""}`;
       window.location.href = dest;
       return;
     }
 
-    // Regular sign-in / magic link — exchange for server session
-    fetch("/api/auth/token-exchange", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ access_token, refresh_token }),
-    })
-      .then(async (res) => {
-        if (!res.ok) return;
-        const data = (await res.json()) as { ok?: boolean; token?: string };
-        if (data.ok && typeof data.token === "string" && data.token.length > 0) {
-          setChimiqStoredSessionId(data.token);
-        }
-        window.location.reload();
+    void supabase.auth
+      .setSession({
+        access_token,
+        refresh_token: refresh_token ?? "",
       })
-      .catch(console.error);
+      .then(({ error }) => {
+        if (error) {
+          console.error(error);
+          return;
+        }
+        window.dispatchEvent(new Event(AUTH_REFRESH_EVENT));
+      });
   }, []);
   return null;
 }
@@ -197,23 +195,25 @@ function AnalyticsBootstrap() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <ConsentGateProvider>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <NativeBootstrap />
-              <HashTokenHandler />
-      <Router />
-            </WouterRouter>
-            <Toaster />
-            <UpdateBanner />
-            <FeedbackPrompt />
-            <OfflineReadyNotifier />
-            <AnalyticsBootstrap />
-            {!isNative() && <CookieBanner />}
-          </TooltipProvider>
-        </ConsentGateProvider>
-      </I18nProvider>
+      <AuthProvider>
+        <I18nProvider>
+          <ConsentGateProvider>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <NativeBootstrap />
+                <HashTokenHandler />
+                <Router />
+              </WouterRouter>
+              <Toaster />
+              <UpdateBanner />
+              <FeedbackPrompt />
+              <OfflineReadyNotifier />
+              <AnalyticsBootstrap />
+              {!isNative() && <CookieBanner />}
+            </TooltipProvider>
+          </ConsentGateProvider>
+        </I18nProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -17,7 +17,7 @@ import type {
   AlternativeSuggestion,
   ShelfProduct,
 } from "@workspace/api-client-react";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { DangerCard } from "@/components/DangerCard";
 import { IngredientDetailSheet, type IngredientDetailFlag } from "@/components/IngredientDetailSheet";

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { useGetShelf, getGetShelfQueryKey } from "@workspace/api-client-react";
 import { ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";

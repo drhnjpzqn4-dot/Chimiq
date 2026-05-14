@@ -2,95 +2,17 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import {
   GetCurrentAuthUserResponse,
   ExchangeMobileAuthorizationCodeBody,
-  ExchangeMobileAuthorizationCodeResponse,
   LogoutMobileSessionResponse,
 } from "@workspace/api-zod";
-import { db, usersTable, legalConsentsTable, sessionsTable } from "@workspace/db";
+import { db, usersTable, legalConsentsTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
 import {
-  clearSession,
-  getSessionId,
-  createSession,
-  deleteSession,
-  SESSION_COOKIE,
-  SESSION_TTL,
-  baseAuthCookieOptions,
-  type SessionData,
-  type AuthUser,
   getSupabaseAdminClient,
   getSupabaseClient,
-  supabaseUserToAuthUser,
   verifyJWT,
 } from "../lib/auth.js";
 
 const router: IRouter = Router();
-
-function getOrigin(req: Request): string {
-  const proto = req.headers["x-forwarded-proto"] || "https";
-  const host =
-    req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";
-  return `${proto}://${host}`;
-}
-
-function setSessionCookie(res: Response, sid: string) {
-  res.cookie(SESSION_COOKIE, sid, {
-    ...baseAuthCookieOptions(),
-    maxAge: SESSION_TTL,
-  });
-}
-
-// Allowlist of native deep-link callback URLs
-const NATIVE_RETURN_TO_ALLOWLIST = new Set<string>([
-  "skinscreen://auth/callback",
-]);
-
-function getSafeReturnTo(value: unknown): string {
-  if (typeof value !== "string") return "/";
-  if (NATIVE_RETURN_TO_ALLOWLIST.has(value)) return value;
-  if (!value.startsWith("/") || value.startsWith("//")) return "/";
-  return value;
-}
-
-/**
- * Upsert user in local database from Supabase auth
- */
-async function upsertUser(
-  supabaseUserId: string,
-  email: string | undefined,
-  firstName: string | null,
-  lastName: string | null,
-  profileImageUrl: string | null,
-  emailVerified: boolean
-) {
-  const userData = {
-    id: supabaseUserId,
-    email: email || null,
-    firstName,
-    lastName,
-    profileImageUrl,
-    emailVerified,
-  };
-
-  const [user] = await db
-    .insert(usersTable)
-    .values(userData)
-    .onConflictDoUpdate({
-      target: usersTable.id,
-      set: {
-        ...userData,
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
-  return user;
-}
-
-function withOnboardingFromRow(
-  base: AuthUser,
-  row: { onboardingCompleted: boolean } | null | undefined,
-): AuthUser {
-  return { ...base, onboardingCompleted: row?.onboardingCompleted ?? false };
-}
 
 router.get("/me", (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
@@ -100,7 +22,6 @@ router.get("/me", (req: Request, res: Response) => {
   res.json(req.user);
 });
 
-// Legal consent — terms + in-app medical disclaimer (V6).
 const CURRENT_TERMS_VERSION = "1.0";
 const MEDICAL_DISCLAIMER_VERSION = "medical_disclaimer_v1";
 
@@ -244,213 +165,7 @@ const handleAuthUserGet = async (req: Request, res: Response) => {
 };
 
 router.get("/auth/user", handleAuthUserGet);
-router.get("/auth/me", handleAuthUserGet);
 
-/**
- * POST /api/auth/logout — rensar server-session; fungerar med Bearer sid (SPA) eller kaka.
- */
-router.post("/auth/logout", async (req: Request, res: Response) => {
-  const sid = getSessionId(req);
-  await clearSession(res, sid);
-  res.json({ ok: true });
-});
-
-/**
- * GET /api/login?returnTo=/path
- * Initiates email/password auth flow.
- * Returns redirect to Supabase auth URL or displays login form.
- * For MVP, we're using email/password auth via REST API.
- */
-router.get("/login", async (req: Request, res: Response) => {
-  const returnTo = getSafeReturnTo(req.query.returnTo);
-  
-  // Store returnTo in a temporary cookie for callback to retrieve
-  res.cookie("auth_return_to", returnTo, {
-    ...baseAuthCookieOptions(),
-    maxAge: 10 * 60 * 1000, // 10 minutes
-  });
-
-  // For now, redirect to a login page (frontend handles the flow)
-  // The frontend will POST to /api/auth/signin with email/password
-  // This endpoint is mainly for maintaining API compatibility
-  res.redirect(`/?login=true&returnTo=${encodeURIComponent(returnTo)}`);
-});
-
-/**
- * POST /api/auth/signin
- * Accepts email and password, signs in via Supabase, creates local session
- */
-router.post("/auth/signin", async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    res.status(400).json({ error: "Email and password required" });
-    return;
-  }
-
-  try {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error || !data.session) {
-      res.status(401).json({ error: error?.message || "Sign in failed" });
-      return;
-    }
-
-    const session = data.session;
-    const user = data.user;
-
-    // Upsert user in local database
-    const dbUser = await upsertUser(
-      user.id,
-      user.email,
-      user.user_metadata?.first_name as string | null,
-      user.user_metadata?.last_name as string | null,
-      user.user_metadata?.avatar_url as string | null,
-      user.email_confirmed_at != null && user.email_confirmed_at !== ""
-    );
-
-    // Create local session
-    const now = Math.floor(Date.now() / 1000);
-    const sessionData: SessionData = {
-      user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
-      access_token: session.access_token,
-      refresh_token: session.refresh_token || undefined,
-      expires_at: session.expires_at ? Math.floor(session.expires_at) : now + 3600,
-    };
-
-    const sid = await createSession(sessionData);
-    setSessionCookie(res, sid);
-
-    res.json({
-      ok: true,
-      user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
-      token: sid,
-    });
-  } catch (err) {
-    req.log?.error?.({ err }, "Sign in error");
-    res.status(500).json({ error: "Sign in failed" });
-  }
-});
-
-/**
- * POST /api/auth/signup
- * Create new user via Supabase Auth
- */
-router.post("/auth/signup", async (req: Request, res: Response) => {
-  const { email, password, firstName, lastName } = req.body;
-
-  if (!email || !password) {
-    res.status(400).json({ error: "Email and password required" });
-    return;
-  }
-
-  try {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: firstName || null,
-          last_name: lastName || null,
-        },
-      },
-    });
-
-    if (error || !data.user) {
-      res
-        .status(400)
-        .json({ error: error?.message || "Sign up failed" });
-      return;
-    }
-
-    const user = data.user;
-
-    const dbUser = await upsertUser(
-      user.id,
-      user.email,
-      firstName || null,
-      lastName || null,
-      null,
-      user.email_confirmed_at != null && user.email_confirmed_at !== ""
-    );
-
-    // If email confirmation is disabled, Supabase returns a session immediately — auto-login
-    if (data.session) {
-      const now = Math.floor(Date.now() / 1000);
-      const sessionData: SessionData = {
-        user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token || undefined,
-        expires_at: data.session.expires_at ? Math.floor(data.session.expires_at) : now + 3600,
-      };
-      const sid = await createSession(sessionData);
-      setSessionCookie(res, sid);
-      res.json({
-        ok: true,
-        autoLoggedIn: true,
-        user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
-        token: sid,
-      });
-      return;
-    }
-
-    res.json({
-      ok: true,
-      message: "Check your email to confirm your account",
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-    });
-  } catch (err) {
-    req.log?.error?.({ err }, "Sign up error");
-    res.status(500).json({ error: "Sign up failed" });
-  }
-});
-
-/**
- * GET /api/callback
- * Handles Supabase callback (if using OAuth in the future)
- * For email/password flow, this is not needed but kept for OAuth compatibility
- */
-router.get("/callback", async (req: Request, res: Response) => {
-  // OAuth callback would be handled here if using Google/GitHub/etc
-  // For email/password, the frontend handles the session directly
-  const returnTo = getSafeReturnTo(req.cookies?.auth_return_to || "/");
-  res.clearCookie("auth_return_to", baseAuthCookieOptions());
-  res.redirect(returnTo);
-});
-
-/**
- * GET /api/logout
- * Clear local session and sign out from Supabase
- */
-router.get("/logout", async (req: Request, res: Response) => {
-  const sid = getSessionId(req);
-  await clearSession(res, sid);
-
-  // Sign out from Supabase if we have a token
-  // This is a best-effort operation — we always clear the local session
-  try {
-    const sessionData = sid ? await db.select().from(sessionsTable).where(eq(sessionsTable.sid, sid)) : null;
-    // Sessions are already cleared above, so we just redirect
-  } catch {
-    // Ignore errors
-  }
-
-  res.redirect("/");
-});
-
-/**
- * POST /api/mobile-auth/token-exchange
- * For mobile apps: exchange authorization code for access token
- * For Supabase, this would use the refresh token flow
- */
 router.post(
   "/mobile-auth/token-exchange",
   async (req: Request, res: Response) => {
@@ -459,103 +174,17 @@ router.post(
       res.status(400).json({ error: "Missing or invalid required parameters" });
       return;
     }
-
-    const { code } = parsed.data;
-
-    try {
-      // For Supabase, the code here would be a one-time code from sign-up confirmation
-      // In the mobile flow, the client should handle the full auth and send us the token
-      // This endpoint is mainly for legacy compatibility
-      res.status(400).json({
-        error:
-          "Mobile token exchange should use /api/auth/signin instead",
-      });
-    } catch (err) {
-      req.log.error({ err }, "Mobile token exchange error");
-      res.status(500).json({ error: "Token exchange failed" });
-    }
-  }
+    res.status(410).json({
+      error:
+        "Use @supabase/supabase-js in the client; server session exchange is removed.",
+    });
+  },
 );
 
-/**
- * POST /api/mobile-auth/logout
- * Clear mobile session
- */
-router.post("/mobile-auth/logout", async (req: Request, res: Response) => {
-  const sid = getSessionId(req);
-  if (sid) {
-    await deleteSession(sid);
-  }
+router.post("/mobile-auth/logout", async (_req: Request, res: Response) => {
   res.json(LogoutMobileSessionResponse.parse({ success: true }));
 });
 
-/**
- * POST /api/auth/refresh
- * Refresh access token using refresh token
- */
-router.post("/auth/refresh", async (req: Request, res: Response) => {
-  const sid = getSessionId(req);
-  if (!sid) {
-    res.status(401).json({ error: "No session" });
-    return;
-  }
-
-  try {
-    const { sessionsTable } = await import("@workspace/db");
-    const [sessionRow] = await db
-      .select()
-      .from(sessionsTable)
-      .where(eq(sessionsTable.sid, sid));
-
-    if (!sessionRow) {
-      res.status(401).json({ error: "Session not found" });
-      return;
-    }
-
-    const sessionData = sessionRow.sess as unknown as SessionData;
-    if (!sessionData.refresh_token) {
-      res.status(401).json({ error: "No refresh token" });
-      return;
-    }
-
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.refreshSession({
-      refresh_token: sessionData.refresh_token,
-    });
-
-    if (error || !data.session) {
-      res.status(401).json({ error: "Refresh failed" });
-      return;
-    }
-
-    const newSession = data.session;
-    const now = Math.floor(Date.now() / 1000);
-    sessionData.access_token = newSession.access_token;
-    sessionData.refresh_token = newSession.refresh_token || sessionData.refresh_token;
-    sessionData.expires_at = newSession.expires_at
-      ? Math.floor(newSession.expires_at)
-      : now + 3600;
-
-    await db
-      .update(sessionsTable)
-      .set({
-        sess: sessionData as unknown as Record<string, unknown>,
-        expire: new Date(Date.now() + SESSION_TTL),
-      })
-      .where(eq(sessionsTable.sid, sid));
-
-    res.json({ ok: true, accessToken: newSession.access_token });
-  } catch (err) {
-    req.log?.error?.({ err }, "Token refresh error");
-    res.status(500).json({ error: "Refresh failed" });
-  }
-});
-
-
-/**
- * POST /api/auth/forgot-password
- * Send a password reset email via Supabase
- */
 router.post("/auth/forgot-password", async (req: Request, res: Response) => {
   const { email } = req.body;
   if (!email) {
@@ -570,7 +199,6 @@ router.post("/auth/forgot-password", async (req: Request, res: Response) => {
     if (error) {
       req.log?.warn?.({ error: error.message }, "Forgot password Supabase error");
     }
-    // Always return ok — prevents email enumeration attacks
     res.json({ ok: true });
   } catch (err) {
     req.log?.error?.({ err }, "Forgot password error");
@@ -578,61 +206,6 @@ router.post("/auth/forgot-password", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/auth/token-exchange
- * Exchange a Supabase access_token (from magic link / URL hash) for a server session cookie.
- * Used when the frontend receives #access_token=... in the URL hash.
- */
-router.post("/auth/token-exchange", async (req: Request, res: Response) => {
-  const { access_token, refresh_token } = req.body;
-  if (!access_token) {
-    res.status(400).json({ error: "access_token required" });
-    return;
-  }
-  try {
-    const payload = await verifyJWT(access_token);
-    if (!payload || !payload.sub) {
-      res.status(401).json({ error: "Invalid or expired token" });
-      return;
-    }
-    const supabase = getSupabaseAdminClient();
-    const { data: { user }, error } = await supabase.auth.admin.getUserById(payload.sub as string);
-    if (error || !user) {
-      res.status(401).json({ error: "User not found" });
-      return;
-    }
-    const dbUser = await upsertUser(
-      user.id,
-      user.email,
-      user.user_metadata?.first_name as string | null ?? null,
-      user.user_metadata?.last_name as string | null ?? null,
-      user.user_metadata?.avatar_url as string | null ?? null,
-      user.email_confirmed_at != null && user.email_confirmed_at !== ""
-    );
-    const now = Math.floor(Date.now() / 1000);
-    const sessionData: SessionData = {
-      user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
-      access_token,
-      refresh_token: refresh_token || undefined,
-      expires_at: ((payload as Record<string, unknown>).exp as number) ?? now + 3600,
-    };
-    const sid = await createSession(sessionData);
-    setSessionCookie(res, sid);
-    res.json({
-      ok: true,
-      user: withOnboardingFromRow(supabaseUserToAuthUser(user), dbUser),
-      token: sid,
-    });
-  } catch (err) {
-    req.log?.error?.({ err }, "Token exchange error");
-    res.status(500).json({ error: "Token exchange failed" });
-  }
-});
-
-/**
- * POST /api/auth/reset-password
- * Update user password using a recovery access_token
- */
 router.post("/auth/reset-password", async (req: Request, res: Response) => {
   const { access_token, password } = req.body;
   if (!access_token || !password) {
@@ -646,7 +219,10 @@ router.post("/auth/reset-password", async (req: Request, res: Response) => {
       return;
     }
     const supabase = getSupabaseAdminClient();
-    const { error } = await supabase.auth.admin.updateUserById(payload.sub as string, { password });
+    const { error } = await supabase.auth.admin.updateUserById(
+      payload.sub as string,
+      { password },
+    );
     if (error) {
       res.status(400).json({ error: error.message });
       return;

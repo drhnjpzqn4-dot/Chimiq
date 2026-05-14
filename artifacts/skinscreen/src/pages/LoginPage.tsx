@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
-import { setChimiqStoredSessionId } from "@workspace/replit-auth-web";
+import { supabase } from "@/lib/supabase";
 
 function useNextParam(): string {
   if (typeof window === "undefined") return "/app/scan";
@@ -11,7 +10,6 @@ function useNextParam(): string {
 }
 
 export default function LoginPage() {
-  const [, navigate] = useLocation();
   const next = useNextParam();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,12 +28,11 @@ export default function LoginPage() {
 
     if (mode === "forgot") {
       try {
-        const res = await fetch("/api/auth/forgot-password", {
+        await fetch("/api/auth/forgot-password", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
-        // Always show success (backend never leaks whether email exists)
         setForgotSent(true);
       } catch {
         setError("Network error — please try again.");
@@ -45,36 +42,33 @@ export default function LoginPage() {
       return;
     }
 
-    const endpoint = mode === "signin" ? "/api/auth/signin" : "/api/auth/signup";
     try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json() as {
-        error?: string;
-        ok?: boolean;
-        autoLoggedIn?: boolean;
-        token?: string;
-      };
-      if (!res.ok) {
-        setError(data.error ?? "Something went wrong");
-        return;
-      }
-      if (typeof data.token === "string" && data.token.length > 0) {
-        setChimiqStoredSessionId(data.token);
-      }
-      if (mode === "signup") {
-        if (data.autoLoggedIn) {
-          window.location.href = next;
-        } else {
-          setSignupDone(true);
+      if (mode === "signin") {
+        const { error: signErr } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signErr) {
+          setError(signErr.message);
+          return;
         }
+        window.location.href = next;
         return;
       }
-      window.location.href = next;
+
+      const { data, error: signUpErr } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (signUpErr) {
+        setError(signUpErr.message);
+        return;
+      }
+      if (data.session) {
+        window.location.href = next;
+        return;
+      }
+      setSignupDone(true);
     } catch {
       setError("Network error — please try again.");
     } finally {

@@ -1,4 +1,4 @@
-import { useAuth } from "@workspace/replit-auth-web";
+import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Star, Gift, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
