@@ -183,6 +183,13 @@ export default function OnboardingFlow() {
         setSubmitting(false);
         return;
       }
+      try {
+        window.localStorage.setItem("chimiq.ageGroup", age);
+        window.localStorage.setItem("skinscreen.skinProfile", skin);
+        window.localStorage.setItem("chimiq.skinGoal", goal ?? "");
+      } catch {
+        // ignore (private mode / quota)
+      }
       const nextUser = await refetch();
       console.info("[Chimiq onboarding] Profil omhämtad efter save", {
         onboardingCompleted: nextUser?.onboardingCompleted,
