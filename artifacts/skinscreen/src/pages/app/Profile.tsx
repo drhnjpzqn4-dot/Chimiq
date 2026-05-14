@@ -49,6 +49,7 @@ export default function ProfileScreen() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [langSheetOpen, setLangSheetOpen] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   const [prefTick, bumpPrefs] = useReducer((n: number) => n + 1, 0);
 
   const runningNative = isNative();
@@ -105,27 +106,37 @@ export default function ProfileScreen() {
   const goalRaw = readLs("chimiq.skinGoal");
   const goalLabel = goalRaw ? goalRaw : "Inte valt";
 
-  const currentLanguageLabel = LOCALES.find((l) => l.code === locale)?.label ?? locale;
+  const currentLanguageLabel = (() => {
+    try {
+      if (typeof Intl !== "undefined" && typeof Intl.DisplayNames === "function") {
+        const name = new Intl.DisplayNames([locale], { type: "language" }).of(locale);
+        if (name) {
+          return name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return LOCALES.find((l) => l.code === locale)?.label ?? locale;
+  })();
 
   const milestone = PREMIUM_CONTRIBUTION_MILESTONE;
   const contributed = stats?.acceptedContributions ?? 0;
 
   void prefTick;
 
-  const scrollToSkinEditor = () => {
-    document.getElementById("skin-profile-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const openSkinEditor = () => {
+    setShowEditor(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById("skin-profile-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
   };
 
   return (
-    <AppShell title="Profil">
+    <AppShell title="Profil" subtitle="Din hud, dina mål">
       <div className="space-y-4 pb-8">
-        <h2 className="font-serif text-[28px] font-medium leading-tight" style={{ color: "var(--ink)" }}>
-          Profil
-        </h2>
-        <p className="text-[14px]" style={{ color: "var(--ink-soft)" }}>
-          Din hud, dina mål
-        </p>
-
         {/* 1. Avatar */}
         <div className="rounded-3xl border border-border/40 bg-white p-5 text-center shadow-sm">
           <div
@@ -239,7 +250,7 @@ export default function ProfileScreen() {
               type="button"
               className="flex w-full items-center justify-between border-b border-border/30 px-4 py-3.5 text-left"
               data-touch-target
-              onClick={scrollToSkinEditor}
+              onClick={openSkinEditor}
             >
               <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
                 Hudtyp
@@ -252,7 +263,7 @@ export default function ProfileScreen() {
               type="button"
               className="flex w-full items-center justify-between border-b border-border/30 px-4 py-3.5 text-left"
               data-touch-target
-              onClick={scrollToSkinEditor}
+              onClick={openSkinEditor}
             >
               <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
                 Mål
@@ -265,7 +276,7 @@ export default function ProfileScreen() {
               type="button"
               className="flex w-full items-center justify-between px-4 py-3.5 text-left"
               data-touch-target
-              onClick={scrollToSkinEditor}
+              onClick={openSkinEditor}
             >
               <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
                 Ålder
@@ -275,9 +286,11 @@ export default function ProfileScreen() {
               </span>
             </button>
           </div>
-          <div id="skin-profile-editor" className="mt-3 scroll-mt-24">
-            <SkinProfileChips />
-          </div>
+          {showEditor && (
+            <div id="skin-profile-editor" className="mt-3 scroll-mt-24">
+              <SkinProfileChips />
+            </div>
+          )}
         </div>
 
         {/* 4. Bidrag & belöningar */}
@@ -326,7 +339,7 @@ export default function ProfileScreen() {
               onClick={() => setLangSheetOpen((o) => !o)}
             >
               <span className="text-[14px] font-medium" style={{ color: "var(--ink)" }}>
-                Språk
+                {t("profile.language")}
               </span>
               <span className="flex items-center gap-1 text-[13px]" style={{ color: "var(--ink-soft)" }}>
                 {currentLanguageLabel} <ChevronRight className="h-4 w-4" aria-hidden />
