@@ -65,6 +65,13 @@ const en: Dict = {
   // ───── In-app: shelf ─────
   "shelf.titleGreeting": "Hi, {name}",
   "shelf.subtitle": "Your shelf — track your routine and check it for conflicts.",
+  "shelf.lockedSlotLabel": "Shelf full\n(2 of 2)",
+  "shelf.lockedSlotCta": "Upgrade →",
+  "shelf.lockedSlotAriaLabel": "Upgrade to Premium for more products",
+  "shelf.exportPdfCta": "Export PDF report for your dermatologist",
+  "shelf.freeComboOk": "No conflicts between your products",
+  "shelf.freeComboTitle": "Combo check (2 products)",
+  "shelf.upgradeCard": "Full routine combo check — upgrade to Premium",
 
   // ───── In-app: discover ─────
   "discover.title": "Discover",
@@ -1353,6 +1360,13 @@ const sv: Dict = {
   // ───── In-app: shelf ─────
   "shelf.titleGreeting": "Hej, {name}",
   "shelf.subtitle": "Din hylla — håll koll på din rutin och kolla efter konflikter.",
+  "shelf.lockedSlotLabel": "Hyllan är full\n(2 av 2)",
+  "shelf.lockedSlotCta": "Uppgradera →",
+  "shelf.lockedSlotAriaLabel": "Uppgradera till Premium för fler produkter",
+  "shelf.exportPdfCta": "Exportera PDF-rapport till dermatolog",
+  "shelf.freeComboOk": "Inga konflikter mellan dina produkter",
+  "shelf.freeComboTitle": "Kombo-check (2 produkter)",
+  "shelf.upgradeCard": "Hela rutinen i kombo-check — uppgradera till Premium",
 
   // ───── In-app: discover ─────
   "discover.title": "Upptäck",
@@ -2647,6 +2661,13 @@ const fr: Dict = {
   "shelf.titleGreeting": "Bonjour, {name}",
   "shelf.subtitle":
     "Votre étagère — suivez votre routine et vérifiez les conflits.",
+  "shelf.lockedSlotLabel": "Étagère pleine\n(2 sur 2)",
+  "shelf.lockedSlotCta": "Passer à Premium →",
+  "shelf.lockedSlotAriaLabel": "Passez à Premium pour ajouter plus de produits",
+  "shelf.exportPdfCta": "Exporter un rapport PDF pour votre dermatologue",
+  "shelf.freeComboOk": "Aucun conflit entre vos produits",
+  "shelf.freeComboTitle": "Contrôle combo (2 produits)",
+  "shelf.upgradeCard": "Toute la routine en contrôle combo — passez à Premium",
 
   "discover.title": "Découvrir",
   "discover.subtitle":
@@ -3936,6 +3957,13 @@ const es: Dict = {
   "shelf.titleGreeting": "Hola, {name}",
   "shelf.subtitle":
     "Tu estante — sigue tu rutina y comprueba si hay conflictos.",
+  "shelf.lockedSlotLabel": "Estante lleno\n(2 de 2)",
+  "shelf.lockedSlotCta": "Mejorar plan →",
+  "shelf.lockedSlotAriaLabel": "Mejora a Premium para más productos",
+  "shelf.exportPdfCta": "Exportar informe PDF para tu dermatólogo",
+  "shelf.freeComboOk": "Sin conflictos entre tus productos",
+  "shelf.freeComboTitle": "Comprobación de combinación (2 productos)",
+  "shelf.upgradeCard": "Toda la rutina en comprobación de combinación — pásate a Premium",
 
   "discover.title": "Descubrir",
   "discover.subtitle":

@@ -1,6 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { ContributeModal } from "@/components/ContributeModal";
 import {
   useGetShelf,
@@ -15,9 +14,10 @@ import type { RoutineConflict, RoutineConflictResponse } from "@workspace/api-cl
 import {
   Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle,
   X, ShieldCheck, ShieldOff, Loader2,
-  ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus, Sparkles, Check,
+  ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus,
   Clock, Heart,
 } from "lucide-react";
+import PaywallModal from "@/components/PaywallModal";
 import { FadeIn } from "@/components/FadeIn";
 import {
   AlertDialog,
@@ -531,159 +531,149 @@ type ShelfFilter = "all" | "morning" | "evening" | "occasional" | "wishlist";
 
 const FREE_TIER_LIMIT = 2;
 
-interface UpgradeCardProps {
-  onUpgrade: () => void;
+function conflictsBetweenNames(
+  conflicts: RoutineConflict[] | undefined,
+  nameA: string,
+  nameB: string,
+): RoutineConflict[] {
+  if (!conflicts?.length) return [];
+  const a = normName(nameA);
+  const b = normName(nameB);
+  return conflicts.filter(
+    (c) =>
+      (normName(c.product1Name) === a && normName(c.product2Name) === b) ||
+      (normName(c.product1Name) === b && normName(c.product2Name) === a),
+  );
 }
 
-function UpgradeCard({ onUpgrade }: UpgradeCardProps) {
+function FreeShelfComboBanner({
+  products,
+  analysisState,
+}: {
+  products: { productName: string }[];
+  analysisState: AnalysisState;
+}) {
   const { t } = useTranslation();
-  const { trialEligible, trialDays } = useUserPlan();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [billing, setBilling] = useState<"monthly" | "yearly">("yearly");
-  const benefits = [
-    t("myShelf.benefit1"),
-    t("myShelf.benefit2"),
-    t("myShelf.benefit3"),
-    t("myShelf.benefit4"),
-  ];
+  if (products.length < FREE_TIER_LIMIT) return null;
 
-  const handleClick = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/payments/checkout", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: billing }),
-      });
-      if (!res.ok) {
-        onUpgrade();
-        return;
-      }
-      const data = (await res.json()) as { url?: string };
-      if (data.url) {
-        trackEvent("checkout_start", { plan_type: billing, source: "shelf_upsell" });
-        try {
-          localStorage.setItem("skinscreen.checkout_meta", JSON.stringify({ plan_type: billing, source: "shelf_upsell" }));
-        } catch {}
-        window.location.href = data.url;
-      } else {
-        onUpgrade();
-      }
-    } catch {
-      setError(t("myShelf.errCheckout"));
-      setLoading(false);
-    }
-  };
+  const [p1, p2] = products;
+  let substantive: RoutineConflict[] = [];
+  if (analysisState.status === "done") {
+    const between = conflictsBetweenNames(analysisState.data.conflicts, p1.productName, p2.productName);
+    substantive = between.filter((c) => c.severity !== "SAFE");
+  }
+
+  const hasIssue = substantive.length > 0;
+  const high = substantive.some((c) => c.severity === "HIGH_RISK");
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-primary/8 via-primary/5 to-amber-50/40 border border-primary/30 p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-2">
-        <Sparkles className="w-4 h-4 text-primary" />
-        <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
-          {t("myShelf.premium")}
-        </p>
-      </div>
-      <p className="font-serif text-xl font-medium text-foreground leading-tight mb-3">
-        {t("myShelf.upgradeUnlock")}
-      </p>
-
-      <div className="inline-flex items-center bg-white/70 border border-primary/20 rounded-full p-0.5 mb-3">
-        <button
-          type="button"
-          onClick={() => setBilling("monthly")}
-          className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-            billing === "monthly"
-              ? "bg-primary text-white"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {t("myShelf.monthly")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setBilling("yearly")}
-          className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors flex items-center gap-1.5 ${
-            billing === "yearly"
-              ? "bg-primary text-white"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {t("myShelf.yearly")}
-          <span
-            className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
-              billing === "yearly"
-                ? "bg-white text-primary"
-                : "bg-primary/15 text-primary"
-            }`}
-          >
-            {t("myShelf.saveBadge")}
-          </span>
-        </button>
-      </div>
-
-      <p className="text-sm text-muted-foreground mb-4">
-        <span className="font-bold text-foreground">
-          {billing === "yearly" ? t("myShelf.priceYearly") : t("myShelf.priceMonthly")}
-        </span>
-        {billing === "yearly" ? t("myShelf.yearlyDetail") : ""}{t("myShelf.cancelAnytime")}
-      </p>
-      <ul className="space-y-1.5 mb-4">
-        {benefits.map((b) => (
-          <li key={b} className="flex items-start gap-2 text-xs text-foreground">
-            <Check className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-            <span>{b}</span>
-          </li>
-        ))}
-      </ul>
-      <button
-        onClick={handleClick}
-        disabled={loading}
-        className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+    <div className="mt-3 space-y-2">
+      <div
+        className="rounded-2xl border p-4"
+        style={
+          hasIssue
+            ? high
+              ? {
+                  backgroundColor: "color-mix(in srgb, var(--rose-soft) 85%, transparent)",
+                  borderColor: "var(--line)",
+                }
+              : {
+                  backgroundColor: "color-mix(in srgb, var(--amber-soft) 80%, transparent)",
+                  borderColor: "var(--line)",
+                }
+            : { backgroundColor: "var(--green-soft)", borderColor: "var(--line)" }
+        }
       >
-        {loading
-          ? t("myShelf.startingCheckout")
-          : trialEligible
-            ? t("pricing.startTrialCta", { days: trialDays })
-            : t("myShelf.upgradePriceFmt").replace("{price}", billing === "yearly" ? t("myShelf.priceYearly") : t("myShelf.priceMonthly"))}
-      </button>
-      {error && (
-        <p className="text-[11px] text-red-600 text-center mt-2">{error}</p>
-      )}
-      {trialEligible ? (
-        <p className="text-[10px] text-primary/80 text-center mt-2 font-medium">
-          {t("pricing.trialFinePrint", {
-            days: trialDays,
-            price: billing === "yearly" ? t("myShelf.priceYearly") : t("myShelf.priceMonthly"),
-          })}
+        <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--ink-soft)" }}>
+          {t("shelf.freeComboTitle")}
         </p>
-      ) : (
-        <p className="text-[10px] text-muted-foreground/60 text-center mt-2">
-          {t("myShelf.contributeAlt")}
-        </p>
-      )}
+        {hasIssue ? (
+          <p className="mt-2 text-sm font-medium leading-snug" style={{ color: "var(--ink)" }}>
+            {substantive.length === 1 ? t("myShelf.oneConflict") : t("myShelf.manyConflictsFmt").replace("{count}", String(substantive.length))}
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm font-semibold leading-snug" style={{ color: "var(--sage-deep)" }}>
+              {t("shelf.freeComboOk")}
+            </p>
+            {analysisState.status !== "done" && (
+              <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--ink-soft)" }}>
+                {t("myShelf.routineLooksGood")}
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-function LockedSlotCard({ index, onUpgrade }: { index: number; onUpgrade: () => void }) {
+function GoldShelfUpsellCard({ onOpenPaywall }: { onOpenPaywall: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="mt-3 rounded-2xl border p-4 shadow-sm"
+      style={{
+        backgroundColor: "var(--gold-soft)",
+        borderColor: "var(--gold)",
+        borderWidth: 1,
+        borderStyle: "solid",
+      }}
+    >
+      <p className="font-serif text-base font-medium leading-snug" style={{ color: "var(--ink)" }}>
+        {t("shelf.upgradeCard")}
+      </p>
+      <button
+        type="button"
+        data-touch-target
+        onClick={onOpenPaywall}
+        className="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+        style={{ backgroundColor: "var(--gold)" }}
+      >
+        {t("paywall.trialCta")}
+      </button>
+    </div>
+  );
+}
+
+function LockedPremiumSlotCard({ onOpenPaywall }: { onOpenPaywall: () => void }) {
   const { t } = useTranslation();
   return (
     <button
-      onClick={onUpgrade}
-      className="group flex w-full min-h-[160px] items-center gap-3 rounded-2xl border border-dashed border-primary/30 bg-[#FAFAF8] px-4 py-2.5 text-left transition-colors hover:border-primary/60 hover:bg-primary/[0.04]"
+      type="button"
+      data-touch-target
+      onClick={onOpenPaywall}
+      aria-label={t("shelf.lockedSlotAriaLabel")}
+      className="flex min-h-[160px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-3 py-4 text-center transition-opacity hover:opacity-95"
+      style={{
+        backgroundColor: "var(--gold-soft)",
+        borderWidth: 1.5,
+        borderStyle: "dashed",
+        borderColor: "var(--gold)",
+      }}
     >
-      <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-        <Lock className="w-3 h-3 text-primary" />
-      </div>
-      <span className="text-sm text-muted-foreground flex-1 min-w-0">
-        {t("myShelf.slotLockedFmt").replace("{index}", String(index))}
+      <Lock className="h-6 w-6 shrink-0" strokeWidth={1.75} style={{ color: "var(--gold)" }} aria-hidden />
+      <span className="whitespace-pre-line text-xs font-semibold leading-snug" style={{ color: "var(--gold)" }}>
+        {t("shelf.lockedSlotLabel")}
       </span>
-      <span className="text-[10px] font-semibold text-primary uppercase tracking-wide bg-primary/10 px-2 py-0.5 rounded-full shrink-0 group-hover:bg-primary/15 transition-colors">
-        {t("myShelf.premium")}
+      <span className="text-xs font-semibold" style={{ color: "var(--gold)" }}>
+        {t("shelf.lockedSlotCta")}
       </span>
+    </button>
+  );
+}
+
+function DashedAddSlotCard({ onAdd }: { onAdd: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      data-touch-target
+      onClick={onAdd}
+      className="flex min-h-[160px] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border text-muted-foreground transition-colors duration-200 hover:border-primary hover:text-primary"
+    >
+      <Plus className="h-6 w-6" aria-hidden />
+      <span className="text-xs font-medium">{t("myShelf.addProductBtn")}</span>
     </button>
   );
 }
@@ -699,8 +689,8 @@ export function MyShelf({ displayName }: MyShelfProps) {
   const queryClient = useQueryClient();
   const analyzeRoutineMutation = useAnalyzeRoutine();
   const addMutation = useAddToShelf();
-  const [, navigate] = useLocation();
-  const { plan } = useUserPlan();
+  const { isPremium } = useUserPlan();
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   const shelfQuery = useGetShelf({ query: { queryKey: getGetShelfQueryKey() } });
   const removeMutation = useRemoveFromShelf();
@@ -715,10 +705,13 @@ export function MyShelf({ displayName }: MyShelfProps) {
     if (shelfFilter === "wishlist") return slot === "wishlist";
     return true;
   });
-  const isFree = plan === "free";
-  // Locked-slot placeholders only after free user has reached their limit
-  const lockedSlotsCount = isFree && allProducts.length >= FREE_TIER_LIMIT ? 2 : 0;
-  const handleUpgrade = useCallback(() => navigate("/pricing"), [navigate]);
+  const isFree = !isPremium;
+  const gridProducts = useMemo(() => {
+    if (isPremium) return filteredProducts;
+    return allProducts.slice(0, FREE_TIER_LIMIT);
+  }, [isPremium, filteredProducts, allProducts]);
+
+  const freeVisibleForCombo = useMemo(() => allProducts.slice(0, FREE_TIER_LIMIT), [allProducts]);
 
   const resetAnalysis = useCallback(() => {
     setAnalysisState({ status: "idle" });
@@ -814,6 +807,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
       </div>
 
       <div className="border-b border-border/30 px-3 py-3">
+        {isPremium ? (
         <div className="-mx-1 flex gap-2 overflow-x-auto pb-0.5" style={{ WebkitOverflowScrolling: "touch" }}>
           {(["all", "morning", "evening", "occasional", "wishlist"] as const).map((key) => {
             const active = shelfFilter === key;
@@ -848,6 +842,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
             );
           })}
         </div>
+        ) : null}
       </div>
 
       <div className="min-h-[160px] p-4" style={{ backgroundColor: "var(--cream)" }}>
@@ -857,7 +852,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
               <div key={i} className="h-40 rounded-2xl bg-white/80 animate-pulse" style={{ borderRadius: 16 }} />
             ))}
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : (isPremium ? filteredProducts.length === 0 : allProducts.length === 0) ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
               {shelfFilter === "morning" ? (
@@ -915,8 +910,9 @@ export function MyShelf({ displayName }: MyShelfProps) {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {filteredProducts.map((product) => {
+          <>
+            <div className="grid grid-cols-2 gap-3">
+            {gridProducts.map((product) => {
               const pc = conflictsInvolvingProduct(product.productName, analysisData?.conflicts);
               const dot = dotForConflicts(pc);
               const bannerC = pickBannerConflict(pc);
@@ -978,16 +974,23 @@ export function MyShelf({ displayName }: MyShelfProps) {
               );
             })}
 
-            {isFree &&
-              lockedSlotsCount > 0 &&
-              Array.from({ length: lockedSlotsCount }).map((_, i) => (
-                <LockedSlotCard
-                  key={`locked-${i}`}
-                  index={allProducts.length + i + 1}
-                  onUpgrade={handleUpgrade}
-                />
-              ))}
-          </div>
+            {isFree && allProducts.length >= FREE_TIER_LIMIT && (
+              <>
+                <LockedPremiumSlotCard key="lock-a" onOpenPaywall={() => setPaywallOpen(true)} />
+                <LockedPremiumSlotCard key="lock-b" onOpenPaywall={() => setPaywallOpen(true)} />
+              </>
+            )}
+            {isFree && allProducts.length < FREE_TIER_LIMIT && (
+              <DashedAddSlotCard onAdd={() => setShowAddForm(true)} />
+            )}
+            </div>
+            {isFree && allProducts.length >= FREE_TIER_LIMIT && (
+              <>
+                <FreeShelfComboBanner products={freeVisibleForCombo} analysisState={analysisState} />
+                <GoldShelfUpsellCard onOpenPaywall={() => setPaywallOpen(true)} />
+              </>
+            )}
+          </>
         )}
       </div>
 
@@ -997,9 +1000,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
         </div>
       ) : (
         <div className="px-4 pb-4 space-y-3">
-          {isFree && allProducts.length >= FREE_TIER_LIMIT ? (
-            <UpgradeCard onUpgrade={handleUpgrade} />
-          ) : (
+          {(isPremium || (isFree && allProducts.length < FREE_TIER_LIMIT)) && (
             <button
               onClick={() => setShowAddForm(true)}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-colors duration-200"
@@ -1064,20 +1065,38 @@ export function MyShelf({ displayName }: MyShelfProps) {
       />
 
       <div className="mx-4 mb-4 mt-2">
-        <div className="relative flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-primary/30 bg-primary/[0.03] cursor-not-allowed group">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <FileText className="w-4 h-4 text-primary" />
+        {isPremium ? (
+          <button
+            type="button"
+            data-touch-target
+            onClick={() => window.print()}
+            className="relative flex w-full items-center gap-3 rounded-xl border border-border/40 bg-white px-4 py-3 text-left shadow-sm transition-[transform,box-shadow] hover:-translate-y-0.5"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <FileText className="h-4 w-4 text-primary" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium leading-tight text-foreground">{t("shelf.exportPdfCta")}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground/70">{t("myShelf.downloadPdfHint")}</p>
+            </div>
+          </button>
+        ) : (
+          <div className="relative flex cursor-not-allowed items-center gap-3 rounded-xl border border-dashed border-primary/30 bg-primary/[0.03] px-4 py-3 opacity-90 group">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium leading-tight text-foreground">{t("myShelf.downloadPdf")}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground/70">{t("myShelf.downloadPdfHint")}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+              <Lock className="h-3 w-3" />
+              <span className="text-[11px] font-semibold uppercase tracking-wide">{t("myShelf.premium")}</span>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground leading-tight">{t("myShelf.downloadPdf")}</p>
-            <p className="text-xs text-muted-foreground/70 mt-0.5">{t("myShelf.downloadPdfHint")}</p>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0 bg-primary/10 text-primary px-2.5 py-1 rounded-full">
-            <Lock className="w-3 h-3" />
-            <span className="text-[11px] font-semibold uppercase tracking-wide">{t("myShelf.premium")}</span>
-          </div>
-        </div>
+        )}
       </div>
+      <PaywallModal open={paywallOpen} onOpenChange={setPaywallOpen} />
     </div>
   );
 }
