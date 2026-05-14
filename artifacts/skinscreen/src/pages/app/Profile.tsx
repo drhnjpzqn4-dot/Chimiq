@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { ChevronRight, CreditCard, Loader2, Sparkles } from "lucide-react";
+import { ChevronRight, CreditCard, Loader2, Sparkles, X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { SkinProfileChips } from "@/components/SkinProfileChips";
 import PaywallModal from "@/components/PaywallModal";
@@ -320,6 +320,20 @@ export default function ProfileScreen() {
           </div>
           {showEditor && (
             <div id="skin-profile-editor" className="mt-3 scroll-mt-24">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                  Redigera
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowEditor(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full"
+                  style={{ background: "var(--cream-warm)" }}
+                  aria-label="Stäng"
+                >
+                  <X className="h-4 w-4" style={{ color: "var(--ink-soft)" }} aria-hidden />
+                </button>
+              </div>
               <SkinProfileChips />
             </div>
           )}
