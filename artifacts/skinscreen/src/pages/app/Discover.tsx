@@ -4,9 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   MessageCircle,
   Sparkles,
-  ArrowUpRight,
   Compass,
-  Trophy,
   Info,
   ArrowRight,
   Loader2,
@@ -21,6 +19,17 @@ import { useTranslation } from "@/lib/i18n";
 
 /** BESLUT-SS-017: community tips UI off until dermatologist Q&A ships. */
 const ENABLE_COMMUNITY_TIPS = false;
+
+/** BESLUT-SS-017: verified dermatologist Q&A — UI off until first expert is onboarded. */
+const ENABLE_DERMATOLOGIST_QA = false;
+
+const TOP_10_MISTAKES = [
+  { titleKey: "discover.mistake1Title", bodyKey: "discover.mistake1Body" },
+  { titleKey: "discover.mistake2Title", bodyKey: "discover.mistake2Body" },
+  { titleKey: "discover.mistake3Title", bodyKey: "discover.mistake3Body" },
+  { titleKey: "discover.mistake4Title", bodyKey: "discover.mistake4Body" },
+  { titleKey: "discover.mistake5Title", bodyKey: "discover.mistake5Body" },
+] as const;
 
 interface TipFeedItem {
   id: string;
@@ -163,26 +172,74 @@ export default function DiscoverScreen() {
         </div>
       </section>
 
-      {/* Leaderboard CTA */}
-      <section className="mb-6">
-        <Link href="/app/leaderboard">
-          <a
-            data-touch-target
-            className="flex items-center gap-3 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm transition-transform hover:-translate-y-0.5"
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-              <Trophy className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-serif text-base font-medium text-foreground">{t("discover.leaderboardTitle")}</p>
-              <p className="text-xs text-muted-foreground">
-                {t("discover.leaderboardSubtitle")}
-              </p>
-            </div>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" aria-hidden />
-          </a>
-        </Link>
+      {/* Top mistakes (curated) */}
+      <section className="mb-6 rounded-2xl border border-border/40 bg-white p-4 shadow-sm sm:p-5">
+        <h2
+          className="mb-4 leading-tight"
+          style={{
+            fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
+            fontSize: 20,
+            fontWeight: 500,
+            color: "var(--ink)",
+          }}
+        >
+          {t("discover.top10Title")}
+        </h2>
+        <ul className="space-y-4">
+          {TOP_10_MISTAKES.map((item, index) => (
+            <li key={item.titleKey} className="flex gap-3">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums"
+                style={{
+                  backgroundColor: "var(--rose-soft)",
+                  color: "var(--rose-gold-deep)",
+                }}
+              >
+                {index + 1}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold leading-snug" style={{ color: "var(--ink)" }}>
+                  {t(item.titleKey)}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--ink-soft)" }}>
+                  {t(item.bodyKey)}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
+
+      {/* Dermatologist Q&A teaser (hidden until recruitment) */}
+      {ENABLE_DERMATOLOGIST_QA ? (
+        <section className="mb-6" aria-hidden />
+      ) : (
+        <section className="mb-6">
+          <div
+            className="rounded-2xl border border-dashed p-4 sm:p-5"
+            style={{
+              backgroundColor: "var(--cream-warm)",
+              borderColor: "var(--line)",
+            }}
+          >
+            <p
+              className="text-[11px] font-semibold uppercase tracking-widest"
+              style={{ color: "var(--ink-soft)" }}
+            >
+              {t("discover.dermQAComingSoon")}
+            </p>
+            <h3
+              className="mt-2 font-serif text-base font-medium leading-tight"
+              style={{ color: "var(--ink)" }}
+            >
+              {t("discover.dermQATitle")}
+            </h3>
+            <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--ink-soft)" }}>
+              {t("discover.dermQASubtitle")}
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* DIY recipes */}
       <section className="mb-6">

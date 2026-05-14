@@ -83,6 +83,22 @@ const en: Dict = {
   "discover.aiSubtitle":
     "Get evidence-based answers about your shelf, ingredient interactions, and routine timing.",
   "discover.aiHint": "Tap the chat bubble to start",
+  "discover.top10Title": "Most common mistakes",
+  "discover.mistake1Title": "Retinol + AHA/BHA the same evening",
+  "discover.mistake1Body":
+    "This combination can increase irritation risk. Source: EU CosIng, SCCS.",
+  "discover.mistake2Title": "Skipping SPF indoors",
+  "discover.mistake2Body": "UVA passes through window glass and contributes to skin aging year after year.",
+  "discover.mistake3Title": "Washing your face too often with oily skin",
+  "discover.mistake3Body": "Skin compensates by producing more sebum.",
+  "discover.mistake4Title": "Fragranced products on sensitive skin",
+  "discover.mistake4Body": "\"Fragrance\" is an umbrella term — it can cover 200+ substances.",
+  "discover.mistake5Title": "More active ingredients means better results",
+  "discover.mistake5Body": "Too many actives in your routine raises the risk of irritation and barrier damage.",
+  "discover.dermQAComingSoon": "Coming soon",
+  "discover.dermQATitle": "Dermatologist Q&A",
+  "discover.dermQASubtitle":
+    "Verified answers from dermatologists. Turns on when the first dermatologist is onboard.",
   "discover.leaderboardTitle": "Leaderboard",
   "discover.leaderboardSubtitle": "See top contributors and Best Tip of the Week.",
   "discover.diyTitle": "DIY recipes",
@@ -1355,6 +1371,21 @@ const sv: Dict = {
   "discover.aiSubtitle":
     "Få evidensbaserade svar om din hylla, ingrediensinteraktioner och rutintider.",
   "discover.aiHint": "Tryck på chattbubblan för att börja",
+  "discover.top10Title": "Vanligaste misstagen",
+  "discover.mistake1Title": "Retinol + AHA/BHA samma kväll",
+  "discover.mistake1Body": "Kombinationen kan öka irritationsrisken. Källa: EU CosIng, SCCS.",
+  "discover.mistake2Title": "Hoppa över SPF inomhus",
+  "discover.mistake2Body": "UVA-strålning passerar fönsterglas och bidrar till hudaldrande.",
+  "discover.mistake3Title": "Tvätta ansiktet för ofta vid fet hud",
+  "discover.mistake3Body": "Huden kompenserar med ökad talgproduktion.",
+  "discover.mistake4Title": "Parfymerade produkter på känslig hud",
+  "discover.mistake4Body": "'Fragrance' är ett samlingsnamn — kan innehålla 200+ ämnen.",
+  "discover.mistake5Title": "Fler aktiva ingredienser är bättre",
+  "discover.mistake5Body": "För många aktiva i rutinen ökar risken för irritation och barriärskada.",
+  "discover.dermQAComingSoon": "Kommer snart",
+  "discover.dermQATitle": "Dermatolog Q&A",
+  "discover.dermQASubtitle":
+    "Verifierade svar från hudläkare. Aktiveras när första dermatolog är ombord.",
   "discover.leaderboardTitle": "Topplista",
   "discover.leaderboardSubtitle": "Se de bästa bidragsgivarna och Veckans bästa tips.",
   "discover.diyTitle": "DIY-recept",
@@ -2634,6 +2665,25 @@ const fr: Dict = {
   "discover.aiSubtitle":
     "Obtenez des réponses fondées sur des preuves concernant votre étagère, les interactions entre ingrédients et le moment de votre routine.",
   "discover.aiHint": "Touchez la bulle de chat pour commencer",
+  "discover.top10Title": "Erreurs les plus fréquentes",
+  "discover.mistake1Title": "Rétinol + AHA/BHA le même soir",
+  "discover.mistake1Body":
+    "Cette combinaison peut augmenter le risque d'irritation. Source : CosIng UE, SCCS.",
+  "discover.mistake2Title": "Oublier le SPF à l'intérieur",
+  "discover.mistake2Body":
+    "Les UVA traversent les vitres et contribuent au vieillissement de la peau.",
+  "discover.mistake3Title": "Se laver le visage trop souvent quand la peau est grasse",
+  "discover.mistake3Body": "La peau compense en produisant plus de sébum.",
+  "discover.mistake4Title": "Produits parfumés sur peau sensible",
+  "discover.mistake4Body":
+    "« Fragrance » est un terme fourre-tout — il peut couvrir plus de 200 substances.",
+  "discover.mistake5Title": "Plus d'actifs, c'est toujours mieux",
+  "discover.mistake5Body":
+    "Trop d'actifs dans la routine augmente le risque d'irritation et de fragilisation de la barrière.",
+  "discover.dermQAComingSoon": "Bientôt",
+  "discover.dermQATitle": "Q&R dermatologue",
+  "discover.dermQASubtitle":
+    "Réponses vérifiées par des dermatologues. S'active lorsque le premier expert est à bord.",
   "discover.leaderboardTitle": "Classement",
   "discover.leaderboardSubtitle":
     "Voyez les meilleurs contributeurs et le meilleur conseil de la semaine.",
@@ -3904,6 +3954,25 @@ const es: Dict = {
   "discover.aiSubtitle":
     "Obtén respuestas basadas en evidencia sobre tu estante, las interacciones entre ingredientes y los tiempos de tu rutina.",
   "discover.aiHint": "Toca la burbuja de chat para empezar",
+  "discover.top10Title": "Errores más habituales",
+  "discover.mistake1Title": "Retinol + AHA/BHA la misma noche",
+  "discover.mistake1Body":
+    "La combinación puede aumentar el riesgo de irritación. Fuente: CosIng UE, SCCS.",
+  "discover.mistake2Title": "Saltarse el SPF en interior",
+  "discover.mistake2Body":
+    "Los rayos UVA atraviesan el cristal de las ventanas y contribuyen al envejecimiento de la piel.",
+  "discover.mistake3Title": "Lavarse la cara demasiado con piel grasa",
+  "discover.mistake3Body": "La piel compensa produciendo más sebo.",
+  "discover.mistake4Title": "Productos perfumados en piel sensible",
+  "discover.mistake4Body":
+    "\"Fragrance\" es un término paraguas — puede incluir más de 200 sustancias.",
+  "discover.mistake5Title": "Más activos es siempre mejor",
+  "discover.mistake5Body":
+    "Demasiados activos en la rutina aumenta el riesgo de irritación y daño de la barrera.",
+  "discover.dermQAComingSoon": "Próximamente",
+  "discover.dermQATitle": "Preguntas al dermatólogo",
+  "discover.dermQASubtitle":
+    "Respuestas verificadas por dermatólogos. Se activa cuando el primer especialista esté a bordo.",
   "discover.leaderboardTitle": "Clasificación",
   "discover.leaderboardSubtitle":
     "Mira a los mejores contribuidores y el Mejor Consejo de la Semana.",
