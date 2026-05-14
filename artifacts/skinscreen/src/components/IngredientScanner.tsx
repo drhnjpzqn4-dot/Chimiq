@@ -361,8 +361,13 @@ function readStoredSkinProfile(): SkinProfile | undefined {
   try {
     const stored = window.localStorage.getItem("skinscreen.skinProfile");
     if (!stored) return undefined;
-    const allowed: SkinProfile[] = ["sensitive", "young", "mature", "pregnant"];
-    return allowed.includes(stored as SkinProfile) ? (stored as SkinProfile) : undefined;
+    const raw = stored.trim();
+    const direct: SkinProfile[] = ["sensitive", "young", "mature", "pregnant"];
+    if (direct.includes(raw as SkinProfile)) return raw as SkinProfile;
+    // Onboarding / profil (SS-019): mappa till skannerns SkinProfile-modell
+    if (raw === "oily") return "young";
+    if (raw === "dry" || raw === "combination") return "sensitive";
+    return undefined;
   } catch {
     return undefined;
   }
