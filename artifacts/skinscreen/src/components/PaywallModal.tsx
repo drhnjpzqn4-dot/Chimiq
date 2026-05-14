@@ -12,7 +12,13 @@ import { useTranslation } from "@/lib/i18n";
 const SAGE = "var(--sage)";
 const ROSE_GOLD = "var(--rose-gold)";
 
-const BENEFIT_KEYS = ["paywall.benefit1", "paywall.benefit2", "paywall.benefit3"] as const;
+const BENEFIT_KEYS = [
+  "paywall.benefit1",
+  "paywall.benefit2",
+  "paywall.benefit3",
+  "paywall.benefit4",
+  "paywall.benefit5",
+] as const;
 
 interface PaywallModalProps {
   open: boolean;
@@ -59,15 +65,15 @@ export default function PaywallModal({ open, onOpenChange }: PaywallModalProps) 
               {t("paywall.trialCta")}
             </a>
           </Link>
-          <Link href="/login">
-            <a
-              data-touch-target
-              onClick={() => onOpenChange(false)}
-              className="block text-center text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              {t("paywall.alreadyPremiumLink")}
-            </a>
-          </Link>
+          <button
+            type="button"
+            data-touch-target
+            onClick={() => onOpenChange(false)}
+            className="w-full rounded-2xl py-2.5 text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t("paywall.notNow")}
+          </button>
+          <p className="text-xs text-muted-foreground text-center">{t("paywall.finePrint")}</p>
         </div>
       </DialogContent>
     </Dialog>

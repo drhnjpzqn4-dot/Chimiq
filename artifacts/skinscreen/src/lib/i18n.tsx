@@ -815,10 +815,16 @@ const en: Dict = {
 
   "paywall.title": "Upgrade to Premium",
   "paywall.subtitle": "Get unlimited scans, AI chat, and full routine insights",
-  "paywall.benefit1": "Unlimited scans per day",
-  "paywall.benefit2": "AI skincare assistant",
-  "paywall.benefit3": "Full routine check — see conflicts between all your products",
-  "paywall.trialCta": "Try 14 days free",
+  "paywall.benefit1":
+    "Ask about ingredients and products — AI trained on skincare (30 questions/day)",
+  "paywall.benefit2": "Routine cross-check — all your products analyzed together",
+  "paywall.benefit3": "Unlimited shelf (free = max 2 products)",
+  "paywall.benefit4":
+    "Daily check against the EU Safety Gate recall list — you are alerted if your shelf is affected",
+  "paywall.benefit5": "PDF report — bring your skincare analysis to your dermatologist",
+  "paywall.trialCta": "Try Premium free for 14 days",
+  "paywall.notNow": "Not right now",
+  "paywall.finePrint": "Cancel anytime · No card required for the first 14 days",
   "paywall.alreadyPremiumLink": "Already Premium? Sign in again",
 
   "derm.cityPlaceholder": "Enter city or postcode",
@@ -2088,10 +2094,16 @@ const sv: Dict = {
 
   "paywall.title": "Uppgradera till Premium",
   "paywall.subtitle": "Få obegränsade skanningar, AI-chat och full rutinkoll",
-  "paywall.benefit1": "Obegränsade skanningar per dag",
-  "paywall.benefit2": "AI-hudvårdsassistent",
-  "paywall.benefit3": "Full rutinkontroll — se konflikter mellan alla dina produkter",
-  "paywall.trialCta": "Prova 14 dagar gratis",
+  "paywall.benefit1":
+    "Fråga om ingredienser och produkter — AI tränad på hudvård (30 frågor/dag)",
+  "paywall.benefit2": "Routine cross-check — alla dina produkter analyserade tillsammans",
+  "paywall.benefit3": "Obegränsad hylla (free = max 2 produkter)",
+  "paywall.benefit4":
+    "Daglig kontroll mot EU Safety Gates återkallningslista — du varnas om din hylla berörs",
+  "paywall.benefit5": "PDF-rapport — ta med din hudvårdsanalys till dermatolog",
+  "paywall.trialCta": "Testa Premium fritt i 14 dagar",
+  "paywall.notNow": "Inte just nu",
+  "paywall.finePrint": "Avsluta när som helst · Inga kort krävs första 14 dagarna",
   "paywall.alreadyPremiumLink": "Redan Premium? Logga in på nytt",
 
   "derm.cityPlaceholder": "Ange stad eller postnummer",
@@ -3352,10 +3364,16 @@ const fr: Dict = {
 
   "paywall.title": "Passer à Premium",
   "paywall.subtitle": "Scans illimités, chat IA et analyse complète de votre routine",
-  "paywall.benefit1": "Scans illimités par jour",
-  "paywall.benefit2": "Assistant IA soins de la peau",
-  "paywall.benefit3": "Contrôle de routine complet — voyez les conflits entre tous vos produits",
-  "paywall.trialCta": "Essayer 14 jours gratuitement",
+  "paywall.benefit1":
+    "Posez des questions sur les ingrédients et les produits — IA formée aux soins (30 questions/jour)",
+  "paywall.benefit2": "Vérification croisée de la routine — tous vos produits analysés ensemble",
+  "paywall.benefit3": "Étagère illimitée (gratuit = max 2 produits)",
+  "paywall.benefit4":
+    "Contrôle quotidien avec la liste de rappels EU Safety Gate — alerte si votre étagère est concernée",
+  "paywall.benefit5": "Rapport PDF — emportez votre analyse de soins chez le dermatologue",
+  "paywall.trialCta": "Essayez Premium gratuitement pendant 14 jours",
+  "paywall.notNow": "Pas pour l'instant",
+  "paywall.finePrint": "Résiliez quand vous voulez · Aucune carte requise les 14 premiers jours",
   "paywall.alreadyPremiumLink": "Déjà Premium ? Reconnectez-vous",
 
   "derm.cityPlaceholder": "Entrez la ville ou le code postal",
@@ -4616,10 +4634,16 @@ const es: Dict = {
 
   "paywall.title": "Pásate a Premium",
   "paywall.subtitle": "Escaneos ilimitados, chat con IA y control total de tu rutina",
-  "paywall.benefit1": "Escaneos ilimitados al día",
-  "paywall.benefit2": "Asistente de cuidado de la piel con IA",
-  "paywall.benefit3": "Control de rutina completo — detecta conflictos entre todos tus productos",
-  "paywall.trialCta": "Prueba 14 días gratis",
+  "paywall.benefit1":
+    "Pregunta por ingredientes y productos — IA entrenada en cuidado de la piel (30 preguntas/día)",
+  "paywall.benefit2": "Comprobación cruzada de rutina — todos tus productos analizados juntos",
+  "paywall.benefit3": "Estantería ilimitada (gratis = máx. 2 productos)",
+  "paywall.benefit4":
+    "Control diario frente a la lista de retiradas EU Safety Gate — te avisamos si afecta a tu estantería",
+  "paywall.benefit5": "Informe PDF — lleva tu análisis de rutina al dermatólogo",
+  "paywall.trialCta": "Prueba Premium gratis durante 14 días",
+  "paywall.notNow": "Ahora no",
+  "paywall.finePrint": "Cancela cuando quieras · No hace falta tarjeta los primeros 14 días",
   "paywall.alreadyPremiumLink": "¿Ya eres Premium? Inicia sesión de nuevo",
 
   "derm.cityPlaceholder": "Introduce la ciudad o el código postal",
