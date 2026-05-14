@@ -44,7 +44,7 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (returnTo?: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   refetch: () => void;
 }
 
@@ -128,8 +128,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = `/login?next=${encodeURIComponent(target)}`;
   }, []);
 
-  const logout = useCallback(() => {
-    void supabase.auth.signOut();
+  const logout = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error(err);
+    }
     if (isNative()) {
       void Browser.open({
         url: `${NATIVE_AUTH_HOST}/`,
@@ -137,7 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return;
     }
-    window.location.href = "/";
+    const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+    window.location.href = `${base}/login`;
   }, []);
 
   const value: AuthState = {
