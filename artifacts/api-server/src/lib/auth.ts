@@ -31,6 +31,25 @@ export interface AuthUser {
 export const SESSION_COOKIE = "sid";
 export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * Shared flags for auth cookies. `secure` must be false on http://localhost
+ * or browsers (notably Safari) refuse to store the cookie — login then
+ * appears to succeed but the next request has no session.
+ */
+export function baseAuthCookieOptions(): {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: "lax";
+  path: string;
+} {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  };
+}
+
 export interface SessionData {
   user: AuthUser;
   access_token: string;
@@ -180,7 +199,7 @@ export async function clearSession(
   sid?: string
 ): Promise<void> {
   if (sid) await deleteSession(sid);
-  res.clearCookie(SESSION_COOKIE, { path: "/" });
+  res.clearCookie(SESSION_COOKIE, baseAuthCookieOptions());
 }
 
 /**

@@ -14,6 +14,7 @@ import {
   deleteSession,
   SESSION_COOKIE,
   SESSION_TTL,
+  baseAuthCookieOptions,
   type SessionData,
   type AuthUser,
   getSupabaseAdminClient,
@@ -33,10 +34,7 @@ function getOrigin(req: Request): string {
 
 function setSessionCookie(res: Response, sid: string) {
   res.cookie(SESSION_COOKIE, sid, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
+    ...baseAuthCookieOptions(),
     maxAge: SESSION_TTL,
   });
 }
@@ -256,10 +254,7 @@ router.get("/login", async (req: Request, res: Response) => {
   
   // Store returnTo in a temporary cookie for callback to retrieve
   res.cookie("auth_return_to", returnTo, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
+    ...baseAuthCookieOptions(),
     maxAge: 10 * 60 * 1000, // 10 minutes
   });
 
@@ -414,7 +409,7 @@ router.get("/callback", async (req: Request, res: Response) => {
   // OAuth callback would be handled here if using Google/GitHub/etc
   // For email/password, the frontend handles the session directly
   const returnTo = getSafeReturnTo(req.cookies?.auth_return_to || "/");
-  res.clearCookie("auth_return_to", { path: "/" });
+  res.clearCookie("auth_return_to", baseAuthCookieOptions());
   res.redirect(returnTo);
 });
 
