@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Redirect, useLocation } from "wouter";
 import { useAuth, AUTH_REFRESH_EVENT } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -161,9 +162,22 @@ export default function OnboardingFlow() {
     setSubmitting(true);
     setError(null);
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        setError(t("onboarding.saveError"));
+        setSubmitting(false);
+        return;
+      }
+
       const res = await fetch("/api/profile/onboarding", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         credentials: "include",
         body: JSON.stringify({
           firstName: firstName.trim(),
