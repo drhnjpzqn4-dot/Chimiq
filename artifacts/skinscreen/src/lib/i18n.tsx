@@ -41,6 +41,21 @@ const en: Dict = {
   "home.ingredientWeekBody":
     "Niacinamide strengthens the skin barrier and can make pores look smaller. Safe for all skin types.",
   "home.problemsCta": "Explore risky ingredients →",
+  "home.title": "My library",
+  "home.recentScans": "Recently scanned",
+  "home.savedProducts": "Saved products",
+  "home.savedProductsEmpty": "No saved products yet",
+  "home.savedProductsHint":
+    "Save products you're watching — they're not part of your active routine (that's the Shelf).",
+  "home.diary": "Diary",
+  "home.diaryAddNote": "New note",
+  "home.diaryEmpty": "No notes yet. Start writing about a new product you're trying.",
+  "home.diyRecipes": "DIY recipes",
+  "home.diyComingSoon": "Saved recipes — coming soon",
+  "home.diyComingSoonHint": "Save recipes from Discover straight here.",
+  "home.pillSafe": "Safe",
+  "home.pillCaution": "Caution",
+  "home.pillHigh": "High risk",
 
   // ───── Common ─────
   "common.signIn": "Sign in",
@@ -1336,6 +1351,21 @@ const sv: Dict = {
   "home.ingredientWeekBody":
     "Niacinamid stärker hudbarriären och minskar porer. Säker för alla hudtyper.",
   "home.problemsCta": "Utforska farliga ingredienser →",
+  "home.title": "Mitt bibliotek",
+  "home.recentScans": "Senast skannat",
+  "home.savedProducts": "Sparade produkter",
+  "home.savedProductsEmpty": "Inga sparade produkter än",
+  "home.savedProductsHint":
+    "Spara produkter du bevakar — de ingår inte i din aktiva rutin (det är Shelf).",
+  "home.diary": "Dagbok",
+  "home.diaryAddNote": "Ny notering",
+  "home.diaryEmpty": "Inga noteringar än. Börja skriv om en ny produkt du testar.",
+  "home.diyRecipes": "DIY-recept",
+  "home.diyComingSoon": "Sparade recept — kommer snart",
+  "home.diyComingSoonHint": "Spara recept från Discover direkt hit.",
+  "home.pillSafe": "Trygg",
+  "home.pillCaution": "Försiktig",
+  "home.pillHigh": "Hög risk",
 
   // ───── Common ─────
   "common.signIn": "Logga in",
@@ -2638,6 +2668,22 @@ const fr: Dict = {
   "home.ingredientWeekBody":
     "Le niacinamide renforce la barrière cutanée et peut resserrer l'apparence des pores. Convient à tous les types de peau.",
   "home.problemsCta": "Explorer les ingrédients à risque →",
+  "home.title": "Ma bibliothèque",
+  "home.recentScans": "Derniers scans",
+  "home.savedProducts": "Produits enregistrés",
+  "home.savedProductsEmpty": "Aucun produit enregistré pour l'instant",
+  "home.savedProductsHint":
+    "Enregistrez les produits que vous suivez — ils ne font pas partie de votre routine active (c'est l'Étagère).",
+  "home.diary": "Journal",
+  "home.diaryAddNote": "Nouvelle note",
+  "home.diaryEmpty":
+    "Pas encore de notes. Commencez à écrire sur un nouveau produit que vous testez.",
+  "home.diyRecipes": "Recettes DIY",
+  "home.diyComingSoon": "Recettes enregistrées — bientôt disponible",
+  "home.diyComingSoonHint": "Enregistrez des recettes depuis Découvrir directement ici.",
+  "home.pillSafe": "OK",
+  "home.pillCaution": "Prudence",
+  "home.pillHigh": "Risque élevé",
 
   // ───── Common ─────
   "common.signIn": "Se connecter",
@@ -3935,6 +3981,22 @@ const es: Dict = {
   "home.ingredientWeekBody":
     "La niacinamida refuerza la barrera cutánea y puede hacer que los poros se vean más pequeños. Segura para todo tipo de piel.",
   "home.problemsCta": "Explorar ingredientes de riesgo →",
+  "home.title": "Mi biblioteca",
+  "home.recentScans": "Escaneados recientes",
+  "home.savedProducts": "Productos guardados",
+  "home.savedProductsEmpty": "Aún no hay productos guardados",
+  "home.savedProductsHint":
+    "Guarda los productos que sigues — no forman parte de tu rutina activa (eso es el Estante).",
+  "home.diary": "Diario",
+  "home.diaryAddNote": "Nueva nota",
+  "home.diaryEmpty":
+    "Aún no hay notas. Empieza a escribir sobre un producto nuevo que estés probando.",
+  "home.diyRecipes": "Recetas DIY",
+  "home.diyComingSoon": "Recetas guardadas — próximamente",
+  "home.diyComingSoonHint": "Guarda recetas desde Descubrir directamente aquí.",
+  "home.pillSafe": "Sin riesgo",
+  "home.pillCaution": "Precaución",
+  "home.pillHigh": "Alto riesgo",
 
   // ───── Common ─────
   "common.signIn": "Iniciar sesión",
