@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly BASE_URL: string;
+  /** Production web: lämna odefinierad så /api går via Vercel-rewrite (samma origin → session-kaka fungerar). */
+  readonly VITE_API_URL?: string;
   readonly VITE_GA_MEASUREMENT_ID?: string;
   readonly VITE_META_PIXEL_ID?: string;
 }

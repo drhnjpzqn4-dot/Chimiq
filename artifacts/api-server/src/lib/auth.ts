@@ -32,9 +32,9 @@ export const SESSION_COOKIE = "sid";
 export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * Shared flags for auth cookies. `secure` must be false on http://localhost
- * or browsers (notably Safari) refuse to store the cookie — login then
- * appears to succeed but the next request has no session.
+ * Shared flags for auth cookies.
+ * Live: `Secure` + HTTPS (NODE_ENV=production på Railway, se railway.toml).
+ * Lokal HTTP: sätt SESSION_COOKIE_INSECURE=true om du behöver testa utan HTTPS.
  */
 export function baseAuthCookieOptions(): {
   httpOnly: boolean;
@@ -42,9 +42,14 @@ export function baseAuthCookieOptions(): {
   sameSite: "lax";
   path: string;
 } {
+  const secure =
+    process.env.SESSION_COOKIE_INSECURE === "true"
+      ? false
+      : process.env.NODE_ENV === "production" ||
+        process.env.RAILWAY_ENVIRONMENT === "production";
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     sameSite: "lax",
     path: "/",
   };

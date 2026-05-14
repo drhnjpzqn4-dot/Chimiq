@@ -2,4 +2,5 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "node --enable-source-maps ./dist/index.mjs"
+# NODE_ENV sätts explicit: sessionskakan använder Secure i produktion (krav för https://app.chimiq.app m.fl.).
+startCommand = "NODE_ENV=production node --enable-source-maps ./dist/index.mjs"

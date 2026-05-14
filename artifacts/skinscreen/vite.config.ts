@@ -15,10 +15,6 @@ if (!rawPort && !isBuild) {
 
 const port = rawPort ? Number(rawPort) : 3000;
 
-/** Default local API (see pnpm --filter @workspace/api-server dev). Override with VITE_DEV_API_PROXY or API_SERVER_URL. */
-const devApiProxyTarget =
-  process.env.VITE_DEV_API_PROXY ?? process.env.API_SERVER_URL ?? "http://127.0.0.1:4000";
-
 if (!isBuild && (Number.isNaN(port) || port <= 0)) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
@@ -168,12 +164,6 @@ export default defineConfig({
     port,
     host: "0.0.0.0",
     allowedHosts: true,
-    proxy: {
-      "/api": {
-        target: devApiProxyTarget,
-        changeOrigin: true,
-      },
-    },
     fs: {
       strict: true,
       deny: ["**/.*"],

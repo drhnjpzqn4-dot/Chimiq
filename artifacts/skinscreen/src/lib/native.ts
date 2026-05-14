@@ -48,8 +48,11 @@ export async function openExternal(
 /**
  * Resolve the API base URL for the current platform:
  * - Native (Capacitor): always uses NATIVE_API_BASE_URL
- * - Web with VITE_API_URL set: uses that env var (e.g. Railway backend)
+ * - Web with VITE_API_URL set: uses that env var (e.g. direct Railway URL)
  * - Web without VITE_API_URL: returns empty string (relative URLs, same origin)
+ *
+ * Production web (Vercel + rewrite till Railway): lämna VITE_API_URL tom så
+ * att session-kakor från /api hamnar på samma host som appen.
  */
 export function getApiBaseUrl(): string {
   if (isNative()) return NATIVE_API_BASE_URL;
