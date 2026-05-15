@@ -252,18 +252,18 @@ export default function ProfileScreen() {
               <button
                 type="button"
                 onClick={() => setShowPaywall(true)}
-                className="w-full rounded-full py-2.5 text-[13px] font-semibold text-white"
-                style={{ background: "var(--sage)" }}
+                className="w-full rounded-full py-2.5 text-[13px] font-semibold"
+                style={{ background: "var(--gold)", color: "var(--ink)" }}
                 data-touch-target
               >
                 {trialEligible ? (
                   <>
-                    <Sparkles className="h-4 w-4 inline mr-1" aria-hidden />
+                    <Sparkles className="h-4 w-4 inline mr-1" style={{ color: "var(--ink)" }} aria-hidden />
                     Testa Premium fritt i 14 dagar
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4 inline mr-1" aria-hidden />
+                    <Sparkles className="h-4 w-4 inline mr-1" style={{ color: "var(--ink)" }} aria-hidden />
                     {t("profileCard.upgradeToPremium")}
                   </>
                 )}
