@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 
 function useNextParam(): string {
   if (typeof window === "undefined") return "/app/scan";
@@ -11,7 +12,9 @@ function useNextParam(): string {
 }
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const next = useNextParam();
+  const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +60,15 @@ export default function LoginPage() {
         return;
       }
 
+      if (mode === "signup" && !firstName.trim()) {
+        setError("Please enter your name.");
+        return;
+      }
+
       const { data, error: signUpErr } = await supabase.auth.signUp({
         email,
         password,
+        options: { data: { first_name: firstName.trim() } },
       });
       if (signUpErr) {
         setError(signUpErr.message);
@@ -81,6 +90,7 @@ export default function LoginPage() {
     setMode(newMode);
     setError(null);
     setForgotSent(false);
+    if (newMode !== "signup") setFirstName("");
   };
 
   if (signupDone) {
@@ -150,6 +160,23 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "signup" && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="firstName">
+                {t("signup.firstNameLabel")}
+              </label>
+              <input
+                id="firstName"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                autoComplete="given-name"
+                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder={t("signup.firstNamePlaceholder")}
+              />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1" htmlFor="email">
               Email
