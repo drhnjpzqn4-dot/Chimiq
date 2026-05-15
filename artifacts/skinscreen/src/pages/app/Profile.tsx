@@ -74,6 +74,7 @@ export default function ProfileScreen() {
   const { t, locale, setLocale } = useTranslation();
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [langSheetOpen, setLangSheetOpen] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
@@ -96,10 +97,19 @@ export default function ProfileScreen() {
 
   const handleManageBilling = async () => {
     setPortalLoading(true);
+    setPortalError(null);
     try {
       const res = await apiFetch(`${getBaseUrl()}api/payments/portal`, {
         method: "POST",
       });
+      if (res.status === 400) {
+        setPortalError(t("profileCard.noStripeYet"));
+        return;
+      }
+      if (!res.ok) {
+        setPortalError(t("profileCard.portalError"));
+        return;
+      }
       const data = (await res.json()) as { url?: string };
       if (data.url) {
         if (runningNative) {
@@ -107,9 +117,11 @@ export default function ProfileScreen() {
         } else {
           window.location.href = data.url;
         }
+      } else {
+        setPortalError(t("profileCard.portalError"));
       }
     } catch {
-      // noop
+      setPortalError(t("profileCard.portalError"));
     } finally {
       setPortalLoading(false);
     }
@@ -228,8 +240,13 @@ export default function ProfileScreen() {
               ) : (
                 <CreditCard className="h-4 w-4 inline mr-1" aria-hidden />
               )}
-              Hantera betalning
+              {t("profileCard.managePlan")}
             </button>
+            {portalError && (
+              <p className="mt-2 text-[11px] leading-snug" style={{ color: "var(--red-deep)" }}>
+                {portalError}
+              </p>
+            )}
           </div>
         ) : (
           <div className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm">
