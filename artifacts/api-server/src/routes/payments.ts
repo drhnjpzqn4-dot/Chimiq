@@ -2,7 +2,6 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import {
   db,
   usersTable,
-  getUserPlan,
   paymentTestChargesTable,
   checkoutEventsTable,
 } from "@workspace/db";
@@ -10,6 +9,7 @@ import { eq, sql } from "drizzle-orm";
 import Stripe from "stripe";
 import { getUncachableStripeClient } from "../stripeClient.js";
 import { isRequestAdmin } from "../lib/admin.js";
+import { getUserPlan } from "../lib/userPlan.js";
 
 const router: IRouter = Router();
 
