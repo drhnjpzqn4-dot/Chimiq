@@ -7,14 +7,60 @@ import {
   sanitizeProductName,
 } from "../lib/sanitize.js";
 import { supabaseAdmin } from "../lib/supabase-admin.js";
+import { analyzeSingleIngredients } from "./analyze-single.js";
 
 const router: IRouter = Router();
+const OBF_TIMEOUT_MS = 5_000;
 
 interface CachedProductRow {
   product_name: string;
   brand: string;
   ingredients: string;
   image_url: string | null;
+}
+
+async function lookupOpenBeautyFacts(barcode: string): Promise<{
+  productName: string;
+  brand: string;
+  ingredientsText: string;
+  imageUrl: string | null;
+} | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), OBF_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(
+      `https://world.openbeautyfacts.org/api/v3/product/${barcode}.json`,
+      {
+        signal: controller.signal,
+        headers: { "User-Agent": "Chimiq/1.0 (chimiq.com)" },
+      },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      status?: string;
+      product?: {
+        product_name?: string;
+        brands?: string;
+        ingredients_text?: string;
+        image_url?: string;
+      };
+    };
+    if (data.status !== "success" || !data.product) return null;
+    const p = data.product;
+    if (!p.ingredients_text) return null;
+    return {
+      productName: p.product_name ?? "Unknown product",
+      brand: p.brands ?? "",
+      ingredientsText: p.ingredients_text,
+      imageUrl: p.image_url ?? null,
+    };
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") return null;
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 router.get("/barcode/:code", async (req, res) => {
@@ -47,58 +93,46 @@ router.get("/barcode/:code", async (req, res) => {
   }
 
   try {
-    const url = `https://world.openbeautyfacts.org/product/${encodeURIComponent(code)}.json`;
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(8000),
-      headers: { "User-Agent": "SkinScreen/1.0 (https://skinscreen.app)" },
+    const obfProduct = await lookupOpenBeautyFacts(code);
+    if (!obfProduct) {
+      await recordUnknownBarcode(code, req.log);
+      res.json({ found: false, recorded: true });
+      return;
+    }
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      req.log.error("Anthropic integration env vars not configured");
+      res.status(500).json({ error: "Analysis service is not available. Please try again later." });
+      return;
+    }
+
+    const productName = sanitizeProductName(obfProduct.productName, true);
+    const brand = sanitizeBrand(obfProduct.brand, true);
+    const ingredients = sanitizeIngredients(obfProduct.ingredientsText, false);
+    const imageUrl = obfProduct.imageUrl;
+    const analysis = await analyzeSingleIngredients({
+      ingredients,
+      apiKey,
+      log: req.log,
     });
 
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!response.ok || !contentType.includes("json")) {
-      await recordUnknownBarcode(code, req.log);
-      res.json({ found: false, recorded: true });
+    if (!analysis) {
+      res.status(500).json({ error: "Analysis failed. Please try again." });
       return;
     }
 
-    const data = (await response.json()) as {
-      status: number;
-      product?: Record<string, unknown>;
-    };
-
-    if (data.status !== 1 || !data.product) {
-      await recordUnknownBarcode(code, req.log);
-      res.json({ found: false, recorded: true });
-      return;
+    const { error: insertError } = await supabaseAdmin.from("cached_products").insert({
+      barcode: code,
+      product_name: productName,
+      brand,
+      ingredients,
+      image_url: imageUrl,
+      source: "obf",
+    });
+    if (insertError) {
+      req.log.warn({ err: insertError }, "OBF product cache write failed");
     }
-
-    const p = data.product;
-    const ingredients = (
-      (p["ingredients_text_en"] as string | undefined) ??
-      (p["ingredients_text"] as string | undefined) ??
-      ""
-    ).trim();
-
-    if (!ingredients || ingredients.length < 5) {
-      const productName = (p["product_name"] as string | undefined) ?? undefined;
-      const brand = (p["brands"] as string | undefined) ?? undefined;
-      await recordUnknownBarcode(code, req.log, productName, brand, undefined);
-      res.json({ found: false, reason: "no_ingredients", recorded: true });
-      return;
-    }
-
-    const productName = (p["product_name"] as string | undefined) ?? "Unknown product";
-    const brand = (p["brands"] as string | undefined) ?? "";
-    const imageUrl = (p["image_front_small_url"] as string | undefined) ?? null;
-
-    supabaseAdmin
-      .from("cached_products")
-      .upsert(
-        { barcode: code, product_name: productName, brand, ingredients, image_url: imageUrl },
-        { onConflict: "barcode", ignoreDuplicates: true },
-      )
-      .then(({ error }) => {
-        if (error) req.log.warn({ err: error }, "Cache write failed");
-      });
 
     res.json({
       found: true,
@@ -106,8 +140,14 @@ router.get("/barcode/:code", async (req, res) => {
       brand,
       ingredients,
       imageUrl,
+      source: "obf",
+      analysis,
     });
   } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
     req.log.warn({ err }, "Barcode lookup failed");
     await recordUnknownBarcode(code, req.log).catch(() => {});
     res.json({ found: false, recorded: true });
