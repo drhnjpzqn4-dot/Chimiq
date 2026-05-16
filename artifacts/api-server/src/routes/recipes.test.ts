@@ -86,32 +86,6 @@ vi.mock("@workspace/db", () => {
   };
 });
 
-// Replace drizzle helpers with plain object markers so we can introspect what
-// the route asked the database to filter on (e.g. status='approved').
-vi.mock("drizzle-orm", async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  const eq = (col: unknown, val: unknown) => ({ op: "eq", col, val });
-  const and = (...args: unknown[]) => ({
-    op: "and",
-    args: args.filter((a) => a !== undefined && a !== null),
-  });
-  const or = (...args: unknown[]) => ({ op: "or", args });
-  const gte = (col: unknown, val: unknown) => ({ op: "gte", col, val });
-  const inArray = (col: unknown, vals: unknown) => ({
-    op: "inArray",
-    col,
-    vals,
-  });
-  const ilike = (col: unknown, val: unknown) => ({ op: "ilike", col, val });
-  const desc = (col: unknown) => ({ op: "desc", col });
-  const sql = (strings: TemplateStringsArray, ...vals: unknown[]) => ({
-    op: "sql",
-    strings: [...strings],
-    vals,
-  });
-  return { ...actual, eq, and, or, gte, inArray, ilike, desc, sql };
-});
-
 const safetyMock = vi.hoisted(() => ({
   scan: vi.fn(),
   Unavailable: class extends Error {
