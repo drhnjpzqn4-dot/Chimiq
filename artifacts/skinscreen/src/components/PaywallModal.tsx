@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTranslation } from "@/lib/i18n";
+import { getPricingForLocale, TRIAL_DAYS } from "@/lib/pricing";
 
 const BENEFIT_KEYS = [
   "paywall.benefit1",
@@ -23,7 +24,10 @@ interface PaywallModalProps {
 }
 
 export default function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const pricing = getPricingForLocale(locale);
+  const trialCta = t("paywall.trialCta").replace(/\b14\b/g, String(TRIAL_DAYS));
+  const finePrint = t("paywall.finePrint").replace(/\b14\b/g, String(TRIAL_DAYS));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,7 +70,7 @@ export default function PaywallModal({ open, onOpenChange }: PaywallModalProps) 
               {t("paywall.monthly")}
             </p>
             <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--ink)" }}>
-              €4.99
+              {pricing.display.monthly}
             </p>
             <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
               {t("paywall.perMonth")}
@@ -78,7 +82,6 @@ export default function PaywallModal({ open, onOpenChange }: PaywallModalProps) 
             className="relative rounded-xl border-2 p-4 text-center"
             style={{ borderColor: "var(--gold)", backgroundColor: "var(--gold-soft)" }}
           >
-            {/* "Spara 18%" badge */}
             <span
               className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-sm"
               style={{
@@ -86,13 +89,13 @@ export default function PaywallModal({ open, onOpenChange }: PaywallModalProps) 
                 color: "#fff",
               }}
             >
-              {t("paywall.saveBadge")}
+              {pricing.display.saveBadge}
             </span>
             <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--ink-soft)" }}>
               {t("paywall.yearly")}
             </p>
             <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--ink)" }}>
-              €49
+              {pricing.display.yearly}
             </p>
             <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
               {t("paywall.perYear")}
@@ -110,7 +113,7 @@ export default function PaywallModal({ open, onOpenChange }: PaywallModalProps) 
               style={{ backgroundColor: "var(--rose-gold)" }}
             >
               <Star className="h-4 w-4" aria-hidden />
-              {t("paywall.trialCta")}
+              {trialCta}
             </a>
           </Link>
           <button
@@ -125,7 +128,7 @@ export default function PaywallModal({ open, onOpenChange }: PaywallModalProps) 
 
         {/* Fine print */}
         <p className="mt-3 text-center text-xs" style={{ color: "var(--ink-soft)" }}>
-          {t("paywall.finePrint")}
+          {finePrint}
         </p>
       </DialogContent>
     </Dialog>

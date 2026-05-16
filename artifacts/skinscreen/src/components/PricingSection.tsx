@@ -13,11 +13,14 @@ import {
 } from "@/lib/billing-preference";
 import { trackEvent } from "@/lib/analytics";
 import { apiFetch } from "@/lib/api";
+import { getPriceEnvKey, getPricingForLocale, TRIAL_DAYS } from "@/lib/pricing";
 
 export function PricingSection() {
   const [, navigate] = useLocation();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { plan, isLoading, trialEligible, trialDays } = useUserPlan();
+  const pricing = getPricingForLocale(locale);
+  const effectiveTrialDays = trialDays || TRIAL_DAYS;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billing, setBilling] = useState<"monthly" | "yearly">(
@@ -37,12 +40,16 @@ export function PricingSection() {
   const handleUpgrade = async () => {
     setLoading(true);
     setError(null);
+    const priceEnvKey = getPriceEnvKey(locale, billing);
     try {
       const res = await apiFetch(`${getBaseUrl()}api/payments/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ plan: billing }),
+        body: JSON.stringify({
+          plan: billing,
+          currency: pricing.currency.toLowerCase(),
+        }),
       });
       if (res.status === 401) {
         navigate("/signup?next=/pricing");
@@ -50,9 +57,22 @@ export function PricingSection() {
       }
       const data = (await res.json()) as { url?: string; error?: string };
       if (data.url) {
-        trackEvent("checkout_start", { plan_type: billing, source: "pricing_section" });
+        trackEvent("checkout_start", {
+          plan_type: billing,
+          currency: pricing.currency,
+          price_env_key: priceEnvKey,
+          source: "pricing_section",
+        });
         try {
-          localStorage.setItem("skinscreen.checkout_meta", JSON.stringify({ plan_type: billing, source: "pricing_section" }));
+          localStorage.setItem(
+            "skinscreen.checkout_meta",
+            JSON.stringify({
+              plan_type: billing,
+              currency: pricing.currency,
+              price_env_key: priceEnvKey,
+              source: "pricing_section",
+            }),
+          );
         } catch {}
         window.location.href = data.url;
       } else {
@@ -157,22 +177,18 @@ export function PricingSection() {
                 >
                   {t("pricing.yearly")}
                   <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-premium-gold text-white">
-                    {t("pricing.save98")}
+                    {pricing.display.saveBadge}
                   </span>
                 </button>
               </div>
 
               <div className="flex items-end gap-1">
                 <span className="text-3xl font-bold text-ink">
-                  {billing === "yearly" ? "490" : "49"}
-                </span>
-                <span className="text-base font-semibold mb-0.5 text-ink/65">SEK</span>
-                <span className="mb-0.5 text-ink/45">
-                  /{billing === "yearly" ? t("pricing.year") : t("pricing.month")}
+                  {billing === "yearly" ? pricing.display.yearly : pricing.display.monthly}
                 </span>
               </div>
               <p className="text-xs mt-1 text-ink/40">
-                {billing === "yearly" ? t("pricing.yearlyHintShort") : t("pricing.cancelAnytime")}
+                {billing === "yearly" ? pricing.display.yearlyPerMonth : t("pricing.cancelAnytime")}
               </p>
             </div>
 
@@ -203,7 +219,7 @@ export function PricingSection() {
                   {loading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" />{t("pricing.redirecting")}</>
                   ) : trialEligible ? (
-                    <>{t("pricing.startTrialCta", { days: trialDays })}</>
+                    <>{t("pricing.startTrialCta", { days: effectiveTrialDays })}</>
                   ) : (
                     <>{billing === "yearly" ? t("pricing.getPremiumYr") : t("pricing.getPremiumMo")}</>
                   )}
@@ -212,8 +228,8 @@ export function PricingSection() {
               {plan !== "premium" && trialEligible && (
                 <p className="text-[11px] text-center mt-2 font-medium text-amber-deep">
                   {t("pricing.trialFinePrint", {
-                    days: trialDays,
-                    price: billing === "yearly" ? "490 SEK/yr" : "49 SEK/mo",
+                    days: effectiveTrialDays,
+                    price: billing === "yearly" ? pricing.display.yearly : pricing.display.monthly,
                   })}
                 </p>
               )}
