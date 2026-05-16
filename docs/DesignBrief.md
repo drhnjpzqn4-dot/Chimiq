@@ -4,7 +4,7 @@
 
 **Stack:** React + Vite + TypeScript + Tailwind + shadcn/ui + Wouter. Backend: TypeScript/Express + Drizzle + Supabase EU. Capacitor för iOS/Android.
 
-**Single source of truth för färg + typografi:** `Design Reference.html` (öppna sida vid sida när du jobbar) och `remotion-cimiq/src/brand.ts`. Live-app CSS: `artifacts/skinscreen/src/index.css`.
+**Single source of truth för exakta färg- + typografi-värden:** `artifacts/skinscreen/src/index.css` — den filen vinner alltid vid konflikt. `remotion-cimiq/src/brand.ts` speglar samma värden för video. Den här briefen beskriver *reglerna*; index.css håller *värdena*.
 
 ---
 
@@ -45,43 +45,46 @@ Varm, jordnära, vetenskaplig. Cream-bakgrund, sage som funktionell färg, rose-
 
 **Båda använder exakt samma färgvariabler, samma typsnittsstack, samma button-/card-/pill-komponenter.** Om en knapp ser olika ut mellan landing och app → det är en bug.
 
-## 4. Färg — 5 färger, inga andra
+## 4. Färg — Forest + Clay-paletten (BESLUT-SS-022, 2026-05-13)
+
+> **Exakta värden lever i `artifacts/skinscreen/src/index.css` — den filen vinner.** Tabellen nedan är snabbreferens; lägg aldrig till eller ändra en hex här utan att samtidigt ändra index.css.
 
 ```
---rose-gold        #C9967E   Logo, h1/h2-serif-rubriker, varma signatur-element
---rose-gold-deep   #A06D54   AA-säker text-version av rose-gold (links, headlines)
---sage             #7BAF7A   Funktionell primär — ALLA CTA-knappar, aktiva states
---sage-deep        #5B8F5A   Sage-text på cream (AA), hover, focus-ring
---gold             #D29A55   ENDAST Premium-accent (badge, paywall-CTA, Premium-kort)
---gold-soft        #F4D8A2   Premium-bakgrund (subtilt)
---cream            #FAF6F2   Huvudbakgrund (web + app body)
---cream-warm       #F5EFE8   Sektioner, kort-bakgrund nivå 2
---ink              #1F1A17   All body-text, mörka chat/AI-kort
---ink-soft         #5E544C   Sekundär text, hjälp-text, ikoner inaktiv
---line             #EAE3DC   Borders, dividers
+--rose-gold        #B5705B   Clay/terrakotta — logo, h1/h2-serif-rubriker, varma signaturelement
+--rose-gold-deep   #8A4F3B   AA-säker text-version (links, headlines, aktiv tab)
+--sage             #3C5C44   Skogsgrön — funktionell primär, ALLA CTA-knappar, aktiva states
+--sage-deep        #284430   Sage-text på cream (AA), hover, focus-ring
+--gold             #BC8F3D   ENDAST Premium-accent (badge, paywall-CTA, Premium-kort)
+--gold-soft        #EEDFB8   Premium-bakgrund (subtilt)
+--cream            #F1EFE8   Huvudbakgrund (web + app body)
+--cream-warm       #E5E2D8   Sektioner, kort-bakgrund nivå 2
+--ink              #2C1A0E   All body-text — dark chocolate (BESLUT-SS-020)
+--ink-soft         #4D5450   Sekundär text, hjälp-text, ikoner inaktiv
+--line             #DDDAD0   Borders, dividers
 ```
 
-**Tre statusfärger (traffic-light) — ALDRIG ensamma, alltid med ikon:**
+**Tre statusfärger (traffic-light) — ALDRIG ensamma, alltid med ikon (BESLUT-SS-021):**
 ```
-🟢 #5B8F5A på #E8F2E5 — ✓ Trygg
-🟡 #B07B2A på #FBEFD9 — ⚠ Försiktig
-🔴 #B23B2A på #FAE0DA — ⊘ Avråds
+🟢 sage-deep #284430 på green-soft #DCE7DC — ✓ Trygg
+🟡 amber-deep #8B6A1F på amber-soft #F0E2BC — ⚠ Försiktig
+🔴 red-deep   #8E3A26 på red-soft   #EDD6CF — ⊘ Avråds
 ```
 
 **Förbjudet:**
-- Lavendel (`#C5A3C9`) — borttagen från paletten. Alla användningar → `--cream-warm` med gold-border eller rose-soft.
-- Teal (`#0D9488`) — borttagen. Använd sage.
+- Gamla paletten (ljus sage `#7BAF7A`, varm rose-gold `#C9967E`, gull `#D29A55`, cream `#FAF6F2`, ink `#1F1A17`) — ersatt av Forest + Clay ovan. Ser du dessa hex i kod eller mockup: fel, ska bytas.
+- Lavendel (`#C5A3C9`) och teal (`#0D9488`) — borttagna sedan länge. Använd sage / cream-warm.
 - Pure white (`#FFFFFF`) — använd `--cream` på bakgrunder, kort blir `#FFFFFF` ENDAST när de ligger ovanpå cream-warm.
 - Gradients som dekoration — endast på FAB-knappen (sage → sage-deep) och Premium-badge (gold-soft → gold).
 - Hårdkodade hex i komponenter. Använd CSS-variabler eller Tailwind-tokens.
 
 ## 5. Typografi
 
-**Stack:**
+**Stack (BESLUT-SS-022):**
 ```
---font-serif: "Iowan Old Style", "Source Serif Pro", Georgia, serif;
---font-sans:  -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+--font-serif: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+--font-sans:  "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 ```
+Google Fonts laddas i `index.html`: Source Serif 4 (400, 500) + Inter (400, 500, 600).
 
 **Skala (web):**
 | Token | Storlek | Vikt | Användning |
@@ -273,4 +276,4 @@ Home · Shelf · [📷 Scan] · Discover · Profile
 
 **Sammanfattning för Cursor (klistra in i prompt-headern):**
 
-> Du jobbar på Chimiq — en ingrediensanalys-app för svenska tonåringar. Läs `Design Brief.md` och titta på `Design Reference.html` innan du rör en rad. Färger: sage `#7BAF7A` är funktionell primär (CTA), rose-gold `#C9967E` är signatur (logo, serif-rubriker), gold `#D29A55` är ENDAST för Premium, cream `#FAF6F2` bakgrund, ink `#1F1A17` text. Ingen lavendel, ingen teal, inga hårdkodade hex. Ton: kunnig kompis, inte skräm-influencer. Inga råd, bara fakta. Bottom nav är 5 tabs Home/Shelf/[Scan-FAB]/Discover/Profile. Free max 2 produkter på hyllan, AI-chat = Premium. Ändra max 4 filer per PR. Visa diff innan ändring.
+> Du jobbar på Chimiq — en ingrediensanalys-app för svenska tonåringar. Läs hela `docs/DesignBrief.md` innan du rör en rad; exakta färg-/typvärden finns i `artifacts/skinscreen/src/index.css` (den filen vinner). Forest + Clay-paletten (BESLUT-SS-022): sage `#3C5C44` är funktionell primär (CTA), rose-gold/clay `#B5705B` är signatur (logo, serif-rubriker), gold `#BC8F3D` är ENDAST för Premium, cream `#F1EFE8` bakgrund, ink `#2C1A0E` text. Ingen lavendel, ingen teal, inga hårdkodade hex — använd CSS-variabler/Tailwind-tokens. Ton: kunnig kompis, inte skräm-influencer. Inga råd, bara fakta. Bottom nav är 5 tabs Home/Shelf/[Scan-FAB]/Discover/Profile. Free max 2 produkter på hyllan, AI-chat = Premium. Ändra max 4 filer per PR. Visa diff innan ändring.
