@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { getBaseUrl } from "@/lib/base-url";
 import { apiFetch } from "@/lib/api";
+import { TRIAL_DAYS } from "@/lib/pricing";
 
 export type UserPlan = "free" | "premium";
 
@@ -10,8 +11,6 @@ interface PaymentStatus {
   trialEligible: boolean;
   trialDays: number;
 }
-
-const TRIAL_DAYS = 14;
 
 async function fetchPaymentStatus(): Promise<PaymentStatus> {
   const res = await apiFetch(`${getBaseUrl()}api/payments/status`, {

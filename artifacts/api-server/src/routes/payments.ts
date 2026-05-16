@@ -103,6 +103,8 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
   const rawPlan = (req.body?.plan ?? "monthly") as unknown;
   const plan: "monthly" | "yearly" =
     rawPlan === "yearly" ? "yearly" : "monthly";
+  const rawCurrency = (req.body?.currency ?? "eur") as unknown;
+  const currency: "sek" | "eur" = rawCurrency === "sek" ? "sek" : "eur";
 
   try {
     const stripe = await getUncachableStripeClient();
@@ -130,10 +132,9 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
         .where(eq(usersTable.id, user.id));
     }
 
-    const envKey =
-      plan === "yearly"
-        ? "STRIPE_PREMIUM_PRICE_ID_YEARLY"
-        : "STRIPE_PREMIUM_PRICE_ID_MONTHLY";
+    const currencyUpper = currency.toUpperCase();
+    const planUpper = plan.toUpperCase();
+    const envKey = `STRIPE_PRICE_${currencyUpper}_${planUpper}`;
     const priceId = process.env[envKey];
     if (!priceId) {
       res

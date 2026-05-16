@@ -10,6 +10,7 @@ import { useUserPlan } from "@/hooks/useUserPlan";
 import { getBaseUrl } from "@/lib/base-url";
 import { isNative, openExternal } from "@/lib/native";
 import { useTranslation, LOCALES, type Locale } from "@/lib/i18n";
+import { TRIAL_DAYS } from "@/lib/pricing";
 import { PREMIUM_CONTRIBUTION_MILESTONE } from "@/pages/app/Shelf";
 
 interface ContributeStats {
@@ -276,7 +277,7 @@ export default function ProfileScreen() {
                 {trialEligible ? (
                   <>
                     <Sparkles className="h-4 w-4 inline mr-1" style={{ color: "var(--ink)" }} aria-hidden />
-                    Testa Premium fritt i 14 dagar
+                    {t("pricing.startTrialCta", { days: TRIAL_DAYS })}
                   </>
                 ) : (
                   <>
