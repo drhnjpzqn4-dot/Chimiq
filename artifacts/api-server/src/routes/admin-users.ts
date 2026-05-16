@@ -1,8 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, usersTable } from "@workspace/db";
-import { and, asc, count, desc, ilike, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import { isRequestAdmin } from "../lib/admin.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const router: IRouter = Router();
 
@@ -14,6 +13,21 @@ const router: IRouter = Router();
  * getUserPlan). Pure function so it's trivially testable.
  */
 type PlanBucket = "trial" | "premium" | "free" | "past_due" | "canceled";
+
+interface AdminUserRow {
+  id: string;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  plan: string;
+  subscription_status: string | null;
+  trial_ends_at: string | null;
+  premium_until: string | null;
+  stripe_subscription_id: string | null;
+  email_verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 function deriveBucket(row: {
   plan: string;
@@ -76,113 +90,86 @@ router.get("/admin/users", async (req: Request, res: Response) => {
     pageSize = 50,
   } = parsed.data;
 
-  // Email search uses ILIKE with escaped wildcards so user-supplied "%" or
-  // "_" can't widen the query.
   const escaped = q ? q.replace(/[\\%_]/g, (m) => `\\${m}`) : null;
-  const where = escaped ? ilike(usersTable.email, `%${escaped}%`) : undefined;
-
-  const sortCol =
-    sort === "email"
-      ? usersTable.email
-      : sort === "plan"
-        ? usersTable.plan
-        : usersTable.createdAt;
-  const order = dir === "asc" ? asc(sortCol) : desc(sortCol);
-
+  const sortCol = sort === "email" ? "email" : sort === "plan" ? "plan" : "created_at";
   const offset = (page - 1) * pageSize;
 
   // Run page query + total count + headline aggregates in parallel.
-  const [rows, [{ total }], aggregateRows] = await Promise.all([
-    db
-      .select({
-        id: usersTable.id,
-        email: usersTable.email,
-        firstName: usersTable.firstName,
-        lastName: usersTable.lastName,
-        plan: usersTable.plan,
-        subscriptionStatus: usersTable.subscriptionStatus,
-        trialEndsAt: usersTable.trialEndsAt,
-        premiumUntil: usersTable.premiumUntil,
-        stripeSubscriptionId: usersTable.stripeSubscriptionId,
-        emailVerified: usersTable.emailVerified,
-        createdAt: usersTable.createdAt,
-        updatedAt: usersTable.updatedAt,
-      })
-      .from(usersTable)
-      .where(where ?? sql`true`)
-      .orderBy(order)
-      .limit(pageSize)
-      .offset(offset),
-    db
-      .select({ total: count() })
-      .from(usersTable)
-      .where(where ?? sql`true`),
-    // Headline counts ignore the search filter — Pia wants a true picture
-    // of the whole base, not "matches in current view".
-    db
-      .select({
-        plan: usersTable.plan,
-        subscriptionStatus: usersTable.subscriptionStatus,
-        trialEndsAt: usersTable.trialEndsAt,
-        premiumUntil: usersTable.premiumUntil,
-        c: count(),
-      })
-      .from(usersTable)
-      .groupBy(
-        usersTable.plan,
-        usersTable.subscriptionStatus,
-        usersTable.trialEndsAt,
-        usersTable.premiumUntil,
-      ),
-  ]);
-
-  const totals = { total: 0, free: 0, premium: 0, trial: 0, past_due: 0, canceled: 0 };
-  for (const row of aggregateRows) {
-    const bucket = deriveBucket({
-      plan: row.plan,
-      subscriptionStatus: row.subscriptionStatus,
-      trialEndsAt: row.trialEndsAt,
-      premiumUntil: row.premiumUntil,
-    });
-    const n = Number(row.c);
-    totals.total += n;
-    totals[bucket] += n;
+  let pageQuery = supabaseAdmin
+    .from("users")
+    .select(
+      "id,email,first_name,last_name,plan,subscription_status,trial_ends_at,premium_until,stripe_subscription_id,email_verified,created_at,updated_at",
+    )
+    .order(sortCol, { ascending: dir === "asc" })
+    .range(offset, offset + pageSize - 1);
+  let countQuery = supabaseAdmin
+    .from("users")
+    .select("id", { head: true, count: "exact" });
+  if (escaped) {
+    const pattern = `%${escaped}%`;
+    pageQuery = pageQuery.ilike("email", pattern);
+    countQuery = countQuery.ilike("email", pattern);
   }
 
-  const users = rows.map((r) => {
+  const [rowsResult, countResult, aggregateResult] = await Promise.all([
+    pageQuery,
+    countQuery,
+    supabaseAdmin
+      .from("users")
+      .select("plan,subscription_status,trial_ends_at,premium_until"),
+  ]);
+  if (rowsResult.error) throw rowsResult.error;
+  if (countResult.error) throw countResult.error;
+  if (aggregateResult.error) throw aggregateResult.error;
+
+  const totals = { total: 0, free: 0, premium: 0, trial: 0, past_due: 0, canceled: 0 };
+  for (const row of (aggregateResult.data ?? []) as Array<Pick<AdminUserRow, "plan" | "subscription_status" | "trial_ends_at" | "premium_until">>) {
+    const bucket = deriveBucket({
+      plan: row.plan,
+      subscriptionStatus: row.subscription_status,
+      trialEndsAt: row.trial_ends_at ? new Date(row.trial_ends_at) : null,
+      premiumUntil: row.premium_until ? new Date(row.premium_until) : null,
+    });
+    totals.total += 1;
+    totals[bucket] += 1;
+  }
+
+  const users = ((rowsResult.data ?? []) as AdminUserRow[]).map((r) => {
+    const trialEndsAt = r.trial_ends_at ? new Date(r.trial_ends_at) : null;
+    const premiumUntil = r.premium_until ? new Date(r.premium_until) : null;
     const bucket = deriveBucket({
       plan: r.plan,
-      subscriptionStatus: r.subscriptionStatus,
-      trialEndsAt: r.trialEndsAt,
-      premiumUntil: r.premiumUntil,
+      subscriptionStatus: r.subscription_status,
+      trialEndsAt,
+      premiumUntil,
     });
     const trialDaysLeft =
-      bucket === "trial" && r.trialEndsAt
+      bucket === "trial" && trialEndsAt
         ? Math.max(
             0,
-            Math.ceil((r.trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+            Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
           )
         : null;
     return {
       id: r.id,
       email: r.email,
-      firstName: r.firstName,
-      lastName: r.lastName,
+      firstName: r.first_name,
+      lastName: r.last_name,
       plan: r.plan,
       bucket,
-      subscriptionStatus: r.subscriptionStatus,
-      trialEndsAt: r.trialEndsAt ? r.trialEndsAt.toISOString() : null,
+      subscriptionStatus: r.subscription_status,
+      trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
       trialDaysLeft,
-      premiumUntil: r.premiumUntil ? r.premiumUntil.toISOString() : null,
-      stripeSubscriptionId: r.stripeSubscriptionId,
-      hasSubscription: !!r.stripeSubscriptionId,
-      emailVerified: r.emailVerified,
-      createdAt: r.createdAt.toISOString(),
-      updatedAt: r.updatedAt.toISOString(),
+      premiumUntil: premiumUntil ? premiumUntil.toISOString() : null,
+      stripeSubscriptionId: r.stripe_subscription_id,
+      hasSubscription: !!r.stripe_subscription_id,
+      emailVerified: r.email_verified,
+      createdAt: new Date(r.created_at).toISOString(),
+      updatedAt: new Date(r.updated_at).toISOString(),
     };
   });
 
-  res.json({ users, total: Number(total), page, pageSize, totals });
+  res.json({ users, total: Number(countResult.count ?? 0), page, pageSize, totals });
 });
 
 export default router;
