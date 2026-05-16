@@ -1,8 +1,6 @@
 import { Router, type IRouter } from "express";
-import { createClient } from "@supabase/supabase-js";
-import { db, userSubmittedProductsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
 import { isRequestAdmin } from "../lib/admin.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const router: IRouter = Router();
 
@@ -38,14 +36,16 @@ router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
     const contributionMatch = relativePath.match(/^contributions\/([0-9a-f-]{36})\//i);
     if (contributionMatch) {
       const submissionId = contributionMatch[1];
-      const [submission] = await db
-        .select({ submittedBy: userSubmittedProductsTable.submittedBy })
-        .from(userSubmittedProductsTable)
-        .where(eq(userSubmittedProductsTable.id, submissionId));
+      const { data: submission, error: submissionError } = await supabaseAdmin
+        .from("user_submitted_products")
+        .select("submitted_by")
+        .eq("id", submissionId)
+        .maybeSingle<{ submitted_by: string | null }>();
+      if (submissionError) throw submissionError;
 
       const ownerOrAdmin =
         isAdmin(typedReq) ||
-        (submission?.submittedBy != null && submission.submittedBy === userId);
+        (submission?.submitted_by != null && submission.submitted_by === userId);
 
       if (!ownerOrAdmin) {
         res.status(403).json({ error: "Access denied." });
@@ -58,8 +58,7 @@ router.get(/^\/storage\/objects\/(.+)$/, async (req, res) => {
       }
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const { data, error } = await supabase.storage
+    const { data, error } = await supabaseAdmin.storage
       .from(bucketName)
       .download(relativePath);
 
