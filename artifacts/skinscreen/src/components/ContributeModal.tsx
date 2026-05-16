@@ -60,7 +60,7 @@ export function ContributeModal({
   const [step, setStep] = useState<Step>("front-photo");
   const [productName, setProductName] = useState(initialProductName);
   const [brand, setBrand] = useState(initialBrand);
-  const [barcodeInput, setBarcodeInput] = useState(barcode ?? "");
+  const [barcodeInput, setBarcodeInput] = useState(() => (barcode ?? "").replace(/\D/g, ""));
   const [ingredientsText, setIngredientsText] = useState("");
   const [frontImageBase64, setFrontImageBase64] = useState<string | null>(null);
   const [frontPreviewUrl, setFrontPreviewUrl] = useState<string | null>(null);
@@ -147,9 +147,13 @@ export function ContributeModal({
       const data = (await res.json()) as {
         submissionId?: string;
         error?: string;
+        issues?: { message: string }[];
         alreadyInDatabase?: boolean;
       };
-      if (!res.ok || !data.submissionId) throw new Error(data.error ?? t("contribute.errStartFailed"));
+      if (!res.ok || !data.submissionId) {
+        const firstIssue = data.issues?.[0]?.message;
+        throw new Error(firstIssue ?? data.error ?? t("contribute.errStartFailed"));
+      }
       setSubmissionId(data.submissionId);
       setStep("ingredients");
     } catch (err) {
@@ -379,7 +383,6 @@ export function ContributeModal({
                 <input
                   type="text"
                   inputMode="numeric"
-                  pattern="[0-9]*"
                   placeholder={t("contribute.barcodePlaceholder")}
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value.replace(/\D/g, ""))}

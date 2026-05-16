@@ -17,7 +17,7 @@ import { requireAuth } from "../lib/authGate.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
 
 const StartBody = z.object({
-  barcode: z.string().regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required."),
+  barcode: z.string().trim().regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required."),
   productName: z.string().trim().min(1, "Product name is required.").max(500),
   brand: z.string().trim().max(200).optional(),
 });
