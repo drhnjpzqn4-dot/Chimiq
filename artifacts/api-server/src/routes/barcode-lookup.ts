@@ -1,15 +1,21 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { db, cachedProductsTable, userSubmittedProductsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
 import {
   SanitizationError,
   sanitizeBrand,
   sanitizeIngredients,
   sanitizeProductName,
 } from "../lib/sanitize.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const router: IRouter = Router();
+
+interface CachedProductRow {
+  product_name: string;
+  brand: string;
+  ingredients: string;
+  image_url: string | null;
+}
 
 router.get("/barcode/:code", async (req, res) => {
   const { code } = req.params;
@@ -19,18 +25,22 @@ router.get("/barcode/:code", async (req, res) => {
     return;
   }
 
-  const [cached] = await db
-    .select()
-    .from(cachedProductsTable)
-    .where(eq(cachedProductsTable.barcode, code));
+  const { data: cached, error: cachedError } = await supabaseAdmin
+    .from("cached_products")
+    .select("product_name,brand,ingredients,image_url")
+    .eq("barcode", code)
+    .maybeSingle<CachedProductRow>();
+  if (cachedError) {
+    req.log.warn({ err: cachedError }, "Cached product lookup failed");
+  }
 
   if (cached) {
     res.json({
       found: true,
-      productName: cached.productName,
+      productName: cached.product_name,
       brand: cached.brand,
       ingredients: cached.ingredients,
-      imageUrl: cached.imageUrl ?? null,
+      imageUrl: cached.image_url ?? null,
       fromCache: true,
     });
     return;
@@ -80,10 +90,15 @@ router.get("/barcode/:code", async (req, res) => {
     const brand = (p["brands"] as string | undefined) ?? "";
     const imageUrl = (p["image_front_small_url"] as string | undefined) ?? null;
 
-    db.insert(cachedProductsTable)
-      .values({ barcode: code, productName, brand, ingredients, imageUrl })
-      .onConflictDoNothing()
-      .catch((err) => req.log.warn({ err }, "Cache write failed"));
+    supabaseAdmin
+      .from("cached_products")
+      .upsert(
+        { barcode: code, product_name: productName, brand, ingredients, image_url: imageUrl },
+        { onConflict: "barcode", ignoreDuplicates: true },
+      )
+      .then(({ error }) => {
+        if (error) req.log.warn({ err: error }, "Cache write failed");
+      });
 
     res.json({
       found: true,
@@ -134,14 +149,15 @@ router.post("/barcode/submit", async (req, res) => {
   }
 
   try {
-    await db.insert(userSubmittedProductsTable).values({
+    const { error } = await supabaseAdmin.from("user_submitted_products").insert({
       barcode,
-      productName: productName || null,
+      product_name: productName || null,
       brand: brand || null,
       ingredients: ingredients || null,
       status: "pending",
-      obfContributed: "pending",
+      obf_contributed: "pending",
     });
+    if (error) throw error;
 
     res.json({ recorded: true, message: "Product submitted. Thank you for contributing!" });
   } catch (err) {
@@ -158,14 +174,15 @@ async function recordUnknownBarcode(
   ingredients?: string,
 ): Promise<void> {
   try {
-    await db.insert(userSubmittedProductsTable).values({
+    const { error } = await supabaseAdmin.from("user_submitted_products").insert({
       barcode,
-      productName: productName ?? null,
+      product_name: productName ?? null,
       brand: brand ?? null,
       ingredients: ingredients ?? null,
       status: "pending",
-      obfContributed: "pending",
+      obf_contributed: "pending",
     });
+    if (error) throw error;
   } catch (err) {
     log.warn({ err }, "Failed to record unknown barcode in user_submitted_products");
   }
