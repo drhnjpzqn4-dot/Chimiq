@@ -23,6 +23,7 @@ function voterKeyFor(userId: string | null, sessionId: string | undefined): stri
 }
 
 const router: IRouter = Router();
+const PAGE_SIZE = 1000;
 
 interface DiscoverRatingRow {
   id: string;
@@ -42,6 +43,26 @@ const discoverRatingIpLimit = ipRateLimit({
   key: "discover-ratings",
 });
 const voterRateHits = new Map<string, { count: number; resetAt: number }>();
+
+async function fetchAllDiscoverRatings(): Promise<DiscoverRatingRow[]> {
+  const rows: DiscoverRatingRow[] = [];
+  let offset = 0;
+
+  for (;;) {
+    const { data, error } = await supabaseAdmin
+      .from("discover_ratings")
+      .select("id,slug,kind,rating,comment,created_at")
+      .order("created_at", { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = (data ?? []) as DiscoverRatingRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return rows;
+}
 
 /**
  * Submit (or update) a thumbs up/down vote on a Discover article.
@@ -168,16 +189,13 @@ router.get("/admin/discover/ratings", async (req, res) => {
     return;
   }
   try {
-    const { data: ratingRows, error: ratingError } = await supabaseAdmin
-      .from("discover_ratings")
-      .select("id,slug,kind,rating,comment,created_at");
-    if (ratingError) throw ratingError;
+    const ratingRows = await fetchAllDiscoverRatings();
 
     const aggregateMap = new Map<
       string,
       { slug: string; kind: "mistakes" | "worries"; ups: number; downs: number; total: number }
     >();
-    for (const row of (ratingRows ?? []) as DiscoverRatingRow[]) {
+    for (const row of ratingRows) {
       const key = `${row.kind}:${row.slug}`;
       const aggregate =
         aggregateMap.get(key) ?? { slug: row.slug, kind: row.kind, ups: 0, downs: 0, total: 0 };
@@ -187,7 +205,7 @@ router.get("/admin/discover/ratings", async (req, res) => {
       aggregateMap.set(key, aggregate);
     }
 
-    const recentComments = ((ratingRows ?? []) as DiscoverRatingRow[])
+    const recentComments = ratingRows
       .filter((row) => row.comment != null && row.comment.trim().length > 0)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 50)
