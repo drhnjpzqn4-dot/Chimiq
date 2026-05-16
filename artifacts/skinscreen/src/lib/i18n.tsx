@@ -430,7 +430,7 @@ const en: Dict = {
   "pricing.sectionSub":
     "Most people never need more than the free tier. But if your shelf keeps growing, Premium has you covered.",
   "pricing.free": "Free",
-  "pricing.zeroPrice": "$0",
+  "pricing.zeroPrice": "Free",
   "pricing.perMonth": "/month",
   "pricing.noCard": "No card required. Always free.",
   "pricing.currentPlan": "Your current plan",
@@ -3077,7 +3077,7 @@ const fr: Dict = {
   "pricing.sectionSub":
     "La plupart des gens n'ont jamais besoin de plus que la version gratuite. Mais si votre routine s'étoffe, Premium est là pour vous.",
   "pricing.free": "Gratuit",
-  "pricing.zeroPrice": "0 $",
+  "pricing.zeroPrice": "Gratuit",
   "pricing.perMonth": "/mois",
   "pricing.noCard": "Aucune carte requise. Toujours gratuit.",
   "pricing.currentPlan": "Votre forfait actuel",
@@ -4399,7 +4399,7 @@ const es: Dict = {
   "pricing.sectionSub":
     "La mayoría nunca necesita más que el plan gratuito. Pero si tu estante sigue creciendo, Premium te tiene cubierto.",
   "pricing.free": "Gratis",
-  "pricing.zeroPrice": "0 $",
+  "pricing.zeroPrice": "Gratis",
   "pricing.perMonth": "/mes",
   "pricing.noCard": "Sin tarjeta. Siempre gratis.",
   "pricing.currentPlan": "Tu plan actual",
