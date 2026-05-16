@@ -1,12 +1,11 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { db, tipsTable, tipVotesTable } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
 import {
   createTipWithRateLimit,
   listTopTipsLast30Days,
 } from "../lib/gamification.js";
 import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const TIP_BODY_MAX = 280;
 const TIPS_PER_DAY_LIMIT = 5;
@@ -90,25 +89,28 @@ router.post("/tips/:id/vote", async (req, res) => {
   }
 
   try {
-    const [tip] = await db
-      .select({ id: tipsTable.id, authorId: tipsTable.authorId })
-      .from(tipsTable)
-      .where(eq(tipsTable.id, id));
+    const { data: tip, error: tipError } = await supabaseAdmin
+      .from("tips")
+      .select("id, author_id")
+      .eq("id", id)
+      .maybeSingle<{ id: string; author_id: string }>();
+    if (tipError) throw tipError;
     if (!tip) {
       res.status(404).json({ error: "Tip not found." });
       return;
     }
-    if (tip.authorId === userId) {
+    if (tip.author_id === userId) {
       res.status(400).json({ error: "You cannot vote for your own tip." });
       return;
     }
 
-    await db
-      .insert(tipVotesTable)
-      .values({ tipId: id, voterId: userId })
-      .onConflictDoNothing({
-        target: [tipVotesTable.tipId, tipVotesTable.voterId],
-      });
+    const { error: voteError } = await supabaseAdmin
+      .from("tip_votes")
+      .upsert(
+        { tip_id: id, voter_id: userId },
+        { onConflict: "tip_id,voter_id", ignoreDuplicates: true },
+      );
+    if (voteError) throw voteError;
 
     res.json({ ok: true });
   } catch (err) {
@@ -129,9 +131,12 @@ router.delete("/tips/:id/vote", async (req, res) => {
     return;
   }
   try {
-    await db
-      .delete(tipVotesTable)
-      .where(and(eq(tipVotesTable.tipId, id), eq(tipVotesTable.voterId, userId)));
+    const { error } = await supabaseAdmin
+      .from("tip_votes")
+      .delete()
+      .eq("tip_id", id)
+      .eq("voter_id", userId);
+    if (error) throw error;
     res.json({ ok: true });
   } catch (err) {
     req.log.error({ err }, "Tip unvote failed");
