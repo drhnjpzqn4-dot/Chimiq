@@ -1,8 +1,6 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
-import { db, userSubmittedProductsTable, cachedProductsTable, usersTable } from "@workspace/db";
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { uploadBufferToGcs } from "../lib/objectStorage.js";
 import { getAdminEmails, getRequestEmail, isRequestAdmin } from "../lib/admin.js";
 import { randomUUID } from "crypto";
@@ -173,32 +171,25 @@ async function rewardContributorIdempotent(
   }
 }
 
-async function approveSubmission(
-  submission: typeof userSubmittedProductsTable.$inferSelect,
-  log: (msg: string, data?: unknown) => void,
-): Promise<boolean> {
+async function approveSubmission(submission: Submission, log: (msg: string, data?: unknown) => void): Promise<boolean> {
   const hasIngredients = submission.ingredients && submission.ingredients.trim().length > 5;
   if (!hasIngredients) return false;
 
   if (submission.barcode && submission.barcode !== "unknown") {
-    await db
-      .insert(cachedProductsTable)
-      .values({
-        barcode: submission.barcode,
-        productName: submission.productName ?? "Unknown product",
-        brand: submission.brand ?? "",
-        ingredients: submission.ingredients!,
-        imageUrl: null,
-      })
-      .onConflictDoUpdate({
-        target: cachedProductsTable.barcode,
-        set: {
-          productName: sql`EXCLUDED.product_name`,
-          brand: sql`EXCLUDED.brand`,
-          ingredients: sql`EXCLUDED.ingredients`,
-          cachedAt: new Date(),
+    const { error } = await supabaseAdmin
+      .from("cached_products")
+      .upsert(
+        {
+          barcode: submission.barcode,
+          product_name: submission.productName ?? "Unknown product",
+          brand: submission.brand ?? "",
+          ingredients: submission.ingredients!,
+          image_url: null,
+          cached_at: new Date().toISOString(),
         },
-      });
+        { onConflict: "barcode" },
+      );
+    if (error) throw error;
   }
 
   log("Submission approved and cached", { submissionId: submission.id, barcode: submission.barcode });
@@ -275,6 +266,18 @@ async function getSubmission(id: string): Promise<Submission | null> {
   return data ? mapSubmission(data) : null;
 }
 
+async function getCachedProduct(
+  barcode: string,
+): Promise<{ barcode: string; productName: string | null } | null> {
+  const { data, error } = await supabaseAdmin
+    .from("cached_products")
+    .select("barcode,product_name")
+    .eq("barcode", barcode)
+    .maybeSingle<{ barcode: string; product_name: string | null }>();
+  if (error) throw error;
+  return data ? { barcode: data.barcode, productName: data.product_name } : null;
+}
+
 router.post("/contribute/start", async (req, res) => {
   const parseResult = StartBody.safeParse(req.body);
   if (!parseResult.success) {
@@ -300,10 +303,7 @@ router.post("/contribute/start", async (req, res) => {
 
   // Reject duplicates: only NEW products count toward the 30-product milestone
   if (barcode) {
-    const [existingCached] = await db
-      .select({ barcode: cachedProductsTable.barcode, productName: cachedProductsTable.productName })
-      .from(cachedProductsTable)
-      .where(eq(cachedProductsTable.barcode, barcode));
+    const existingCached = await getCachedProduct(barcode);
     if (existingCached) {
       res.status(409).json({
         error: `This product (${existingCached.productName}) is already in our database — thank you! Only new products count toward your contribution milestone.`,
@@ -314,18 +314,20 @@ router.post("/contribute/start", async (req, res) => {
   }
 
   try {
-    const [submission] = await db
-      .insert(userSubmittedProductsTable)
-      .values({
+    const { data: submission, error } = await supabaseAdmin
+      .from("user_submitted_products")
+      .insert({
         barcode: barcode ?? "unknown",
-        productName: safeName || null,
+        product_name: safeName || null,
         brand: safeBrand || null,
-        submittedBy: userId,
+        submitted_by: userId,
         status: "pending",
-        obfContributed: "pending",
-        rewardGranted: false,
+        obf_contributed: "pending",
+        reward_granted: false,
       })
-      .returning();
+      .select("id")
+      .single<{ id: string }>();
+    if (error) throw error;
 
     res.json({ submissionId: submission?.id });
   } catch (err) {
@@ -369,10 +371,7 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
     throw err;
   }
 
-  const [existing] = await db
-    .select()
-    .from(userSubmittedProductsTable)
-    .where(eq(userSubmittedProductsTable.id, submissionId));
+  const existing = await getSubmission(submissionId);
 
   if (!existing) {
     res.status(404).json({ error: "Submission not found." });
@@ -384,10 +383,13 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
     return;
   }
 
-  await db
-    .update(userSubmittedProductsTable)
-    .set({ status: "ai_reviewing" })
-    .where(eq(userSubmittedProductsTable.id, submissionId));
+  {
+    const { error } = await supabaseAdmin
+      .from("user_submitted_products")
+      .update({ status: "ai_reviewing" })
+      .eq("id", submissionId);
+    if (error) throw error;
+  }
 
   
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -504,20 +506,23 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
     isCompleteContribution && confidence === "high" ? "approved" : "needs_admin";
 
   try {
-    const [updated] = await db
-      .update(userSubmittedProductsTable)
-      .set({
-        productName: finalProductName ?? null,
+    const { data: updatedRow, error: updateError } = await supabaseAdmin
+      .from("user_submitted_products")
+      .update({
+        product_name: finalProductName ?? null,
         brand: finalBrand ?? null,
         ingredients: finalIngredients ?? null,
-        submittedBy: userId ?? existing.submittedBy,
+        submitted_by: userId ?? existing.submittedBy,
         status,
-        aiReviewNote: aiNote ?? null,
-        frontImageUrl: frontImageUrl ?? existing.frontImageUrl,
-        ingredientsImageUrl: ingredientsImageUrl ?? existing.ingredientsImageUrl,
+        ai_review_note: aiNote ?? null,
+        front_image_url: frontImageUrl ?? existing.frontImageUrl,
+        ingredients_image_url: ingredientsImageUrl ?? existing.ingredientsImageUrl,
       })
-      .where(eq(userSubmittedProductsTable.id, submissionId))
-      .returning();
+      .eq("id", submissionId)
+      .select("*")
+      .maybeSingle<SubmissionRow>();
+    if (updateError) throw updateError;
+    const updated = updatedRow ? mapSubmission(updatedRow) : null;
 
     let premiumUnlocked = false;
     let premiumUntil: Date | null = null;
@@ -529,10 +534,7 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
       // longer a "new" product and must not count toward the milestone.
       let isStillNewProduct = true;
       if (existing.barcode && existing.barcode !== "unknown") {
-        const [preexisting] = await db
-          .select({ barcode: cachedProductsTable.barcode })
-          .from(cachedProductsTable)
-          .where(eq(cachedProductsTable.barcode, existing.barcode));
+        const preexisting = await getCachedProduct(existing.barcode);
         if (preexisting) isStillNewProduct = false;
       }
 
@@ -785,27 +787,29 @@ router.post("/admin/submissions/:id/approve", async (req, res) => {
   const { productName, brand, ingredients } = parseResult.data;
 
   try {
-    const [existing] = await db
-      .select()
-      .from(userSubmittedProductsTable)
-      .where(eq(userSubmittedProductsTable.id, id));
+    const existing = await getSubmission(id);
 
     if (!existing) {
       res.status(404).json({ error: "Submission not found." });
       return;
     }
 
-    const [updated] = await db
-      .update(userSubmittedProductsTable)
-      .set({
+    const updateValues: Record<string, unknown> = {
         status: "approved",
-        ...(productName !== undefined ? { productName } : {}),
-        ...(brand !== undefined ? { brand } : {}),
-        ...(ingredients !== undefined ? { ingredients } : {}),
-        reviewedAt: new Date(),
-      })
-      .where(eq(userSubmittedProductsTable.id, id))
-      .returning();
+      reviewed_at: new Date().toISOString(),
+    };
+    if (productName !== undefined) updateValues.product_name = productName;
+    if (brand !== undefined) updateValues.brand = brand;
+    if (ingredients !== undefined) updateValues.ingredients = ingredients;
+
+    const { data: updatedRow, error: updateError } = await supabaseAdmin
+      .from("user_submitted_products")
+      .update(updateValues)
+      .eq("id", id)
+      .select("*")
+      .maybeSingle<SubmissionRow>();
+    if (updateError) throw updateError;
+    const updated = updatedRow ? mapSubmission(updatedRow) : null;
 
     if (updated) {
       // Same completeness gate as the user-facing /contribute/photos route, applied here so
@@ -821,10 +825,7 @@ router.post("/admin/submissions/:id/approve", async (req, res) => {
       // duplicates must never count toward a user's contribution milestone.
       let isNewProduct = true;
       if (adminHasBarcode) {
-        const [dup] = await db
-          .select({ barcode: cachedProductsTable.barcode })
-          .from(cachedProductsTable)
-          .where(eq(cachedProductsTable.barcode, updated.barcode!));
+        const dup = await getCachedProduct(updated.barcode);
         if (dup) isNewProduct = false;
       }
 
@@ -864,24 +865,20 @@ router.post("/admin/submissions/:id/reject", async (req, res) => {
   }
 
   try {
-    const updated = await db
-      .update(userSubmittedProductsTable)
-      .set({
+    const { data: updated, error: updateError } = await supabaseAdmin
+      .from("user_submitted_products")
+      .update({
         status: "rejected",
-        reviewedAt: new Date(),
-        reviewNote: parseResult.data.reason,
+        reviewed_at: new Date().toISOString(),
+        review_note: parseResult.data.reason,
       })
-      .where(
-        sql`${userSubmittedProductsTable.id} = ${id}
-          AND ${userSubmittedProductsTable.status} = 'needs_admin'`,
-      )
-      .returning({ id: userSubmittedProductsTable.id });
+      .eq("id", id)
+      .eq("status", "needs_admin")
+      .select("id");
+    if (updateError) throw updateError;
 
-    if (updated.length === 0) {
-      const [existing] = await db
-        .select({ status: userSubmittedProductsTable.status })
-        .from(userSubmittedProductsTable)
-        .where(eq(userSubmittedProductsTable.id, id));
+    if ((updated?.length ?? 0) === 0) {
+      const existing = await getSubmission(id);
       if (!existing) {
         res.status(404).json({ error: "Submission not found." });
       } else {
