@@ -31,7 +31,7 @@ export function LanguageSelector({ className }: LanguageSelectorProps) {
           <span>{current.code.toUpperCase()}</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[10rem]">
+      <DropdownMenuContent align="end" className="min-w-[10rem] bg-white border border-border/60 shadow-lg rounded-xl">
         {LOCALES.map((l) => (
           <DropdownMenuItem
             key={l.code}
