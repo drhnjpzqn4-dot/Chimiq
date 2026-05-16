@@ -1,11 +1,10 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { and, desc, eq, gte, ilike, isNotNull, isNull, lte, sql } from "drizzle-orm";
-import { db, feedbackSubmissionsTable, usersTable } from "@workspace/db";
 import { ipRateLimit } from "../lib/rateLimit.js";
 import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
 import { notifyNewFeedback } from "../lib/feedbackNotify.js";
 import { isRequestAdmin } from "../lib/admin.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const FeedbackBody = z.object({
   message: z.string().trim().min(1).max(4000),
@@ -15,6 +14,25 @@ const FeedbackBody = z.object({
 });
 
 const router: IRouter = Router();
+
+interface FeedbackSubmissionRow {
+  id: number;
+  message: string;
+  email: string | null;
+  locale: string | null;
+  page_url: string | null;
+  user_agent: string | null;
+  status: string;
+  created_at: string;
+  user_id: string | null;
+}
+
+interface FeedbackUserRow {
+  id: string;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+}
 
 const feedbackIpLimit = ipRateLimit({
   windowMs: 60_000,
@@ -58,15 +76,16 @@ router.post("/feedback", feedbackIpLimit, async (req, res) => {
     null;
 
   try {
-    await db.insert(feedbackSubmissionsTable).values({
-      userId,
+    const { error } = await supabaseAdmin.from("feedback_submissions").insert({
+      user_id: userId,
       email: email && email.length > 0 ? email : null,
       message: safeMessage,
       locale: locale ?? null,
-      pageUrl: pageUrl ?? null,
-      userAgent,
+      page_url: pageUrl ?? null,
+      user_agent: userAgent,
       ip,
     });
+    if (error) throw error;
 
     req.log.info(
       { userId, locale, hasEmail: !!email },
@@ -120,6 +139,38 @@ function requireAdmin(req: Parameters<typeof isRequestAdmin>[0]): boolean {
   return isRequestAdmin(req);
 }
 
+function applyFeedbackFilters(
+  query: any,
+  filters: {
+    status: FeedbackStatus | "all";
+    hasEmail: "yes" | "no" | "any";
+    q?: string;
+    fromDate: Date | null;
+    toDate: Date | null;
+  },
+) {
+  let next = query;
+  if (filters.status !== "all") {
+    next = next.eq("status", filters.status);
+  }
+  if (filters.hasEmail === "yes") {
+    next = next.not("email", "is", null);
+  } else if (filters.hasEmail === "no") {
+    next = next.is("email", null);
+  }
+  if (filters.fromDate) {
+    next = next.gte("created_at", filters.fromDate.toISOString());
+  }
+  if (filters.toDate) {
+    next = next.lte("created_at", filters.toDate.toISOString());
+  }
+  if (filters.q) {
+    const escaped = filters.q.replace(/[\\%_]/g, (m) => `\\${m}`);
+    next = next.ilike("message", `%${escaped}%`);
+  }
+  return next;
+}
+
 router.get("/admin/feedback", async (req, res) => {
   if (!requireAdmin(req as { user?: { email?: string | null } })) {
     res.status(403).json({ error: "Admin access required." });
@@ -140,69 +191,58 @@ router.get("/admin/feedback", async (req, res) => {
     pageSize = 50,
   } = parsed.data;
 
-  const conditions = [];
-  if (status !== "all") {
-    conditions.push(eq(feedbackSubmissionsTable.status, status));
-  }
-  if (hasEmail === "yes") {
-    conditions.push(isNotNull(feedbackSubmissionsTable.email));
-  } else if (hasEmail === "no") {
-    conditions.push(isNull(feedbackSubmissionsTable.email));
-  }
   const fromDate = parseDate(from);
   const toDate = parseDate(to);
   if (fromDate === "invalid" || toDate === "invalid") {
     res.status(400).json({ error: "Invalid date range." });
     return;
   }
-  if (fromDate) conditions.push(gte(feedbackSubmissionsTable.createdAt, fromDate));
-  if (toDate) conditions.push(lte(feedbackSubmissionsTable.createdAt, toDate));
-  if (q) {
-    // Escape ILIKE wildcards so user-supplied % / _ can't widen the query.
-    const escaped = q.replace(/[\\%_]/g, (m) => `\\${m}`);
-    conditions.push(ilike(feedbackSubmissionsTable.message, `%${escaped}%`));
-  }
-
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
   const offset = (page - 1) * pageSize;
 
   try {
-    const [rows, [{ total }], statusRows] = await Promise.all([
-      db
-        .select({
-          id: feedbackSubmissionsTable.id,
-          message: feedbackSubmissionsTable.message,
-          email: feedbackSubmissionsTable.email,
-          locale: feedbackSubmissionsTable.locale,
-          pageUrl: feedbackSubmissionsTable.pageUrl,
-          userAgent: feedbackSubmissionsTable.userAgent,
-          status: feedbackSubmissionsTable.status,
-          createdAt: feedbackSubmissionsTable.createdAt,
-          userId: feedbackSubmissionsTable.userId,
-          userEmail: usersTable.email,
-          userFirstName: usersTable.firstName,
-          userLastName: usersTable.lastName,
-        })
-        .from(feedbackSubmissionsTable)
-        .leftJoin(usersTable, eq(feedbackSubmissionsTable.userId, usersTable.id))
-        .where(where ?? sql`true`)
-        .orderBy(desc(feedbackSubmissionsTable.createdAt))
-        .limit(pageSize)
-        .offset(offset),
-      db
-        .select({ total: sql<number>`count(*)::int` })
-        .from(feedbackSubmissionsTable)
-        .where(where ?? sql`true`),
-      // Headline counts ignore filters so the tab badges reflect the
-      // whole queue, not "matches in current view".
-      db
-        .select({
-          status: feedbackSubmissionsTable.status,
-          c: sql<number>`count(*)::int`,
-        })
-        .from(feedbackSubmissionsTable)
-        .groupBy(feedbackSubmissionsTable.status),
+    const baseFilters = { status, hasEmail, q, fromDate, toDate };
+    const rowsQuery = applyFeedbackFilters(
+      supabaseAdmin
+        .from("feedback_submissions")
+        .select("id,message,email,locale,page_url,user_agent,status,created_at,user_id")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + pageSize - 1),
+      baseFilters,
+    );
+    const countQuery = applyFeedbackFilters(
+      supabaseAdmin
+        .from("feedback_submissions")
+        .select("id", { head: true, count: "exact" }),
+      baseFilters,
+    );
+
+    const [rowsResult, countResult, ...statusCountResults] = await Promise.all([
+      rowsQuery,
+      countQuery,
+      ...STATUSES.map((s) =>
+        supabaseAdmin
+          .from("feedback_submissions")
+          .select("id", { head: true, count: "exact" })
+          .eq("status", s),
+      ),
     ]);
+    if (rowsResult.error) throw rowsResult.error;
+    if (countResult.error) throw countResult.error;
+    for (const result of statusCountResults) {
+      if (result.error) throw result.error;
+    }
+
+    const rows = (rowsResult.data ?? []) as FeedbackSubmissionRow[];
+    const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id)));
+    let usersById = new Map<string, FeedbackUserRow>();
+    if (userIds.length > 0) {
+      const { data: userRows, error: userError } = await supabaseAdmin
+        .from("users")
+        .select("id,email,first_name,last_name")
+        .in("id", userIds);
+      if (userError) throw userError;
+      usersById = new Map(((userRows ?? []) as FeedbackUserRow[]).map((u) => [u.id, u]));
+    }
 
     const counts: Record<FeedbackStatus | "total", number> = {
       new: 0,
@@ -210,32 +250,35 @@ router.get("/admin/feedback", async (req, res) => {
       archived: 0,
       total: 0,
     };
-    for (const row of statusRows) {
-      const n = Number(row.c);
+    STATUSES.forEach((s, index) => {
+      const n = statusCountResults[index]?.count ?? 0;
       counts.total += n;
-      if (row.status === "new" || row.status === "read" || row.status === "archived") {
-        counts[row.status as FeedbackStatus] += n;
-      }
-    }
+      counts[s] = n;
+    });
 
     const submissions = rows.map((r) => ({
       id: r.id,
       message: r.message,
       email: r.email,
       locale: r.locale,
-      pageUrl: r.pageUrl,
-      userAgent: r.userAgent,
+      pageUrl: r.page_url,
+      userAgent: r.user_agent,
       status: r.status,
-      createdAt: r.createdAt.toISOString(),
-      userId: r.userId,
-      userEmail: r.userEmail,
+      createdAt: new Date(r.created_at).toISOString(),
+      userId: r.user_id,
+      userEmail: r.user_id ? usersById.get(r.user_id)?.email ?? null : null,
       userName:
-        [r.userFirstName, r.userLastName].filter(Boolean).join(" ").trim() || null,
+        r.user_id
+          ? [
+              usersById.get(r.user_id)?.first_name,
+              usersById.get(r.user_id)?.last_name,
+            ].filter(Boolean).join(" ").trim() || null
+          : null,
     }));
 
     res.json({
       submissions,
-      total: Number(total),
+      total: Number(countResult.count ?? 0),
       page,
       pageSize,
       counts,
@@ -266,12 +309,13 @@ router.post("/admin/feedback/:id/status", async (req, res) => {
     return;
   }
   try {
-    const result = await db
-      .update(feedbackSubmissionsTable)
-      .set({ status: parsed.data.status })
-      .where(eq(feedbackSubmissionsTable.id, id))
-      .returning({ id: feedbackSubmissionsTable.id });
-    if (result.length === 0) {
+    const { data, error } = await supabaseAdmin
+      .from("feedback_submissions")
+      .update({ status: parsed.data.status })
+      .eq("id", id)
+      .select("id");
+    if (error) throw error;
+    if ((data?.length ?? 0) === 0) {
       res.status(404).json({ error: "Feedback not found." });
       return;
     }
