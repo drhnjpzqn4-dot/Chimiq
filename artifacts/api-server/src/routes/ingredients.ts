@@ -1,9 +1,18 @@
 import { Router, type IRouter } from "express";
 import { getCosingInfo } from "../lib/cosing.js";
-import { db, cachedPubchemTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const router: IRouter = Router();
+
+interface CachedPubchemRow {
+  cid: string | null;
+  iupac_name: string | null;
+  is_carcinogen: boolean | null;
+  is_reproductive_toxicant: boolean | null;
+  is_mutagen: boolean | null;
+  is_skin_sensitiser: boolean | null;
+  is_acutely_toxic: boolean | null;
+}
 
 /**
  * GET /api/ingredients/lookup?name=Niacinamide
@@ -31,11 +40,15 @@ router.get("/ingredients/lookup", async (req, res) => {
 
     // Pubchem cache lookup — match on lookup_key (lowercased trimmed name)
     const normalized = rawName.toLowerCase().trim();
-    const [pubchemRow] = await db
-      .select()
-      .from(cachedPubchemTable)
-      .where(sql`lower(${cachedPubchemTable.lookupKey}) = ${normalized}`)
-      .limit(1);
+    const { data: pubchemRow, error: pubchemError } = await supabaseAdmin
+      .from("cached_pubchem")
+      .select(
+        "cid, iupac_name, is_carcinogen, is_reproductive_toxicant, is_mutagen, is_skin_sensitiser, is_acutely_toxic",
+      )
+      .ilike("lookup_key", normalized)
+      .limit(1)
+      .maybeSingle<CachedPubchemRow>();
+    if (pubchemError) throw pubchemError;
 
     const restrictionLabels: Record<string, string> = {
       banned: "Banned in EU cosmetics (Annex II)",
@@ -49,11 +62,11 @@ router.get("/ingredients/lookup", async (req, res) => {
 
     const safetyFlags: string[] = [];
     if (pubchemRow) {
-      if (pubchemRow.isCarcinogen) safetyFlags.push("Possible carcinogen (IARC/GHS)");
-      if (pubchemRow.isReproductiveToxicant) safetyFlags.push("Reproductive toxicity flag");
-      if (pubchemRow.isMutagen) safetyFlags.push("Possible mutagen");
-      if (pubchemRow.isSkinSensitiser) safetyFlags.push("Skin sensitiser");
-      if (pubchemRow.isAcutelyToxic) safetyFlags.push("Acutely toxic");
+      if (pubchemRow.is_carcinogen) safetyFlags.push("Possible carcinogen (IARC/GHS)");
+      if (pubchemRow.is_reproductive_toxicant) safetyFlags.push("Reproductive toxicity flag");
+      if (pubchemRow.is_mutagen) safetyFlags.push("Possible mutagen");
+      if (pubchemRow.is_skin_sensitiser) safetyFlags.push("Skin sensitiser");
+      if (pubchemRow.is_acutely_toxic) safetyFlags.push("Acutely toxic");
     }
 
     res.json({
@@ -65,11 +78,11 @@ router.get("/ingredients/lookup", async (req, res) => {
       restrictionDetail: cosing?.restrictionDescription ?? null,
       annexReference: cosing?.annexReference ?? null,
       pubchemCid: pubchemRow?.cid ?? null,
-      iupacName: pubchemRow?.iupacName ?? null,
+      iupacName: pubchemRow?.iupac_name ?? null,
       safetyFlags,
       // True only when we found something genuinely useful beyond the name
       hasData: Boolean(
-        cosing || pubchemRow?.iupacName || (pubchemRow && safetyFlags.length > 0),
+        cosing || pubchemRow?.iupac_name || (pubchemRow && safetyFlags.length > 0),
       ),
     });
   } catch (err) {
