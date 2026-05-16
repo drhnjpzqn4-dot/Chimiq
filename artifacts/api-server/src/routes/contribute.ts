@@ -207,6 +207,74 @@ async function approveSubmission(
 
 const router: IRouter = Router();
 
+type SubmissionStatus = "pending" | "ai_reviewing" | "approved" | "needs_admin" | "rejected";
+
+interface SubmissionRow {
+  id: string;
+  barcode: string;
+  product_name: string | null;
+  brand: string | null;
+  ingredients: string | null;
+  submitted_at: string;
+  obf_contributed: string | null;
+  submitted_by: string | null;
+  status: SubmissionStatus;
+  ai_review_note: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  front_image_url: string | null;
+  ingredients_image_url: string | null;
+  reward_granted: boolean;
+}
+
+interface Submission {
+  id: string;
+  barcode: string;
+  productName: string | null;
+  brand: string | null;
+  ingredients: string | null;
+  submittedAt: string;
+  obfContributed: string | null;
+  submittedBy: string | null;
+  status: SubmissionStatus;
+  aiReviewNote: string | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+  frontImageUrl: string | null;
+  ingredientsImageUrl: string | null;
+  rewardGranted: boolean;
+}
+
+function mapSubmission(row: SubmissionRow): Submission {
+  return {
+    id: row.id,
+    barcode: row.barcode,
+    productName: row.product_name,
+    brand: row.brand,
+    ingredients: row.ingredients,
+    submittedAt: row.submitted_at,
+    obfContributed: row.obf_contributed,
+    submittedBy: row.submitted_by,
+    status: row.status,
+    aiReviewNote: row.ai_review_note,
+    reviewedAt: row.reviewed_at,
+    reviewNote: row.review_note,
+    frontImageUrl: row.front_image_url,
+    ingredientsImageUrl: row.ingredients_image_url,
+    rewardGranted: row.reward_granted,
+  };
+}
+
+async function getSubmission(id: string): Promise<Submission | null> {
+  const { data, error } = await supabaseAdmin
+    .from("user_submitted_products")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle<SubmissionRow>();
+  if (error) throw error;
+  return data ? mapSubmission(data) : null;
+}
+
 router.post("/contribute/start", async (req, res) => {
   const parseResult = StartBody.safeParse(req.body);
   if (!parseResult.success) {
@@ -510,22 +578,7 @@ router.get("/contribute/status/:id", async (req, res) => {
   const userId = (req as { user?: { id?: string } }).user?.id ?? null;
 
   try {
-    const [submission] = await db
-      .select({
-        id: userSubmittedProductsTable.id,
-        status: userSubmittedProductsTable.status,
-        productName: userSubmittedProductsTable.productName,
-        brand: userSubmittedProductsTable.brand,
-        ingredients: userSubmittedProductsTable.ingredients,
-        aiReviewNote: userSubmittedProductsTable.aiReviewNote,
-        // Surface the admin's rejection reason so the submitter can see why
-        // their product wasn't accepted (#72). Only populated for rejected
-        // submissions; null otherwise.
-        reviewNote: userSubmittedProductsTable.reviewNote,
-        submittedBy: userSubmittedProductsTable.submittedBy,
-      })
-      .from(userSubmittedProductsTable)
-      .where(eq(userSubmittedProductsTable.id, id));
+    const submission = await getSubmission(id);
 
     if (!submission) {
       res.status(404).json({ error: "Submission not found." });
@@ -537,8 +590,18 @@ router.get("/contribute/status/:id", async (req, res) => {
       return;
     }
 
-    const { submittedBy: _omit, ...safe } = submission;
-    res.json(safe);
+    res.json({
+      id: submission.id,
+      status: submission.status,
+      productName: submission.productName,
+      brand: submission.brand,
+      ingredients: submission.ingredients,
+      aiReviewNote: submission.aiReviewNote,
+      // Surface the admin's rejection reason so the submitter can see why
+      // their product wasn't accepted (#72). Only populated for rejected
+      // submissions; null otherwise.
+      reviewNote: submission.reviewNote,
+    });
   } catch (err) {
     req.log.error({ err }, "Failed to fetch submission status");
     res.status(500).json({ error: "Could not fetch submission status." });
@@ -553,21 +616,20 @@ router.get("/contribute/stats", async (req, res) => {
   }
 
   try {
-    const [user] = await db
-      .select({
-        acceptedContributions: usersTable.acceptedContributions,
-        premiumUntil: usersTable.premiumUntil,
-      })
-      .from(usersTable)
-      .where(eq(usersTable.id, userId));
+    const { data: user, error } = await supabaseAdmin
+      .from("users")
+      .select("accepted_contributions,premium_until")
+      .eq("id", userId)
+      .maybeSingle<{ accepted_contributions: number; premium_until: string | null }>();
+    if (error) throw error;
 
-    const premiumUntil = user?.premiumUntil ?? null;
+    const premiumUntil = user?.premium_until ? new Date(user.premium_until) : null;
     const justUnlocked =
       premiumUntil !== null &&
       premiumUntil.getTime() - Date.now() > 24 * 60 * 60 * 1000 * 29;
 
     res.json({
-      acceptedContributions: user?.acceptedContributions ?? 0,
+      acceptedContributions: user?.accepted_contributions ?? 0,
       premiumUntil: premiumUntil?.toISOString() ?? null,
       premiumJustUnlocked: justUnlocked,
     });
@@ -620,35 +682,30 @@ router.get("/admin/submissions", async (req, res) => {
   }
 
   const { status, q, limit } = parsed.data;
-  const conds = [];
+  let query = supabaseAdmin
+    .from("user_submitted_products")
+    .select("*")
+    .order("submitted_at", { ascending: false })
+    .limit(limit ?? 200);
   // "pending" is the user-facing label; the schema status is "needs_admin".
   if (!status || status === "pending") {
-    conds.push(eq(userSubmittedProductsTable.status, "needs_admin"));
+    query = query.eq("status", "needs_admin");
   } else if (status === "approved") {
-    conds.push(eq(userSubmittedProductsTable.status, "approved"));
+    query = query.eq("status", "approved");
   } else if (status === "rejected") {
-    conds.push(eq(userSubmittedProductsTable.status, "rejected"));
+    query = query.eq("status", "rejected");
   }
   // status === "all" intentionally adds no status condition.
 
   if (q && q.length > 0) {
-    const needle = `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
-    const orClauses = or(
-      ilike(userSubmittedProductsTable.barcode, needle),
-      ilike(userSubmittedProductsTable.productName, needle),
-      ilike(userSubmittedProductsTable.brand, needle),
-    );
-    if (orClauses) conds.push(orClauses);
+    const needle = `%${q.replace(/,/g, " ").replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
+    query = query.or(`barcode.ilike.${needle},product_name.ilike.${needle},brand.ilike.${needle}`);
   }
 
   try {
-    const rows = await db
-      .select()
-      .from(userSubmittedProductsTable)
-      .where(conds.length ? and(...conds) : undefined)
-      .orderBy(desc(userSubmittedProductsTable.submittedAt))
-      .limit(limit ?? 200);
-    res.json({ submissions: rows });
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json({ submissions: ((data ?? []) as SubmissionRow[]).map(mapSubmission) });
   } catch (err) {
     req.log.error({ err }, "Admin submissions query failed");
     res.status(500).json({ error: "Failed to load submissions." });
@@ -669,23 +726,38 @@ router.get("/contribute/my-recent", async (req, res) => {
   }
 
   try {
-    const rows = await db
-      .select({
-        id: userSubmittedProductsTable.id,
-        barcode: userSubmittedProductsTable.barcode,
-        productName: userSubmittedProductsTable.productName,
-        brand: userSubmittedProductsTable.brand,
-        status: userSubmittedProductsTable.status,
-        reviewNote: userSubmittedProductsTable.reviewNote,
-        aiReviewNote: userSubmittedProductsTable.aiReviewNote,
-        submittedAt: userSubmittedProductsTable.submittedAt,
-        reviewedAt: userSubmittedProductsTable.reviewedAt,
-      })
-      .from(userSubmittedProductsTable)
-      .where(eq(userSubmittedProductsTable.submittedBy, userId))
-      .orderBy(desc(userSubmittedProductsTable.submittedAt))
+    const { data, error } = await supabaseAdmin
+      .from("user_submitted_products")
+      .select("id,barcode,product_name,brand,status,review_note,ai_review_note,submitted_at,reviewed_at")
+      .eq("submitted_by", userId)
+      .order("submitted_at", { ascending: false })
       .limit(10);
-    res.json({ submissions: rows });
+    if (error) throw error;
+    const submissions = ((data ?? []) as Array<
+      Pick<
+        SubmissionRow,
+        | "id"
+        | "barcode"
+        | "product_name"
+        | "brand"
+        | "status"
+        | "review_note"
+        | "ai_review_note"
+        | "submitted_at"
+        | "reviewed_at"
+      >
+    >).map((row) => ({
+      id: row.id,
+      barcode: row.barcode,
+      productName: row.product_name,
+      brand: row.brand,
+      status: row.status,
+      reviewNote: row.review_note,
+      aiReviewNote: row.ai_review_note,
+      submittedAt: row.submitted_at,
+      reviewedAt: row.reviewed_at,
+    }));
+    res.json({ submissions });
   } catch (err) {
     req.log.error({ err }, "Failed to load user's recent submissions");
     res.status(500).json({ error: "Failed to load your submissions." });
