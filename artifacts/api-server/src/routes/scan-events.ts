@@ -1,9 +1,8 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { db, scanEventsTable } from "@workspace/db";
-import { sql, desc, eq, and, gte, lte } from "drizzle-orm";
 import { isRequestAdmin } from "../lib/admin.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const RecordBody = z.object({
   productName: z.string().max(500).optional(),
@@ -21,6 +20,68 @@ function normalizeProductName(name: string | undefined): string | null {
 const router: IRouter = Router();
 
 const scanEventLimiter = ipRateLimit({ windowMs: 60_000, max: 30, key: "scan-events" });
+const PAGE_SIZE = 1000;
+
+interface ScanEventRow {
+  product_name: string | null;
+  verdict: "safe" | "warning" | "high";
+  created_at: string;
+}
+
+interface ScanFilters {
+  verdictFilter?: "safe" | "warning" | "high";
+  from?: string;
+  to?: string;
+  requireProductName?: boolean;
+}
+
+function applyScanFilters(query: any, filters: ScanFilters) {
+  let next = query;
+  if (filters.requireProductName) {
+    next = next.not("product_name", "is", null).neq("product_name", "");
+  }
+  if (filters.verdictFilter) {
+    next = next.eq("verdict", filters.verdictFilter);
+  }
+  if (filters.from) {
+    const fromDate = new Date(filters.from);
+    if (!Number.isNaN(fromDate.getTime())) {
+      next = next.gte("created_at", fromDate.toISOString());
+    }
+  }
+  if (filters.to) {
+    const toDate = new Date(filters.to);
+    if (!Number.isNaN(toDate.getTime())) {
+      toDate.setHours(23, 59, 59, 999);
+      next = next.lte("created_at", toDate.toISOString());
+    }
+  }
+  return next;
+}
+
+async function fetchScanEvents(filters: ScanFilters): Promise<ScanEventRow[]> {
+  const rows: ScanEventRow[] = [];
+  let offset = 0;
+
+  for (;;) {
+    const query = applyScanFilters(
+      supabaseAdmin
+        .from("scan_events")
+        .select("product_name,verdict,created_at")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1),
+      filters,
+    );
+    const { data, error } = await query;
+    if (error) throw error;
+    const page = (data ?? []) as ScanEventRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return rows;
+}
 
 router.post("/scan-events", scanEventLimiter, async (req, res) => {
   const parsed = RecordBody.safeParse(req.body);
@@ -34,12 +95,13 @@ router.post("/scan-events", scanEventLimiter, async (req, res) => {
   const normalized = normalizeProductName(productName);
 
   try {
-    await db.insert(scanEventsTable).values({
-      productName: normalized,
+    const { error } = await supabaseAdmin.from("scan_events").insert({
+      product_name: normalized,
       verdict,
-      scanMode,
-      userId,
+      scan_mode: scanMode,
+      user_id: userId,
     });
+    if (error) throw error;
     res.json({ ok: true });
   } catch (err) {
     req.log.warn({ err }, "Failed to record scan event");
@@ -66,71 +128,60 @@ router.get("/admin/scan-insights", async (req, res) => {
   const to = typeof req.query.to === "string" ? req.query.to : undefined;
 
   try {
-    const conditions = [];
-    conditions.push(sql`${scanEventsTable.productName} IS NOT NULL`);
-    conditions.push(sql`${scanEventsTable.productName} != ''`);
+    const rows = await fetchScanEvents({
+      verdictFilter: verdictFilter === "all" ? undefined : verdictFilter,
+      from,
+      to,
+      requireProductName: true,
+    });
 
-    if (verdictFilter !== "all") {
-      conditions.push(eq(scanEventsTable.verdict, verdictFilter));
-    }
-
-    if (from) {
-      const fromDate = new Date(from);
-      if (!isNaN(fromDate.getTime())) {
-        conditions.push(gte(scanEventsTable.createdAt, fromDate));
+    const grouped = new Map<
+      string,
+      {
+        productName: string;
+        totalScans: number;
+        safeCount: number;
+        warningCount: number;
+        highCount: number;
+        lastScanned: string;
       }
-    }
+    >();
+    const summary = { totalEvents: 0, safe: 0, warning: 0, high: 0 };
 
-    if (to) {
-      const toDate = new Date(to);
-      if (!isNaN(toDate.getTime())) {
-        toDate.setHours(23, 59, 59, 999);
-        conditions.push(lte(scanEventsTable.createdAt, toDate));
+    for (const row of rows) {
+      const productName = normalizeProductName(row.product_name ?? undefined);
+      if (!productName) continue;
+      summary.totalEvents += 1;
+      summary[row.verdict] += 1;
+
+      const key = productName.toLowerCase();
+      const item =
+        grouped.get(key) ??
+        {
+          productName,
+          totalScans: 0,
+          safeCount: 0,
+          warningCount: 0,
+          highCount: 0,
+          lastScanned: row.created_at,
+        };
+      item.totalScans += 1;
+      if (row.verdict === "safe") item.safeCount += 1;
+      if (row.verdict === "warning") item.warningCount += 1;
+      if (row.verdict === "high") item.highCount += 1;
+      if (new Date(row.created_at).getTime() > new Date(item.lastScanned).getTime()) {
+        item.lastScanned = row.created_at;
       }
+      grouped.set(key, item);
     }
 
-    const rows = await db
-      .select({
-        productName: sql<string>`min(${scanEventsTable.productName})`.as("product_name"),
-        totalScans: sql<number>`count(*)`.as("total_scans"),
-        safeCount: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'safe')`.as("safe_count"),
-        warningCount: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'warning')`.as("warning_count"),
-        highCount: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'high')`.as("high_count"),
-        lastScanned: sql<string>`max(${scanEventsTable.createdAt})`.as("last_scanned"),
-      })
-      .from(scanEventsTable)
-      .where(and(...conditions))
-      .groupBy(sql`lower(${scanEventsTable.productName})`)
-      .orderBy(desc(sql`count(*)`))
-      .limit(limit);
-
-    const summaryConditions = [...conditions];
-
-    const [summaryRow] = await db
-      .select({
-        total: sql<number>`count(*)`,
-        safe: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'safe')`,
-        warning: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'warning')`,
-        high: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'high')`,
-      })
-      .from(scanEventsTable)
-      .where(and(...summaryConditions));
+    const products = Array.from(grouped.values())
+      .sort((a, b) => b.totalScans - a.totalScans)
+      .slice(0, limit);
 
     res.json({
-      products: rows.map((r) => ({
-        productName: r.productName,
-        totalScans: Number(r.totalScans),
-        safeCount: Number(r.safeCount),
-        warningCount: Number(r.warningCount),
-        highCount: Number(r.highCount),
-        lastScanned: r.lastScanned,
-      })),
-      summary: {
-        totalEvents: Number(summaryRow?.total ?? 0),
-        safe: Number(summaryRow?.safe ?? 0),
-        warning: Number(summaryRow?.warning ?? 0),
-        high: Number(summaryRow?.high ?? 0),
-      },
+      products,
+      summary,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to load scan insights");
@@ -148,46 +199,19 @@ router.get("/admin/scan-insights/timeseries", async (req, res) => {
   const to = typeof req.query.to === "string" ? req.query.to : undefined;
 
   try {
-    const conditions = [];
+    const rows = await fetchScanEvents({ from, to });
+    const byDate = new Map<string, { date: string; total: number; safe: number; warning: number; high: number }>();
 
-    if (from) {
-      const fromDate = new Date(from);
-      if (!isNaN(fromDate.getTime())) {
-        conditions.push(gte(scanEventsTable.createdAt, fromDate));
-      }
+    for (const row of rows) {
+      const date = new Date(row.created_at).toISOString().slice(0, 10);
+      const item = byDate.get(date) ?? { date, total: 0, safe: 0, warning: 0, high: 0 };
+      item.total += 1;
+      item[row.verdict] += 1;
+      byDate.set(date, item);
     }
-
-    if (to) {
-      const toDate = new Date(to);
-      if (!isNaN(toDate.getTime())) {
-        toDate.setHours(23, 59, 59, 999);
-        conditions.push(lte(scanEventsTable.createdAt, toDate));
-      }
-    }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const rows = await db
-      .select({
-        date: sql<string>`to_char(${scanEventsTable.createdAt}::date, 'YYYY-MM-DD')`.as("date"),
-        total: sql<number>`count(*)`.as("total"),
-        safe: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'safe')`.as("safe"),
-        warning: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'warning')`.as("warning"),
-        high: sql<number>`count(*) FILTER (WHERE ${scanEventsTable.verdict} = 'high')`.as("high"),
-      })
-      .from(scanEventsTable)
-      .where(whereClause)
-      .groupBy(sql`${scanEventsTable.createdAt}::date`)
-      .orderBy(sql`${scanEventsTable.createdAt}::date`);
 
     res.json({
-      series: rows.map((r) => ({
-        date: r.date,
-        total: Number(r.total),
-        safe: Number(r.safe),
-        warning: Number(r.warning),
-        high: Number(r.high),
-      })),
+      series: Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date)),
     });
   } catch (err) {
     req.log.error({ err }, "Failed to load scan timeseries");
