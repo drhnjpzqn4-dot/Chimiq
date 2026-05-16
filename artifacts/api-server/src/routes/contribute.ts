@@ -15,6 +15,7 @@ import {
 import { evaluateContributionBadges } from "../lib/gamification.js";
 import { requireAuth } from "../lib/authGate.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const StartBody = z.object({
   barcode: z.string().trim().regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required."),
@@ -38,9 +39,6 @@ const AdminReviewBody = z.object({
 const AdminRejectBody = z.object({
   reason: z.string().trim().min(1, "Reason is required.").max(500),
 });
-
-const PREMIUM_CONTRIBUTION_MILESTONE = 30;
-const PREMIUM_DURATION_DAYS = 30;
 
 async function extractFromFrontImage(
   imageBase64: string,
@@ -133,47 +131,37 @@ async function rewardContributorIdempotent(
   log: (msg: string, data?: unknown) => void,
 ): Promise<{ premiumUnlocked: boolean; premiumUntil: Date | null; totalContributions: number }> {
   try {
-    const [claimed] = await db
-      .update(userSubmittedProductsTable)
-      .set({ rewardGranted: true })
-      .where(
-        sql`${userSubmittedProductsTable.id} = ${submissionId}
-          AND ${userSubmittedProductsTable.rewardGranted} = false`,
-      )
-      .returning({ id: userSubmittedProductsTable.id });
+    const { data, error } = await supabaseAdmin.rpc("reward_contributor_idempotent", {
+      submission_id: submissionId,
+      user_id: userId,
+    });
+    if (error) throw error;
 
-    if (!claimed) {
+    const result = (data ?? {}) as {
+      premiumUnlocked?: boolean;
+      premiumUntil?: string | null;
+      totalContributions?: number;
+      alreadyGranted?: boolean;
+    };
+
+    if (result.alreadyGranted) {
       log("Reward already granted for submission, skipping", { submissionId });
-      const [user] = await db
-        .select({ acceptedContributions: usersTable.acceptedContributions })
-        .from(usersTable)
-        .where(eq(usersTable.id, userId));
-      return { premiumUnlocked: false, premiumUntil: null, totalContributions: user?.acceptedContributions ?? 0 };
     }
 
-    const [updated] = await db
-      .update(usersTable)
-      .set({ acceptedContributions: sql`accepted_contributions + 1` })
-      .where(eq(usersTable.id, userId))
-      .returning({ acceptedContributions: usersTable.acceptedContributions });
-
-    const newCount = updated?.acceptedContributions ?? 0;
+    const newCount = Number(result.totalContributions ?? 0);
 
     // Idempotently award count-based badges. Errors here must NOT block
     // the contribution reward path — badges are a nice-to-have layer.
-    try {
-      await evaluateContributionBadges(userId, newCount);
-    } catch (err) {
-      log("Badge evaluation failed (non-fatal)", { err });
+    if (!result.alreadyGranted) {
+      try {
+        await evaluateContributionBadges(userId, newCount);
+      } catch (err) {
+        log("Badge evaluation failed (non-fatal)", { err });
+      }
     }
 
-    if (newCount > 0 && newCount % PREMIUM_CONTRIBUTION_MILESTONE === 0) {
-      const premiumUntil = new Date();
-      premiumUntil.setDate(premiumUntil.getDate() + PREMIUM_DURATION_DAYS);
-      await db
-        .update(usersTable)
-        .set({ premiumUntil })
-        .where(eq(usersTable.id, userId));
+    const premiumUntil = result.premiumUntil ? new Date(result.premiumUntil) : null;
+    if (result.premiumUnlocked && premiumUntil) {
       log("Premium unlocked via contributions", { userId, count: newCount, premiumUntil });
       return { premiumUnlocked: true, premiumUntil, totalContributions: newCount };
     }
