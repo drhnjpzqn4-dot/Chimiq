@@ -17,6 +17,9 @@ interface CachedProductRow {
   brand: string;
   ingredients: string;
   image_url: string | null;
+  source: string | null;
+  analysis_cache_hash: string | null;
+  analysis_result_json: unknown | null;
 }
 
 async function lookupOpenBeautyFacts(barcode: string): Promise<{
@@ -73,7 +76,7 @@ router.get("/barcode/:code", async (req, res) => {
 
   const { data: cached, error: cachedError } = await supabaseAdmin
     .from("cached_products")
-    .select("product_name,brand,ingredients,image_url")
+    .select("product_name,brand,ingredients,image_url,source,analysis_cache_hash,analysis_result_json")
     .eq("barcode", code)
     .maybeSingle<CachedProductRow>();
   if (cachedError) {
@@ -87,6 +90,14 @@ router.get("/barcode/:code", async (req, res) => {
       brand: cached.brand,
       ingredients: cached.ingredients,
       imageUrl: cached.image_url ?? null,
+      source: cached.source ?? "chimiq",
+      analysis: cached.analysis_result_json
+        ? {
+            ...(cached.analysis_result_json as Record<string, unknown>),
+            cacheHash: cached.analysis_cache_hash,
+            fromCache: true,
+          }
+        : null,
       fromCache: true,
     });
     return;
@@ -129,6 +140,8 @@ router.get("/barcode/:code", async (req, res) => {
       ingredients,
       image_url: imageUrl,
       source: "obf",
+      analysis_cache_hash: analysis.cacheHash,
+      analysis_result_json: analysis,
     });
     if (insertError) {
       req.log.warn({ err: insertError }, "OBF product cache write failed");
