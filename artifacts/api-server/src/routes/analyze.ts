@@ -14,7 +14,7 @@ import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
 import { partitionIngredients } from "../lib/safe-ingredients.js";
 import { getRisksInList, buildMandatoryFlagsBlock } from "../lib/risky-ingredients.js";
 import { getConflicts, buildMandatoryConflictsBlock } from "../lib/conflict-pairs.js";
-import { getUserPlan } from "@workspace/db";
+import { getUserPlan } from "../lib/userPlan.js";
 import {
   FREE_DAILY_SCAN_LIMIT,
   claimDailyScanSlot,
