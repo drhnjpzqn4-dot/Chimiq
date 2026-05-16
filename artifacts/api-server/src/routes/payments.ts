@@ -1,10 +1,4 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import {
-  db,
-  usersTable,
-  paymentTestChargesTable,
-} from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
 import Stripe from "stripe";
 import { getUncachableStripeClient } from "../stripeClient.js";
 import { isRequestAdmin } from "../lib/admin.js";
@@ -302,10 +296,7 @@ router.post(
       true;
 
     try {
-      const [user] = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, req.user.id));
+      const user = await getPaymentUser(req.user.id);
 
       if (!user) {
         res.status(404).json({ error: "User not found" });
@@ -404,18 +395,19 @@ router.post(
         // resulting `charge.refunded` webhook handler matches against this
         // row to know "this is a verification ping, do not downgrade", so
         // the row must exist before the webhook can fire.
-        await db
-          .insert(paymentTestChargesTable)
-          .values({
-            paymentIntentId: intent.id,
-            userId: user.id,
-            stripeCustomerId: user.stripeCustomerId,
-            chargeId,
-            livemode: livemode ? "live" : "test",
-          })
-          .onConflictDoNothing({
-            target: paymentTestChargesTable.paymentIntentId,
-          });
+        const { error: auditInsertError } = await supabaseAdmin
+          .from("payment_test_charges")
+          .upsert(
+            {
+              payment_intent_id: intent.id,
+              user_id: user.id,
+              stripe_customer_id: user.stripeCustomerId,
+              charge_id: chargeId,
+              livemode: livemode ? "live" : "test",
+            },
+            { onConflict: "payment_intent_id", ignoreDuplicates: true },
+          );
+        if (auditInsertError) throw auditInsertError;
 
         // Belt-and-suspenders: also stamp the Charge itself with the same
         // metadata so the webhook guard still works if the audit insert
@@ -482,10 +474,11 @@ router.post(
         }
       }
 
-      await db
-        .update(paymentTestChargesTable)
-        .set({ refundId: refund.id })
-        .where(eq(paymentTestChargesTable.paymentIntentId, intent.id));
+      const { error: refundUpdateError } = await supabaseAdmin
+        .from("payment_test_charges")
+        .update({ refund_id: refund.id })
+        .eq("payment_intent_id", intent.id);
+      if (refundUpdateError) throw refundUpdateError;
 
       // Endpoint configuration health: list endpoints in the same livemode
       // and report whether at least one is enabled and listening for
@@ -526,16 +519,15 @@ router.post(
       let webhookReceivedAt: string | null = null;
       let webhookEventId: string | null = null;
       while (Date.now() < POLL_DEADLINE_MS) {
-        const [row] = await db
-          .select({
-            webhookReceivedAt: paymentTestChargesTable.webhookReceivedAt,
-            webhookEventId: paymentTestChargesTable.webhookEventId,
-          })
-          .from(paymentTestChargesTable)
-          .where(eq(paymentTestChargesTable.paymentIntentId, intent.id));
-        if (row?.webhookReceivedAt) {
-          webhookReceivedAt = row.webhookReceivedAt.toISOString();
-          webhookEventId = row.webhookEventId ?? null;
+        const { data: row, error: pollError } = await supabaseAdmin
+          .from("payment_test_charges")
+          .select("webhook_received_at,webhook_event_id")
+          .eq("payment_intent_id", intent.id)
+          .maybeSingle<{ webhook_received_at: string | null; webhook_event_id: string | null }>();
+        if (pollError) throw pollError;
+        if (row?.webhook_received_at) {
+          webhookReceivedAt = new Date(row.webhook_received_at).toISOString();
+          webhookEventId = row.webhook_event_id ?? null;
           break;
         }
         await new Promise((r) => setTimeout(r, 500));
