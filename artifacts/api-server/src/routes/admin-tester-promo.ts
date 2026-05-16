@@ -1,8 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, testerPromoChangesTable } from "@workspace/db";
-import { and, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
 import { getUncachableStripeClient } from "../stripeClient.js";
 import { isRequestAdmin, getRequestEmail } from "../lib/admin.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 import {
   ACTIVE_PROMO_METADATA_KEY,
   COUPON_ID,
@@ -19,6 +18,7 @@ import {
 // on-demand re-fetch. The raise-cap and mint endpoints also invalidate
 // this so the widget shows the new code immediately after a mutation.
 const CACHE_TTL_MS = 45_000;
+const PAGE_SIZE = 1000;
 
 let cached: { payload: PromoPayload; fetchedAt: number } | null = null;
 
@@ -33,6 +33,82 @@ export function invalidateTesterPromoCache(): void {
 }
 
 const router: IRouter = Router();
+
+interface TesterPromoChangeRow {
+  id: number;
+  action: "raise_cap" | "mint";
+  admin_email: string;
+  old_code: string | null;
+  old_max_redemptions: number | null;
+  old_promotion_code_id: string | null;
+  new_code: string;
+  new_max_redemptions: number | null;
+  new_promotion_code_id: string;
+  created_at: string;
+}
+
+interface PromoHistoryFilters {
+  actionFilter: "raise_cap" | "mint" | null;
+  qFilter: string | null;
+  fromDate: Date | null;
+  toDate: Date | null;
+}
+
+function applyPromoHistoryFilters(query: any, filters: PromoHistoryFilters) {
+  let next = query;
+  if (filters.actionFilter) {
+    next = next.eq("action", filters.actionFilter);
+  }
+  if (filters.fromDate) {
+    next = next.gte("created_at", filters.fromDate.toISOString());
+  }
+  if (filters.toDate) {
+    next = next.lte("created_at", filters.toDate.toISOString());
+  }
+  if (filters.qFilter) {
+    const escaped = filters.qFilter.replace(/,/g, " ").replace(/[\\%_]/g, (c) => `\\${c}`);
+    const pattern = `%${escaped}%`;
+    next = next.or(`new_code.ilike.${pattern},old_code.ilike.${pattern},admin_email.ilike.${pattern}`);
+  }
+  return next;
+}
+
+function mapPromoChange(row: TesterPromoChangeRow) {
+  return {
+    id: row.id,
+    action: row.action,
+    adminEmail: row.admin_email,
+    oldCode: row.old_code,
+    oldMaxRedemptions: row.old_max_redemptions,
+    oldPromotionCodeId: row.old_promotion_code_id,
+    newCode: row.new_code,
+    newMaxRedemptions: row.new_max_redemptions,
+    newPromotionCodeId: row.new_promotion_code_id,
+    createdAt: new Date(row.created_at).toISOString(),
+  };
+}
+
+async function fetchPromoChanges(filters: PromoHistoryFilters): Promise<TesterPromoChangeRow[]> {
+  const rows: TesterPromoChangeRow[] = [];
+  let offset = 0;
+  for (;;) {
+    const query = applyPromoHistoryFilters(
+      supabaseAdmin
+        .from("tester_promo_changes")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1),
+      filters,
+    );
+    const { data, error } = await query;
+    if (error) throw error;
+    const page = (data ?? []) as TesterPromoChangeRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return rows;
+}
 
 // Parse a `from` / `to` query string into a Date. Accepts anything the
 // JS Date constructor accepts (ISO timestamps, YYYY-MM-DD). Returns
@@ -278,16 +354,17 @@ async function recordPromoChange(opts: {
   newPromo: StripePromotionCode;
 }): Promise<void> {
   try {
-    await db.insert(testerPromoChangesTable).values({
+    const { error } = await supabaseAdmin.from("tester_promo_changes").insert({
       action: opts.action,
-      adminEmail: opts.adminEmail ?? "unknown",
-      oldCode: opts.oldPromo?.code ?? null,
-      oldMaxRedemptions: opts.oldPromo?.max_redemptions ?? null,
-      oldPromotionCodeId: opts.oldPromo?.id ?? null,
-      newCode: opts.newPromo.code,
-      newMaxRedemptions: opts.newPromo.max_redemptions ?? null,
-      newPromotionCodeId: opts.newPromo.id,
+      admin_email: opts.adminEmail ?? "unknown",
+      old_code: opts.oldPromo?.code ?? null,
+      old_max_redemptions: opts.oldPromo?.max_redemptions ?? null,
+      old_promotion_code_id: opts.oldPromo?.id ?? null,
+      new_code: opts.newPromo.code,
+      new_max_redemptions: opts.newPromo.max_redemptions ?? null,
+      new_promotion_code_id: opts.newPromo.id,
     });
+    if (error) throw error;
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("[admin/tester-promo] failed to write history row", err);
@@ -320,7 +397,7 @@ router.get("/admin/tester-promo/history", async (req: Request, res: Response) =>
       : 20;
 
   const actionParam = typeof req.query.action === "string" ? req.query.action : "";
-  const actionFilter =
+  const actionFilter: "raise_cap" | "mint" | null =
     actionParam === "raise_cap" || actionParam === "mint" ? actionParam : null;
 
   const qRaw = typeof req.query.q === "string" ? req.query.q.trim() : "";
@@ -335,65 +412,30 @@ router.get("/admin/tester-promo/history", async (req: Request, res: Response) =>
     return;
   }
 
-  const whereParts: SQL[] = [];
-  if (actionFilter) {
-    whereParts.push(eq(testerPromoChangesTable.action, actionFilter));
-  }
-  if (fromDate) {
-    whereParts.push(gte(testerPromoChangesTable.createdAt, fromDate));
-  }
-  if (toDate) {
-    whereParts.push(lte(testerPromoChangesTable.createdAt, toDate));
-  }
-  if (qFilter) {
-    // Escape LIKE wildcards in the user input so e.g. "%" or "_" is
-    // treated as a literal, not a wildcard.
-    const escaped = qFilter.replace(/[\\%_]/g, (c) => `\\${c}`);
-    const pattern = `%${escaped}%`;
-    const orClause = or(
-      ilike(testerPromoChangesTable.newCode, pattern),
-      ilike(testerPromoChangesTable.oldCode, pattern),
-      ilike(testerPromoChangesTable.adminEmail, pattern),
-    );
-    if (orClause) whereParts.push(orClause);
-  }
-  const whereClause =
-    whereParts.length === 0
-      ? undefined
-      : whereParts.length === 1
-        ? whereParts[0]
-        : and(...whereParts);
-
   try {
     const offset = (page - 1) * pageSize;
-    const [rows, totalRow] = await Promise.all([
-      db
-        .select()
-        .from(testerPromoChangesTable)
-        .where(whereClause)
-        .orderBy(desc(testerPromoChangesTable.createdAt))
-        .limit(pageSize)
-        .offset(offset),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(testerPromoChangesTable)
-        .where(whereClause),
-    ]);
-    const total = totalRow[0]?.count ?? 0;
+    const filters = { actionFilter, qFilter, fromDate, toDate };
+    const rowsQuery = applyPromoHistoryFilters(
+      supabaseAdmin
+        .from("tester_promo_changes")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + pageSize - 1),
+      filters,
+    );
+    const countQuery = applyPromoHistoryFilters(
+      supabaseAdmin
+        .from("tester_promo_changes")
+        .select("id", { head: true, count: "exact" }),
+      filters,
+    );
+    const [rowsResult, countResult] = await Promise.all([rowsQuery, countQuery]);
+    if (rowsResult.error) throw rowsResult.error;
+    if (countResult.error) throw countResult.error;
+    const rows = (rowsResult.data ?? []) as TesterPromoChangeRow[];
     res.json({
-      changes: rows.map((r) => ({
-        id: r.id,
-        action: r.action,
-        adminEmail: r.adminEmail,
-        oldCode: r.oldCode,
-        oldMaxRedemptions: r.oldMaxRedemptions,
-        oldPromotionCodeId: r.oldPromotionCodeId,
-        newCode: r.newCode,
-        newMaxRedemptions: r.newMaxRedemptions,
-        newPromotionCodeId: r.newPromotionCodeId,
-        createdAt: r.createdAt.toISOString(),
-      })),
-      total,
+      changes: rows.map(mapPromoChange),
+      total: countResult.count ?? 0,
       page,
       pageSize,
       action: actionFilter,
@@ -441,65 +483,26 @@ router.get(
     const bucket: "quarter" | "month" =
       bucketParam === "month" ? "month" : "quarter";
 
-    const whereParts: SQL[] = [];
-    if (actionFilter) {
-      whereParts.push(eq(testerPromoChangesTable.action, actionFilter));
-    }
-    if (fromDate) {
-      whereParts.push(gte(testerPromoChangesTable.createdAt, fromDate));
-    }
-    if (toDate) {
-      whereParts.push(lte(testerPromoChangesTable.createdAt, toDate));
-    }
-    if (qFilter) {
-      const escaped = qFilter.replace(/[\\%_]/g, (c) => `\\${c}`);
-      const pattern = `%${escaped}%`;
-      const orClause = or(
-        ilike(testerPromoChangesTable.newCode, pattern),
-        ilike(testerPromoChangesTable.oldCode, pattern),
-        ilike(testerPromoChangesTable.adminEmail, pattern),
-      );
-      if (orClause) whereParts.push(orClause);
-    }
-    const whereClause =
-      whereParts.length === 0
-        ? undefined
-        : whereParts.length === 1
-          ? whereParts[0]
-          : and(...whereParts);
-
     try {
-      // date_trunc on a timestamptz uses the session's TimeZone, which
-      // could shift a row across a quarter/month boundary depending on
-      // where the DB is configured. Force the truncation to happen in
-      // UTC by converting to UTC first, then cast the resulting naive
-      // timestamp back to timestamptz "AT TIME ZONE 'UTC'" so it round
-      // -trips as the same UTC instant the frontend formats from.
-      const truncUnit = bucket === "month" ? "month" : "quarter";
-      const truncExpr = sql`(date_trunc(${truncUnit}, ${testerPromoChangesTable.createdAt} at time zone 'UTC') at time zone 'UTC')`;
-      const rows = await db
-        .select({
-          bucketStart: sql<Date>`${truncExpr}`.as("bucket_start"),
-          raiseCap: sql<number>`count(*) filter (where ${testerPromoChangesTable.action} = 'raise_cap')::int`,
-          mint: sql<number>`count(*) filter (where ${testerPromoChangesTable.action} = 'mint')::int`,
-          total: sql<number>`count(*)::int`,
-        })
-        .from(testerPromoChangesTable)
-        .where(whereClause)
-        .groupBy(sql`bucket_start`)
-        .orderBy(sql`bucket_start asc`);
+      const rows = await fetchPromoChanges({ actionFilter, qFilter, fromDate, toDate });
+      const buckets = new Map<string, { bucketStart: string; raiseCap: number; mint: number; total: number }>();
+      for (const row of rows) {
+        const created = new Date(row.created_at);
+        const start =
+          bucket === "month"
+            ? new Date(Date.UTC(created.getUTCFullYear(), created.getUTCMonth(), 1))
+            : new Date(Date.UTC(created.getUTCFullYear(), Math.floor(created.getUTCMonth() / 3) * 3, 1));
+        const key = start.toISOString();
+        const item = buckets.get(key) ?? { bucketStart: key, raiseCap: 0, mint: 0, total: 0 };
+        if (row.action === "raise_cap") item.raiseCap += 1;
+        if (row.action === "mint") item.mint += 1;
+        item.total += 1;
+        buckets.set(key, item);
+      }
 
       res.json({
         bucket,
-        buckets: rows.map((r) => ({
-          bucketStart:
-            r.bucketStart instanceof Date
-              ? r.bucketStart.toISOString()
-              : new Date(r.bucketStart as unknown as string).toISOString(),
-          raiseCap: r.raiseCap ?? 0,
-          mint: r.mint ?? 0,
-          total: r.total ?? 0,
-        })),
+        buckets: Array.from(buckets.values()).sort((a, b) => a.bucketStart.localeCompare(b.bucketStart)),
         action: actionFilter,
         q: qFilter,
         from: fromDate ? fromDate.toISOString() : null,
@@ -547,39 +550,8 @@ router.get("/admin/tester-promo/history.csv", async (req: Request, res: Response
   const qRaw = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const qFilter = qRaw.length > 0 ? qRaw.slice(0, 200) : null;
 
-  const whereParts: SQL[] = [];
-  if (actionFilter) {
-    whereParts.push(eq(testerPromoChangesTable.action, actionFilter));
-  }
-  if (fromDate) {
-    whereParts.push(gte(testerPromoChangesTable.createdAt, fromDate));
-  }
-  if (toDate) {
-    whereParts.push(lte(testerPromoChangesTable.createdAt, toDate));
-  }
-  if (qFilter) {
-    const escaped = qFilter.replace(/[\\%_]/g, (c) => `\\${c}`);
-    const pattern = `%${escaped}%`;
-    const orClause = or(
-      ilike(testerPromoChangesTable.newCode, pattern),
-      ilike(testerPromoChangesTable.oldCode, pattern),
-      ilike(testerPromoChangesTable.adminEmail, pattern),
-    );
-    if (orClause) whereParts.push(orClause);
-  }
-  const whereClause =
-    whereParts.length === 0
-      ? undefined
-      : whereParts.length === 1
-        ? whereParts[0]
-        : and(...whereParts);
-
   try {
-    const rows = await db
-      .select()
-      .from(testerPromoChangesTable)
-      .where(whereClause)
-      .orderBy(desc(testerPromoChangesTable.createdAt));
+    const rows = await fetchPromoChanges({ actionFilter, qFilter, fromDate, toDate });
 
     // Embed the chosen date range (or today, if unfiltered) into the
     // filename so saving multiple exports to the same folder doesn't
@@ -615,13 +587,13 @@ router.get("/admin/tester-promo/history.csv", async (req: Request, res: Response
 
     for (const r of rows) {
       const line = [
-        csvEscape(r.createdAt.toISOString()),
+        csvEscape(new Date(r.created_at).toISOString()),
         csvEscape(r.action),
-        csvEscape(r.adminEmail),
-        csvEscape(r.oldCode),
-        csvEscape(r.oldMaxRedemptions),
-        csvEscape(r.newCode),
-        csvEscape(r.newMaxRedemptions),
+        csvEscape(r.admin_email),
+        csvEscape(r.old_code),
+        csvEscape(r.old_max_redemptions),
+        csvEscape(r.new_code),
+        csvEscape(r.new_max_redemptions),
       ].join(",");
       res.write(line + "\r\n");
     }
