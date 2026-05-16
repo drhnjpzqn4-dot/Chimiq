@@ -231,10 +231,7 @@ router.post("/payments/portal", async (req: Request, res: Response) => {
   }
 
   try {
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user.id));
+    const user = await getPaymentUser(req.user.id);
 
     if (!user) {
       res.status(404).json({ error: "User not found" });
