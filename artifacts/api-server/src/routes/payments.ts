@@ -3,15 +3,50 @@ import {
   db,
   usersTable,
   paymentTestChargesTable,
-  checkoutEventsTable,
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import Stripe from "stripe";
 import { getUncachableStripeClient } from "../stripeClient.js";
 import { isRequestAdmin } from "../lib/admin.js";
 import { getUserPlan } from "../lib/userPlan.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const router: IRouter = Router();
+
+interface PaymentUser {
+  id: string;
+  email: string | null;
+  stripeCustomerId: string | null;
+}
+
+interface PaymentUserRow {
+  id: string;
+  email: string | null;
+  stripe_customer_id: string | null;
+}
+
+async function getPaymentUser(userId: string): Promise<PaymentUser | null> {
+  const { data, error } = await supabaseAdmin
+    .from("users")
+    .select("id,email,stripe_customer_id")
+    .eq("id", userId)
+    .maybeSingle<PaymentUserRow>();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id,
+    email: data.email,
+    stripeCustomerId: data.stripe_customer_id,
+  };
+}
+
+async function updateStripeCustomerId(userId: string, stripeCustomerId: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("users")
+    .update({ stripe_customer_id: stripeCustomerId })
+    .eq("id", userId);
+  if (error) throw error;
+}
 
 router.get("/payments/status", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
@@ -25,10 +60,7 @@ router.get("/payments/status", async (req: Request, res: Response) => {
   // client; this endpoint is the authoritative answer for signed-in users.
   let trialEligible = false;
   try {
-    const [user] = await db
-      .select({ stripeCustomerId: usersTable.stripeCustomerId })
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user.id));
+    const user = await getPaymentUser(req.user.id);
     if (user) {
       // Premium users are not "eligible" for a trial offer in the UI sense —
       // they already have access. Skip the Stripe call and report false.
@@ -76,10 +108,7 @@ router.get("/payments/trial-eligible", async (req: Request, res: Response) => {
     return;
   }
   try {
-    const [user] = await db
-      .select({ stripeCustomerId: usersTable.stripeCustomerId })
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user.id));
+    const user = await getPaymentUser(req.user.id);
     if (!user) {
       res.status(404).json({ error: "User not found" });
       return;
@@ -108,10 +137,7 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
 
   try {
     const stripe = await getUncachableStripeClient();
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user.id));
+    const user = await getPaymentUser(req.user.id);
 
     if (!user) {
       res.status(404).json({ error: "User not found" });
@@ -126,10 +152,7 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
         metadata: { userId: user.id },
       });
       customerId = customer.id;
-      await db
-        .update(usersTable)
-        .set({ stripeCustomerId: customerId })
-        .where(eq(usersTable.id, user.id));
+      await updateStripeCustomerId(user.id, customerId);
     }
 
     const currencyUpper = currency.toUpperCase();
@@ -184,11 +207,12 @@ router.post("/payments/checkout", async (req: Request, res: Response) => {
     });
 
     try {
-      await db.insert(checkoutEventsTable).values({
-        userId: user.id,
-        planType: plan,
+      const { error } = await supabaseAdmin.from("checkout_events").insert({
+        user_id: user.id,
+        plan_type: plan,
         source: "checkout",
       });
+      if (error) throw error;
     } catch (insertErr) {
       req.log.warn({ err: insertErr }, "Failed to record checkout event");
     }
