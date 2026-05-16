@@ -295,6 +295,134 @@ async function runAIAnalysis(
   }
 }
 
+export type AnalyzeSingleResult = z.infer<typeof AnalyzeSingleResponseSchema> & {
+  cacheHash: string;
+  fromCache: boolean;
+};
+
+interface AnalyzeSingleLogger {
+  warn: (obj: unknown, msg?: string) => void;
+  error: (obj: unknown, msg?: string) => void;
+}
+
+const SAFE_SINGLE_RESULT = {
+  flags: [],
+  overallSafe: true,
+  verdictTitle: "No major concerns",
+  verdictSummary: "All ingredients in this product are widely tolerated and well-formulated.",
+};
+
+export async function analyzeSingleIngredients(input: {
+  ingredients: string;
+  skinProfile?: z.infer<typeof SkinProfileEnum>;
+  apiKey: string;
+  log: AnalyzeSingleLogger;
+}): Promise<AnalyzeSingleResult | null> {
+  const ingredients = sanitizeIngredients(input.ingredients, false);
+  const { skinProfile } = input;
+  const hash = computeSingleHash(ingredients, skinProfile);
+
+  const cached = await getCacheEntry(hash).catch(() => null);
+
+  if (cached) {
+    const stale = isStale(cached);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(cached.resultJson);
+    } catch {
+      parsed = null;
+    }
+
+    const validated = parsed ? AnalyzeSingleResponseSchema.safeParse(parsed) : null;
+
+    if (validated?.success) {
+      bumpCacheUsage(hash).catch(() => {});
+
+      if (stale) {
+        const parsedIngredients = parseIngredients(ingredients);
+        const { needsAnalysis, safe } = partitionIngredients(parsedIngredients);
+        const risks = getRisksInList(parsedIngredients);
+        const mandatory = buildMandatoryFlagsBlock(risks, skinProfile);
+        const anthropic = new Anthropic({ apiKey: input.apiKey });
+        setImmediate(async () => {
+          try {
+            let regulatoryContext: string | undefined;
+            const ctx = await buildRegulatoryContext(needsAnalysis, () => {});
+            const lines: string[] = [];
+            if (ctx.cosing.length > 0) { lines.push("### EU CosIng Regulatory Data"); lines.push(...ctx.cosing); }
+            if (ctx.pubchem.length > 0) { lines.push("### PubChem GHS Hazard Data"); lines.push(...ctx.pubchem); }
+            if (lines.length > 0) regulatoryContext = lines.join("\n");
+            const fresh = needsAnalysis.length > 0
+              ? await runAIAnalysis(anthropic, needsAnalysis.join(", "), safe.length, mandatory, skinProfile, regulatoryContext, () => {})
+              : SAFE_SINGLE_RESULT;
+            if (fresh) await saveCacheEntry(hash, "single", skinProfile, JSON.stringify(fresh));
+          } catch {}
+        });
+      }
+
+      return { ...validated.data, cacheHash: hash, fromCache: true };
+    }
+  }
+
+  const parsedIngredients = parseIngredients(ingredients);
+  const { safe, needsAnalysis } = partitionIngredients(parsedIngredients);
+  // Match the full original list against our curated risk database. Risky
+  // ingredients are deliberately NOT on the safe list, so the partition above
+  // never strips them; this is just a safety net + lookup for the mandatory-
+  // flags block we send to Claude.
+  const risks = getRisksInList(parsedIngredients);
+  const mandatoryFlagsBlock = buildMandatoryFlagsBlock(risks, skinProfile);
+
+  // Short-circuit: if every ingredient is on the universally-safe list, skip
+  // the LLM call entirely. Saves ~100% of input tokens on common boring lists
+  // like simple cleansers / hyaluronic-acid serums.
+  if (needsAnalysis.length === 0) {
+    saveCacheEntry(hash, "single", skinProfile, JSON.stringify(SAFE_SINGLE_RESULT)).catch((err) =>
+      input.log.warn({ err }, "Failed to save analysis cache"),
+    );
+    return { ...SAFE_SINGLE_RESULT, cacheHash: hash, fromCache: false };
+  }
+
+  let regulatoryContext: string | undefined;
+  try {
+    const ctx = await buildRegulatoryContext(needsAnalysis, (msg) => input.log.warn(msg));
+    const lines: string[] = [];
+    if (ctx.cosing.length > 0) {
+      lines.push("### EU CosIng Regulatory Data");
+      lines.push(...ctx.cosing);
+    }
+    if (ctx.pubchem.length > 0) {
+      lines.push("### PubChem GHS Hazard Data");
+      lines.push(...ctx.pubchem);
+    }
+    if (lines.length > 0) {
+      regulatoryContext = lines.join("\n");
+    }
+  } catch (err) {
+    input.log.warn({ err }, "Regulatory context lookup failed, proceeding without it");
+  }
+
+  const anthropic = new Anthropic({ apiKey: input.apiKey });
+  const result = await runAIAnalysis(
+    anthropic,
+    needsAnalysis.join(", "),
+    safe.length,
+    mandatoryFlagsBlock,
+    skinProfile,
+    regulatoryContext,
+    (msg, data) => input.log.error(data ?? {}, msg),
+  );
+
+  if (!result) return null;
+
+  saveCacheEntry(hash, "single", skinProfile, JSON.stringify(result)).catch((err) =>
+    input.log.warn({ err }, "Failed to save analysis cache"),
+  );
+
+  return { ...result, cacheHash: hash, fromCache: false };
+}
+
 const router: IRouter = Router();
 
 // `requireAuth` ensures every call is attributable to a user so the daily
@@ -369,9 +497,20 @@ router.post("/analyze-single", requireAuth, async (req, res) => {
     return;
   }
 
-  let ingredients: string;
   try {
-    ingredients = sanitizeIngredients(parseResult.data.ingredients, false);
+    const result = await analyzeSingleIngredients({
+      ingredients: parseResult.data.ingredients,
+      skinProfile: parseResult.data.skinProfile,
+      apiKey,
+      log: req.log,
+    });
+
+    if (!result) {
+      res.status(500).json({ error: "Analysis failed. Please try again." });
+      return;
+    }
+
+    res.json(result);
   } catch (err) {
     if (err instanceof SanitizationError) {
       res.status(400).json({ error: err.message });
@@ -379,119 +518,6 @@ router.post("/analyze-single", requireAuth, async (req, res) => {
     }
     throw err;
   }
-  const { skinProfile } = parseResult.data;
-  const hash = computeSingleHash(ingredients, skinProfile);
-
-  const cached = await getCacheEntry(hash).catch(() => null);
-
-  if (cached) {
-    const stale = isStale(cached);
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(cached.resultJson);
-    } catch {
-      parsed = null;
-    }
-
-    const validated = parsed ? AnalyzeSingleResponseSchema.safeParse(parsed) : null;
-
-    if (validated?.success) {
-      bumpCacheUsage(hash).catch(() => {});
-
-      if (stale) {
-        const parsedIngredients = parseIngredients(ingredients);
-        const { needsAnalysis, safe } = partitionIngredients(parsedIngredients);
-        const risks = getRisksInList(parsedIngredients);
-        const mandatory = buildMandatoryFlagsBlock(risks, skinProfile);
-        const anthropic = new Anthropic({ apiKey });
-        setImmediate(async () => {
-          try {
-            let regulatoryContext: string | undefined;
-            const ctx = await buildRegulatoryContext(needsAnalysis, () => {});
-            const lines: string[] = [];
-            if (ctx.cosing.length > 0) { lines.push("### EU CosIng Regulatory Data"); lines.push(...ctx.cosing); }
-            if (ctx.pubchem.length > 0) { lines.push("### PubChem GHS Hazard Data"); lines.push(...ctx.pubchem); }
-            if (lines.length > 0) regulatoryContext = lines.join("\n");
-            const fresh = needsAnalysis.length > 0
-              ? await runAIAnalysis(anthropic, needsAnalysis.join(", "), safe.length, mandatory, skinProfile, regulatoryContext, () => {})
-              : { flags: [], overallSafe: true, verdictTitle: "No major concerns", verdictSummary: "All ingredients in this product are widely tolerated and well-formulated." };
-            if (fresh) await saveCacheEntry(hash, "single", skinProfile, JSON.stringify(fresh));
-          } catch {}
-        });
-      }
-
-      res.json({ ...validated.data, cacheHash: hash, fromCache: true });
-      return;
-    }
-  }
-
-  const parsedIngredients = parseIngredients(ingredients);
-  const { safe, needsAnalysis } = partitionIngredients(parsedIngredients);
-  // Match the full original list against our curated risk database. Risky
-  // ingredients are deliberately NOT on the safe list, so the partition above
-  // never strips them; this is just a safety net + lookup for the mandatory-
-  // flags block we send to Claude.
-  const risks = getRisksInList(parsedIngredients);
-  const mandatoryFlagsBlock = buildMandatoryFlagsBlock(risks, skinProfile);
-
-  // Short-circuit: if every ingredient is on the universally-safe list, skip
-  // the LLM call entirely. Saves ~100% of input tokens on common boring lists
-  // like simple cleansers / hyaluronic-acid serums.
-  if (needsAnalysis.length === 0) {
-    const result = {
-      flags: [],
-      overallSafe: true,
-      verdictTitle: "No major concerns",
-      verdictSummary: "All ingredients in this product are widely tolerated and well-formulated.",
-    };
-    saveCacheEntry(hash, "single", skinProfile, JSON.stringify(result)).catch((err) =>
-      req.log.warn({ err }, "Failed to save analysis cache"),
-    );
-    res.json({ ...result, cacheHash: hash, fromCache: false });
-    return;
-  }
-
-  let regulatoryContext: string | undefined;
-  try {
-    const ctx = await buildRegulatoryContext(needsAnalysis, (msg) => req.log.warn(msg));
-    const lines: string[] = [];
-    if (ctx.cosing.length > 0) {
-      lines.push("### EU CosIng Regulatory Data");
-      lines.push(...ctx.cosing);
-    }
-    if (ctx.pubchem.length > 0) {
-      lines.push("### PubChem GHS Hazard Data");
-      lines.push(...ctx.pubchem);
-    }
-    if (lines.length > 0) {
-      regulatoryContext = lines.join("\n");
-    }
-  } catch (err) {
-    req.log.warn({ err }, "Regulatory context lookup failed, proceeding without it");
-  }
-
-  const anthropic = new Anthropic({ apiKey });
-  const result = await runAIAnalysis(
-    anthropic,
-    needsAnalysis.join(", "),
-    safe.length,
-    mandatoryFlagsBlock,
-    skinProfile,
-    regulatoryContext,
-    (msg, data) => req.log.error(data ?? {}, msg),
-  );
-
-  if (!result) {
-    res.status(500).json({ error: "Analysis failed. Please try again." });
-    return;
-  }
-
-  saveCacheEntry(hash, "single", skinProfile, JSON.stringify(result)).catch((err) =>
-    req.log.warn({ err }, "Failed to save analysis cache"),
-  );
-
-  res.json({ ...result, cacheHash: hash, fromCache: false });
 });
 
 export default router;
