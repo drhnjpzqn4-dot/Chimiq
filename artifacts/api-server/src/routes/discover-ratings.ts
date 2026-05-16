@@ -1,10 +1,9 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { db, discoverRatingsTable } from "@workspace/db";
-import { and, desc, eq, sql } from "drizzle-orm";
 import { isRequestAdmin } from "../lib/admin.js";
 import { sanitizeText, SanitizationError } from "../lib/sanitize.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const KIND = z.enum(["mistakes", "worries"]);
 const RATING = z.enum(["up", "down"]);
@@ -24,6 +23,15 @@ function voterKeyFor(userId: string | null, sessionId: string | undefined): stri
 }
 
 const router: IRouter = Router();
+
+interface DiscoverRatingRow {
+  id: string;
+  slug: string;
+  kind: "mistakes" | "worries";
+  rating: "up" | "down";
+  comment: string | null;
+  created_at: string;
+}
 
 // Per-IP + per-voter rate limit (#85): blunts thumbs-up/down spam. The IP
 // limiter is fixed-window in-memory; the per-voter limit is enforced inline
@@ -93,29 +101,22 @@ router.post("/discover/ratings", discoverRatingIpLimit, async (req, res) => {
   const userAgent = (req.headers["user-agent"] ?? "").toString().slice(0, 500) || null;
 
   try {
-    await db
-      .insert(discoverRatingsTable)
-      .values({
-        slug,
-        kind,
-        rating,
-        comment: safeComment,
-        voterKey,
-        userId,
-        userAgent,
-      })
-      .onConflictDoUpdate({
-        target: [
-          discoverRatingsTable.slug,
-          discoverRatingsTable.kind,
-          discoverRatingsTable.voterKey,
-        ],
-        set: {
+    const { error } = await supabaseAdmin
+      .from("discover_ratings")
+      .upsert(
+        {
+          slug,
+          kind,
           rating,
           comment: safeComment,
-          updatedAt: new Date(),
+          voter_key: voterKey,
+          user_id: userId,
+          user_agent: userAgent,
+          updated_at: new Date().toISOString(),
         },
-      });
+        { onConflict: "slug,kind,voter_key" },
+      );
+    if (error) throw error;
     res.json({ ok: true });
   } catch (err) {
     req.log.error({ err }, "discover rating insert failed");
@@ -135,14 +136,23 @@ router.get("/discover/ratings/:kind/:slug", async (req, res) => {
     return;
   }
   try {
-    const [row] = await db
-      .select({
-        ups: sql<number>`count(*) FILTER (WHERE rating = 'up')::int`,
-        downs: sql<number>`count(*) FILTER (WHERE rating = 'down')::int`,
-      })
-      .from(discoverRatingsTable)
-      .where(and(eq(discoverRatingsTable.slug, slug), eq(discoverRatingsTable.kind, kind)));
-    res.json({ ups: Number(row?.ups ?? 0), downs: Number(row?.downs ?? 0) });
+    const [upsResult, downsResult] = await Promise.all([
+      supabaseAdmin
+        .from("discover_ratings")
+        .select("id", { head: true, count: "exact" })
+        .eq("slug", slug)
+        .eq("kind", kind)
+        .eq("rating", "up"),
+      supabaseAdmin
+        .from("discover_ratings")
+        .select("id", { head: true, count: "exact" })
+        .eq("slug", slug)
+        .eq("kind", kind)
+        .eq("rating", "down"),
+    ]);
+    if (upsResult.error) throw upsResult.error;
+    if (downsResult.error) throw downsResult.error;
+    res.json({ ups: Number(upsResult.count ?? 0), downs: Number(downsResult.count ?? 0) });
   } catch (err) {
     req.log.error({ err }, "discover ratings count failed");
     res.status(500).json({ error: "Could not load ratings." });
@@ -158,32 +168,39 @@ router.get("/admin/discover/ratings", async (req, res) => {
     return;
   }
   try {
-    const aggregates = await db
-      .select({
-        slug: discoverRatingsTable.slug,
-        kind: discoverRatingsTable.kind,
-        ups: sql<number>`count(*) FILTER (WHERE rating = 'up')::int`,
-        downs: sql<number>`count(*) FILTER (WHERE rating = 'down')::int`,
-        total: sql<number>`count(*)::int`,
-      })
-      .from(discoverRatingsTable)
-      .groupBy(discoverRatingsTable.slug, discoverRatingsTable.kind);
+    const { data: ratingRows, error: ratingError } = await supabaseAdmin
+      .from("discover_ratings")
+      .select("id,slug,kind,rating,comment,created_at");
+    if (ratingError) throw ratingError;
 
-    const recentComments = await db
-      .select({
-        id: discoverRatingsTable.id,
-        slug: discoverRatingsTable.slug,
-        kind: discoverRatingsTable.kind,
-        rating: discoverRatingsTable.rating,
-        comment: discoverRatingsTable.comment,
-        createdAt: discoverRatingsTable.createdAt,
-      })
-      .from(discoverRatingsTable)
-      .where(sql`${discoverRatingsTable.comment} IS NOT NULL AND length(${discoverRatingsTable.comment}) > 0`)
-      .orderBy(desc(discoverRatingsTable.createdAt))
-      .limit(50);
+    const aggregateMap = new Map<
+      string,
+      { slug: string; kind: "mistakes" | "worries"; ups: number; downs: number; total: number }
+    >();
+    for (const row of (ratingRows ?? []) as DiscoverRatingRow[]) {
+      const key = `${row.kind}:${row.slug}`;
+      const aggregate =
+        aggregateMap.get(key) ?? { slug: row.slug, kind: row.kind, ups: 0, downs: 0, total: 0 };
+      if (row.rating === "up") aggregate.ups += 1;
+      if (row.rating === "down") aggregate.downs += 1;
+      aggregate.total += 1;
+      aggregateMap.set(key, aggregate);
+    }
 
-    res.json({ aggregates, recentComments });
+    const recentComments = ((ratingRows ?? []) as DiscoverRatingRow[])
+      .filter((row) => row.comment != null && row.comment.trim().length > 0)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 50)
+      .map((row) => ({
+        id: row.id,
+        slug: row.slug,
+        kind: row.kind,
+        rating: row.rating,
+        comment: row.comment,
+        createdAt: new Date(row.created_at).toISOString(),
+      }));
+
+    res.json({ aggregates: Array.from(aggregateMap.values()), recentComments });
   } catch (err) {
     req.log.error({ err }, "admin discover ratings load failed");
     res.status(500).json({ error: "Could not load ratings." });
