@@ -1,5 +1,4 @@
-import { db, cachedPubchemTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { supabaseAdmin } from "./supabase-admin.js";
 
 const PUBCHEM_BASE = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
 const TIMEOUT_MS = 10_000;
@@ -18,6 +17,21 @@ export interface PubChemSafetyData {
   isSkinSensitiser: boolean;
   isAcutelyToxic: boolean;
   rawSummary: string | null;
+}
+
+interface CachedPubChemRow {
+  cid: string | null;
+  iupac_name: string | null;
+  molecular_formula: string | null;
+  ghs_hazard_codes: string | null;
+  ghs_hazard_statements: string | null;
+  known_toxicity_flags: string | null;
+  is_carcinogen: boolean | null;
+  is_reproductive_toxicant: boolean | null;
+  is_mutagen: boolean | null;
+  is_skin_sensitiser: boolean | null;
+  is_acutely_toxic: boolean | null;
+  raw_summary: string | null;
 }
 
 function normalizeLookupKey(query: string): string {
@@ -210,28 +224,31 @@ export async function getPubChemSafetyData(
 ): Promise<PubChemSafetyData | null> {
   const lookupKey = normalizeLookupKey(casNumber ?? ingredientName);
 
-  const [cached] = await db
-    .select()
-    .from(cachedPubchemTable)
-    .where(
-      sql`${cachedPubchemTable.lookupKey} = ${lookupKey}
-        AND ${cachedPubchemTable.cachedAt} > NOW() - INTERVAL '${sql.raw(String(CACHE_TTL_DAYS))} days'`,
-    );
+  const cacheCutoff = new Date(Date.now() - CACHE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { data: cached, error: cacheError } = await supabaseAdmin
+    .from("cached_pubchem")
+    .select(
+      "cid,iupac_name,molecular_formula,ghs_hazard_codes,ghs_hazard_statements,known_toxicity_flags,is_carcinogen,is_reproductive_toxicant,is_mutagen,is_skin_sensitiser,is_acutely_toxic,raw_summary",
+    )
+    .eq("lookup_key", lookupKey)
+    .gt("cached_at", cacheCutoff)
+    .maybeSingle<CachedPubChemRow>();
+  if (cacheError) throw cacheError;
 
   if (cached) {
     return {
       cid: cached.cid,
-      iupacName: cached.iupacName,
-      molecularFormula: cached.molecularFormula,
-      ghsHazardCodes: cached.ghsHazardCodes ? cached.ghsHazardCodes.split("|").filter(Boolean) : [],
-      ghsHazardStatements: cached.ghsHazardStatements ? cached.ghsHazardStatements.split("||").filter(Boolean) : [],
-      knownToxicityFlags: cached.knownToxicityFlags ? cached.knownToxicityFlags.split("|").filter(Boolean) : [],
-      isCarcinogen: cached.isCarcinogen ?? false,
-      isReproductiveToxicant: cached.isReproductiveToxicant ?? false,
-      isMutagen: cached.isMutagen ?? false,
-      isSkinSensitiser: cached.isSkinSensitiser ?? false,
-      isAcutelyToxic: cached.isAcutelyToxic ?? false,
-      rawSummary: cached.rawSummary,
+      iupacName: cached.iupac_name,
+      molecularFormula: cached.molecular_formula,
+      ghsHazardCodes: cached.ghs_hazard_codes ? cached.ghs_hazard_codes.split("|").filter(Boolean) : [],
+      ghsHazardStatements: cached.ghs_hazard_statements ? cached.ghs_hazard_statements.split("||").filter(Boolean) : [],
+      knownToxicityFlags: cached.known_toxicity_flags ? cached.known_toxicity_flags.split("|").filter(Boolean) : [],
+      isCarcinogen: cached.is_carcinogen ?? false,
+      isReproductiveToxicant: cached.is_reproductive_toxicant ?? false,
+      isMutagen: cached.is_mutagen ?? false,
+      isSkinSensitiser: cached.is_skin_sensitiser ?? false,
+      isAcutelyToxic: cached.is_acutely_toxic ?? false,
+      rawSummary: cached.raw_summary,
     };
   }
 
@@ -247,58 +264,46 @@ export async function getPubChemSafetyData(
 
   const cacheValues = data
     ? {
-        lookupKey,
+        lookup_key: lookupKey,
         cid: data.cid,
-        iupacName: data.iupacName,
-        molecularFormula: data.molecularFormula,
-        ghsHazardCodes: data.ghsHazardCodes.join("|"),
-        ghsHazardStatements: data.ghsHazardStatements.join("||"),
-        knownToxicityFlags: data.knownToxicityFlags.join("|"),
-        isCarcinogen: data.isCarcinogen,
-        isReproductiveToxicant: data.isReproductiveToxicant,
-        isMutagen: data.isMutagen,
-        isSkinSensitiser: data.isSkinSensitiser,
-        isAcutelyToxic: data.isAcutelyToxic,
-        rawSummary: data.rawSummary,
+        iupac_name: data.iupacName,
+        molecular_formula: data.molecularFormula,
+        ghs_hazard_codes: data.ghsHazardCodes.join("|"),
+        ghs_hazard_statements: data.ghsHazardStatements.join("||"),
+        known_toxicity_flags: data.knownToxicityFlags.join("|"),
+        is_carcinogen: data.isCarcinogen,
+        is_reproductive_toxicant: data.isReproductiveToxicant,
+        is_mutagen: data.isMutagen,
+        is_skin_sensitiser: data.isSkinSensitiser,
+        is_acutely_toxic: data.isAcutelyToxic,
+        raw_summary: data.rawSummary,
+        cached_at: new Date().toISOString(),
       }
     : {
-        lookupKey,
+        lookup_key: lookupKey,
         cid: null,
-        iupacName: null,
-        molecularFormula: null,
-        ghsHazardCodes: "",
-        ghsHazardStatements: "",
-        knownToxicityFlags: "",
-        isCarcinogen: false,
-        isReproductiveToxicant: false,
-        isMutagen: false,
-        isSkinSensitiser: false,
-        isAcutelyToxic: false,
-        rawSummary: null,
+        iupac_name: null,
+        molecular_formula: null,
+        ghs_hazard_codes: "",
+        ghs_hazard_statements: "",
+        known_toxicity_flags: "",
+        is_carcinogen: false,
+        is_reproductive_toxicant: false,
+        is_mutagen: false,
+        is_skin_sensitiser: false,
+        is_acutely_toxic: false,
+        raw_summary: null,
+        cached_at: new Date().toISOString(),
       };
 
-  await db
-    .insert(cachedPubchemTable)
-    .values(cacheValues)
-    .onConflictDoUpdate({
-      target: cachedPubchemTable.lookupKey,
-      set: {
-        cid: sql`EXCLUDED.cid`,
-        iupacName: sql`EXCLUDED.iupac_name`,
-        molecularFormula: sql`EXCLUDED.molecular_formula`,
-        ghsHazardCodes: sql`EXCLUDED.ghs_hazard_codes`,
-        ghsHazardStatements: sql`EXCLUDED.ghs_hazard_statements`,
-        knownToxicityFlags: sql`EXCLUDED.known_toxicity_flags`,
-        isCarcinogen: sql`EXCLUDED.is_carcinogen`,
-        isReproductiveToxicant: sql`EXCLUDED.is_reproductive_toxicant`,
-        isMutagen: sql`EXCLUDED.is_mutagen`,
-        isSkinSensitiser: sql`EXCLUDED.is_skin_sensitiser`,
-        isAcutelyToxic: sql`EXCLUDED.is_acutely_toxic`,
-        rawSummary: sql`EXCLUDED.raw_summary`,
-        cachedAt: sql`NOW()`,
-      },
-    })
-    .catch(() => {});
+  try {
+    const { error } = await supabaseAdmin
+      .from("cached_pubchem")
+      .upsert(cacheValues, { onConflict: "lookup_key" });
+    if (error) throw error;
+  } catch {
+    // Cache writes are best-effort; live PubChem data is still returned.
+  }
 
   return data;
 }

@@ -1,5 +1,4 @@
-import { db, cosingIngredientsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { supabaseAdmin } from "./supabase-admin.js";
 
 export interface CosingInfo {
   inciName: string;
@@ -16,19 +15,27 @@ function normalizeInciName(name: string): string {
 export async function getCosingInfo(ingredientName: string): Promise<CosingInfo | null> {
   const normalized = normalizeInciName(ingredientName);
 
-  const [row] = await db
-    .select()
-    .from(cosingIngredientsTable)
-    .where(sql`lower(${cosingIngredientsTable.inciName}) = ${normalized}`)
-    .limit(1);
+  const { data: row, error } = await supabaseAdmin
+    .from("cosing_ingredients")
+    .select("inci_name,restriction_status,annex_reference,restriction_description,functions")
+    .ilike("inci_name", normalized)
+    .limit(1)
+    .maybeSingle<{
+      inci_name: string;
+      restriction_status: string;
+      annex_reference: string | null;
+      restriction_description: string | null;
+      functions: string | null;
+    }>();
+  if (error) throw error;
 
   if (!row) return null;
 
   return {
-    inciName: row.inciName,
-    restrictionStatus: row.restrictionStatus,
-    annexReference: row.annexReference,
-    restrictionDescription: row.restrictionDescription,
+    inciName: row.inci_name,
+    restrictionStatus: row.restriction_status,
+    annexReference: row.annex_reference,
+    restrictionDescription: row.restriction_description,
     functions: row.functions,
   };
 }

@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
-import { desc } from "drizzle-orm";
-import { db, recallsTable } from "@workspace/db";
+import { supabaseAdmin } from "./supabase-admin.js";
 
 const DEFAULT_FEED_URL =
   "https://ec.europa.eu/consumers/consumers_safety/safety_products/rapex/alerts/repository/RAPEX_ALERTS_1_3.xml";
@@ -159,19 +158,22 @@ export async function pollSafetyGate(
     const productName = inferProductName(block, title, description ?? "");
     const sourceUrl = stableSourceUrl(block);
 
-    const result = await db
-      .insert(recallsTable)
-      .values({
+    const { data, error } = await supabaseAdmin
+      .from("recalls")
+      .upsert(
+        {
         title: title.slice(0, 4000),
         description: description ? description.slice(0, 16000) : null,
-        productName,
-        publishedAt,
-        sourceUrl,
-      })
-      .onConflictDoNothing({ target: recallsTable.sourceUrl })
-      .returning({ id: recallsTable.id });
+          product_name: productName,
+          published_at: publishedAt ? publishedAt.toISOString() : null,
+          source_url: sourceUrl,
+        },
+        { onConflict: "source_url", ignoreDuplicates: true },
+      )
+      .select("id");
+    if (error) throw error;
 
-    if (result.length > 0) inserted += 1;
+    if ((data?.length ?? 0) > 0) inserted += 1;
   }
 
   return {
@@ -185,17 +187,20 @@ export async function pollSafetyGate(
 
 /** Used by tests or admin tooling — latest rows by publication date. */
 export async function listRecentRecalls(limit = 5) {
-  return db
-    .select({
-      id: recallsTable.id,
-      title: recallsTable.title,
-      description: recallsTable.description,
-      productName: recallsTable.productName,
-      publishedAt: recallsTable.publishedAt,
-      sourceUrl: recallsTable.sourceUrl,
-      createdAt: recallsTable.createdAt,
-    })
-    .from(recallsTable)
-    .orderBy(desc(recallsTable.publishedAt), desc(recallsTable.id))
+  const { data, error } = await supabaseAdmin
+    .from("recalls")
+    .select("id,title,description,product_name,published_at,source_url,created_at")
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: false })
     .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    productName: row.product_name,
+    publishedAt: row.published_at ? new Date(row.published_at) : null,
+    sourceUrl: row.source_url,
+    createdAt: row.created_at ? new Date(row.created_at) : null,
+  }));
 }

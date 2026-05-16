@@ -1,9 +1,42 @@
 import crypto from "crypto";
-import { db, analysisCacheTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
-import type { AnalysisCache } from "@workspace/db";
+import { supabaseAdmin } from "./supabase-admin.js";
 
 const STALE_DAYS = 180;
+
+export interface AnalysisCache {
+  hash: string;
+  scanType: string;
+  skinProfile: string | null;
+  resultJson: string;
+  createdAt: Date;
+  lastUsedAt: Date;
+  useCount: number;
+  flaggedOutdated: boolean;
+}
+
+interface AnalysisCacheRow {
+  hash: string;
+  scan_type: string;
+  skin_profile: string | null;
+  result_json: string;
+  created_at: string;
+  last_used_at: string;
+  use_count: number;
+  flagged_outdated: boolean;
+}
+
+function mapAnalysisCache(row: AnalysisCacheRow): AnalysisCache {
+  return {
+    hash: row.hash,
+    scanType: row.scan_type,
+    skinProfile: row.skin_profile,
+    resultJson: row.result_json,
+    createdAt: new Date(row.created_at),
+    lastUsedAt: new Date(row.last_used_at),
+    useCount: Number(row.use_count),
+    flaggedOutdated: Boolean(row.flagged_outdated),
+  };
+}
 
 // Synonym map: collapses common INCI / colloquial spellings to a single canonical
 // form so cache lookups hit regardless of how the user labelled an ingredient.
@@ -75,12 +108,13 @@ export function isStale(entry: AnalysisCache): boolean {
 }
 
 export async function getCacheEntry(hash: string): Promise<AnalysisCache | null> {
-  const rows = await db
-    .select()
-    .from(analysisCacheTable)
-    .where(eq(analysisCacheTable.hash, hash))
-    .limit(1);
-  return rows[0] ?? null;
+  const { data, error } = await supabaseAdmin
+    .from("analysis_cache")
+    .select("*")
+    .eq("hash", hash)
+    .maybeSingle<AnalysisCacheRow>();
+  if (error) throw error;
+  return data ? mapAnalysisCache(data) : null;
 }
 
 export async function saveCacheEntry(
@@ -89,42 +123,45 @@ export async function saveCacheEntry(
   skinProfile: string | undefined,
   resultJson: string,
 ): Promise<void> {
-  await db
-    .insert(analysisCacheTable)
-    .values({
+  const existing = await getCacheEntry(hash).catch(() => null);
+  const now = new Date().toISOString();
+  const { error } = await supabaseAdmin
+    .from("analysis_cache")
+    .upsert(
+      {
       hash,
-      scanType,
-      skinProfile: skinProfile ?? null,
-      resultJson,
-      useCount: 1,
-      flaggedOutdated: false,
-    })
-    .onConflictDoUpdate({
-      target: analysisCacheTable.hash,
-      set: {
-        resultJson,
-        lastUsedAt: new Date(),
-        useCount: sql`${analysisCacheTable.useCount} + 1`,
-        flaggedOutdated: false,
-        createdAt: new Date(),
+        scan_type: scanType,
+        skin_profile: skinProfile ?? null,
+        result_json: resultJson,
+        use_count: (existing?.useCount ?? 0) + 1,
+        flagged_outdated: false,
+        created_at: now,
+        last_used_at: now,
       },
-    });
+      { onConflict: "hash" },
+    );
+  if (error) throw error;
 }
 
 export async function bumpCacheUsage(hash: string): Promise<void> {
-  await db
-    .update(analysisCacheTable)
-    .set({
-      lastUsedAt: new Date(),
-      useCount: sql`${analysisCacheTable.useCount} + 1`,
+  const existing = await getCacheEntry(hash);
+  if (!existing) return;
+  const { error } = await supabaseAdmin
+    .from("analysis_cache")
+    .update({
+      last_used_at: new Date().toISOString(),
+      use_count: existing.useCount + 1,
     })
-    .where(eq(analysisCacheTable.hash, hash));
+    .eq("hash", hash);
+  if (error) throw error;
 }
 
 export async function flagCacheEntry(hash: string): Promise<boolean> {
-  const result = await db
-    .update(analysisCacheTable)
-    .set({ flaggedOutdated: true })
-    .where(eq(analysisCacheTable.hash, hash));
-  return (result.rowCount ?? 0) > 0;
+  const { data, error } = await supabaseAdmin
+    .from("analysis_cache")
+    .update({ flagged_outdated: true })
+    .eq("hash", hash)
+    .select("hash");
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
 }
