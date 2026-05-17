@@ -18,7 +18,7 @@ type TabItem = {
 };
 
 const TABS: TabItem[] = [
-  { id: "home", labelKey: "tabs.home", icon: Home, href: "/app/home" },
+  { id: "home", labelKey: "tabs.today", icon: Home, href: "/app/home" },
   { id: "shelf", labelKey: "tabs.shelf", icon: Package, href: "/app/shelf" },
   { id: "scan", labelKey: "tabs.scan", icon: ScanLine, href: "/app/scan", isCenterFab: true },
   { id: "discover", labelKey: "tabs.discover", icon: Compass, href: "/app/discover" },

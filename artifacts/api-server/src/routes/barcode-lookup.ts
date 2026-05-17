@@ -168,7 +168,7 @@ router.get("/barcode/:code", async (req, res) => {
 });
 
 const SubmitProductBody = z.object({
-  barcode: z.string().regex(/^[0-9]{6,14}$/, "Invalid barcode"),
+  barcode: z.string().trim().regex(/^[0-9]{6,14}$/, "Invalid barcode"),
   productName: z.string().trim().max(500).optional(),
   brand: z.string().trim().max(200).optional(),
   ingredients: z.string().trim().min(1, "Ingredients are required").max(10000),

@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import {
   Search,
-  ChevronRight,
   AlertTriangle,
   Loader2,
   Gift,
   Sparkles,
   Camera,
+  ScanLine,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { IngredientScanner } from "@/components/IngredientScanner";
@@ -31,6 +31,13 @@ interface RecentScan {
   name: string;
   verdict: "safe" | "warning" | "high";
   at: number; // ms epoch
+}
+
+interface ProductLookupResult {
+  found: boolean;
+  productName?: string;
+  brand?: string;
+  ingredients?: string;
 }
 
 const PENDING_KEY = "skinscreen.pendingScan";
@@ -95,6 +102,10 @@ export default function ScanScreen() {
   const [scansToday, setScansToday] = useState<number>(() => readScanCount());
   const [, setRecent] = useState<RecentScan[]>(() => readRecent());
   const [showScanner, setShowScanner] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [lookupResult, setLookupResult] = useState<ProductLookupResult | null>(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
   const { isPremium, trialEligible, trialDays } = useUserPlan();
   const { t } = useTranslation();
 
@@ -131,6 +142,45 @@ export default function ScanScreen() {
   useEffect(() => {
     refreshServerCount();
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const trimmed = searchInput.trim();
+      setSearchQuery(trimmed.length >= 2 ? trimmed : "");
+      if (trimmed.length < 2) {
+        setLookupResult(null);
+      }
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (!searchQuery) {
+      setLookupLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLookupLoading(true);
+    apiFetch(`/api/product-lookup?q=${encodeURIComponent(searchQuery)}`, {
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (!res.ok) return { found: false };
+        return (await res.json()) as ProductLookupResult;
+      })
+      .then((data) => {
+        if (!cancelled) setLookupResult(data);
+      })
+      .catch(() => {
+        if (!cancelled) setLookupResult({ found: false });
+      })
+      .finally(() => {
+        if (!cancelled) setLookupLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchQuery]);
 
   // Listen for scan completions emitted by IngredientScanner: bump daily
   // counter and capture the recent scan for the lookup-home recents list.
@@ -317,145 +367,71 @@ export default function ScanScreen() {
 
         <div
           className="mx-auto flex w-full max-w-md flex-col"
-          style={{ gap: 16 }}
+          style={{ gap: 12 }}
         >
-          {canScanBarcode ? (
-            <BarcodeScanButton
-              onResult={handleScannedFromCard}
-              triggerClassName="block w-full rounded-[16px] border-2 border-[var(--sage)] bg-[var(--cream-warm)] text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage-deep)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
-              triggerContent={
-                <div
-                  className="flex min-h-[180px] flex-col items-center justify-center text-center"
-                  style={{ padding: "32px 24px" }}
-                >
-                  <span
-                    className="mb-4 flex h-[60px] w-[60px] shrink-0 items-center justify-center"
-                    style={{ borderRadius: 16, backgroundColor: "var(--sage)" }}
-                  >
-                    <Camera
-                      className="shrink-0 text-white"
-                      width={28}
-                      height={28}
-                      strokeWidth={1.75}
-                      aria-hidden
-                    />
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-                      fontSize: 18,
-                      fontWeight: 600,
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {t("scan.choiceNewTitle")}
-                  </span>
-                  <span
-                    className="mt-1.5 block text-[13px] font-semibold leading-tight"
-                    style={{ color: "var(--sage-deep)" }}
-                  >
-                    {t("scan.openCamera")}
-                  </span>
-                  <span
-                    className="mt-2 max-w-[280px] text-[12px] leading-snug"
-                    style={{ color: "var(--ink-soft)" }}
-                  >
-                    {t("scan.choiceNewSubtitle")}
-                  </span>
-                </div>
-              }
-            />
-          ) : (
-            /* Desktop fallback: no camera API → open manual ingredient entry */
-            <button
-              type="button"
-              onClick={openScanner}
-              data-touch-target
-              className="block w-full rounded-[16px] border-2 border-[var(--sage)] bg-[var(--cream-warm)] text-center shadow-none transition-[transform,border-color] duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--sage-deep)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
-            >
-              <div
-                className="flex min-h-[180px] flex-col items-center justify-center text-center"
-                style={{ padding: "32px 24px" }}
+          <div className="rounded-[20px] border border-[var(--line)] bg-white p-3 shadow-sm">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder={t("scan.searchPlaceholder")}
+                data-touch-target
+                className="h-12 w-full rounded-2xl border border-border/50 bg-[var(--cream)] pl-10 pr-14 text-[15px] font-medium text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              {lookupLoading ? (
+                <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              ) : canScanBarcode ? (
+                <BarcodeScanButton
+                  onResult={handleScannedFromCard}
+                  triggerClassName="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl bg-primary text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
+                  triggerContent={<ScanLine className="h-4 w-4" aria-hidden />}
+                />
+              ) : null}
+            </div>
+
+            {lookupResult?.found && lookupResult.ingredients && (
+              <button
+                type="button"
+                onClick={() => {
+                  const name = [lookupResult.brand, lookupResult.productName].filter(Boolean).join(" ");
+                  handleScannedFromCard(lookupResult.ingredients!, name || lookupResult.productName || searchQuery);
+                }}
+                className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-3 text-left transition-colors hover:bg-primary/10"
               >
-                <span
-                  className="mb-4 flex h-[60px] w-[60px] shrink-0 items-center justify-center"
-                  style={{ borderRadius: 16, backgroundColor: "var(--sage)" }}
-                >
-                  <Camera
-                    className="shrink-0 text-white"
-                    width={28}
-                    height={28}
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <Search className="h-4 w-4 text-primary" aria-hidden />
                 </span>
-                <span
-                  style={{
-                    fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: "var(--ink)",
-                  }}
-                >
-                  {t("scan.choiceNewTitle")}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">
+                    {lookupResult.productName}
+                  </span>
+                  {lookupResult.brand && (
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                      {lookupResult.brand}
+                    </span>
+                  )}
                 </span>
-                <span
-                  className="mt-1.5 block text-[13px] font-semibold leading-tight"
-                  style={{ color: "var(--sage-deep)" }}
-                >
-                  {t("scan.openCamera")}
-                </span>
-                <span
-                  className="mt-2 max-w-[280px] text-[12px] leading-snug"
-                  style={{ color: "var(--ink-soft)" }}
-                >
-                  {t("scan.choiceNewSubtitle")}
-                </span>
-              </div>
-            </button>
-          )}
+              </button>
+            )}
+
+            {searchQuery && lookupResult && !lookupResult.found && !lookupLoading && (
+              <p className="mt-2 px-1 text-xs text-muted-foreground">{t("myShelf.productNotFound")}</p>
+            )}
+          </div>
 
           <button
             type="button"
-            onClick={() => navigate("/app/browse")}
+            onClick={openScanner}
             data-touch-target
-            className="flex w-full min-w-0 items-center gap-3 rounded-[16px] border border-[var(--line)] bg-white text-left shadow-none transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-[2px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_25%,transparent)]"
-            style={{ padding: "14px 16px" }}
-            aria-label={t("scan.choiceSearchTitle")}
+            className="inline-flex min-h-[44px] w-fit items-center gap-2 rounded-full px-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
           >
-            <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-              style={{ backgroundColor: "var(--green-soft)" }}
-            >
-              <Search
-                className="shrink-0"
-                width={22}
-                height={22}
-                strokeWidth={1.75}
-                style={{ color: "var(--sage-deep)" }}
-                aria-hidden
-              />
-            </span>
-            <div className="min-w-0 flex-1">
-              <span
-                className="block font-semibold leading-tight text-foreground"
-                style={{
-                  fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-                  fontSize: 15,
-                }}
-              >
-                {t("scan.choiceSearchTitle")}
-              </span>
-              <span className="mt-0.5 block text-[12px] leading-snug" style={{ color: "var(--ink-soft)" }}>
-                {t("scan.choiceSearchSubtitle")}
-              </span>
-            </div>
-            <ChevronRight
-              className="h-[18px] w-[18px] shrink-0"
-              strokeWidth={1.75}
-              style={{ color: "var(--ink-soft)" }}
-              aria-hidden
-            />
+            <Camera className="h-4 w-4" aria-hidden />
+            {t("scan.photoIngredients")}
           </button>
         </div>
       </section>

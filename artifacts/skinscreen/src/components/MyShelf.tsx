@@ -12,10 +12,10 @@ import {
 } from "@workspace/api-client-react";
 import type { RoutineConflict, RoutineConflictResponse } from "@workspace/api-client-react";
 import {
-  Sun, Moon, Plus, Trash2, Search, Layers, AlertTriangle,
+  Sun, Moon, Plus, Trash2, Search, AlertTriangle,
   X, ShieldCheck, ShieldOff, Loader2,
   ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus,
-  Clock, Heart,
+  Clock, Heart, CalendarDays, Bookmark, Package,
 } from "lucide-react";
 import PaywallModal from "@/components/PaywallModal";
 import { FadeIn } from "@/components/FadeIn";
@@ -39,6 +39,7 @@ import {
   ShelfConflictBanner,
   type IngredientStatusLevel,
 } from "@/components/IngredientStatusDot";
+import { ProductDetailSheet } from "@/components/ProductDetailSheet";
 
 function normName(s: string) {
   return s.trim().toLowerCase();
@@ -71,7 +72,7 @@ function pickBannerConflict(pc: RoutineConflict[]): RoutineConflict | null {
   return substantive[0] ?? null;
 }
 
-type RoutineSlot = "morning" | "evening" | "both";
+type RoutineSlot = "morning" | "evening" | "occasional" | "wishlist";
 
 interface AddProductFormProps {
   onClose: () => void;
@@ -83,7 +84,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
   const [search, setSearch] = useState("");
   const [productName, setProductName] = useState("");
   const [ingredients, setIngredients] = useState("");
-  const [routineSlot, setRoutineSlot] = useState<RoutineSlot>("both");
+  const [routineSlot, setRoutineSlot] = useState<RoutineSlot>("wishlist");
   const [mode, setMode] = useState<"search" | "manual">("search");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -236,7 +237,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
       <div className="mb-5">
         <p className="text-xs font-medium text-muted-foreground mb-2">{t("myShelf.routine")}</p>
         <div className="flex gap-2">
-          {(["morning", "evening", "both"] as RoutineSlot[]).map((slot) => (
+          {(["morning", "evening", "occasional", "wishlist"] as RoutineSlot[]).map((slot) => (
             <button
               key={slot}
               onClick={() => setRoutineSlot(slot)}
@@ -248,7 +249,8 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
             >
               {slot === "morning" && <Sun className="w-3 h-3" />}
               {slot === "evening" && <Moon className="w-3 h-3" />}
-              {slot === "both" && <Layers className="w-3 h-3" />}
+              {slot === "occasional" && <CalendarDays className="w-3 h-3" />}
+              {slot === "wishlist" && <Bookmark className="w-3 h-3" />}
               {t(`myShelf.slot.${slot}`)}
             </button>
           ))}
@@ -527,7 +529,7 @@ const DEMO_PRODUCTS = [
   },
 ];
 
-type ShelfFilter = "all" | "morning" | "evening" | "occasional" | "wishlist";
+type ShelfFilter = "morgon" | "kväll" | "ibland" | "sparat";
 
 const FREE_TIER_LIMIT = 2;
 
@@ -680,10 +682,15 @@ function DashedAddSlotCard({ onAdd }: { onAdd: () => void }) {
 
 export function MyShelf({ displayName }: MyShelfProps) {
   const { t } = useTranslation();
-  const [shelfFilter, setShelfFilter] = useState<ShelfFilter>("all");
+  const [shelfFilter, setShelfFilter] = useState<ShelfFilter>("morgon");
   const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
+  const [detailProduct, setDetailProduct] = useState<{
+    product: { productName: string; ingredients: string; brand?: string | null };
+    status: IngredientStatusLevel;
+    conflicts: RoutineConflict[];
+  } | null>(null);
   const [analysisState, setAnalysisState] = useState<AnalysisState>({ status: "idle" });
   const [loadingDemo, setLoadingDemo] = useState(false);
   const queryClient = useQueryClient();
@@ -697,18 +704,16 @@ export function MyShelf({ displayName }: MyShelfProps) {
 
   const allProducts = shelfQuery.data?.products ?? [];
   const filteredProducts = allProducts.filter((p) => {
-    const slot = p.routineSlot as string;
-    if (shelfFilter === "all") return true;
-    if (shelfFilter === "morning") return slot === "morning" || slot === "both";
-    if (shelfFilter === "evening") return slot === "evening" || slot === "both";
-    if (shelfFilter === "occasional") return slot === "occasional";
-    if (shelfFilter === "wishlist") return slot === "wishlist";
-    return true;
+    const slot = p.routineSlot as string | null;
+    if (shelfFilter === "morgon") return slot === "morning";
+    if (shelfFilter === "kväll") return slot === "evening";
+    if (shelfFilter === "ibland") return slot === "occasional";
+    return slot === null || slot === "wishlist" || slot === "both";
   });
   const isFree = !isPremium;
   const gridProducts = useMemo(() => {
     if (isPremium) return filteredProducts;
-    return allProducts.slice(0, FREE_TIER_LIMIT);
+    return filteredProducts.slice(0, FREE_TIER_LIMIT);
   }, [isPremium, filteredProducts, allProducts]);
 
   const freeVisibleForCombo = useMemo(() => allProducts.slice(0, FREE_TIER_LIMIT), [allProducts]);
@@ -807,9 +812,8 @@ export function MyShelf({ displayName }: MyShelfProps) {
       </div>
 
       <div className="border-b border-border/30 px-3 py-3">
-        {isPremium ? (
         <div className="-mx-1 flex gap-2 overflow-x-auto pb-0.5" style={{ WebkitOverflowScrolling: "touch" }}>
-          {(["all", "morning", "evening", "occasional", "wishlist"] as const).map((key) => {
+          {(["morgon", "kväll", "ibland", "sparat"] as const).map((key) => {
             const active = shelfFilter === key;
             return (
               <button
@@ -837,12 +841,11 @@ export function MyShelf({ displayName }: MyShelfProps) {
                       }),
                 }}
               >
-                {t(`myShelf.filter.${key}`)}
+                {t(`shelf.tab${key[0].toUpperCase()}${key.slice(1)}`)}
               </button>
             );
           })}
         </div>
-        ) : null}
       </div>
 
       <div className="min-h-[160px] p-4" style={{ backgroundColor: "var(--cream)" }}>
@@ -852,29 +855,27 @@ export function MyShelf({ displayName }: MyShelfProps) {
               <div key={i} className="h-40 rounded-2xl bg-white/80 animate-pulse" style={{ borderRadius: 16 }} />
             ))}
           </div>
-        ) : (isPremium ? filteredProducts.length === 0 : allProducts.length === 0) ? (
+        ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-              {shelfFilter === "morning" ? (
+              {shelfFilter === "morgon" ? (
                 <Sun className="h-5 w-5 text-primary" />
-              ) : shelfFilter === "evening" ? (
+              ) : shelfFilter === "kväll" ? (
                 <Moon className="h-5 w-5 text-primary" />
-              ) : shelfFilter === "occasional" ? (
+              ) : shelfFilter === "ibland" ? (
                 <Clock className="h-5 w-5 text-primary" />
-              ) : shelfFilter === "wishlist" ? (
+              ) : shelfFilter === "sparat" ? (
                 <Heart className="h-5 w-5 text-primary" />
               ) : (
-                <Layers className="h-5 w-5 text-primary" />
+                <Package className="h-5 w-5 text-primary" />
               )}
             </div>
             <p className="text-sm text-muted-foreground">
-              {shelfFilter === "all"
-                ? t("myShelf.emptyAll")
-                : shelfFilter === "morning"
+              {shelfFilter === "morgon"
                   ? t("myShelf.emptyMorning")
-                  : shelfFilter === "evening"
+                  : shelfFilter === "kväll"
                     ? t("myShelf.emptyEvening")
-                    : shelfFilter === "occasional"
+                    : shelfFilter === "ibland"
                       ? t("myShelf.emptyOccasional")
                       : t("myShelf.emptyWishlist")}
             </p>
@@ -897,13 +898,11 @@ export function MyShelf({ displayName }: MyShelfProps) {
               </div>
             ) : (
               <p className="mt-1 text-xs text-muted-foreground/70">
-                {shelfFilter === "all"
-                  ? t("myShelf.addFirstAny")
-                  : shelfFilter === "morning"
+                {shelfFilter === "morgon"
                     ? t("myShelf.addFirstMorning")
-                    : shelfFilter === "evening"
+                    : shelfFilter === "kväll"
                       ? t("myShelf.addFirstEvening")
-                      : shelfFilter === "occasional"
+                      : shelfFilter === "ibland"
                         ? t("myShelf.addFirstOccasional")
                         : t("myShelf.addFirstWishlist")}
               </p>
@@ -913,13 +912,26 @@ export function MyShelf({ displayName }: MyShelfProps) {
           <>
             <div className="grid grid-cols-2 gap-3">
             {gridProducts.map((product) => {
-              const pc = conflictsInvolvingProduct(product.productName, analysisData?.conflicts);
+              const productName = product.productName?.trim() || t("shelf.unknownProduct");
+              const pc = conflictsInvolvingProduct(productName, analysisData?.conflicts);
               const dot = dotForConflicts(pc);
               const bannerC = pickBannerConflict(pc);
               return (
                 <div key={product.id} className="flex min-w-0 flex-col gap-2">
-                  <div
-                    className="relative flex min-h-[160px] flex-col items-center bg-white text-center transition-[transform,box-shadow] duration-200"
+                  <div className="relative">
+                    <button
+                    type="button"
+                    onClick={() =>
+                      setDetailProduct({
+                        product: {
+                          productName,
+                          ingredients: product.ingredients,
+                        },
+                        status: dot,
+                        conflicts: pc,
+                      })
+                    }
+                    className="relative flex min-h-[160px] w-full flex-col items-center bg-white text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
                     style={{
                       borderRadius: 16,
                       padding: 16,
@@ -929,21 +941,11 @@ export function MyShelf({ displayName }: MyShelfProps) {
                     <div className="pointer-events-none absolute right-3 top-3">
                       <IngredientStatusDot status={dot} />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setRemoveTarget({ id: product.id, name: product.productName })}
-                      disabled={removeMutation.isPending}
-                      className="absolute left-2 top-2 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-red-50 hover:text-red-600"
-                      style={{ pointerEvents: "auto" }}
-                      aria-label={t("myShelf.removeProduct")}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
                     <div
-                      className="mb-3 mt-6 flex h-16 w-16 shrink-0 items-center justify-center text-3xl leading-none"
+                      className="mb-3 mt-6 flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10"
                       aria-hidden
                     >
-                      📦
+                      <Package className="h-8 w-8 text-primary" strokeWidth={1.75} />
                     </div>
                     <p
                       className="line-clamp-3 w-full px-0.5 text-center leading-snug"
@@ -954,13 +956,19 @@ export function MyShelf({ displayName }: MyShelfProps) {
                         color: "var(--ink)",
                       }}
                     >
-                      {product.productName}
+                      {productName}
                     </p>
-                    {product.routineSlot === "both" && (
-                      <span className="mt-2 text-[10px] font-medium" style={{ color: "#5E544C" }}>
-                        AM+PM
-                      </span>
-                    )}
+                  </button>
+                  <button
+                      type="button"
+                      onClick={() => setRemoveTarget({ id: product.id, name: productName })}
+                      disabled={removeMutation.isPending}
+                      className="absolute left-2 top-2 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-red-50 hover:text-red-600"
+                      style={{ pointerEvents: "auto" }}
+                      aria-label={t("myShelf.removeProduct")}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                   {bannerC && (
                     <ShelfConflictBanner>
@@ -1054,6 +1062,15 @@ export function MyShelf({ displayName }: MyShelfProps) {
       {showContributeModal && (
         <ContributeModal
           onClose={() => setShowContributeModal(false)}
+        />
+      )}
+
+      {detailProduct && (
+        <ProductDetailSheet
+          product={detailProduct.product}
+          status={detailProduct.status}
+          conflicts={detailProduct.conflicts}
+          onClose={() => setDetailProduct(null)}
         />
       )}
 

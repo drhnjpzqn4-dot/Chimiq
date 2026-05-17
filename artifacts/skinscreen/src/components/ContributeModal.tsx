@@ -13,6 +13,7 @@ interface ContributeModalProps {
 }
 
 type Step = "front-photo" | "ingredients" | "submitting" | "success";
+type SourceType = "package" | "manufacturer_site" | "other" | "";
 
 interface SubmitResult {
   extractedIngredients?: string | null;
@@ -62,6 +63,10 @@ export function ContributeModal({
   const [brand, setBrand] = useState(initialBrand);
   const [barcodeInput, setBarcodeInput] = useState(() => (barcode ?? "").replace(/\D/g, ""));
   const [ingredientsText, setIngredientsText] = useState("");
+  const [sourceType, setSourceType] = useState<SourceType>("");
+  const [sourceOther, setSourceOther] = useState("");
+  const [brandSuggestions, setBrandSuggestions] = useState<string[]>([]);
+  const [brandSuggestLoading, setBrandSuggestLoading] = useState(false);
   const [frontImageBase64, setFrontImageBase64] = useState<string | null>(null);
   const [frontPreviewUrl, setFrontPreviewUrl] = useState<string | null>(null);
   const [ingredientsImageBase64, setIngredientsImageBase64] = useState<string | null>(null);
@@ -80,6 +85,40 @@ export function ContributeModal({
   // action is taking the front photo. Auto-advance to the ingredients step as
   // soon as the photo is captured, trimming one explicit "Next" tap.
   const isPrefilledFromScan = !!barcode && !!initialProductName.trim();
+
+  useEffect(() => {
+    const query = brand.trim();
+    if (query.length < 2) {
+      setBrandSuggestions([]);
+      setBrandSuggestLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setBrandSuggestLoading(true);
+      apiFetch(`/api/products/brands?q=${encodeURIComponent(query)}`, {
+        credentials: "include",
+        signal: controller.signal,
+      })
+        .then(async (res) => {
+          if (!res.ok) return { brands: [] };
+          return (await res.json()) as { brands?: string[] };
+        })
+        .then((data) => setBrandSuggestions((data.brands ?? []).slice(0, 5)))
+        .catch((err) => {
+          if (!(err instanceof DOMException && err.name === "AbortError")) {
+            setBrandSuggestions([]);
+          }
+        })
+        .finally(() => setBrandSuggestLoading(false));
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [brand]);
 
   const handleFrontPhoto = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -221,11 +260,16 @@ export function ContributeModal({
           frontImageBase64: frontImageBase64 ?? undefined,
           ingredientsImageBase64: ingredientsImageBase64 ?? undefined,
           ingredientsText: ingredientsText.trim() || undefined,
+          source_type: sourceType || undefined,
+          source_note: sourceType === "other" ? sourceOther.trim() || undefined : undefined,
         }),
       });
 
-      const data = (await res.json()) as SubmitResult & { error?: string };
-      if (!res.ok) throw new Error(data.error ?? t("contribute.errSubmitFailed"));
+      const data = (await res.json()) as SubmitResult & { error?: string; issues?: { message: string }[] };
+      if (!res.ok) {
+        const firstIssue = data.issues?.[0]?.message;
+        throw new Error(firstIssue ?? data.error ?? t("contribute.errSubmitFailed"));
+      }
 
       setResult(data);
       setStep("success");
@@ -240,7 +284,7 @@ export function ContributeModal({
       setError(err instanceof Error ? err.message : t("contribute.errSubmissionFailed"));
       setStep("ingredients");
     }
-  }, [submissionId, frontImageBase64, ingredientsImageBase64, ingredientsText, onSuccess, brand, productName]);
+  }, [submissionId, frontImageBase64, ingredientsImageBase64, ingredientsText, sourceType, sourceOther, onSuccess, brand, productName]);
 
   const stepLabel: Record<Step, string> = {
     "front-photo": t("contribute.step1Photo"),
@@ -373,13 +417,36 @@ export function ContributeModal({
                   onChange={(e) => setProductName(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
                 />
-                <input
-                  type="text"
-                  placeholder={t("contribute.brandPlaceholder")}
-                  value={brand}
-                  onChange={(e) => setBrand(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder={t("contribute.brandPlaceholder")}
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                  />
+                  {(brandSuggestions.length > 0 || brandSuggestLoading) && (
+                    <div className="absolute left-0 right-0 z-20 mt-1 overflow-hidden rounded-xl border border-border/60 bg-white shadow-lg">
+                      {brandSuggestLoading && brandSuggestions.length === 0 ? (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">{t("common.loading")}</p>
+                      ) : (
+                        brandSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => {
+                              setBrand(suggestion);
+                              setBrandSuggestions([]);
+                            }}
+                            className="block w-full px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-primary/5"
+                          >
+                            {suggestion}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -520,6 +587,38 @@ export function ContributeModal({
                 rows={4}
                 className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none"
               />
+
+              <div className="space-y-2 rounded-2xl border border-border/40 bg-[#FAFAF8] p-3">
+                <p className="text-xs font-semibold text-foreground">{t("contribute.sourceLabel")}</p>
+                <div className="grid gap-2">
+                  {([
+                    ["package", t("contribute.sourcePackage")],
+                    ["manufacturer_site", t("contribute.sourceManufacturer")],
+                    ["other", t("contribute.sourceOther")],
+                  ] as const).map(([value, label]) => (
+                    <label key={value} className="flex items-center gap-2 text-sm text-foreground">
+                      <input
+                        type="radio"
+                        name="ingredient-source"
+                        value={value}
+                        checked={sourceType === value}
+                        onChange={() => setSourceType(value)}
+                        className="h-4 w-4 accent-primary"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                {sourceType === "other" && (
+                  <input
+                    type="text"
+                    value={sourceOther}
+                    onChange={(e) => setSourceOther(e.target.value)}
+                    placeholder={t("contribute.sourceOtherPlaceholder")}
+                    className="w-full rounded-xl border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                )}
+              </div>
 
               {error && <p className="text-xs text-red-500 text-center">{error}</p>}
 

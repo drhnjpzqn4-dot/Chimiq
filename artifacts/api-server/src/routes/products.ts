@@ -182,6 +182,43 @@ router.get("/products", async (req, res) => {
   }
 });
 
+router.get("/products/brands", async (req, res) => {
+  const q = String(req.query.q ?? "").trim().slice(0, 80);
+
+  if (q.length < 2) {
+    res.json({ brands: [] });
+    return;
+  }
+
+  try {
+    const needle = `%${escapeFilterValue(q)}%`;
+    const { data, error } = await supabaseAdmin
+      .from("cached_products")
+      .select("brand")
+      .ilike("brand", needle)
+      .limit(30);
+
+    if (error) throw error;
+
+    const seen = new Set<string>();
+    const brands = ((data ?? []) as Array<{ brand: string | null }>)
+      .map((row) => row.brand?.trim() ?? "")
+      .filter((brand) => {
+        if (!brand) return false;
+        const key = brand.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 5);
+
+    res.json({ brands });
+  } catch (err) {
+    req.log.warn({ err }, "Brand lookup failed");
+    res.json({ brands: [] });
+  }
+});
+
 // Public: read-only product detail for the Browse surface. Returns full
 // ingredient list and the cached safety verdict if one exists.
 router.get("/products/:barcode", async (req, res) => {

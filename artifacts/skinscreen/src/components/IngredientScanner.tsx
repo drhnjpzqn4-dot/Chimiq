@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import {
@@ -48,6 +49,10 @@ import {
   Sparkles,
   Check,
   Ban,
+  Clock,
+  Moon,
+  CalendarDays,
+  Bookmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConflictResult } from "@workspace/api-client-react";
@@ -73,6 +78,14 @@ function cosIngFactSuffix(locale: Locale): string {
   }
 }
 
+function getErrorStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const direct = (error as { status?: unknown }).status;
+  if (typeof direct === "number") return direct;
+  const responseStatus = (error as { response?: { status?: unknown } }).response?.status;
+  return typeof responseStatus === "number" ? responseStatus : undefined;
+}
+
 const PLACEHOLDER_SINGLE = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, Cetearyl Alcohol, DMDM Hydantoin, Sodium Hyaluronate, Butylene Glycol, Fragrance, Carbomer`;
 const PLACEHOLDER_1 = `Aqua, Glycerin, Niacinamide, Retinol, Dimethicone, Cetearyl Alcohol, Phenoxyethanol, Sodium Hyaluronate, Butylene Glycol, Carbomer`;
 const PLACEHOLDER_2 = `Aqua, Ascorbic Acid (Vitamin C 20%), Glycolic Acid, Propylene Glycol, Tocopherol, Ferulic Acid, Sodium Hydroxide, Panthenol`;
@@ -84,8 +97,13 @@ const ROUTINE_LOCALE: Record<
   {
     addCta: string;
     changeCta: string;
+    sheetTitle: string;
+    sheetSubtitle: string;
+    saveLaterCta: string;
     sheetMorning: string;
+    sheetMorningHint: string;
     sheetEvening: string;
+    sheetEveningHint: string;
     sheetOccasional: string;
     sheetOccasionalHint: string;
     sheetWishlist: string;
@@ -99,14 +117,19 @@ const ROUTINE_LOCALE: Record<
   }
 > = {
   en: {
-    addCta: "Add to my routine",
+    addCta: "Add to routine",
     changeCta: "Change category",
-    sheetMorning: "Daily routine — Morning",
-    sheetEvening: "Daily routine — Evening",
-    sheetOccasional: "Occasional routine",
-    sheetOccasionalHint: "Sunscreen, peel, mask",
-    sheetWishlist: "Save for later",
-    sheetWishlistHint: "We will remember it for next time",
+    sheetTitle: "Where do you want to add it?",
+    sheetSubtitle: "Choose routine",
+    saveLaterCta: "Save for later",
+    sheetMorning: "Morning",
+    sheetMorningHint: "Cleanser, serum, SPF, makeup",
+    sheetEvening: "Evening",
+    sheetEveningHint: "Cleanser, serum, night cream",
+    sheetOccasional: "Sometimes",
+    sheetOccasionalHint: "Masks, peels, treatments",
+    sheetWishlist: "Save without routine",
+    sheetWishlistHint: "Not automatically conflict-scanned",
     remove: "Remove from shelf",
     saved: "Saved to your shelf",
     removed: "Removed from shelf",
@@ -115,14 +138,19 @@ const ROUTINE_LOCALE: Record<
     shelfLimit: "Shelf limit reached — Premium unlocks more.",
   },
   sv: {
-    addCta: "Lägg till i min rutin",
+    addCta: "Lägg till i rutinen",
     changeCta: "Ändra kategori",
-    sheetMorning: "Daglig rutin — Morgon",
-    sheetEvening: "Daglig rutin — Kväll",
+    sheetTitle: "Var vill du lägga till den?",
+    sheetSubtitle: "Välj rutin",
+    saveLaterCta: "Spara för senare",
+    sheetMorning: "Morgon",
+    sheetMorningHint: "Rengöring, serum, SPF, makeup",
+    sheetEvening: "Kväll",
+    sheetEveningHint: "Rengöring, serum, nattkräm",
     sheetOccasional: "Ibland-rutin",
-    sheetOccasionalHint: "Solskydd, peeling, mask",
-    sheetWishlist: "Spara till senare",
-    sheetWishlistHint: "Kommer ihåg den till nästa gång",
+    sheetOccasionalHint: "Masker, peelings, behandlingar",
+    sheetWishlist: "Spara utan rutin",
+    sheetWishlistHint: "Konflictscannas ej automatiskt",
     remove: "Ta bort från hyllan",
     saved: "Sparat på din hylla",
     removed: "Borttagen från hyllan",
@@ -133,12 +161,17 @@ const ROUTINE_LOCALE: Record<
   fr: {
     addCta: "Ajouter à ma routine",
     changeCta: "Changer de catégorie",
-    sheetMorning: "Routine quotidienne — Matin",
-    sheetEvening: "Routine quotidienne — Soir",
-    sheetOccasional: "Routine occasionnelle",
-    sheetOccasionalHint: "Solaire, peeling, masque",
-    sheetWishlist: "Enregistrer pour plus tard",
-    sheetWishlistHint: "On s'en souviendra pour la prochaine fois",
+    sheetTitle: "Où voulez-vous l'ajouter ?",
+    sheetSubtitle: "Choisir une routine",
+    saveLaterCta: "Enregistrer pour plus tard",
+    sheetMorning: "Matin",
+    sheetMorningHint: "Nettoyant, sérum, SPF, maquillage",
+    sheetEvening: "Soir",
+    sheetEveningHint: "Nettoyant, sérum, crème de nuit",
+    sheetOccasional: "Parfois",
+    sheetOccasionalHint: "Masques, peelings, traitements",
+    sheetWishlist: "Enregistrer sans routine",
+    sheetWishlistHint: "Pas de scan automatique des conflits",
     remove: "Retirer de l'étagère",
     saved: "Enregistré sur votre étagère",
     removed: "Retiré de l'étagère",
@@ -149,12 +182,17 @@ const ROUTINE_LOCALE: Record<
   es: {
     addCta: "Añadir a mi rutina",
     changeCta: "Cambiar categoría",
-    sheetMorning: "Rutina diaria — Mañana",
-    sheetEvening: "Rutina diaria — Noche",
-    sheetOccasional: "Rutina ocasional",
-    sheetOccasionalHint: "Protector solar, peeling, mascarilla",
-    sheetWishlist: "Guardar para más tarde",
-    sheetWishlistHint: "Lo recordaremos la próxima vez",
+    sheetTitle: "¿Dónde quieres añadirlo?",
+    sheetSubtitle: "Elige rutina",
+    saveLaterCta: "Guardar para más tarde",
+    sheetMorning: "Mañana",
+    sheetMorningHint: "Limpiador, sérum, SPF, maquillaje",
+    sheetEvening: "Noche",
+    sheetEveningHint: "Limpiador, sérum, crema de noche",
+    sheetOccasional: "A veces",
+    sheetOccasionalHint: "Mascarillas, peelings, tratamientos",
+    sheetWishlist: "Guardar sin rutina",
+    sheetWishlistHint: "No se revisa automáticamente por conflictos",
     remove: "Quitar del estante",
     saved: "Guardado en tu estante",
     removed: "Quitado del estante",
@@ -198,6 +236,7 @@ function ScannerRoutineShelfBlock({
 
   const shelfQuery = useGetShelf({
     query: {
+      queryKey: getGetShelfQueryKey(),
       enabled: isAuthenticated && Boolean(ingredients.trim()),
     },
   });
@@ -263,22 +302,22 @@ function ScannerRoutineShelfBlock({
   const choices: {
     slot: RoutineSlotChoice;
     title: string;
-    hint?: string;
-    emoji: string;
+    hint: string;
+    icon: typeof Clock;
   }[] = [
-    { slot: "morning", title: copy.sheetMorning, emoji: "🌅" },
-    { slot: "evening", title: copy.sheetEvening, emoji: "🌙" },
+    { slot: "morning", title: copy.sheetMorning, hint: copy.sheetMorningHint, icon: Clock },
+    { slot: "evening", title: copy.sheetEvening, hint: copy.sheetEveningHint, icon: Moon },
     {
       slot: "occasional",
       title: copy.sheetOccasional,
       hint: copy.sheetOccasionalHint,
-      emoji: "✨",
+      icon: CalendarDays,
     },
     {
       slot: "wishlist",
       title: copy.sheetWishlist,
       hint: copy.sheetWishlistHint,
-      emoji: "🔖",
+      icon: Bookmark,
     },
   ];
 
@@ -303,6 +342,17 @@ function ScannerRoutineShelfBlock({
         {existing ? copy.changeCta : copy.addCta}
       </button>
 
+      <button
+        type="button"
+        data-touch-target
+        disabled={busy || !ingredients.trim()}
+        onClick={() => void persistSlot("wishlist")}
+        className="mt-2 w-full rounded-full border border-[var(--line)] bg-white py-3 text-[15px] font-semibold text-[var(--sage)] transition-colors hover:bg-[var(--cream)] disabled:opacity-50"
+        style={{ minHeight: 48 }}
+      >
+        {copy.saveLaterCta}
+      </button>
+
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="bottom"
@@ -311,28 +361,32 @@ function ScannerRoutineShelfBlock({
           <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/20" />
           <SheetHeader className="px-5 pt-4 pb-2 text-left">
             <SheetTitle className="font-serif text-lg">
-              {existing ? copy.changeCta : copy.addCta}
+              {copy.sheetTitle}
             </SheetTitle>
+            <p className="text-sm text-muted-foreground">{copy.sheetSubtitle}</p>
           </SheetHeader>
           <div className="flex flex-col gap-3 px-5 pb-8 pt-2">
-            {choices.map((c) => (
-              <button
-                key={c.slot}
-                type="button"
-                data-touch-target
-                disabled={busy}
-                onClick={() => void persistSlot(c.slot)}
-                className="w-full rounded-2xl border border-[var(--line)] bg-white p-4 text-left transition-[transform,border-color] hover:-translate-y-0.5 hover:border-[var(--sage)] disabled:opacity-50"
-              >
-                <p className="text-[16px] font-semibold text-[var(--ink)]">
-                  <span className="mr-2" aria-hidden>
-                    {c.emoji}
+            {choices.map((c) => {
+              const Icon = c.icon;
+              return (
+                <button
+                  key={c.slot}
+                  type="button"
+                  data-touch-target
+                  disabled={busy}
+                  onClick={() => void persistSlot(c.slot)}
+                  className="flex w-full items-start gap-3 rounded-2xl border border-[var(--line)] bg-white p-4 text-left transition-[transform,border-color] hover:-translate-y-0.5 hover:border-[var(--sage)] disabled:opacity-50"
+                >
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <Icon className="h-4 w-4 text-primary" aria-hidden />
                   </span>
-                  {c.title}
-                </p>
-                {c.hint && <p className="mt-1 text-[13px] text-muted-foreground leading-snug">{c.hint}</p>}
-              </button>
-            ))}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[16px] font-semibold text-[var(--ink)]">{c.title}</span>
+                    <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">{c.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
             {existing && (
               <button
                 type="button"
@@ -736,7 +790,6 @@ function FlagCard({
               >
                 <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
                 <span className="italic leading-snug">
-                  <span className="font-semibold not-italic text-muted-foreground">{t("scanner.source")}</span>
                   {flag.citation}
                 </span>
               </a>
@@ -786,7 +839,6 @@ function SafeCard({ result, delay }: { result: ConflictResult; delay?: number })
           >
             <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
             <span className="italic leading-snug">
-              <span className="font-semibold not-italic text-muted-foreground">{t("scanner.source")}</span>
               {result.citation}
             </span>
           </a>
@@ -1177,6 +1229,7 @@ export function IngredientScanner({
   /** SS-015: Scan page palette for toggle, A/B cards, and Analyze control. */
   scanVisualStyle?: boolean;
 } = {}) {
+  const [, navigate] = useLocation();
   const { t, locale } = useTranslation();
   const ss = scanVisualStyle === true;
   const [mode, setMode] = useState<"single" | "compare">("single");
@@ -1376,6 +1429,7 @@ export function IngredientScanner({
   const isPending = mode === "single" ? analyzeSingle.isPending : analyzeCompare.isPending;
   const isError = mode === "single" ? analyzeSingle.isError : analyzeCompare.isError;
   const error = mode === "single" ? analyzeSingle.error : analyzeCompare.error;
+  const isUnauthorized = isError && getErrorStatus(error) === 401;
 
   const singleHighRisk = singleResult?.flags.filter((f) => f.severity === "HIGH_RISK") ?? [];
   const singleCaution = singleResult?.flags.filter((f) => f.severity === "CAUTION") ?? [];
@@ -1747,12 +1801,42 @@ export function IngredientScanner({
 
       {/* Error */}
       {isError && (
-        <div className="rounded-3xl bg-destructive/5 border border-destructive/20 p-6 text-center mb-8 animate-fade-up shadow-sm">
-          <p className="text-sm font-medium text-destructive">
-            {(error as Error & { response?: { data?: { error?: string } } })?.response?.data?.error
-              ?? t("scanner.errGeneric")}
-          </p>
-        </div>
+        isUnauthorized ? (
+          <div className="mb-8 rounded-3xl border border-[var(--line)] bg-white p-6 text-center shadow-sm animate-fade-up">
+            <ShieldCheck className="mx-auto h-8 w-8 text-primary" aria-hidden />
+            <h3 className="mt-3 font-serif text-xl font-medium text-foreground">
+              {t("loginGate.title")}
+            </h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              {t("loginGate.body")}
+            </p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="rounded-full border-0 px-6 text-white"
+                style={{ backgroundColor: "var(--sage)" }}
+              >
+                {t("loginGate.login")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate("/signup")}
+                className="rounded-full px-6"
+              >
+                {t("loginGate.signup")}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-3xl bg-destructive/5 border border-destructive/20 p-6 text-center mb-8 animate-fade-up shadow-sm">
+            <p className="text-sm font-medium text-destructive">
+              {(error as Error & { response?: { data?: { error?: string } } })?.response?.data?.error
+                ?? t("scanner.errGeneric")}
+            </p>
+          </div>
+        )
       )}
 
       {/* Single-product results */}
