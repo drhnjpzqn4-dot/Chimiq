@@ -21,15 +21,15 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
         className="sticky top-0 z-40 border-b bg-white/85 backdrop-blur-md"
         style={{ paddingTop: "var(--safe-top)", borderColor: "var(--line)" }}
       >
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <a href={base + "/"} className="flex items-center gap-2" data-touch-target aria-label="Chimiq home">
             <img
               src="/favicon.svg"
               alt=""
-              width={32}
-              height={32}
+              width={48}
+              height={48}
               className="shrink-0 object-contain"
-              style={{ width: 32, height: 32, objectFit: "contain" }}
+              style={{ width: 48, height: 48, objectFit: "contain" }}
               aria-hidden
             />
             <span

@@ -21,7 +21,7 @@ function scoreMatch(query: string, productName: string, brand: string): number {
   return score;
 }
 
-router.get("/product-lookup", async (req, res) => {
+router.get(["/product-lookup", "/products/lookup"], async (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
 
   if (!q || q.length < 2) {
@@ -36,7 +36,7 @@ router.get("/product-lookup", async (req, res) => {
       `&search_terms=${encodeURIComponent(q)}` +
       `&search_simple=1` +
       `&output_format=json` +
-      `&fields=product_name,brands,ingredients_text_en,ingredients_text` +
+      `&fields=product_name,brands,ingredients_text_en,ingredients_text,image_url` +
       `&json=1` +
       `&page_size=15`;
 
@@ -89,6 +89,7 @@ router.get("/product-lookup", async (req, res) => {
       productName: (match["product_name"] as string | undefined) ?? q,
       brand: (match["brands"] as string | undefined) ?? "",
       ingredients,
+      imageUrl: (match["image_url"] as string | undefined) ?? null,
     });
   } catch (err) {
     req.log.warn({ err }, "Product lookup failed");

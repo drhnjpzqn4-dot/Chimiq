@@ -781,6 +781,9 @@ components:
           type: string
         ingredients:
           type: string
+        imageUrl:
+          type: string
+          nullable: true
         routineSlot:
           $ref: '#/components/schemas/RoutineSlot'
         addedAt:
@@ -804,6 +807,10 @@ components:
         ingredients:
           type: string
           maxLength: 5000
+        image_url:
+          type: string
+          nullable: true
+          format: uri
         routineSlot:
           $ref: '#/components/schemas/RoutineSlot'
     RoutineConflict:

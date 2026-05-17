@@ -267,6 +267,7 @@ export interface ShelfProduct {
   id: number;
   productName: string;
   ingredients: string;
+  imageUrl?: string | null;
   routineSlot: RoutineSlot;
   addedAt: string;
 }
@@ -280,6 +281,7 @@ export interface AddToShelfRequest {
   productName: string;
   /** @maxLength 5000 */
   ingredients: string;
+  image_url?: string | null;
   routineSlot?: RoutineSlot;
 }
 

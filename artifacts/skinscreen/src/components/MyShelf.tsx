@@ -39,7 +39,7 @@ import {
   ShelfConflictBanner,
   type IngredientStatusLevel,
 } from "@/components/IngredientStatusDot";
-import { ProductDetailSheet } from "@/components/ProductDetailSheet";
+import { ProductDetailSheet, type ProductDetailProduct } from "@/components/ProductDetailSheet";
 
 function normName(s: string) {
   return s.trim().toLowerCase();
@@ -687,7 +687,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
   const [detailProduct, setDetailProduct] = useState<{
-    product: { productName: string; ingredients: string; brand?: string | null };
+    product: ProductDetailProduct;
     status: IngredientStatusLevel;
     conflicts: RoutineConflict[];
   } | null>(null);
@@ -765,7 +765,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
     <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
       <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
         <div>
-          <span className="font-serif text-lg font-medium text-foreground">{t("myShelf.title")}</span>
+          <span className="font-serif text-lg font-medium" style={{ color: "var(--rose-gold)" }}>{t("myShelf.title")}</span>
           {displayName && (
             <span className="ml-2 text-sm text-muted-foreground">— {displayName}</span>
           )}
@@ -835,8 +835,8 @@ export function MyShelf({ displayName }: MyShelfProps) {
                         border: "1px solid transparent",
                       }
                     : {
-                        backgroundColor: "var(--cream)",
-                        color: "#5E544C",
+                        backgroundColor: "var(--cream-warm)",
+                        color: "var(--ink-soft)",
                         border: "1px solid var(--line)",
                       }),
                 }}
@@ -913,6 +913,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
             <div className="grid grid-cols-2 gap-3">
             {gridProducts.map((product) => {
               const productName = product.productName?.trim() || t("shelf.unknownProduct");
+              const imageUrl = (product as { imageUrl?: string | null }).imageUrl ?? null;
               const pc = conflictsInvolvingProduct(productName, analysisData?.conflicts);
               const dot = dotForConflicts(pc);
               const bannerC = pickBannerConflict(pc);
@@ -924,31 +925,38 @@ export function MyShelf({ displayName }: MyShelfProps) {
                     onClick={() =>
                       setDetailProduct({
                         product: {
+                          product_name: productName,
                           productName,
                           ingredients: product.ingredients,
+                          image_url: imageUrl,
+                          imageUrl,
                         },
                         status: dot,
                         conflicts: pc,
                       })
                     }
-                    className="relative flex min-h-[160px] w-full flex-col items-center bg-white text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
+                    className="relative flex min-h-[190px] w-full flex-col items-center overflow-hidden bg-white text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
                     style={{
                       borderRadius: 16,
-                      padding: 16,
                       boxShadow: "0 1px 0 rgba(31,26,23,0.04)",
                     }}
                   >
                     <div className="pointer-events-none absolute right-3 top-3">
                       <IngredientStatusDot status={dot} />
                     </div>
-                    <div
-                      className="mb-3 mt-6 flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10"
-                      aria-hidden
-                    >
-                      <Package className="h-8 w-8 text-primary" strokeWidth={1.75} />
-                    </div>
+                    {imageUrl ? (
+                      <img src={imageUrl} alt="" className="h-[120px] max-h-[120px] w-full object-cover" />
+                    ) : (
+                      <div
+                        className="flex h-[120px] max-h-[120px] w-full shrink-0 items-center justify-center"
+                        style={{ backgroundColor: "var(--cream-warm)" }}
+                        aria-hidden
+                      >
+                        <Package className="h-8 w-8" style={{ color: "var(--ink-soft)" }} strokeWidth={1.75} />
+                      </div>
+                    )}
                     <p
-                      className="line-clamp-3 w-full px-0.5 text-center leading-snug"
+                      className="line-clamp-3 w-full px-3 py-3 text-center leading-snug"
                       style={{
                         fontSize: 17,
                         fontWeight: 600,
@@ -973,7 +981,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
                   {bannerC && (
                     <ShelfConflictBanner>
                       <span className="block font-medium">{bannerC.pair}</span>
-                      <span className="mt-1 block font-normal leading-snug" style={{ color: "#8E3A26" }}>
+                      <span className="mt-1 block font-normal leading-snug" style={{ color: "var(--rose-gold-deep)" }}>
                         {bannerC.explanation}
                       </span>
                     </ShelfConflictBanner>

@@ -222,9 +222,11 @@ function findMatchingShelfProduct(
 function ScannerRoutineShelfBlock({
   productName,
   ingredients,
+  imageUrl,
 }: {
   productName: string;
   ingredients: string;
+  imageUrl?: string;
 }) {
   const { locale, t } = useTranslation();
   const copy = ROUTINE_LOCALE[locale] ?? ROUTINE_LOCALE.en;
@@ -263,6 +265,7 @@ function ScannerRoutineShelfBlock({
             productName: effectiveName,
             ingredients: ingredients.trim(),
             routineSlot: slot,
+            image_url: imageUrl || null,
           }),
         });
         if (r.status === 402) {
@@ -973,6 +976,7 @@ export interface ScannerSeed {
   /** Product name for single-mode seeds (used in result header + scan-completed
       event so recents show the real product, not "Scanned product"). */
   productName?: string;
+  imageUrl?: string;
   autoRun?: boolean;
 }
 
@@ -1264,7 +1268,13 @@ export function IngredientScanner({
 
   const emitScanCompleted = (
     kind: "single" | "compare",
-    extra?: { productName?: string; verdict?: "safe" | "warning" | "high" },
+    extra?: {
+      productName?: string;
+      verdict?: "safe" | "warning" | "high";
+      ingredients?: string;
+      imageUrl?: string;
+      analysis_result_json?: unknown;
+    },
   ) => {
     if (typeof window === "undefined") return;
     trackEvent("scan_complete", {
@@ -1306,6 +1316,9 @@ export function IngredientScanner({
         emitScanCompleted("single", {
           productName: pendingName ?? productName ?? undefined,
           verdict,
+          ingredients,
+          imageUrl: productImage || undefined,
+          analysis_result_json: data,
         });
       },
     },
@@ -1379,6 +1392,7 @@ export function IngredientScanner({
     } else {
       setIngredients(s.ingredients ?? "");
       setProductName(s.productName ?? "");
+      setProductImage(s.imageUrl ?? "");
       setProduct1("");
       setProduct1Name("");
       setProduct2("");
@@ -1894,7 +1908,7 @@ export function IngredientScanner({
           />
 
           <FadeIn>
-            <ScannerRoutineShelfBlock productName={productName} ingredients={ingredients} />
+            <ScannerRoutineShelfBlock productName={productName} ingredients={ingredients} imageUrl={productImage || undefined} />
           </FadeIn>
 
           {/* SS-025: tapbare ingrediens-rader → IngredientDetailSheet */}

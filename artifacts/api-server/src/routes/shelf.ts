@@ -12,12 +12,15 @@ import {
 
 const router: IRouter = Router();
 
-function mapShelfRow(row: Record<string, unknown>): ShelfProduct {
+type ShelfProductResponse = ShelfProduct & { imageUrl: string | null };
+
+function mapShelfRow(row: Record<string, unknown>): ShelfProductResponse {
   return {
     id: row.id as number,
     userId: row.user_id as string,
     productName: row.product_name as string,
     ingredients: row.ingredients as string,
+    imageUrl: (row.image_url as string | null | undefined) ?? null,
     routineSlot: row.routine_slot as ShelfProduct["routineSlot"],
     addedAt: new Date(row.added_at as string),
   };
@@ -28,6 +31,7 @@ const routineSlotSchema = z.enum(["morning", "evening", "both", "occasional", "w
 const AddToShelfBodySchema = z.object({
   productName: z.string().min(1).max(200),
   ingredients: z.string().min(1).max(5000),
+  image_url: z.string().url().nullable().optional(),
   routineSlot: routineSlotSchema.optional().default("both"),
 });
 
@@ -101,6 +105,7 @@ router.post("/shelf", async (req: Request, res: Response) => {
       user_id: req.user.id,
       product_name: safeName,
       ingredients: safeIngredients,
+      image_url: parsed.data.image_url ?? null,
       routine_slot: parsed.data.routineSlot,
     })
     .select()

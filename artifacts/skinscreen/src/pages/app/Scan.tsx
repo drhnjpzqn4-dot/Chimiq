@@ -1,20 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
-  Search,
   AlertTriangle,
   Loader2,
-  Gift,
   Sparkles,
-  Camera,
-  ScanLine,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { IngredientScanner } from "@/components/IngredientScanner";
-import { BarcodeScanButton } from "@/components/BarcodeScanButton";
+import { GamificationBanner } from "@/components/GamificationBanner";
+import { ProductDetailSheet, type ProductDetailProduct } from "@/components/ProductDetailSheet";
+import { ScanEntry, type ProductResult } from "@/components/ScanEntry";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useTranslation } from "@/lib/i18n";
-import { isNative } from "@/lib/native";
 import { apiFetch } from "@/lib/api";
 
 interface PendingScan {
@@ -31,14 +28,16 @@ interface RecentScan {
   name: string;
   verdict: "safe" | "warning" | "high";
   at: number; // ms epoch
+  product?: ProductDetailProduct;
 }
 
-interface ProductLookupResult {
-  found: boolean;
+type SingleScanSeed = {
+  mode: "single";
+  ingredients: string;
   productName?: string;
-  brand?: string;
-  ingredients?: string;
-}
+  imageUrl?: string;
+  autoRun: true;
+};
 
 const PENDING_KEY = "skinscreen.pendingScan";
 const MILESTONE = 30;
@@ -92,26 +91,17 @@ function readRecent(): RecentScan[] {
 
 export default function ScanScreen() {
   const [, navigate] = useLocation();
-  const [seed, setSeed] = useState<
-    { mode: "single"; ingredients: string; productName?: string; autoRun: true } | null
-  >(null);
+  const [seed, setSeed] = useState<SingleScanSeed | null>(null);
   const [seedLoading, setSeedLoading] = useState(false);
   const [seedErrorKey, setSeedErrorKey] = useState<string | null>(null);
   const [seedProductName, setSeedProductName] = useState<string | null>(null);
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [scansToday, setScansToday] = useState<number>(() => readScanCount());
-  const [, setRecent] = useState<RecentScan[]>(() => readRecent());
+  const [recent, setRecent] = useState<RecentScan[]>(() => readRecent());
   const [showScanner, setShowScanner] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [lookupResult, setLookupResult] = useState<ProductLookupResult | null>(null);
-  const [lookupLoading, setLookupLoading] = useState(false);
+  const [detailProduct, setDetailProduct] = useState<ProductDetailProduct | null>(null);
   const { isPremium, trialEligible, trialDays } = useUserPlan();
   const { t } = useTranslation();
-
-  // true on native (iOS/Android) or browsers with BarcodeDetector (Chrome on Android/desktop-with-camera)
-  const canScanBarcode =
-    typeof window !== "undefined" && (isNative() || "BarcodeDetector" in window);
 
   const openScanner = () => {
     setShowScanner(true);
@@ -143,45 +133,6 @@ export default function ScanScreen() {
     refreshServerCount();
   }, []);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const trimmed = searchInput.trim();
-      setSearchQuery(trimmed.length >= 2 ? trimmed : "");
-      if (trimmed.length < 2) {
-        setLookupResult(null);
-      }
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
-
-  useEffect(() => {
-    if (!searchQuery) {
-      setLookupLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLookupLoading(true);
-    apiFetch(`/api/product-lookup?q=${encodeURIComponent(searchQuery)}`, {
-      credentials: "include",
-    })
-      .then(async (res) => {
-        if (!res.ok) return { found: false };
-        return (await res.json()) as ProductLookupResult;
-      })
-      .then((data) => {
-        if (!cancelled) setLookupResult(data);
-      })
-      .catch(() => {
-        if (!cancelled) setLookupResult({ found: false });
-      })
-      .finally(() => {
-        if (!cancelled) setLookupLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [searchQuery]);
-
   // Listen for scan completions emitted by IngredientScanner: bump daily
   // counter and capture the recent scan for the lookup-home recents list.
   useEffect(() => {
@@ -195,13 +146,28 @@ export default function ScanScreen() {
       refreshServerCount();
 
       const detail = (e as CustomEvent).detail as
-        | { productName?: string; verdict?: "safe" | "warning" | "high" }
+        | {
+            productName?: string;
+            verdict?: "safe" | "warning" | "high";
+            product?: ProductDetailProduct;
+            ingredients?: string;
+            imageUrl?: string;
+            analysis_result_json?: ProductDetailProduct["analysis_result_json"];
+          }
         | undefined;
       if (detail?.productName) {
         const entry: RecentScan = {
           name: detail.productName,
           verdict: detail.verdict ?? "safe",
           at: Date.now(),
+          product: detail.product ?? {
+            product_name: detail.productName,
+            productName: detail.productName,
+            ingredients: detail.ingredients,
+            image_url: detail.imageUrl ?? null,
+            imageUrl: detail.imageUrl ?? null,
+            analysis_result_json: detail.analysis_result_json ?? null,
+          },
         };
         setRecent((prev) => {
           const deduped = prev.filter(
@@ -266,6 +232,7 @@ export default function ScanScreen() {
           ingredients?: string;
           productName?: string;
           brand?: string;
+          imageUrl?: string | null;
         }) => {
           if (data.found && data.ingredients) {
             const name =
@@ -276,6 +243,7 @@ export default function ScanScreen() {
               mode: "single",
               ingredients: data.ingredients,
               productName: name || undefined,
+              imageUrl: data.imageUrl ?? undefined,
               autoRun: true,
             });
             setTimeout(() => {
@@ -292,24 +260,20 @@ export default function ScanScreen() {
       .finally(() => setSeedLoading(false));
   }, []);
 
-  const milestoneProgress = useMemo(() => {
-    const c = stats?.acceptedContributions ?? 0;
-    const inCycle = c > 0 && c % MILESTONE === 0 ? MILESTONE : c % MILESTONE;
-    const pct = Math.min(100, Math.round((inCycle / MILESTONE) * 100));
-    return { count: c, inCycle, pct, remaining: MILESTONE - inCycle };
-  }, [stats]);
-
   const remaining = Math.max(0, FREE_DAILY_LIMIT - scansToday);
   const overLimit = !isPremium && scansToday >= FREE_DAILY_LIMIT;
 
-  const handleScannedFromCard = (ings: string, name: string) => {
+  const handleScanResult = (product: ProductResult) => {
+    const name = product.productName ?? product.product_name;
     setSeed({
       mode: "single",
-      ingredients: ings,
+      ingredients: product.ingredients ?? "",
       productName: name || undefined,
+      imageUrl: product.imageUrl ?? product.image_url ?? undefined,
       autoRun: true,
     });
     setSeedProductName(name || null);
+    setShowScanner(true);
     setTimeout(() => {
       document
         .getElementById("scanner-input")
@@ -324,8 +288,8 @@ export default function ScanScreen() {
       <section className="mb-6 animate-pop-in">
         <div className="mb-2 flex items-center justify-between">
           <p
-            className="text-[11px] font-bold uppercase"
-            style={{ letterSpacing: "0.08em", color: "#5E544C" }}
+            className="text-[11px] font-medium uppercase"
+            style={{ letterSpacing: "0.08em", color: "var(--rose-gold)" }}
           >
             {t("scan.heading")}
           </p>
@@ -365,75 +329,7 @@ export default function ScanScreen() {
           )}
         </div>
 
-        <div
-          className="mx-auto flex w-full max-w-md flex-col"
-          style={{ gap: 12 }}
-        >
-          <div className="rounded-[20px] border border-[var(--line)] bg-white p-3 shadow-sm">
-            <div className="relative">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder={t("scan.searchPlaceholder")}
-                data-touch-target
-                className="h-12 w-full rounded-2xl border border-border/50 bg-[var(--cream)] pl-10 pr-14 text-[15px] font-medium text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-              {lookupLoading ? (
-                <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-              ) : canScanBarcode ? (
-                <BarcodeScanButton
-                  onResult={handleScannedFromCard}
-                  triggerClassName="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl bg-primary text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
-                  triggerContent={<ScanLine className="h-4 w-4" aria-hidden />}
-                />
-              ) : null}
-            </div>
-
-            {lookupResult?.found && lookupResult.ingredients && (
-              <button
-                type="button"
-                onClick={() => {
-                  const name = [lookupResult.brand, lookupResult.productName].filter(Boolean).join(" ");
-                  handleScannedFromCard(lookupResult.ingredients!, name || lookupResult.productName || searchQuery);
-                }}
-                className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-3 text-left transition-colors hover:bg-primary/10"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <Search className="h-4 w-4 text-primary" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-foreground">
-                    {lookupResult.productName}
-                  </span>
-                  {lookupResult.brand && (
-                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                      {lookupResult.brand}
-                    </span>
-                  )}
-                </span>
-              </button>
-            )}
-
-            {searchQuery && lookupResult && !lookupResult.found && !lookupLoading && (
-              <p className="mt-2 px-1 text-xs text-muted-foreground">{t("myShelf.productNotFound")}</p>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={openScanner}
-            data-touch-target
-            className="inline-flex min-h-[44px] w-fit items-center gap-2 rounded-full px-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
-          >
-            <Camera className="h-4 w-4" aria-hidden />
-            {t("scan.photoIngredients")}
-          </button>
-        </div>
+        <ScanEntry mode="all" onResult={handleScanResult} onPhoto={openScanner} className="mx-auto max-w-md" />
       </section>
 
       {/* Seed banner: a Browse-tapped product is auto-loading */}
@@ -485,42 +381,39 @@ export default function ScanScreen() {
         </div>
       )}
 
-      {/* Gamification chip */}
       {stats !== null && (
-        <button
-          type="button"
-          onClick={() => navigate("/app/profile")}
-          data-touch-target
-          className="mb-6 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left shadow-sm transition-opacity hover:opacity-95"
-          style={{ backgroundColor: "#F4D8A2" }}
-        >
-          <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
-            style={{ backgroundColor: "#D29A55" }}
-          >
-            <Gift className="h-4 w-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span
-              className="block text-[11px] font-bold uppercase tracking-[0.14em]"
-              style={{ color: "#D29A55" }}
-            >
-              {t("scan.earnFreeMonth")}
-            </span>
-            <span className="block text-sm font-medium text-foreground">
-              {t("scan.contributionsProgressFmt", { current: milestoneProgress.inCycle, total: MILESTONE })}{" "}
-              <span className="text-muted-foreground">
-                {t("scan.toGoFmt", { remaining: milestoneProgress.remaining })}
-              </span>
-            </span>
-            <span className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-white/50">
-              <span
-                className="block h-full rounded-full transition-all duration-500"
-                style={{ width: `${milestoneProgress.pct}%`, backgroundColor: "#D29A55" }}
-              />
-            </span>
-          </span>
-        </button>
+        <GamificationBanner contributionsCount={stats.acceptedContributions} targetCount={MILESTONE} className="mb-6" />
+      )}
+
+      {recent.length > 0 && (
+        <section className="mb-6 space-y-2">
+          <h2 className="text-sm font-medium" style={{ color: "var(--rose-gold)" }}>
+            {t("scan.recentScans")}
+          </h2>
+          <div className="grid gap-2">
+            {recent.map((entry) => (
+              <button
+                key={`${entry.name}-${entry.at}`}
+                type="button"
+                onClick={() =>
+                  setDetailProduct(entry.product ?? {
+                    product_name: entry.name,
+                    productName: entry.name,
+                    analysis_result_json: null,
+                  })
+                }
+                className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-left shadow-sm transition-transform hover:-translate-y-0.5"
+              >
+                <span className="block text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                  {entry.name}
+                </span>
+                <span className="mt-0.5 block text-xs" style={{ color: "var(--ink-soft)" }}>
+                  {new Date(entry.at).toLocaleDateString()}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* RESULTS / SCANNER ENGINE — shown after a card is tapped or a barcode is scanned */}
@@ -540,6 +433,10 @@ export default function ScanScreen() {
             }}
           />
         </section>
+      )}
+
+      {detailProduct && (
+        <ProductDetailSheet product={detailProduct} onClose={() => setDetailProduct(null)} />
       )}
 
       </div>

@@ -4,8 +4,6 @@ import { AlertTriangle } from "lucide-react";
 /** BESLUT-SS-021: shelf ingredient / conflict status indicator */
 export type IngredientStatusLevel = "safe" | "caution" | "high";
 
-const RED_DEEP = "#8E3A26";
-
 const DOT: Record<IngredientStatusLevel, CSSProperties> = {
   safe: {
     width: 10,
@@ -46,19 +44,19 @@ export function ShelfConflictBanner({ children }: { children: ReactNode }) {
     <div
       className="flex w-full items-start gap-2"
       style={{
-        backgroundColor: "#EDD6CF",
+        backgroundColor: "var(--rose-soft)",
         borderRadius: 8,
         padding: "6px 10px",
       }}
     >
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" style={{ width: 16, height: 16, color: RED_DEEP }} aria-hidden />
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" style={{ width: 16, height: 16, color: "var(--rose-gold-deep)" }} aria-hidden />
       <div
         className="min-w-0 flex-1 leading-snug"
         style={{
           fontSize: 13,
           fontWeight: 500,
           fontFamily: "var(--font-sans, ui-sans-serif, system-ui, sans-serif)",
-          color: RED_DEEP,
+          color: "var(--rose-gold-deep)",
         }}
       >
         {children}
