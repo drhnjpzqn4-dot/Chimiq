@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Barcode, Camera, ChevronRight, Loader2, Search } from "lucide-react";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import { apiFetch } from "@/lib/api";
@@ -48,50 +48,27 @@ const ROWS: RowKind[] = ["search", "barcode", "ocr"];
 
 export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEntryProps) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(mode === "search");
+  const [active, setActive] = useState<RowKind | null>(mode === "all" ? null : mode);
   const [input, setInput] = useState("");
-  const [query, setQuery] = useState("");
+  const [pasteText, setPasteText] = useState("");
   const [lookupResult, setLookupResult] = useState<ProductLookupResult | null>(null);
+  const [barcodeResult, setBarcodeResult] = useState<ProductResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   const visibleRows = mode === "all" ? ROWS : ROWS.filter((row) => row === mode);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const trimmed = input.trim();
-      setQuery(trimmed.length >= 2 ? trimmed : "");
-      if (trimmed.length < 2) setLookupResult(null);
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [input]);
-
-  useEffect(() => {
-    if (!query) {
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    apiFetch(`/api/products/lookup?q=${encodeURIComponent(query)}`, { credentials: "include" })
-      .then(async (res) => {
-        if (!res.ok) return { found: false };
-        return (await res.json()) as ProductLookupResult;
-      })
-      .then((data) => {
-        if (!cancelled) setLookupResult(data);
-      })
-      .catch(() => {
-        if (!cancelled) setLookupResult({ found: false });
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [query]);
+  const isTouchDevice = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  }, []);
+  const trimmedInput = input.trim();
+  const canAnalyze =
+    active === "search"
+      ? trimmedInput.length >= 2
+      : active === "barcode"
+        ? Boolean(barcodeResult)
+        : active === "ocr"
+          ? isTouchDevice || pasteText.trim().length > 0
+          : false;
 
   const rowCopy: Record<RowKind, { label: string; hint: string; icon: typeof Search }> = {
     search: { label: t("scanEntry.searchLabel"), hint: t("scanEntry.searchHint"), icon: Search },
@@ -99,12 +76,72 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
     ocr: { label: t("scanEntry.photoLabel"), hint: t("scanEntry.photoHint"), icon: Camera },
   };
 
+  const lookupProduct = async (query: string): Promise<ProductLookupResult> => {
+    const isEan = /^\d{8,14}$/.test(query);
+    const endpoint = isEan
+      ? `/api/barcode/${encodeURIComponent(query)}`
+      : `/api/products/lookup?q=${encodeURIComponent(query)}`;
+    const res = await apiFetch(endpoint, { credentials: "include" });
+    if (!res.ok) return { found: false };
+    return (await res.json()) as ProductLookupResult;
+  };
+
+  const emitLookupResult = (data: ProductLookupResult, fallbackName: string) => {
+    if (!data.found || !data.ingredients) return false;
+    const name = [data.brand, data.productName].filter(Boolean).join(" ");
+    onResult?.({
+      product_name: name || data.productName || fallbackName,
+      productName: name || data.productName || fallbackName,
+      brand: data.brand,
+      ingredients: data.ingredients,
+      image_url: data.imageUrl ?? null,
+      imageUrl: data.imageUrl ?? null,
+      analysis_result_json: data.analysis ?? null,
+    });
+    return true;
+  };
+
+  const handleAnalyze = async () => {
+    if (!canAnalyze || !active) return;
+    if (active === "barcode") {
+      if (barcodeResult) onResult?.(barcodeResult);
+      return;
+    }
+    if (active === "ocr") {
+      if (isTouchDevice) {
+        onPhoto?.();
+        return;
+      }
+      const text = pasteText.trim();
+      if (!text) return;
+      onResult?.({
+        product_name: t("scanner.scannedProductFallback"),
+        productName: t("scanner.scannedProductFallback"),
+        ingredients: text,
+        image_url: null,
+        imageUrl: null,
+        analysis_result_json: null,
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await lookupProduct(trimmedInput);
+      setLookupResult(data);
+      emitLookupResult(data, trimmedInput);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const rowContent = (kind: RowKind) => {
     const Icon = rowCopy[kind].icon;
+    const isActive = active === kind;
     return (
       <>
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white">
-          <Icon className="h-6 w-6" style={{ color: "var(--sage)" }} aria-hidden />
+          <Icon className="h-[22px] w-[22px]" style={{ color: isActive ? "var(--sage-deep)" : "var(--sage)" }} aria-hidden />
         </span>
         <span className="min-w-0 flex-1 text-left">
           <span className="block text-[15px] font-medium" style={{ color: "var(--ink)" }}>
@@ -122,10 +159,10 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
   return (
     <div className={cn("space-y-2", className)}>
       {visibleRows.map((kind) => {
-        const active = kind === "search" && expanded;
+        const isActive = active === kind;
         const rowClassName = cn(
-          "flex w-full items-center gap-3 rounded-xl border bg-[var(--cream-warm)] px-3 py-3 transition-colors hover:bg-white",
-          active ? "border-l-4 border-l-[var(--sage)]" : "",
+          "flex min-h-[80px] w-full items-center gap-3 rounded-xl border px-4 py-4 transition-colors hover:bg-white",
+          isActive ? "border-l-4 border-l-[var(--sage)] bg-white" : "bg-[var(--cream-warm)]",
         );
 
         if (kind === "barcode") {
@@ -133,7 +170,8 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
             <BarcodeScanButton
               key={kind}
               onResult={(ingredients, name, barcode) => {
-                onResult?.({
+                setActive("barcode");
+                setBarcodeResult({
                   product_name: name,
                   productName: name,
                   ingredients,
@@ -161,8 +199,7 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
               type="button"
               data-touch-target
               onClick={() => {
-                if (kind === "search") setExpanded((value) => !value);
-                if (kind === "ocr") onPhoto?.();
+                setActive(kind);
               }}
               className={rowClassName}
               style={{ borderColor: "var(--line)" }}
@@ -170,7 +207,7 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
               {rowContent(kind)}
             </button>
 
-            {kind === "search" && expanded && (
+            {kind === "search" && isActive && (
               <div className="mt-2 rounded-xl border border-[var(--line)] bg-white p-3">
                 <div className="relative">
                   <Search
@@ -181,7 +218,10 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
                   <input
                     type="text"
                     value={input}
-                    onChange={(event) => setInput(event.target.value)}
+                    onChange={(event) => {
+                      setInput(event.target.value);
+                      setLookupResult(null);
+                    }}
                     placeholder={t("scan.searchPlaceholder")}
                     className="h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--cream)] pl-9 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
@@ -197,18 +237,7 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
                 {lookupResult?.found && lookupResult.ingredients && (
                   <button
                     type="button"
-                    onClick={() => {
-                      const name = [lookupResult.brand, lookupResult.productName].filter(Boolean).join(" ");
-                      onResult?.({
-                        product_name: name || lookupResult.productName || query,
-                        productName: name || lookupResult.productName || query,
-                        brand: lookupResult.brand,
-                        ingredients: lookupResult.ingredients,
-                        image_url: lookupResult.imageUrl ?? null,
-                        imageUrl: lookupResult.imageUrl ?? null,
-                        analysis_result_json: lookupResult.analysis ?? null,
-                      });
-                    }}
+                    onClick={() => emitLookupResult(lookupResult, trimmedInput)}
                     className="mt-3 flex w-full items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-3 text-left hover:bg-primary/10"
                   >
                     <span className="min-w-0 flex-1">
@@ -224,14 +253,48 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
                   </button>
                 )}
 
-                {query && lookupResult && !lookupResult.found && !loading && (
+                {trimmedInput && lookupResult && !lookupResult.found && !loading && (
                   <p className="mt-2 text-xs text-muted-foreground">{t("myShelf.productNotFound")}</p>
                 )}
               </div>
             )}
+
+            {kind === "ocr" && isActive && !isTouchDevice && (
+              <div className="mt-2 rounded-xl border border-[var(--line)] bg-white p-3">
+                <textarea
+                  value={pasteText}
+                  onChange={(event) => setPasteText(event.target.value)}
+                  placeholder={t("scanEntry.pastePlaceholder")}
+                  rows={5}
+                  className="w-full resize-none rounded-xl border border-[var(--line)] bg-[var(--cream)] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            )}
+
+            {kind === "ocr" && isActive && isTouchDevice && (
+              <p className="mt-2 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-xs" style={{ color: "var(--ink-soft)" }}>
+                {t("scanEntry.cameraReady")}
+              </p>
+            )}
           </div>
         );
       })}
+
+      <button
+        type="button"
+        data-touch-target
+        disabled={!canAnalyze || loading}
+        onClick={() => void handleAnalyze()}
+        className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-opacity disabled:cursor-not-allowed"
+        style={
+          canAnalyze
+            ? { backgroundColor: "var(--sage)", color: "#FFFFFF" }
+            : { backgroundColor: "var(--line)", color: "var(--ink-soft)" }
+        }
+      >
+        {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+        {t("scanEntry.analyze")}
+      </button>
     </div>
   );
 }

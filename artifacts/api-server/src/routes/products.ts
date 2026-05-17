@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { z } from "zod";
 import { computeSingleHash } from "../lib/analysis-cache.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
 import {
@@ -12,6 +13,12 @@ import { supabaseAdmin } from "../lib/supabase-admin.js";
 import { randomUUID } from "crypto";
 
 const router: IRouter = Router();
+
+const ProductCompletionBody = z.object({
+  barcode: z.string().trim().regex(/^[0-9]{8,14}$/).optional(),
+  brand: z.string().trim().max(200).optional(),
+  imageBase64: z.string().optional(),
+});
 
 // Coarse server-side category derivation. We don't have a `category` column on
 // cached_products, so we use ILIKE keyword matching against the product name
@@ -216,6 +223,73 @@ router.get("/products/brands", async (req, res) => {
   } catch (err) {
     req.log.warn({ err }, "Brand lookup failed");
     res.json({ brands: [] });
+  }
+});
+
+router.patch("/products/:barcode", async (req, res) => {
+  const currentBarcode = String(req.params.barcode ?? "").trim().slice(0, 80);
+  if (!currentBarcode) {
+    res.status(400).json({ error: "Missing barcode." });
+    return;
+  }
+
+  const parsed = ProductCompletionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid data.", issues: parsed.error.issues });
+    return;
+  }
+
+  try {
+    let imageUrl: string | undefined;
+    if (parsed.data.imageBase64) {
+      imageUrl = (await uploadBufferToGcs(
+        Buffer.from(parsed.data.imageBase64, "base64"),
+        "product-completions",
+        `${randomUUID()}.jpg`,
+        "image/jpeg",
+      )) ?? undefined;
+    }
+
+    const patch: Record<string, string> = {};
+    if (parsed.data.barcode) patch["barcode"] = parsed.data.barcode;
+    if (parsed.data.brand) patch["brand"] = sanitizeBrand(parsed.data.brand);
+    if (imageUrl) patch["image_url"] = imageUrl;
+
+    if (Object.keys(patch).length === 0) {
+      res.status(400).json({ error: "Nothing to update." });
+      return;
+    }
+
+    const { data: cached, error: cachedError } = await supabaseAdmin
+      .from("cached_products")
+      .update(patch)
+      .eq("barcode", currentBarcode)
+      .select("barcode")
+      .maybeSingle<{ barcode: string }>();
+    if (cachedError) throw cachedError;
+
+    if (!cached) {
+      const submittedPatch: Record<string, string> = {};
+      if (patch["barcode"]) submittedPatch["barcode"] = patch["barcode"];
+      if (patch["brand"]) submittedPatch["brand"] = patch["brand"];
+      if (patch["image_url"]) submittedPatch["front_image_url"] = patch["image_url"];
+      const { data: submitted, error: submittedError } = await supabaseAdmin
+        .from("user_submitted_products")
+        .update(submittedPatch)
+        .eq("barcode", currentBarcode)
+        .select("barcode")
+        .maybeSingle<{ barcode: string }>();
+      if (submittedError) throw submittedError;
+      if (!submitted) {
+        res.status(404).json({ error: "Product not found." });
+        return;
+      }
+    }
+
+    res.json({ ok: true, ...patch });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update product completion");
+    res.status(500).json({ error: "Could not update product." });
   }
 });
 

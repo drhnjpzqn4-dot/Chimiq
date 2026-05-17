@@ -28,6 +28,17 @@ const PhotosBody = z.object({
   ingredientsText: z.string().trim().max(10000).optional(),
 });
 
+const ManualContributionBody = z.object({
+  productName: z.string().trim().max(500).optional(),
+  brand: z.string().trim().max(200).optional(),
+  barcode: z.string().trim().regex(/^[0-9]{8,14}$/).optional(),
+  ingredients: z.string().trim().max(10000).optional(),
+  source_type: z.enum(["package", "manufacturer_site", "other"]).optional(),
+  source_note: z.string().trim().max(500).optional(),
+}).refine((data) => Boolean(data.ingredients?.trim() || data.barcode?.trim()), {
+  message: "Ingredients or barcode is required.",
+});
+
 const AdminReviewBody = z.object({
   productName: z.string().trim().max(500).optional(),
   brand: z.string().trim().max(200).optional(),
@@ -333,6 +344,62 @@ router.post("/contribute/start", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to start contribution");
     res.status(500).json({ error: "Could not create submission. Please try again." });
+  }
+});
+
+router.post("/contribute/manual", requireAuth, async (req, res) => {
+  const parseResult = ManualContributionBody.safeParse(req.body);
+  if (!parseResult.success) {
+    res.status(400).json({ error: "Invalid data.", issues: parseResult.error.issues });
+    return;
+  }
+
+  const userId = (req as { user?: { id?: string } }).user?.id ?? null;
+  const { barcode, productName, brand, ingredients } = parseResult.data;
+
+  let safeName: string | null = null;
+  let safeBrand: string | null = null;
+  let safeIngredients: string | null = null;
+
+  try {
+    safeName = productName ? sanitizeProductName(productName, false) || null : null;
+    safeBrand = brand ? sanitizeBrand(brand, true) || null : null;
+    safeIngredients = ingredients ? sanitizeIngredients(ingredients, false) || null : null;
+  } catch (err) {
+    if (err instanceof SanitizationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    throw err;
+  }
+
+  try {
+    const effectiveBarcode = barcode ?? `CHIMIQ_${randomUUID()}`;
+    const { data, error } = await supabaseAdmin
+      .from("user_submitted_products")
+      .insert({
+        barcode: effectiveBarcode,
+        product_name: safeName,
+        brand: safeBrand,
+        ingredients: safeIngredients,
+        submitted_by: userId,
+        status: "needs_admin",
+        obf_contributed: "pending",
+        reward_granted: false,
+      })
+      .select("id")
+      .single<{ id: string }>();
+    if (error) throw error;
+
+    res.json({
+      submissionId: data.id,
+      status: "needs_admin",
+      extractedIngredients: safeIngredients,
+      message: "Thank you! Your submission is under review — we'll add it soon.",
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to save manual contribution");
+    res.status(500).json({ error: "Could not save your contribution." });
   }
 });
 

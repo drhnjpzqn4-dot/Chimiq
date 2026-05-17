@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Package } from "lucide-react";
 import type { RoutineConflict } from "@workspace/api-client-react";
 import { ShelfConflictBanner, type IngredientStatusLevel } from "@/components/IngredientStatusDot";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTranslation } from "@/lib/i18n";
+import { apiFetch } from "@/lib/api";
 
 type ProductVerdict = "safe" | "caution" | "danger";
 
 export interface ProductDetailProduct {
+  barcode?: string | null;
   product_name?: string;
   productName?: string;
   brand?: string | null;
@@ -77,7 +79,13 @@ export function ProductDetailSheet({
 }: ProductDetailSheetProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const [completionValue, setCompletionValue] = useState("");
+  const [completionSaving, setCompletionSaving] = useState(false);
+  const [completionDone, setCompletionDone] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const imageUrl = product.image_url ?? product.imageUrl ?? null;
+  const barcode = product.barcode ?? null;
   const productName = product.product_name ?? product.productName ?? t("shelf.unknownProduct");
   const analysis = product.analysis_result_json ?? null;
   const verdict = verdictFromProduct(product, status);
@@ -100,6 +108,55 @@ export function ProductDetailSheet({
       : verdict === "caution"
         ? { backgroundColor: "var(--premium-gold)", color: "var(--ink)" }
         : { backgroundColor: "var(--sage)", color: "#FFFFFF" };
+  const missingField =
+    barcode && (!barcode || barcode.startsWith("CHIMIQ_"))
+      ? "barcode"
+      : barcode && !imageUrl
+        ? "image"
+        : barcode && !product.brand
+          ? "brand"
+          : null;
+
+  const saveCompletion = async (field: "barcode" | "brand", value: string) => {
+    if (!barcode || !value.trim()) return;
+    setCompletionSaving(true);
+    setCompletionError(null);
+    try {
+      const res = await apiFetch(`/api/products/${encodeURIComponent(barcode)}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value.trim() }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setCompletionDone(true);
+    } catch {
+      setCompletionError(t("complete.saveError"));
+    } finally {
+      setCompletionSaving(false);
+    }
+  };
+
+  const saveImageCompletion = async (file: File) => {
+    if (!barcode) return;
+    setCompletionSaving(true);
+    setCompletionError(null);
+    try {
+      const imageBase64 = await fileToBase64(file);
+      const res = await apiFetch(`/api/products/${encodeURIComponent(barcode)}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64 }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setCompletionDone(true);
+    } catch {
+      setCompletionError(t("complete.saveError"));
+    } finally {
+      setCompletionSaving(false);
+    }
+  };
 
   return (
     <Sheet open onOpenChange={(open) => {
@@ -220,8 +277,88 @@ export function ProductDetailSheet({
               </p>
             )}
           </section>
+
+          {missingField && !completionDone && (
+            <section className="border-t border-[var(--line)] pt-5">
+              <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                {missingField === "barcode"
+                  ? t("complete.barcodePrompt")
+                  : missingField === "image"
+                    ? t("complete.imagePrompt")
+                    : t("complete.brandPrompt")}
+              </h3>
+              {missingField === "image" ? (
+                <>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void saveImageCompletion(file);
+                      event.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={completionSaving}
+                    onClick={() => imageInputRef.current?.click()}
+                    className="mt-3 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {completionSaving ? t("common.loading") : t("complete.photoCta")}
+                  </button>
+                </>
+              ) : (
+                <div className="mt-3 flex gap-2">
+                  <input
+                    type="text"
+                    inputMode={missingField === "barcode" ? "numeric" : "text"}
+                    value={completionValue}
+                    onChange={(event) => setCompletionValue(
+                      missingField === "barcode"
+                        ? event.target.value.replace(/\D/g, "").slice(0, 14)
+                        : event.target.value,
+                    )}
+                    className="min-w-0 flex-1 rounded-xl border border-[var(--line)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                  <button
+                    type="button"
+                    disabled={completionSaving || !completionValue.trim()}
+                    onClick={() => void saveCompletion(missingField, completionValue)}
+                    className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {t("complete.save")}
+                  </button>
+                </div>
+              )}
+              <p className="mt-2 text-xs font-medium" style={{ color: "var(--rose-gold-deep)" }}>
+                {t("complete.points")}
+              </p>
+              {completionError && <p className="mt-2 text-xs text-red-500">{completionError}</p>}
+            </section>
+          )}
+
+          {completionDone && (
+            <p className="border-t border-[var(--line)] pt-5 text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
+              {t("complete.thanks")}
+            </p>
+          )}
         </div>
       </SheetContent>
     </Sheet>
   );
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      resolve(result.includes(",") ? result.split(",")[1] ?? "" : result);
+    };
+    reader.readAsDataURL(file);
+  });
 }

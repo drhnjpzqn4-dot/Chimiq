@@ -87,6 +87,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",
+    "dom-to-image-more": "^3.7.2",
     "workbox-window": "^7.4.0"
   }
 }

@@ -13,3 +13,16 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare module "dom-to-image-more" {
+  export function toBlob(
+    node: Node,
+    options?: {
+      cacheBust?: boolean;
+      bgcolor?: string;
+      width?: number;
+      height?: number;
+      style?: Partial<CSSStyleDeclaration>;
+    },
+  ): Promise<Blob | null>;
+}

@@ -13,6 +13,11 @@ const FeedbackBody = z.object({
   pageUrl: z.string().trim().max(2000).optional(),
 });
 
+const RatingBody = z.object({
+  rating: z.number().int().min(1).max(5),
+  source: z.string().trim().max(80).optional(),
+});
+
 const router: IRouter = Router();
 
 interface FeedbackSubmissionRow {
@@ -111,6 +116,26 @@ router.post("/feedback", feedbackIpLimit, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to store feedback submission");
     res.status(500).json({ error: "Could not save feedback. Please try again." });
+  }
+});
+
+router.post("/feedback/rating", feedbackIpLimit, async (req, res) => {
+  const parseResult = RatingBody.safeParse(req.body);
+  if (!parseResult.success) {
+    res.status(400).json({ error: "Invalid rating data." });
+    return;
+  }
+
+  try {
+    const { error } = await supabaseAdmin.from("app_ratings").insert({
+      rating: parseResult.data.rating,
+      source: parseResult.data.source ?? null,
+    });
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to store app rating");
+    res.status(500).json({ error: "Could not save rating. Please try again." });
   }
 });
 

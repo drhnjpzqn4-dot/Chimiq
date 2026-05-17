@@ -22,6 +22,7 @@ const HomeB = lazy(() => import("@/pages/HomeB"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
 const Signup = lazy(() => import("@/pages/Signup"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
+const Goodbye = lazy(() => import("@/pages/Goodbye"));
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 const AppPage = lazy(() => import("@/pages/AppPage"));
 const OnboardingFlow = lazy(() => import("@/pages/OnboardingFlow"));
@@ -118,6 +119,7 @@ function Router() {
         <Route path="/pricing" component={Pricing} />
         <Route path="/signup" component={Signup} />
         <Route path="/login" component={LoginPage} />
+        <Route path="/goodbye" component={Goodbye} />
         <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/onboarding" component={OnboardingFlow} />
         <Route path="/app" component={AppPage} />

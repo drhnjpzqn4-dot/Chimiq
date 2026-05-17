@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
-    window.location.href = `${base}/login`;
+    window.location.href = `${base}/goodbye`;
   }, []);
 
   const value: AuthState = {

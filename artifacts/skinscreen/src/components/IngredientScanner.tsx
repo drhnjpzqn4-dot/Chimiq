@@ -53,6 +53,8 @@ import {
   Moon,
   CalendarDays,
   Bookmark,
+  ImageIcon,
+  Link,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConflictResult } from "@workspace/api-client-react";
@@ -1447,6 +1449,10 @@ export function IngredientScanner({
 
   const singleHighRisk = singleResult?.flags.filter((f) => f.severity === "HIGH_RISK") ?? [];
   const singleCaution = singleResult?.flags.filter((f) => f.severity === "CAUTION") ?? [];
+  const shareCardId = useMemo(
+    () => `share-card-${Math.random().toString(36).slice(2)}`,
+    [],
+  );
 
   const singleScanHero = useMemo(() => {
     if (!singleResult) return { title: "", summary: undefined as string | undefined };
@@ -1481,6 +1487,63 @@ export function IngredientScanner({
       summary: cosIngFactSuffix(locale),
     };
   }, [singleResult, ingredients, locale]);
+
+  const singleShareVerdict = singleResult
+    ? singleResult.overallSafe
+      ? "safe"
+      : singleHighRisk.length > 0
+        ? "danger"
+        : "caution"
+    : "safe";
+  const singleShareVerdictLabel =
+    singleShareVerdict === "danger"
+      ? t("product.danger")
+      : singleShareVerdict === "caution"
+        ? t("product.caution")
+        : t("product.safe");
+  const singleShareFlag = singleResult?.flags[0] ?? null;
+
+  const shareAsImage = async () => {
+    const node = document.getElementById(shareCardId);
+    if (!node) return;
+    try {
+      const { toBlob } = await import("dom-to-image-more");
+      const blob = await toBlob(node, {
+        cacheBust: true,
+        bgcolor: getComputedStyle(document.documentElement).getPropertyValue("--cream").trim() || "#FAFAF8",
+      });
+      if (!blob) throw new Error("No image created");
+      const file = new File([blob], "chimiq-result.png", { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Chimiq" });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "chimiq-result.png";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      toast.error(t("share.imageError"));
+    }
+  };
+
+  const shareAsText = async () => {
+    const product = productName || t("scanner.scannedProductFallback");
+    const text = t("share.scanResult", { product, verdict: singleShareVerdictLabel });
+    const url = "https://chimiq.com";
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Chimiq", text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        toast.success(t("share.copied"));
+      }
+    } catch {
+      // User-cancelled native share should not surface as an error.
+    }
+  };
 
   const compareConflicts = compareResult?.conflicts ?? [];
   const highRiskConflicts = compareConflicts.filter((c) => c.severity === "HIGH_RISK");
@@ -2143,55 +2206,81 @@ export function IngredientScanner({
                 {t("scanner.compareAgainst")}
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const canvas = document.createElement("canvas");
-                  const W = 1080, H = 1080;
-                  canvas.width = W; canvas.height = H;
-                  const ctx = canvas.getContext("2d");
-                  if (!ctx) return;
-                  const sage =
-                    getComputedStyle(document.documentElement).getPropertyValue("--sage").trim() ||
-                    "#3C5C44";
-                  ctx.fillStyle = "#F7FAF7"; ctx.fillRect(0, 0, W, H);
-                  ctx.fillStyle = sage; ctx.fillRect(0, 0, W, 10);
-                  ctx.fillStyle = sage; ctx.font = "600 28px Inter, sans-serif"; ctx.textAlign = "left"; ctx.fillText("Chimiq", 80, 90);
-                  ctx.fillStyle = "#1A1A1A"; ctx.font = "700 52px Georgia, serif"; ctx.textAlign = "center";
-                  const name = productName || t("scanner.scannedProductFallback");
-                  ctx.fillText(name.length > 36 ? name.slice(0, 35) + "…" : name, W / 2, 240);
-                  const topFlag = singleResult.flags[0];
-                  const riskLevel = singleHighRisk.length > 0 ? t("shareCanvas.highRisk") : singleResult.flags.length > 0 ? t("shareCanvas.caution") : t("shareCanvas.safe");
-                  const riskColor = singleHighRisk.length > 0 ? "#EF4444" : singleResult.flags.length > 0 ? "#F59E0B" : "#22C55E";
-                  ctx.fillStyle = riskColor; ctx.beginPath(); ctx.roundRect?.(W/2 - 90, 290, 180, 50, 25); ctx.fill();
-                  ctx.fillStyle = "#fff"; ctx.font = "700 22px Inter, sans-serif"; ctx.textAlign = "center"; ctx.fillText(riskLevel, W / 2, 322);
-                  if (topFlag) {
-                    ctx.fillStyle = "#374151"; ctx.font = "400 30px Inter, sans-serif"; ctx.textAlign = "center";
-                    const words = topFlag.explanation.split(" "); let line = ""; let y = 430;
-                    for (const w of words) {
-                      const test = line + w + " ";
-                      if (ctx.measureText(test).width > 900 && line) { ctx.fillText(line.trim(), W/2, y); line = w + " "; y += 44; } else { line = test; }
-                    }
-                    if (line.trim()) ctx.fillText(line.trim(), W/2, y);
-                  }
-                  ctx.fillStyle = sage; ctx.font = "600 34px Inter, sans-serif"; ctx.textAlign = "center"; ctx.fillText("chimiq.com", W / 2, H - 80);
-                  canvas.toBlob((blob) => {
-                    if (!blob) return;
-                    const file = new File([blob], "chimiq-result.png", { type: "image/png" });
-                    if (navigator.canShare?.({ files: [file] })) {
-                      navigator.share({ files: [file], title: "My Chimiq result" }).catch(() => {});
-                    } else {
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a"); a.href = url; a.download = "chimiq-result.png"; a.click();
-                      URL.revokeObjectURL(url);
-                    }
-                  }, "image/png");
-                }}
-                data-touch-target
-                className="w-full h-[52px] flex items-center justify-center gap-2 text-sm font-semibold border-2 rounded-xl bg-white border-primary text-primary hover:bg-primary/5 transition-colors"
-              >
-                {t("scanner.shareResult")}
-              </button>
+              <div className="rounded-3xl border border-[var(--line)] bg-white p-3">
+                <div
+                  id={shareCardId}
+                  className="overflow-hidden rounded-2xl border border-[var(--line)]"
+                  style={{ backgroundColor: "var(--cream)" }}
+                >
+                  <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--rose-gold-deep)" }}>
+                      <img src="/favicon.svg" alt="" className="h-5 w-5 object-contain" />
+                      Chimiq
+                    </span>
+                    <span className="text-xs font-medium" style={{ color: "var(--ink-soft)" }}>chimiq.com</span>
+                  </div>
+                  <div className="px-4 py-5">
+                    <span
+                      className="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white"
+                      style={{
+                        backgroundColor:
+                          singleShareVerdict === "danger"
+                            ? "#C94F4F"
+                            : singleShareVerdict === "caution"
+                              ? "var(--premium-gold)"
+                              : "var(--sage)",
+                        color: singleShareVerdict === "caution" ? "var(--ink)" : "#FFFFFF",
+                      }}
+                    >
+                      {singleShareVerdictLabel}
+                    </span>
+                    <p className="mt-3 font-serif text-xl font-medium leading-tight" style={{ color: "var(--ink)" }}>
+                      {productName || t("scanner.scannedProductFallback")}
+                    </p>
+                    {productBarcode && (
+                      <p className="mt-1 text-xs" style={{ color: "var(--ink-soft)" }}>
+                        {productBarcode}
+                      </p>
+                    )}
+                  </div>
+                  <div className="border-t border-[var(--line)] px-4 py-4">
+                    {singleShareFlag ? (
+                      <p className="text-sm leading-relaxed" style={{ color: "var(--ink)" }}>
+                        {t("share.containsWarning", {
+                          ingredient: singleShareFlag.ingredient,
+                          reason: singleShareFlag.explanation,
+                        })}
+                      </p>
+                    ) : (
+                      <p className="text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
+                        {t("share.noWarnings")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void shareAsImage()}
+                    data-touch-target
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 text-sm font-semibold transition-colors hover:bg-[var(--cream-warm)]"
+                    style={{ color: "var(--sage-deep)" }}
+                  >
+                    <ImageIcon className="h-4 w-4" aria-hidden />
+                    {t("share.shareAsImage")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void shareAsText()}
+                    data-touch-target
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 text-sm font-semibold transition-colors hover:bg-[var(--cream-warm)]"
+                    style={{ color: "var(--sage-deep)" }}
+                  >
+                    <Link className="h-4 w-4" aria-hidden />
+                    {t("share.shareLink")}
+                  </button>
+                </div>
+              </div>
 
               <div className="text-center">
                 <a
