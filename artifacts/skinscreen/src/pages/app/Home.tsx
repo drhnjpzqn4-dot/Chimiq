@@ -118,7 +118,7 @@ export default function HomeScreen() {
   void setNotes;
 
   return (
-    <AppShell pageLabel={t("tabs.home")} subtitle={t("home.subtitle")}>
+    <AppShell pageLabel={t("tabs.today")} subtitle={t("home.subtitle")}>
       <div
         className="space-y-6 p-4 sm:p-5"
         style={{ backgroundColor: "var(--cream)" }}

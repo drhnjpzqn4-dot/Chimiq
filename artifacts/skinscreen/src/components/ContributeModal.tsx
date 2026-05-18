@@ -8,6 +8,7 @@ interface ContributeModalProps {
   initialProductName?: string;
   initialBrand?: string;
   initialIngredients?: string;
+  initialImageUrl?: string | null;
   onSuccess?: (ingredients: string, productName: string) => void;
   onClose: () => void;
 }
@@ -17,6 +18,7 @@ export function ContributeModal({
   initialProductName = "",
   initialBrand = "",
   initialIngredients = "",
+  initialImageUrl = null,
   onSuccess,
   onClose,
 }: ContributeModalProps) {
@@ -62,6 +64,7 @@ export function ContributeModal({
               brand: initialBrand,
               barcode: barcode ?? "",
               ingredients: initialIngredients,
+              imageUrl: initialImageUrl,
             }}
             onAnalyzed={handleAnalyzed}
           />

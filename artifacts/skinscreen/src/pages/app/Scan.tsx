@@ -498,15 +498,6 @@ export default function ScanScreen() {
         </div>
       )}
 
-      {stats !== null && (
-        <GamificationBanner
-          contributionsCount={stats.acceptedContributions}
-          targetCount={MILESTONE}
-          className="mb-6"
-          onClick={() => setContributeOpen(true)}
-        />
-      )}
-
       {recent.length > 0 && (
         <section className="mb-6 space-y-2">
           <h2 className="text-sm font-medium" style={{ color: "var(--rose-gold)" }}>
@@ -536,6 +527,15 @@ export default function ScanScreen() {
             ))}
           </div>
         </section>
+      )}
+
+      {stats !== null && (
+        <GamificationBanner
+          contributionsCount={stats.acceptedContributions}
+          targetCount={MILESTONE}
+          className="mb-6"
+          onClick={() => setContributeOpen(true)}
+        />
       )}
 
       {detailProduct && (

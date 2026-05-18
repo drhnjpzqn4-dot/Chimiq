@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FlaskConical } from "lucide-react";
+import { Camera, FlaskConical, Plus } from "lucide-react";
 import { getGetShelfQueryKey } from "@workspace/api-client-react";
 import type { RoutineConflict, ShelfResponse } from "@workspace/api-client-react";
 import { ShelfConflictBanner, type IngredientStatusLevel } from "@/components/IngredientStatusDot";
@@ -61,6 +61,7 @@ interface ProductDetailSheetProps {
     brand?: string;
     ingredients?: string;
   }) => void;
+  initialEditMode?: boolean;
 }
 
 function verdictFromProduct(product: ProductDetailProduct, status?: IngredientStatusLevel): ProductVerdict | null {
@@ -93,7 +94,7 @@ export function ProductDetailSheet({
   status,
   conflicts = [],
   onClose,
-  onContribute,
+  initialEditMode,
 }: ProductDetailSheetProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -114,12 +115,13 @@ export function ProductDetailSheet({
   const [localBarcode, setLocalBarcode] = useState(initialBarcode ?? "");
   const [localIngredients, setLocalIngredients] = useState(initialIngredients);
   const [localImageUrl, setLocalImageUrl] = useState<string | null>(initialImageUrl);
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(initialEditMode ?? false);
   const [editName, setEditName] = useState(initialProductName);
   const [editBrand, setEditBrand] = useState(product.brand ?? "");
   const [editBarcode, setEditBarcode] = useState(initialBarcode ?? "");
   const [editIngredients, setEditIngredients] = useState(initialIngredients);
   const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [, setEditDone] = useState(false);
   const imageUrl = localImageUrl;
   const barcode = localBarcode || null;
@@ -131,6 +133,10 @@ export function ProductDetailSheet({
   const summary = analysis?.summary ?? analysis?.verdictSummary ?? null;
   const substantiveConflicts = conflicts.filter((conflict) => conflict.severity !== "SAFE");
   const rawIngredients = localIngredients.trim();
+  const editedIngredients = editIngredients.trim();
+  const showAnalyzeButton =
+    (!verdict && rawIngredients.length > 10) ||
+    (editMode && editedIngredients.length > 10 && editedIngredients !== rawIngredients);
   const ingredientPreview = expanded || rawIngredients.length <= 520
     ? rawIngredients
     : `${rawIngredients.slice(0, 520).trim()}...`;
@@ -203,13 +209,29 @@ export function ProductDetailSheet({
   const handleSaveEdits = async () => {
     if (editSaving) return;
     setEditSaving(true);
+    setEditError(null);
     try {
       const nextName = editName.trim() || productName;
       const nextBrand = editBrand.trim();
       const nextBarcode = editBarcode.trim();
       const nextIngredients = editIngredients.trim();
 
-      if (barcode && !isNotInDb) {
+      if (isNotInDb) {
+        const body: Record<string, string> = {};
+        if (nextName && nextName !== t("shelf.unknownProduct")) body["productName"] = nextName;
+        if (nextBrand) body.brand = nextBrand;
+        if (/^[0-9]{8,14}$/.test(nextBarcode)) body.barcode = nextBarcode;
+        if (nextIngredients) body.ingredients = nextIngredients;
+
+        const res = await apiFetch("/api/contribute/manual", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...body, source_type: "package" }),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        setCompletionDone(true);
+      } else if (barcode) {
         const body: Record<string, string> = {};
         if (nextBarcode && nextBarcode !== barcode) body.barcode = nextBarcode;
         if (nextBrand !== localBrand) body.brand = nextBrand;
@@ -231,31 +253,27 @@ export function ProductDetailSheet({
       setEditMode(false);
       setEditDone(true);
     } catch {
-      setLocalProductName(editName.trim() || productName);
-      setLocalBrand(editBrand.trim());
-      setLocalBarcode(editBarcode.trim());
-      setLocalIngredients(editIngredients.trim());
-      setEditMode(false);
-      setEditDone(true);
+      setEditError(t("contribute.errSubmissionFailed"));
     } finally {
       setEditSaving(false);
     }
   };
 
   const handleAnalyze = async () => {
-    if (!rawIngredients || isAnalyzing) return;
+    const ingredientsToAnalyze = editMode ? editedIngredients : rawIngredients;
+    if (!ingredientsToAnalyze || isAnalyzing) return;
     setIsAnalyzing(true);
     try {
       const res = await apiFetch("/api/analyze-single", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: rawIngredients }),
+        body: JSON.stringify({ ingredients: ingredientsToAnalyze }),
       });
       if (res.ok) {
         const data = await res.json() as ProductAnalysis;
         setLocalAnalysis(data);
-        if (product.shelfId) {
+        if (product.shelfId && ingredientsToAnalyze === rawIngredients) {
           queryClient.setQueryData<ShelfResponse>(getGetShelfQueryKey(), (current) => {
             if (!current) return current;
             return {
@@ -316,7 +334,10 @@ export function ProductDetailSheet({
                     className="absolute bottom-3 right-3 rounded-xl px-3 py-1.5 text-xs font-semibold text-white"
                     style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
                   >
-                    📷 {t("product.changeImage")}
+                    <span className="inline-flex items-center gap-1">
+                      <Camera className="h-3.5 w-3.5" aria-hidden />
+                      {t("product.changeImage")}
+                    </span>
                   </button>
                 </>
               )}
@@ -347,7 +368,7 @@ export function ProductDetailSheet({
                     className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl"
                     style={{ color: "var(--ink-soft)" }}
                   >
-                    <span className="text-3xl">📷</span>
+                    <Camera className="h-8 w-8" style={{ color: "var(--sage)" }} aria-hidden />
                     <span className="text-xs font-semibold">{t("product.addImage")}</span>
                   </button>
                 </>
@@ -389,9 +410,18 @@ export function ProductDetailSheet({
                 />
               </div>
             ) : (
-              <p className="text-sm font-medium" style={{ color: "var(--ink-soft)" }}>
-                {localBrand}
-              </p>
+              <div className="min-w-0 flex-1">
+                {localBrand && (
+                  <p className="text-sm font-medium" style={{ color: "var(--ink-soft)" }}>
+                    {localBrand}
+                  </p>
+                )}
+                {barcode && !barcode.startsWith("CHIMIQ_") && (
+                  <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
+                    EAN: {barcode}
+                  </p>
+                )}
+              </div>
             )}
             {!editMode && (
               <button
@@ -407,14 +437,7 @@ export function ProductDetailSheet({
         </SheetHeader>
 
         <div className="space-y-5 px-5 pb-8 pt-3">
-          {verdict ? (
-            <span
-              className="inline-flex rounded-full px-4 py-2 text-sm font-semibold"
-              style={verdictStyle}
-            >
-              {verdictCopy}
-            </span>
-          ) : rawIngredients.length > 10 ? (
+          {showAnalyzeButton ? (
             <button
               type="button"
               onClick={handleAnalyze}
@@ -424,6 +447,13 @@ export function ProductDetailSheet({
             >
               {isAnalyzing ? t("scanner.analysing") : t("product.analyzeNow")}
             </button>
+          ) : verdict ? (
+            <span
+              className="inline-flex rounded-full px-4 py-2 text-sm font-semibold"
+              style={verdictStyle}
+            >
+              {verdictCopy}
+            </span>
           ) : (
             <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
               {t("product.noAnalysis")}
@@ -520,7 +550,7 @@ export function ProductDetailSheet({
           </section>
 
           {editMode && (
-            <div className="flex gap-2 border-t border-[var(--line)] pt-4">
+            <div className="flex flex-wrap gap-2 border-t border-[var(--line)] pt-4">
               <button
                 type="button"
                 onClick={() => void handleSaveEdits()}
@@ -528,7 +558,11 @@ export function ProductDetailSheet({
                 className="btn-primary flex-1"
                 style={{ height: 40, fontSize: 13 }}
               >
-                {editSaving ? t("common.loading") : t("product.saveEdits")}
+                {editSaving
+                  ? t("common.loading")
+                  : isNotInDb
+                    ? t("complete.contributeProductCta")
+                    : t("product.saveEdits")}
               </button>
               <button
                 type="button"
@@ -544,6 +578,7 @@ export function ProductDetailSheet({
               >
                 {t("common.cancel")}
               </button>
+              {editError && <p className="basis-full text-xs text-red-500">{editError}</p>}
             </div>
           )}
 
@@ -603,11 +638,9 @@ export function ProductDetailSheet({
             </section>
           )}
 
-          {/* Bidrags-CTA: produkten saknar real barcode = inte i cached_products
-              än. Använder premium-gold för att visuellt skilja "hjälp
-              Chimiq"-handlingar från "för dig"-handlingar (BESLUT-SS-067).
-              Endast synlig om Scan.tsx skickat med onContribute-callback. */}
-          {isNotInDb && onContribute && (
+          {/* Bidrags-CTA: produkten saknar real barcode = inte i cached_products.
+              Öppnar editMode direkt så bidraget sker i samma produktkort. */}
+          {isNotInDb && !editMode && !completionDone && (
             <section className="border-t border-[var(--line)] pt-5">
               <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
                 {t("complete.contributeProductPrompt")}
@@ -617,16 +650,11 @@ export function ProductDetailSheet({
               </p>
               <button
                 type="button"
-                onClick={() =>
-                  onContribute({
-                    productName: productName !== t("shelf.unknownProduct") ? productName : undefined,
-                    brand: product.brand ?? undefined,
-                    ingredients: rawIngredients || undefined,
-                  })
-                }
-                className="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                onClick={() => setEditMode(true)}
+                className="btn-contribute mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
                 style={{ backgroundColor: "var(--premium-gold)" }}
               >
+                <Plus className="h-4 w-4" aria-hidden />
                 {t("complete.contributeProductCta")}
               </button>
               {/* Poäng-text borttagen per SS-059 */}

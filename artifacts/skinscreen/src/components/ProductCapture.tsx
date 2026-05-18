@@ -11,6 +11,7 @@ interface ProductCaptureInitialData {
   brand?: string;
   barcode?: string;
   ingredients?: string;
+  imageUrl?: string | null;
 }
 
 interface ProductCaptureProps {
@@ -39,7 +40,9 @@ export function ProductCapture({ initialData, onAnalyzed, className }: ProductCa
   const [brand, setBrand] = useState(initialData?.brand ?? "");
   const [barcode, setBarcode] = useState(initialData?.barcode ?? "");
   const [ingredients, setIngredients] = useState(initialData?.ingredients ?? "");
-  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(
+    initialData?.imageUrl ?? null,
+  );
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);

@@ -44,14 +44,17 @@ export function GamificationBanner({
         "flex w-full items-center justify-between gap-3 rounded-full border px-4 py-3 text-left shadow-sm transition-opacity hover:opacity-95",
         className,
       )}
-      style={{ backgroundColor: "var(--rose-soft)", borderColor: "var(--line)" }}
+      style={{
+        background: "color-mix(in srgb, var(--sage) 10%, var(--cream))",
+        borderColor: "color-mix(in srgb, var(--sage) 30%, transparent)",
+      }}
     >
-      <span className="min-w-0 text-sm font-medium" style={{ color: "var(--rose-gold-deep)" }}>
+      <span className="min-w-0 text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
         {t("gamification.progressOf", { n: current, target: targetCount })}
       </span>
       <span
         className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold"
-        style={{ color: "var(--rose-gold)" }}
+        style={{ color: "var(--sage)" }}
       >
         {t("gamification.earnFreeMonth")}
         <ChevronRight className="h-4 w-4" aria-hidden />

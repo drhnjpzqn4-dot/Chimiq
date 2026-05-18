@@ -59,6 +59,17 @@ function statusBadge(status: string): { label: string; className: string } {
   }
 }
 
+function resolveSubmissionImageSrc(imageUrl: string): string {
+  const src = imageUrl.trim();
+
+  if (/^(https?:|data:|blob:)/i.test(src)) return src;
+  if (src.startsWith("/api/storage/")) return src;
+  if (src.startsWith("/storage/")) return `/api${src}`;
+  if (src.startsWith("storage/")) return `/api/${src}`;
+
+  return `/api/storage/objects/${src.replace(/^\/+/, "")}`;
+}
+
 export default function AdminPage() {
   return (
     <AdminRouteGuard>
@@ -416,7 +427,7 @@ function AdminPageInner() {
                                 Front photo
                               </p>
                               <img
-                                src={`/api/storage${s.frontImageUrl}`}
+                                src={resolveSubmissionImageSrc(s.frontImageUrl)}
                                 alt="Product front"
                                 className="w-full h-36 object-contain rounded-xl border border-border/60 bg-muted/20"
                               />
@@ -428,7 +439,7 @@ function AdminPageInner() {
                                 Ingredients photo
                               </p>
                               <img
-                                src={`/api/storage${s.ingredientsImageUrl}`}
+                                src={resolveSubmissionImageSrc(s.ingredientsImageUrl)}
                                 alt="Ingredients label"
                                 className="w-full h-36 object-contain rounded-xl border border-border/60 bg-muted/20"
                               />
