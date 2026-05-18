@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { FlaskConical } from "lucide-react";
-import type { RoutineConflict } from "@workspace/api-client-react";
+import { getGetShelfQueryKey } from "@workspace/api-client-react";
+import type { RoutineConflict, ShelfResponse } from "@workspace/api-client-react";
 import { ShelfConflictBanner, type IngredientStatusLevel } from "@/components/IngredientStatusDot";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTranslation } from "@/lib/i18n";
@@ -8,7 +10,30 @@ import { apiFetch } from "@/lib/api";
 
 type ProductVerdict = "safe" | "caution" | "danger";
 
+type ProductAnalysis = {
+  verdict?: ProductVerdict;
+  overallSafe?: boolean;
+  summary?: string;
+  verdictSummary?: string;
+  flaggedIngredients?: Array<{
+    name?: string;
+    ingredient?: string;
+    reason?: string;
+    explanation?: string;
+    severity?: "low" | "medium" | "high" | string;
+  }>;
+  flags?: Array<{
+    name?: string;
+    ingredient?: string;
+    reason?: string;
+    explanation?: string;
+    severity?: string;
+  }>;
+  safeIngredients?: string[];
+};
+
 export interface ProductDetailProduct {
+  shelfId?: number;
   barcode?: string | null;
   product_name?: string;
   productName?: string;
@@ -16,27 +41,8 @@ export interface ProductDetailProduct {
   image_url?: string | null;
   imageUrl?: string | null;
   ingredients?: string | null;
-  analysis_result_json?: {
-    verdict?: ProductVerdict;
-    overallSafe?: boolean;
-    summary?: string;
-    verdictSummary?: string;
-    flaggedIngredients?: Array<{
-      name?: string;
-      ingredient?: string;
-      reason?: string;
-      explanation?: string;
-      severity?: "low" | "medium" | "high" | string;
-    }>;
-    flags?: Array<{
-      name?: string;
-      ingredient?: string;
-      reason?: string;
-      explanation?: string;
-      severity?: string;
-    }>;
-    safeIngredients?: string[];
-  } | null;
+  analysis_result_json?: ProductAnalysis | null;
+  analysisResultJson?: ProductAnalysis | null;
 }
 
 interface ProductDetailSheetProps {
@@ -58,7 +64,7 @@ interface ProductDetailSheetProps {
 }
 
 function verdictFromProduct(product: ProductDetailProduct, status?: IngredientStatusLevel): ProductVerdict | null {
-  const analysis = product.analysis_result_json;
+  const analysis = product.analysis_result_json ?? product.analysisResultJson ?? null;
   if (!analysis) return null;
   if (analysis?.verdict) return analysis.verdict;
   if (analysis?.overallSafe === true) return "safe";
@@ -72,7 +78,7 @@ function verdictFromProduct(product: ProductDetailProduct, status?: IngredientSt
 }
 
 function normalizeFlags(product: ProductDetailProduct) {
-  const analysis = product.analysis_result_json;
+  const analysis = product.analysis_result_json ?? product.analysisResultJson ?? null;
   return (analysis?.flaggedIngredients ?? analysis?.flags ?? [])
     .map((flag) => ({
       name: flag.name ?? flag.ingredient ?? "",
@@ -90,24 +96,41 @@ export function ProductDetailSheet({
   onContribute,
 }: ProductDetailSheetProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [completionValue, setCompletionValue] = useState("");
   const [completionSaving, setCompletionSaving] = useState(false);
   const [completionDone, setCompletionDone] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
-  const [localAnalysis, setLocalAnalysis] = useState<typeof product.analysis_result_json | null>(null);
+  const [localAnalysis, setLocalAnalysis] = useState<ProductAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const imageUrl = product.image_url ?? product.imageUrl ?? null;
-  const barcode = product.barcode ?? null;
-  const productName = product.product_name ?? product.productName ?? t("shelf.unknownProduct");
-  const analysis = localAnalysis ?? product.analysis_result_json ?? null;
+  const initialImageUrl = product.image_url ?? product.imageUrl ?? null;
+  const initialBarcode = product.barcode ?? null;
+  const initialProductName = product.product_name ?? product.productName ?? t("shelf.unknownProduct");
+  const initialIngredients = product.ingredients?.trim() ?? "";
+  const [localProductName, setLocalProductName] = useState(initialProductName);
+  const [localBrand, setLocalBrand] = useState(product.brand ?? "");
+  const [localBarcode, setLocalBarcode] = useState(initialBarcode ?? "");
+  const [localIngredients, setLocalIngredients] = useState(initialIngredients);
+  const [localImageUrl, setLocalImageUrl] = useState<string | null>(initialImageUrl);
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState(initialProductName);
+  const [editBrand, setEditBrand] = useState(product.brand ?? "");
+  const [editBarcode, setEditBarcode] = useState(initialBarcode ?? "");
+  const [editIngredients, setEditIngredients] = useState(initialIngredients);
+  const [editSaving, setEditSaving] = useState(false);
+  const [, setEditDone] = useState(false);
+  const imageUrl = localImageUrl;
+  const barcode = localBarcode || null;
+  const productName = localProductName;
+  const analysis = localAnalysis ?? product.analysis_result_json ?? product.analysisResultJson ?? null;
   const productForAnalysis = { ...product, analysis_result_json: analysis };
   const verdict = verdictFromProduct(productForAnalysis, status);
   const flaggedIngredients = normalizeFlags(productForAnalysis);
   const summary = analysis?.summary ?? analysis?.verdictSummary ?? null;
   const substantiveConflicts = conflicts.filter((conflict) => conflict.severity !== "SAFE");
-  const rawIngredients = product.ingredients?.trim() ?? "";
+  const rawIngredients = localIngredients.trim();
   const ingredientPreview = expanded || rawIngredients.length <= 520
     ? rawIngredients
     : `${rawIngredients.slice(0, 520).trim()}...`;
@@ -131,7 +154,7 @@ export function ProductDetailSheet({
       ? null
       : !imageUrl
         ? "image"
-        : !product.brand
+          : !localBrand
           ? "brand"
           : null;
 
@@ -156,11 +179,12 @@ export function ProductDetailSheet({
   };
 
   const saveImageCompletion = async (file: File) => {
-    if (!barcode) return;
     setCompletionSaving(true);
     setCompletionError(null);
     try {
       const imageBase64 = await fileToBase64(file);
+      setLocalImageUrl(`data:${file.type || "image/jpeg"};base64,${imageBase64}`);
+      if (!barcode) return;
       const res = await apiFetch(`/api/products/${encodeURIComponent(barcode)}`, {
         method: "PATCH",
         credentials: "include",
@@ -176,6 +200,48 @@ export function ProductDetailSheet({
     }
   };
 
+  const handleSaveEdits = async () => {
+    if (editSaving) return;
+    setEditSaving(true);
+    try {
+      const nextName = editName.trim() || productName;
+      const nextBrand = editBrand.trim();
+      const nextBarcode = editBarcode.trim();
+      const nextIngredients = editIngredients.trim();
+
+      if (barcode && !isNotInDb) {
+        const body: Record<string, string> = {};
+        if (nextBarcode && nextBarcode !== barcode) body.barcode = nextBarcode;
+        if (nextBrand !== localBrand) body.brand = nextBrand;
+        if (nextIngredients !== rawIngredients) body.ingredients = nextIngredients;
+        if (Object.keys(body).length > 0) {
+          await apiFetch(`/api/products/${encodeURIComponent(barcode)}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+        }
+      }
+
+      setLocalProductName(nextName);
+      setLocalBrand(nextBrand);
+      setLocalBarcode(nextBarcode);
+      setLocalIngredients(nextIngredients);
+      setEditMode(false);
+      setEditDone(true);
+    } catch {
+      setLocalProductName(editName.trim() || productName);
+      setLocalBrand(editBrand.trim());
+      setLocalBarcode(editBarcode.trim());
+      setLocalIngredients(editIngredients.trim());
+      setEditMode(false);
+      setEditDone(true);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!rawIngredients || isAnalyzing) return;
     setIsAnalyzing(true);
@@ -187,8 +253,27 @@ export function ProductDetailSheet({
         body: JSON.stringify({ ingredients: rawIngredients }),
       });
       if (res.ok) {
-        const data = await res.json() as typeof product.analysis_result_json;
+        const data = await res.json() as ProductAnalysis;
         setLocalAnalysis(data);
+        if (product.shelfId) {
+          queryClient.setQueryData<ShelfResponse>(getGetShelfQueryKey(), (current) => {
+            if (!current) return current;
+            return {
+              ...current,
+              products: current.products.map((shelfProduct) =>
+                shelfProduct.id === product.shelfId
+                  ? { ...shelfProduct, analysisResultJson: data }
+                  : shelfProduct,
+              ),
+            };
+          });
+          void apiFetch(`/api/shelf/${product.shelfId}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ analysisResultJson: data }),
+          });
+        }
       }
     } catch {
       // silent fail — user sees "ingen analys" och kan försöka igen
@@ -205,30 +290,120 @@ export function ProductDetailSheet({
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/20" />
         <div className="px-5 pt-5">
           {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt=""
-              className="h-[200px] max-h-[200px] w-full rounded-2xl object-cover"
-            />
+            <div className="relative">
+              <img
+                src={imageUrl}
+                alt=""
+                className="h-[200px] max-h-[200px] w-full rounded-2xl object-cover"
+              />
+              {editMode && (
+                <>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void saveImageCompletion(file);
+                      event.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="absolute bottom-3 right-3 rounded-xl px-3 py-1.5 text-xs font-semibold text-white"
+                    style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+                  >
+                    📷 {t("product.changeImage")}
+                  </button>
+                </>
+              )}
+            </div>
           ) : (
             <div
-              className="flex h-[200px] max-h-[200px] w-full items-center justify-center rounded-2xl"
+              className="relative flex h-[200px] max-h-[200px] w-full items-center justify-center rounded-2xl"
               style={{ backgroundColor: "var(--cream-warm)" }}
             >
               <FlaskConical className="h-12 w-12" style={{ color: "var(--ink-soft)" }} aria-hidden />
+              {editMode && (
+                <>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void saveImageCompletion(file);
+                      event.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl"
+                    style={{ color: "var(--ink-soft)" }}
+                  >
+                    <span className="text-3xl">📷</span>
+                    <span className="text-xs font-semibold">{t("product.addImage")}</span>
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
 
         <SheetHeader className="px-5 pb-2 pt-4 text-left">
-          <SheetTitle className="font-serif text-2xl font-medium leading-tight" style={{ color: "var(--ink)" }}>
-            {productName}
-          </SheetTitle>
-          {product.brand && (
-            <p className="text-sm font-medium" style={{ color: "var(--ink-soft)" }}>
-              {product.brand}
-            </p>
+          {editMode ? (
+            <input
+              type="text"
+              value={editName}
+              onChange={(event) => setEditName(event.target.value)}
+              className="input-base font-serif text-xl"
+              style={{ color: "var(--ink)" }}
+            />
+          ) : (
+            <SheetTitle className="font-serif text-2xl font-medium leading-tight" style={{ color: "var(--ink)" }}>
+              {productName}
+            </SheetTitle>
           )}
+          <div className="mt-1 flex items-center justify-between gap-2">
+            {editMode ? (
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <input
+                  type="text"
+                  value={editBrand}
+                  onChange={(event) => setEditBrand(event.target.value)}
+                  className="input-base text-sm"
+                  placeholder={t("contribute.brand")}
+                />
+                <input
+                  type="text"
+                  value={editBarcode}
+                  onChange={(event) => setEditBarcode(event.target.value)}
+                  className="input-base text-sm"
+                  placeholder={t("contribute.barcode")}
+                />
+              </div>
+            ) : (
+              <p className="text-sm font-medium" style={{ color: "var(--ink-soft)" }}>
+                {localBrand}
+              </p>
+            )}
+            {!editMode && (
+              <button
+                type="button"
+                onClick={() => setEditMode(true)}
+                className="shrink-0 rounded-lg px-3 py-1 text-xs font-semibold"
+                style={{ backgroundColor: "var(--cream-warm)", color: "var(--ink-soft)" }}
+              >
+                {t("product.edit")}
+              </button>
+            )}
+          </div>
         </SheetHeader>
 
         <div className="space-y-5 px-5 pb-8 pt-3">
@@ -303,13 +478,22 @@ export function ProductDetailSheet({
             </h3>
             {rawIngredients ? (
               <>
-                <p
-                  className="mt-2 max-h-40 overflow-hidden whitespace-pre-wrap rounded-2xl border border-[var(--line)] bg-[var(--cream-warm)] p-3 font-mono text-xs leading-relaxed"
-                  style={{ color: "var(--ink-soft)", maxHeight: expanded ? "none" : 160 }}
-                >
-                  {ingredientPreview}
-                </p>
-                {rawIngredients.length > 520 && (
+                {editMode ? (
+                  <textarea
+                    value={editIngredients}
+                    onChange={(event) => setEditIngredients(event.target.value)}
+                    rows={6}
+                    className="textarea-base mt-2 font-mono text-xs"
+                  />
+                ) : (
+                  <p
+                    className="mt-2 max-h-40 overflow-hidden whitespace-pre-wrap rounded-2xl border border-[var(--line)] bg-[var(--cream-warm)] p-3 font-mono text-xs leading-relaxed"
+                    style={{ color: "var(--ink-soft)", maxHeight: expanded ? "none" : 160 }}
+                  >
+                    {ingredientPreview}
+                  </p>
+                )}
+                {!editMode && rawIngredients.length > 520 && (
                   <button
                     type="button"
                     onClick={() => setExpanded((value) => !value)}
@@ -320,12 +504,48 @@ export function ProductDetailSheet({
                   </button>
                 )}
               </>
+            ) : editMode ? (
+              <textarea
+                value={editIngredients}
+                onChange={(event) => setEditIngredients(event.target.value)}
+                rows={6}
+                className="textarea-base mt-2 font-mono text-xs"
+                placeholder={t("contribute.ingredients")}
+              />
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
                 {t("product.ingredientsMissing")}
               </p>
             )}
           </section>
+
+          {editMode && (
+            <div className="flex gap-2 border-t border-[var(--line)] pt-4">
+              <button
+                type="button"
+                onClick={() => void handleSaveEdits()}
+                disabled={editSaving}
+                className="btn-primary flex-1"
+                style={{ height: 40, fontSize: 13 }}
+              >
+                {editSaving ? t("common.loading") : t("product.saveEdits")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditMode(false);
+                  setEditName(productName);
+                  setEditBrand(localBrand);
+                  setEditBarcode(barcode ?? "");
+                  setEditIngredients(rawIngredients);
+                }}
+                className="btn-secondary"
+                style={{ height: 40, fontSize: 13, flex: "0 0 80px" }}
+              >
+                {t("common.cancel")}
+              </button>
+            </div>
+          )}
 
           {missingField && !completionDone && (
             <section className="border-t border-[var(--line)] pt-5">

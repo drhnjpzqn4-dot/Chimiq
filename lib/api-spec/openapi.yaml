@@ -391,6 +391,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /shelf/{id}:
+    patch:
+      tags: [shelf]
+      operationId: patchShelfProduct
+      summary: Update a product on the user's shelf
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchShelfProductRequest'
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShelfProduct'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found on shelf
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
       tags: [shelf]
       operationId: removeFromShelf
@@ -789,6 +832,10 @@ components:
         addedAt:
           type: string
           format: date-time
+        analysisResultJson:
+          type: object
+          nullable: true
+          additionalProperties: true
     ShelfResponse:
       type: object
       required: [products]
@@ -813,6 +860,15 @@ components:
           format: uri
         routineSlot:
           $ref: '#/components/schemas/RoutineSlot'
+    PatchShelfProductRequest:
+      type: object
+      properties:
+        routineSlot:
+          $ref: '#/components/schemas/RoutineSlot'
+        analysisResultJson:
+          type: object
+          nullable: true
+          additionalProperties: true
     RoutineConflict:
       type: object
       required: [product1Name, product2Name, pair, severity, explanation, citation, citationUrl]

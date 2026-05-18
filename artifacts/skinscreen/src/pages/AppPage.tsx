@@ -16,6 +16,7 @@ const RecipeSubmitScreen = lazy(() => import("@/pages/app/RecipeSubmit"));
 const ProblemsScreen = lazy(() => import("@/pages/app/Problems"));
 const LeaderboardScreen = lazy(() => import("@/pages/app/Leaderboard"));
 const RewardsScreen = lazy(() => import("@/pages/app/Rewards"));
+const RoutineReport = lazy(() => import("@/pages/app/Report"));
 
 function AppRouteFallback() {
   return (
@@ -74,6 +75,7 @@ export default function AppPage() {
           <Route path="/app/browse/:barcode" component={BrowseDetailScreen} />
           <Route path="/app/problems" component={ProblemsScreen} />
           <Route path="/app/shelf" component={ShelfScreen} />
+          <Route path="/app/report" component={RoutineReport} />
           <Route path="/app/discover" component={DiscoverScreen} />
           <Route path="/app/profile" component={ProfileScreen} />
           <Route path="/app/recipes/new" component={RecipeSubmitScreen} />

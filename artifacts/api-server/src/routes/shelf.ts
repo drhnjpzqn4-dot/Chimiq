@@ -12,7 +12,10 @@ import {
 
 const router: IRouter = Router();
 
-type ShelfProductResponse = ShelfProduct & { imageUrl: string | null };
+type ShelfProductResponse = ShelfProduct & {
+  imageUrl: string | null;
+  analysisResultJson: unknown | null;
+};
 
 function mapShelfRow(row: Record<string, unknown>): ShelfProductResponse {
   return {
@@ -23,6 +26,7 @@ function mapShelfRow(row: Record<string, unknown>): ShelfProductResponse {
     imageUrl: (row.image_url as string | null | undefined) ?? null,
     routineSlot: row.routine_slot as ShelfProduct["routineSlot"],
     addedAt: new Date(row.added_at as string),
+    analysisResultJson: row.analysis_result_json ?? null,
   };
 }
 
@@ -36,7 +40,8 @@ const AddToShelfBodySchema = z.object({
 });
 
 const PatchShelfBodySchema = z.object({
-  routineSlot: routineSlotSchema,
+  routineSlot: routineSlotSchema.optional(),
+  analysisResultJson: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 router.get("/shelf", async (req: Request, res: Response) => {
@@ -133,10 +138,23 @@ router.patch("/shelf/:id", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid input" });
     return;
   }
+  const updateFields: Record<string, unknown> = {};
+  if (parsed.data.routineSlot !== undefined) {
+    updateFields.routine_slot = parsed.data.routineSlot;
+  }
+  if (parsed.data.analysisResultJson !== undefined) {
+    updateFields.analysis_result_json = parsed.data.analysisResultJson;
+  }
+
+  if (Object.keys(updateFields).length === 0) {
+    res.status(400).json({ error: "Nothing to update" });
+    return;
+  }
+
   const supabase = supabaseAdmin;
   const { data: updated, error } = await supabase
     .from("shelf_products")
-    .update({ routine_slot: parsed.data.routineSlot })
+    .update(updateFields)
     .eq("id", id)
     .eq("user_id", req.user.id)
     .select()

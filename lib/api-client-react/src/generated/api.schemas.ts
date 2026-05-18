@@ -270,6 +270,7 @@ export interface ShelfProduct {
   imageUrl?: string | null;
   routineSlot: RoutineSlot;
   addedAt: string;
+  analysisResultJson?: { [key: string]: unknown } | null;
 }
 
 export interface ShelfResponse {

@@ -144,10 +144,7 @@ export default function DiscoverScreen() {
   };
 
   return (
-    <AppShell
-      title={t("discover.title")}
-      subtitle={t("discover.subtitle")}
-    >
+    <AppShell pageLabel={t("tabs.discover")} subtitle={t("discover.subtitle")}>
       {/* AI chat hero */}
       <section className="mb-6 animate-pop-in">
         <div className="relative overflow-hidden rounded-3xl bg-sage-deep p-5 text-white shadow-xl">

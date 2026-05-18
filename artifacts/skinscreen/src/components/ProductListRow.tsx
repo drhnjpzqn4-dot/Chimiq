@@ -6,7 +6,7 @@
 // BESLUT-SS-070: listvy visar kategori-ikon, aldrig produktbild.
 // Se docs/DESIGN-SYSTEM.md
 
-import { Sun, Moon, CalendarDays, Package, Trash2 } from "lucide-react";
+import { Sun, Moon, CalendarDays, FlaskConical, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { StatusLevel, RoutineSlot } from "@/types/design-system";
 
@@ -36,8 +36,8 @@ function SlotIcon({ slot }: { slot: RoutineSlot }) {
   if (slot === "occasional")
     return <CalendarDays className="h-5 w-5" {...p}
                          style={{ color: "var(--ink-soft)" }} />;
-  return   <Package className="h-5 w-5" {...p}
-                    style={{ color: "var(--ink-soft)" }} />;
+  return   <FlaskConical className="h-5 w-5" {...p}
+                         style={{ color: "var(--ink-soft)" }} />;
 }
 
 export function ProductListRow({

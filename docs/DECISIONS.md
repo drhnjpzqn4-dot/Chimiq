@@ -428,6 +428,11 @@ Nya gemensamma komponenter: `StatusBadge`, `ProductListRow`, `SectionHeader`.
 `IngredientStatusLevel` är nu ett alias för `StatusLevel` (bakåtkompatibelt).
 Regel: duplicera aldrig UI — extrahera till `/components/` och kalla på komponenten.
 
+### SS-072 — 2026-05-18 — Sparad produktanalys på hyllrader
+`shelf_products.analysis_result_json JSONB` ska finnas i Supabase och läggs via SQL-editor:
+`ALTER TABLE shelf_products ADD COLUMN IF NOT EXISTS analysis_result_json JSONB;`.
+Hyll-API:t returnerar fältet som `analysisResultJson` och PATCH `/api/shelf/:id` kan spara ny analys per shelf-rad.
+
 ---
 
 *Senast uppdaterad: 2026-05-14 (BESLUT-SS-019 profil-tillägg: ålder + mål i `SkinProfileChips`).*

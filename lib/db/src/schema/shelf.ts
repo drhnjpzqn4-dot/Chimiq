@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./auth";
@@ -16,6 +16,7 @@ export const shelfProductsTable = pgTable("shelf_products", {
   imageUrl: text("image_url"),
   routineSlot: text("routine_slot").$type<RoutineSlot>().notNull().default("both"),
   addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
+  analysisResultJson: jsonb("analysis_result_json"),
 });
 
 export const insertShelfProductSchema = createInsertSchema(shelfProductsTable).omit({

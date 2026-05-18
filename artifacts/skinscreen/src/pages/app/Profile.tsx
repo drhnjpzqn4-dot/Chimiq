@@ -180,7 +180,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <AppShell title="Profil" subtitle="Din hud, dina mål">
+    <AppShell pageLabel={t("tabs.profile")} subtitle={t("profile.subtitle")}>
       <div className="space-y-4 pb-8">
         {/* 1. Avatar */}
         <div
