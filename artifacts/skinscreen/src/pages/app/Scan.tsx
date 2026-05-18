@@ -31,14 +31,6 @@ interface RecentScan {
   product?: ProductDetailProduct;
 }
 
-type SingleScanSeed = {
-  mode: "single";
-  ingredients: string;
-  productName?: string;
-  imageUrl?: string;
-  autoRun: true;
-};
-
 const PENDING_KEY = "skinscreen.pendingScan";
 const MILESTONE = 30;
 const FREE_DAILY_LIMIT = 12;
@@ -91,7 +83,6 @@ function readRecent(): RecentScan[] {
 
 export default function ScanScreen() {
   const [, navigate] = useLocation();
-  const [seed, setSeed] = useState<SingleScanSeed | null>(null);
   const [seedLoading, setSeedLoading] = useState(false);
   const [seedErrorKey, setSeedErrorKey] = useState<string | null>(null);
   const [seedProductName, setSeedProductName] = useState<string | null>(null);
@@ -232,13 +223,6 @@ export default function ScanScreen() {
               parsed.productName ??
               [data.brand, data.productName].filter(Boolean).join(" ");
             setSeedProductName(name || null);
-            setSeed({
-              mode: "single",
-              ingredients: data.ingredients,
-              productName: name || undefined,
-              imageUrl: data.imageUrl ?? undefined,
-              autoRun: true,
-            });
             analyzeSingle.mutate(
               { data: { ingredients: data.ingredients } },
               {
@@ -252,7 +236,6 @@ export default function ScanScreen() {
                     imageUrl: data.imageUrl ?? null,
                     analysis_result_json: analysis,
                   });
-                  setSeed(null);
                 },
               },
             );
