@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Barcode, Camera, ChevronRight, Loader2, Search } from "lucide-react";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import { IngredientsCapture } from "@/components/IngredientsCapture";
+import { ProductCapture } from "@/components/ProductCapture";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
@@ -68,6 +69,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
+  const [showCapture, setShowCapture] = useState(false);
 
   const visibleRows = mode === "all" ? ROWS : ROWS.filter((row) => row === mode);
   const isTouchDevice = useMemo(() => {
@@ -336,6 +338,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                     onChange={(event) => {
                       setInput(event.target.value);
                       setLookupResult(null);
+                      setShowCapture(false);
                     }}
                     placeholder={t("scan.searchPlaceholder")}
                     className="h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--cream)] pl-9 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -432,9 +435,36 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
 
                 {trimmedInput && lookupResult && !lookupResult.found && !loading &&
                   suggestions.length === 0 && !suggestLoading && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {t("myShelf.productNotFound")}
-                    </p>
+                    showCapture ? (
+                      <div className="mt-3 rounded-2xl border border-[var(--line)] bg-white p-4">
+                        <ProductCapture
+                          initialData={{
+                            barcode: /^\d{8,14}$/.test(trimmedInput) ? trimmedInput : undefined,
+                          }}
+                          onAnalyzed={(result) => {
+                            onResult?.(result);
+                            setShowCapture(false);
+                            setInput("");
+                            setSuggestions([]);
+                            setLookupResult(null);
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
+                          {t("myShelf.productNotFound")}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowCapture(true)}
+                          className="text-xs font-semibold"
+                          style={{ color: "var(--premium-gold)" }}
+                        >
+                          {t("productCapture.addManually")}
+                        </button>
+                      </div>
+                    )
                   )}
               </div>
             )}

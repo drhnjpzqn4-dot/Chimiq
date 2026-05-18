@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Package } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 import type { RoutineConflict } from "@workspace/api-client-react";
 import { ShelfConflictBanner, type IngredientStatusLevel } from "@/components/IngredientStatusDot";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -215,7 +215,7 @@ export function ProductDetailSheet({
               className="flex h-[200px] max-h-[200px] w-full items-center justify-center rounded-2xl"
               style={{ backgroundColor: "var(--cream-warm)" }}
             >
-              <Package className="h-12 w-12" style={{ color: "var(--ink-soft)" }} aria-hidden />
+              <FlaskConical className="h-12 w-12" style={{ color: "var(--ink-soft)" }} aria-hidden />
             </div>
           )}
         </div>
