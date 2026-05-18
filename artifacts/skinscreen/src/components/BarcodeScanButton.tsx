@@ -241,7 +241,11 @@ export function BarcodeScanButton({
     };
   }, [stopCamera]);
 
-  if (state === "unsupported") {
+  // If unsupported but rendered as a custom trigger (e.g. ScanEntry row),
+  // still render the trigger so the row stays visible. On click, show a
+  // fallback modal explaining that scanning requires the native app and
+  // suggesting the search field as an alternative.
+  if (state === "unsupported" && !triggerClassName) {
     return null;
   }
 
@@ -252,11 +256,21 @@ export function BarcodeScanButton({
     </>
   );
 
+  const handleTriggerClick = () => {
+    if (state === "unsupported") {
+      setErrorMsg(t("barcodeScan.errUnsupportedBrowser"));
+      setState("error");
+      setModalOpen(true);
+      return;
+    }
+    startScan();
+  };
+
   return (
     <>
       <button
         type="button"
-        onClick={startScan}
+        onClick={handleTriggerClick}
         disabled={disabled}
         data-touch-target
         className={

@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Barcode, Camera, ChevronRight, Loader2, Search } from "lucide-react";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
+import { useScanLabel } from "@workspace/api-client-react";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
@@ -37,7 +38,6 @@ interface ProductLookupResult {
 
 interface ScanEntryProps {
   onResult?: (product: ProductResult) => void;
-  onPhoto?: () => void;
   mode?: "all" | "search" | "barcode" | "ocr";
   className?: string;
 }
@@ -46,7 +46,7 @@ type RowKind = "search" | "barcode" | "ocr";
 
 const ROWS: RowKind[] = ["search", "barcode", "ocr"];
 
-export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEntryProps) {
+export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps) {
   const { t } = useTranslation();
   const [active, setActive] = useState<RowKind | null>(mode === "all" ? null : mode);
   const [input, setInput] = useState("");
@@ -54,6 +54,25 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
   const [lookupResult, setLookupResult] = useState<ProductLookupResult | null>(null);
   const [barcodeResult, setBarcodeResult] = useState<ProductResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // OCR mutation — when a photo is captured we POST the image to the backend
+  // OCR endpoint and the response's `ingredients` text drops into the paste
+  // textarea. The user can then tweak it before tapping Analysera.
+  const scanLabel = useScanLabel({
+    mutation: {
+      onSuccess: (data) => {
+        setPasteText(data.ingredients);
+        setOcrError(null);
+      },
+      onError: (err) => {
+        const apiError = (err as Error & { response?: { data?: { error?: string } } })?.response
+          ?.data?.error;
+        setOcrError(apiError ?? t("scanner.errReadLabel"));
+      },
+    },
+  });
 
   const visibleRows = mode === "all" ? ROWS : ROWS.filter((row) => row === mode);
   const isTouchDevice = useMemo(() => {
@@ -67,8 +86,50 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
       : active === "barcode"
         ? Boolean(barcodeResult)
         : active === "ocr"
-          ? isTouchDevice || pasteText.trim().length > 0
+          ? pasteText.trim().length > 0
           : false;
+
+  // Mirror of IngredientScanner's photo-to-OCR pipeline: resize on canvas
+  // (max 1500px edge) before sending base64 JPEG to the backend OCR endpoint.
+  const handleOcrFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOcrError(null);
+    const reader = new FileReader();
+    reader.onerror = () => setOcrError(t("scanner.errReadFile"));
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const img = new Image();
+      img.onerror = () => setOcrError(t("scanner.errDecode"));
+      img.onload = () => {
+        const MAX_EDGE = 1500;
+        let { width, height } = img;
+        if (width > MAX_EDGE || height > MAX_EDGE) {
+          if (width >= height) {
+            height = Math.round((height * MAX_EDGE) / width);
+            width = MAX_EDGE;
+          } else {
+            width = Math.round((width * MAX_EDGE) / height);
+            height = MAX_EDGE;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          setOcrError(t("scanner.errImgProcessing"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64 = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+        scanLabel.mutate({ data: { imageBase64: base64, mimeType: "image/jpeg" } });
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   const rowCopy: Record<RowKind, { label: string; hint: string; icon: typeof Search }> = {
     search: { label: t("scanEntry.searchLabel"), hint: t("scanEntry.searchHint"), icon: Search },
@@ -108,10 +169,6 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
       return;
     }
     if (active === "ocr") {
-      if (isTouchDevice) {
-        onPhoto?.();
-        return;
-      }
       const text = pasteText.trim();
       if (!text) return;
       onResult?.({
@@ -259,22 +316,50 @@ export function ScanEntry({ onResult, onPhoto, mode = "all", className }: ScanEn
               </div>
             )}
 
-            {kind === "ocr" && isActive && !isTouchDevice && (
-              <div className="mt-2 rounded-xl border border-[var(--line)] bg-white p-3">
+            {kind === "ocr" && isActive && (
+              <div className="mt-2 space-y-2 rounded-xl border border-[var(--line)] bg-white p-3">
+                {isTouchDevice && (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleOcrFile}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      data-touch-target
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={scanLabel.isPending}
+                      className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+                      style={{ backgroundColor: "var(--sage)", color: "#FFFFFF" }}
+                    >
+                      {scanLabel.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <Camera className="h-4 w-4" aria-hidden />
+                      )}
+                      {scanLabel.isPending
+                        ? t("scanEntry.ocrProcessing")
+                        : t("scanEntry.cameraOpen")}
+                    </button>
+                  </>
+                )}
                 <textarea
                   value={pasteText}
                   onChange={(event) => setPasteText(event.target.value)}
                   placeholder={t("scanEntry.pastePlaceholder")}
-                  rows={5}
+                  rows={isTouchDevice ? 3 : 5}
                   className="w-full resize-none rounded-xl border border-[var(--line)] bg-[var(--cream)] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
+                {ocrError && (
+                  <p className="text-xs" style={{ color: "var(--rose-gold-deep)" }}>
+                    {ocrError}
+                  </p>
+                )}
               </div>
-            )}
-
-            {kind === "ocr" && isActive && isTouchDevice && (
-              <p className="mt-2 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-xs" style={{ color: "var(--ink-soft)" }}>
-                {t("scanEntry.cameraReady")}
-              </p>
             )}
           </div>
         );
