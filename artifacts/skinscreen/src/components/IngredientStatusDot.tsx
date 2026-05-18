@@ -1,8 +1,11 @@
 import type { CSSProperties, ReactNode } from "react";
+import type { StatusLevel as IngredientStatusLevel } from "@/types/design-system";
 import { AlertTriangle } from "lucide-react";
 
 /** BESLUT-SS-021: shelf ingredient / conflict status indicator */
-export type IngredientStatusLevel = "safe" | "caution" | "high";
+// Re-export från design-system — samma typ, bakåtkompatibelt namn.
+export type { StatusLevel as IngredientStatusLevel }
+  from "@/types/design-system";
 
 const DOT: Record<IngredientStatusLevel, CSSProperties> = {
   safe: {

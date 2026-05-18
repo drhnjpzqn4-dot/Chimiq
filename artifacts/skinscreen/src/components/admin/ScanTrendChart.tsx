@@ -17,6 +17,8 @@ import {
 
 import { apiFetch } from "@/lib/api";
 
+type ChartMode = "total" | "verdict";
+
 interface TimeseriesPoint {
   date: string;
   total: number;

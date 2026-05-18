@@ -14,6 +14,8 @@ import {
 
 import { apiFetch } from "@/lib/api";
 
+const PAGE_SIZE = 50;
+
 type FeedbackStatus = "new" | "read" | "archived";
 type StatusFilter = FeedbackStatus | "all";
 

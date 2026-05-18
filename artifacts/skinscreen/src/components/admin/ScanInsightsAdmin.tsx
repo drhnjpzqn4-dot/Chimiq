@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover";
 
 import { apiFetch } from "@/lib/api";
+type VerdictFilter = "all" | "safe" | "warning" | "high";
 type DatePreset = "7d" | "30d" | "90d" | "custom" | "all";
 
 interface ProductRow {
