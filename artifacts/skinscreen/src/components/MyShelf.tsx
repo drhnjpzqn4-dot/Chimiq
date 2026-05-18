@@ -1,14 +1,13 @@
 import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ContributeModal } from "@/components/ContributeModal";
+import { ScanEntry, type ProductResult } from "@/components/ScanEntry";
 import {
   useGetShelf,
   getGetShelfQueryKey,
   useAddToShelf,
   useRemoveFromShelf,
   useAnalyzeRoutine,
-  useProductLookup,
-  getProductLookupQueryKey,
 } from "@workspace/api-client-react";
 import type { RoutineConflict, RoutineConflictResponse } from "@workspace/api-client-react";
 import {
@@ -81,39 +80,23 @@ interface AddProductFormProps {
 
 function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
   const { t } = useTranslation();
-  const [search, setSearch] = useState("");
+  // Refaktorerad enligt BESLUT-SS-068: hyllans Lägg till-flöde använder
+  // nu samma <ScanEntry> som /app/scan och ContributeModal — EN modul,
+  // identiskt beteende överallt där användaren letar upp/skannar en
+  // produkt. Slot-väljaren + Lägg till-knappen är hyllan-specifika och
+  // visas EFTER att en produkt valts via ScanEntry's onResult.
   const [productName, setProductName] = useState("");
+  const [brand, setBrand] = useState<string | undefined>(undefined);
   const [ingredients, setIngredients] = useState("");
   const [routineSlot, setRoutineSlot] = useState<RoutineSlot>("wishlist");
-  const [mode, setMode] = useState<"search" | "manual">("search");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const lookupQuery = useProductLookup(
-    { q: searchQuery },
-    {
-      query: {
-        enabled: searchQuery.length > 2,
-        queryKey: getProductLookupQueryKey({ q: searchQuery }),
-      },
-    },
-  );
-
   const addMutation = useAddToShelf();
 
-  const handleSearchSelect = useCallback(() => {
-    if (lookupQuery.data?.found && lookupQuery.data.productName && lookupQuery.data.ingredients) {
-      setProductName(lookupQuery.data.productName);
-      setIngredients(lookupQuery.data.ingredients);
-    }
-  }, [lookupQuery.data]);
-
-  const handleSearch = useCallback((value: string) => {
-    setSearch(value);
-    const trimmed = value.trim();
-    if (trimmed.length > 2) {
-      setSearchQuery(trimmed);
-    }
-  }, []);
+  const handleScanResult = (product: ProductResult) => {
+    const name = product.productName ?? product.product_name;
+    setProductName(name);
+    setBrand(product.brand);
+    setIngredients(product.ingredients ?? "");
+  };
 
   const handleSubmit = useCallback(async () => {
     if (!productName.trim() || !ingredients.trim()) return;
@@ -123,10 +106,12 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
     trackEvent("product_save", {
       product_name: productName.trim(),
       routine_slot: routineSlot,
-      entry_mode: mode,
+      entry_mode: "scan-entry",
     });
     onAdded();
-  }, [productName, ingredients, routineSlot, addMutation, onAdded, mode]);
+  }, [productName, ingredients, routineSlot, addMutation, onAdded]);
+
+  const hasProduct = productName.trim().length > 0 && ingredients.trim().length > 0;
 
   return (
     <div className="bg-white rounded-2xl border border-border/60 shadow-lg p-6">
@@ -137,133 +122,80 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
         </button>
       </div>
 
-      <div className="flex gap-2 mb-5 p-1 bg-[#F5F5F7] rounded-xl">
-        {(["search", "manual"] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-              mode === m
-                ? "bg-white text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+      {/* Delad ScanEntry — sök / barcode / fota — exakt samma UI som
+          /app/scan-sidan (SS-068). När användaren väljer ett förslag eller
+          klickar Analysera på ScanEntry's egna flöde, anropas handleScanResult
+          som fyller productName + brand + ingredients. */}
+      <ScanEntry
+        mode="all"
+        onResult={handleScanResult}
+        className="mb-5"
+      />
+
+      {/* När en produkt har valts: visa den valda produkten + rutin-väljaren
+          + Lägg till-knappen. Detta logiska flöde (val först, sen var-i-rutinen,
+          sen submit) gör det tydligt vad användaren håller på att lägga till. */}
+      {hasProduct && (
+        <>
+          <div
+            className="mb-5 rounded-xl border p-3"
+            style={{ borderColor: "var(--line)", backgroundColor: "var(--cream-warm)" }}
           >
-            {m === "search" ? t("myShelf.searchProduct") : t("myShelf.pasteIngredients")}
-          </button>
-        ))}
-      </div>
-
-      {mode === "search" && (
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder={t("myShelf.searchPlaceholder")}
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
-            />
-          </div>
-
-          {lookupQuery.isFetching && (
-            <p className="text-xs text-muted-foreground mt-2 ml-1">{t("myShelf.searching")}</p>
-          )}
-
-          {lookupQuery.data?.found && (
-            <div className="mt-2 p-3 rounded-xl bg-primary/5 border border-primary/20">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{lookupQuery.data.productName}</p>
-                  {lookupQuery.data.brand && (
-                    <p className="text-xs text-muted-foreground">{lookupQuery.data.brand}</p>
-                  )}
-                </div>
-                <button
-                  onClick={handleSearchSelect}
-                  className="shrink-0 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                >
-                  {t("myShelf.useThis")}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {lookupQuery.data && !lookupQuery.data.found && search.length > 2 && !lookupQuery.isFetching && (
-            <p className="text-xs text-muted-foreground mt-2 ml-1">
-              {t("myShelf.productNotFound")}
-            </p>
-          )}
-
-          {productName && (
-            <div className="mt-3">
-              <p className="text-xs font-medium text-muted-foreground mb-1">{t("myShelf.productName")}</p>
-              <input
-                type="text"
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {mode === "manual" && (
-        <div className="mb-4 space-y-3">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">{t("myShelf.productName")}</label>
-            <input
-              type="text"
-              placeholder={t("myShelf.manualPlaceholder")}
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">{t("myShelf.ingredientList")}</label>
-            <textarea
-              placeholder={t("myShelf.ingredientsPlaceholder")}
-              value={ingredients}
-              onChange={(e) => setIngredients(e.target.value)}
-              rows={4}
-              className="w-full px-3 py-2.5 rounded-xl border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="mb-5">
-        <p className="text-xs font-medium text-muted-foreground mb-2">{t("myShelf.routine")}</p>
-        <div className="flex gap-2">
-          {(["morning", "evening", "occasional", "wishlist"] as RoutineSlot[]).map((slot) => (
-            <button
-              key={slot}
-              onClick={() => setRoutineSlot(slot)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${
-                routineSlot === slot
-                  ? "bg-primary text-white border-primary"
-                  : "bg-white text-muted-foreground border-border/60 hover:border-primary/40"
-              }`}
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: "var(--ink-soft)" }}
             >
-              {slot === "morning" && <Sun className="w-3 h-3" />}
-              {slot === "evening" && <Moon className="w-3 h-3" />}
-              {slot === "occasional" && <CalendarDays className="w-3 h-3" />}
-              {slot === "wishlist" && <Bookmark className="w-3 h-3" />}
-              {t(`myShelf.slot.${slot}`)}
-            </button>
-          ))}
-        </div>
-      </div>
+              {t("myShelf.selectedProduct")}
+            </p>
+            <p className="mt-1 text-sm font-semibold" style={{ color: "var(--ink)" }}>
+              {productName}
+            </p>
+            {brand && (
+              <p className="mt-0.5 text-xs" style={{ color: "var(--ink-soft)" }}>
+                {brand}
+              </p>
+            )}
+          </div>
 
-      <button
-        onClick={handleSubmit}
-        disabled={!productName.trim() || !ingredients.trim() || addMutation.isPending}
-        className="w-full py-3 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {addMutation.isPending ? t("myShelf.adding") : t("myShelf.addToShelf")}
-      </button>
+          <div className="mb-5">
+            <p className="text-xs font-medium text-muted-foreground mb-2">{t("myShelf.routine")}</p>
+            <div className="flex flex-wrap gap-2">
+              {(["morning", "evening", "occasional", "wishlist"] as RoutineSlot[]).map((slot) => (
+                <button
+                  key={slot}
+                  onClick={() => setRoutineSlot(slot)}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+                    routineSlot === slot
+                      ? "border-transparent text-white"
+                      : "border-border/60 bg-white text-muted-foreground hover:border-primary/40"
+                  }`}
+                  style={
+                    routineSlot === slot
+                      ? { backgroundColor: "var(--sage)" }
+                      : undefined
+                  }
+                >
+                  {slot === "morning" && <Sun className="w-3 h-3" />}
+                  {slot === "evening" && <Moon className="w-3 h-3" />}
+                  {slot === "occasional" && <CalendarDays className="w-3 h-3" />}
+                  {slot === "wishlist" && <Bookmark className="w-3 h-3" />}
+                  {t(`myShelf.slot.${slot}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sage = "för dig" (SS-067) — Lägg till på hyllan är en egen-handling */}
+          <button
+            onClick={handleSubmit}
+            disabled={!productName.trim() || !ingredients.trim() || addMutation.isPending}
+            className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: "var(--sage)" }}
+          >
+            {addMutation.isPending ? t("myShelf.adding") : t("myShelf.addToShelf")}
+          </button>
+        </>
+      )}
     </div>
   );
 }
