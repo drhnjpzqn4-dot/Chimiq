@@ -5,8 +5,8 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
+import { useAnalyzeSingle } from "@workspace/api-client-react";
 import { AppShell } from "@/components/AppShell";
-import { IngredientScanner } from "@/components/IngredientScanner";
 import { GamificationBanner } from "@/components/GamificationBanner";
 import { ProductDetailSheet, type ProductDetailProduct } from "@/components/ProductDetailSheet";
 import { ScanEntry, type ProductResult } from "@/components/ScanEntry";
@@ -98,17 +98,10 @@ export default function ScanScreen() {
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [scansToday, setScansToday] = useState<number>(() => readScanCount());
   const [recent, setRecent] = useState<RecentScan[]>(() => readRecent());
-  const [showScanner, setShowScanner] = useState(false);
   const [detailProduct, setDetailProduct] = useState<ProductDetailProduct | null>(null);
   const { isPremium, trialEligible, trialDays } = useUserPlan();
   const { t } = useTranslation();
-
-  const openScanner = () => {
-    setShowScanner(true);
-    setTimeout(() => {
-      document.getElementById("scanner-input")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
-  };
+  const analyzeSingle = useAnalyzeSingle({});
 
   // Pull the authoritative per-user count from the server. Falls back to
   // the localStorage estimate while loading or for anon users.
@@ -133,7 +126,7 @@ export default function ScanScreen() {
     refreshServerCount();
   }, []);
 
-  // Listen for scan completions emitted by IngredientScanner: bump daily
+  // Listen for scan completions emitted by ScanEntry: bump daily
   // counter and capture the recent scan for the lookup-home recents list.
   useEffect(() => {
     const onScan = (e: Event) => {
@@ -246,11 +239,23 @@ export default function ScanScreen() {
               imageUrl: data.imageUrl ?? undefined,
               autoRun: true,
             });
-            setTimeout(() => {
-              document
-                .getElementById("scanner-input")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 50);
+            analyzeSingle.mutate(
+              { data: { ingredients: data.ingredients } },
+              {
+                onSuccess: (analysis) => {
+                  setDetailProduct({
+                    product_name: name,
+                    productName: name,
+                    brand: data.brand,
+                    ingredients: data.ingredients,
+                    image_url: data.imageUrl ?? null,
+                    imageUrl: data.imageUrl ?? null,
+                    analysis_result_json: analysis,
+                  });
+                  setSeed(null);
+                },
+              },
+            );
           } else {
             setSeedErrorKey("scan.errIngredientsUnavail");
           }
@@ -265,20 +270,40 @@ export default function ScanScreen() {
 
   const handleScanResult = (product: ProductResult) => {
     const name = product.productName ?? product.product_name;
-    setSeed({
-      mode: "single",
-      ingredients: product.ingredients ?? "",
-      productName: name || undefined,
-      imageUrl: product.imageUrl ?? product.image_url ?? undefined,
-      autoRun: true,
-    });
-    setSeedProductName(name || null);
-    setShowScanner(true);
-    setTimeout(() => {
-      document
-        .getElementById("scanner-input")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
+    const imageUrl = product.imageUrl ?? product.image_url ?? null;
+
+    if (product.analysis_result_json) {
+      setDetailProduct({
+        product_name: name,
+        productName: name,
+        brand: product.brand,
+        ingredients: product.ingredients,
+        image_url: imageUrl,
+        imageUrl,
+        analysis_result_json: product.analysis_result_json,
+      });
+      return;
+    }
+
+    const ingredients = product.ingredients ?? "";
+    if (!ingredients.trim()) return;
+
+    analyzeSingle.mutate(
+      { data: { ingredients } },
+      {
+        onSuccess: (analysis) => {
+          setDetailProduct({
+            product_name: name,
+            productName: name,
+            brand: product.brand,
+            ingredients,
+            image_url: imageUrl,
+            imageUrl,
+            analysis_result_json: analysis,
+          });
+        },
+      },
+    );
   };
 
   return (
@@ -329,22 +354,24 @@ export default function ScanScreen() {
           )}
         </div>
 
-        <ScanEntry mode="all" onResult={handleScanResult} onPhoto={openScanner} className="mx-auto max-w-md" />
+        <ScanEntry mode="all" onResult={handleScanResult} className="mx-auto max-w-md" />
       </section>
 
       {/* Seed banner: a Browse-tapped product is auto-loading */}
-      {(seedLoading || seedErrorKey) && (
+      {(seedLoading || seedErrorKey || analyzeSingle.isPending) && (
         <div
           className="mb-3 flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm"
           style={{ borderColor: "var(--line)", backgroundColor: "#FFFFFF" }}
         >
-          {seedLoading ? (
+          {seedLoading || analyzeSingle.isPending ? (
             <Loader2 className="h-4 w-4 shrink-0 animate-spin" style={{ color: "#5E544C" }} />
           ) : (
             <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: "#8A6217" }} />
           )}
           <span className="min-w-0 flex-1">
-            {seedLoading
+            {analyzeSingle.isPending
+              ? t("scan.analyzing")
+              : seedLoading
               ? t("scan.loadingFmt", { name: seedProductName ?? t("scan.productFallback") })
               : seedErrorKey
                 ? t(seedErrorKey)
@@ -413,25 +440,6 @@ export default function ScanScreen() {
               </button>
             ))}
           </div>
-        </section>
-      )}
-
-      {/* RESULTS / SCANNER ENGINE — shown after a card is tapped or a barcode is scanned */}
-      {(showScanner || seed !== null) && (
-        <section
-          id="scanner-input"
-          className="rounded-3xl border border-border/40 bg-white p-4 shadow-sm sm:p-6"
-        >
-          <IngredientScanner
-            seed={seed}
-            scanVisualStyle
-            onSeedConsumed={() => {
-              // Clear the seed once IngredientScanner has applied it, but keep
-              // showScanner=true so the user can do another manual lookup without
-              // having to tap the card again.
-              setSeed(null);
-            }}
-          />
         </section>
       )}
 
