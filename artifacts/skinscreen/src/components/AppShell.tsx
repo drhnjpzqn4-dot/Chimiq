@@ -48,24 +48,21 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
             </span>
             <span className="sr-only">Chimiq</span>
           </a>
-          {pageLabel && (
-            <span
-              style={{
-                fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-                fontSize: 13,
-                color: "var(--ink-soft)",
-                fontWeight: 500,
-                letterSpacing: "0.01em",
-                position: "absolute",
-                left: "50%",
-                transform: "translateX(-50%)",
-              }}
-              aria-hidden
-            >
-              {pageLabel}
-            </span>
-          )}
-          <div className="flex min-h-[2.25rem] items-center justify-end gap-1">
+          <div className="flex min-h-[2.25rem] items-center justify-end gap-3">
+            {pageLabel && (
+              <span
+                aria-hidden
+                style={{
+                  fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
+                  fontSize: 18,
+                  color: "var(--ink)",
+                  fontWeight: 500,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {pageLabel}
+              </span>
+            )}
             <WarningIndicator />
             {rightSlot && <div className="flex items-center">{rightSlot}</div>}
           </div>
