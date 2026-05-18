@@ -85,15 +85,21 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
           : false;
 
   // Debounced typeahead against the Chimiq cached_products table. Hits
-  // /api/products?q=...&limit=8, which is the right endpoint for searching
-  // our own DB (the older /api/products/lookup queries OpenBeautyFacts
-  // externally and misses our 900+ cached products). EAN-only inputs
-  // (8–14 digits) skip the suggestions and go through the barcode lookup
-  // on Analysera.
+  // /api/products?q=...&limit=8, which searches product_name, brand AND
+  // barcode-prefix (backend update). EAN-prefix typeahead funkar: skriv
+  // "1234" → matchande streckkoder dyker upp som förslag. Endast en
+  // KOMPLETT EAN (8–14 siffror) skippas — då vill användaren göra
+  // exact barcode-lookup via Analysera.
   useEffect(() => {
     if (active !== "search") return;
     const query = input.trim();
-    if (query.length < 2 || /^\d{8,14}$/.test(query)) {
+    if (query.length < 2) {
+      setSuggestions([]);
+      setSuggestLoading(false);
+      return;
+    }
+    // Full EAN (8-14 siffror) skippas — Analysera-knappen kör exact lookup
+    if (/^\d{8,14}$/.test(query)) {
       setSuggestions([]);
       setSuggestLoading(false);
       return;

@@ -559,13 +559,12 @@ export default function ScanScreen() {
             setContributeOpen(false);
             setContributePrefill(null);
           }}
+          // VIKTIGT: onSuccess stänger INTE modalen — ContributeModal har
+          // ett internt success-state (CheckCircle + tack-meddelande) som
+          // ska visas tills användaren klickar "Klar". Vi refreshar bara
+          // contribution stats i bakgrunden så GamificationBanner-räknaren
+          // uppdateras när bidraget godkänns av moderation.
           onSuccess={() => {
-            setContributeOpen(false);
-            setContributePrefill(null);
-            // Refresh contribution stats so the banner counter updates
-            // (note: counter only reflects APPROVED contributions; the
-            // pending submission will show up once moderation marks it
-            // accepted — see LOGGAR/2026-05-18.md for moderation TODO)
             apiFetch("/api/contribute/stats", { credentials: "include" })
               .then((r) => r.json())
               .then((d) => setStats(d as ContributeStats))

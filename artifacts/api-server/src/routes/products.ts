@@ -65,6 +65,14 @@ function categoryOrFilter(category: string): string | null {
 
 function searchOrFilter(query: string): string {
   const needle = `%${escapeFilterValue(query)}%`;
+  // Om query består enbart av siffror antar vi att användaren skriver
+  // streckkods-prefix → matcha även mot barcode-fältet (prefix-search).
+  // Annars bara namn + brand.
+  const isNumeric = /^\d+$/.test(query);
+  if (isNumeric) {
+    const prefixNeedle = `${escapeFilterValue(query)}%`;
+    return `product_name.ilike.${needle},brand.ilike.${needle},barcode.ilike.${prefixNeedle}`;
+  }
   return `product_name.ilike.${needle},brand.ilike.${needle}`;
 }
 

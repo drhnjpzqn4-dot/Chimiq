@@ -168,18 +168,64 @@ export function ContributeModal({
           }}
         >
           {result ? (
-            <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                <CheckCircle2 className="h-8 w-8 text-primary" />
+            <div className="flex flex-col items-center gap-4 py-6 text-center">
+              <div
+                className="flex h-14 w-14 items-center justify-center rounded-full"
+                style={{ backgroundColor: "var(--sage)", color: "#FFFFFF" }}
+              >
+                <CheckCircle2 className="h-8 w-8" />
               </div>
               <div>
-                <p className="text-lg font-semibold text-foreground">{t("contribute.received")}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{result.message ?? t("contribute.savedThanks")}</p>
+                <p className="text-lg font-semibold" style={{ color: "var(--ink)" }}>
+                  {t("contribute.received")}
+                </p>
+                <p
+                  className="mt-2 text-sm leading-relaxed"
+                  style={{ color: "var(--ink-soft)" }}
+                >
+                  {t("contribute.moderationNote")}
+                </p>
               </div>
+
+              {/* Sammanfattning av det inskickade — så användaren ser vad som
+                  faktiskt skickades */}
+              <div
+                className="w-full rounded-xl p-3 text-left"
+                style={{ backgroundColor: "var(--cream-warm)" }}
+              >
+                {productName.trim() && (
+                  <p className="text-xs" style={{ color: "var(--ink)" }}>
+                    <span className="font-semibold">{t("contribute.productName")}:</span>{" "}
+                    {productName.trim()}
+                  </p>
+                )}
+                {brand.trim() && (
+                  <p className="mt-1 text-xs" style={{ color: "var(--ink)" }}>
+                    <span className="font-semibold">{t("contribute.brand")}:</span>{" "}
+                    {brand.trim()}
+                  </p>
+                )}
+                {barcodeInput.trim() && (
+                  <p className="mt-1 text-xs" style={{ color: "var(--ink)" }}>
+                    <span className="font-semibold">{t("contribute.barcode")}:</span>{" "}
+                    {barcodeInput.trim()}
+                  </p>
+                )}
+                {ingredientsText.trim() && (
+                  <p className="mt-1 text-xs" style={{ color: "var(--ink-soft)" }}>
+                    {t("contribute.ingredients")}:{" "}
+                    {ingredientsText.trim().length > 80
+                      ? `${ingredientsText.trim().slice(0, 80)}…`
+                      : ingredientsText.trim()}
+                  </p>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "var(--sage)" }}
               >
                 {t("contribute.done")}
               </button>
