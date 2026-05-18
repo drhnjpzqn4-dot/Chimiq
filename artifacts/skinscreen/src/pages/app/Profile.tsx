@@ -183,22 +183,31 @@ export default function ProfileScreen() {
     <AppShell title="Profil" subtitle="Din hud, dina mål">
       <div className="space-y-4 pb-8">
         {/* 1. Avatar */}
-        <div className="rounded-3xl border border-border/40 bg-white p-5 text-center shadow-sm">
+        <div
+          className="flex items-center gap-4 rounded-2xl border border-border/40 bg-white px-4 py-3 shadow-sm"
+        >
+          {/* Avatar-cirkel — liten, vänsterställd */}
           <div
-            className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full text-3xl"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-2xl"
             style={{ background: "linear-gradient(135deg, var(--rose-gold), var(--gold))" }}
           >
             ✨
           </div>
-          <h3 className="font-serif text-lg font-medium" style={{ color: "var(--ink)" }}>
-            {user.firstName ?? user.email?.split("@")[0] ?? "Chimiq"}
-          </h3>
-          <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
-            {user.email}
-          </p>
+
+          {/* Namn + e-post vänsterställt */}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-serif text-base font-medium" style={{ color: "var(--ink)" }}>
+              {user.firstName ?? user.email?.split("@")[0] ?? "Chimiq"}
+            </p>
+            <p className="truncate text-xs" style={{ color: "var(--ink-soft)" }}>
+              {user.email}
+            </p>
+          </div>
+
+          {/* Byt avatar — höger */}
           <button
             type="button"
-            className="mt-1 text-[11px] font-semibold"
+            className="shrink-0 text-[11px] font-semibold"
             style={{ color: "var(--rose-gold-deep)" }}
           >
             Byt avatar
