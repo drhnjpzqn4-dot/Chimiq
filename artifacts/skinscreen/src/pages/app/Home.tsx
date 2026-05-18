@@ -5,10 +5,12 @@ import { useGetShelf, getGetShelfQueryKey } from "@workspace/api-client-react";
 import { ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import BatchRecallBanner from "@/components/BatchRecallBanner";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n";
 import { PREMIUM_CONTRIBUTION_MILESTONE } from "@/pages/app/Shelf";
 import { apiFetch } from "@/lib/api";
+import { toStatusLevel } from "@/lib/status";
 
 void [
   Link,
@@ -52,23 +54,6 @@ function readRecentScans(): RecentScanRow[] {
   } catch {
     return [];
   }
-}
-
-function VerdictPill({ verdict }: { verdict: "safe" | "warning" | "high" }) {
-  const { t } = useTranslation();
-  const style =
-    verdict === "safe"
-      ? { backgroundColor: "var(--green-soft)", color: "var(--sage-deep)" }
-      : verdict === "warning"
-        ? { backgroundColor: "var(--amber-soft)", color: "var(--amber-deep)" }
-        : { backgroundColor: "var(--rose-soft)", color: "var(--red-deep)" };
-  const label =
-    verdict === "safe" ? t("home.pillSafe") : verdict === "warning" ? t("home.pillCaution") : t("home.pillHigh");
-  return (
-    <span className="mt-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-tight" style={style}>
-      {label}
-    </span>
-  );
 }
 
 export default function HomeScreen() {
@@ -164,7 +149,7 @@ export default function HomeScreen() {
                   <p className="mt-1 line-clamp-2 text-left text-[12px] font-semibold leading-snug text-foreground">
                     {r.name}
                   </p>
-                  <VerdictPill verdict={r.verdict} />
+                  <StatusBadge status={toStatusLevel(r.verdict)} />
                 </div>
               ))}
             </div>

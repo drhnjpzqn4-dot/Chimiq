@@ -11,13 +11,15 @@ import {
 } from "@workspace/api-client-react";
 import type { RoutineConflict, RoutineConflictResponse } from "@workspace/api-client-react";
 import {
-  Sun, Moon, Plus, Trash2, Search, AlertTriangle,
+  Sun, Moon, Plus, Search, AlertTriangle,
   X, ShieldCheck, ShieldOff, Loader2,
-  ChevronDown, ChevronUp, ExternalLink, Zap, FileText, Lock, PackagePlus,
+  ChevronDown, ChevronUp, ChevronRight, ExternalLink, Zap, FileText, Lock, PackagePlus,
   Clock, Heart, CalendarDays, Bookmark, Package,
 } from "lucide-react";
 import PaywallModal from "@/components/PaywallModal";
 import { FadeIn } from "@/components/FadeIn";
+import { ProductListRow } from "@/components/ProductListRow";
+import { SectionHeader } from "@/components/SectionHeader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,8 +35,9 @@ import { cn } from "@/lib/utils";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useTranslation } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
+import { toStatusLevel } from "@/lib/status";
+import type { RoutineSlot } from "@/types/design-system";
 import {
-  IngredientStatusDot,
   ShelfConflictBanner,
   type IngredientStatusLevel,
 } from "@/components/IngredientStatusDot";
@@ -71,7 +74,7 @@ function pickBannerConflict(pc: RoutineConflict[]): RoutineConflict | null {
   return substantive[0] ?? null;
 }
 
-type RoutineSlot = "morning" | "evening" | "occasional" | "wishlist";
+type AddProductRoutineSlot = Exclude<RoutineSlot, null>;
 
 interface AddProductFormProps {
   onClose: () => void;
@@ -88,7 +91,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
   const [productName, setProductName] = useState("");
   const [brand, setBrand] = useState<string | undefined>(undefined);
   const [ingredients, setIngredients] = useState("");
-  const [routineSlot, setRoutineSlot] = useState<RoutineSlot>("wishlist");
+  const [routineSlot, setRoutineSlot] = useState<AddProductRoutineSlot>("wishlist");
   const addMutation = useAddToShelf();
 
   const handleScanResult = (product: ProductResult) => {
@@ -160,7 +163,7 @@ function AddProductForm({ onClose, onAdded }: AddProductFormProps) {
           <div className="mb-5">
             <p className="text-xs font-medium text-muted-foreground mb-2">{t("myShelf.routine")}</p>
             <div className="flex flex-wrap gap-2">
-              {(["morning", "evening", "occasional", "wishlist"] as RoutineSlot[]).map((slot) => (
+              {(["morning", "evening", "occasional", "wishlist"] as AddProductRoutineSlot[]).map((slot) => (
                 <button
                   key={slot}
                   onClick={() => setRoutineSlot(slot)}
@@ -282,18 +285,7 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
   const [open, setOpen] = useState(true);
 
   if (analysisState.status === "idle") {
-    if (productCount < 2) return null;
-    return (
-      <div className="px-4 pb-4 border-t border-border/30 pt-3">
-        <button
-          onClick={onRun}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all duration-200 bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20"
-        >
-          <Zap className="w-4 h-4" />
-          {t("myShelf.checkMyRoutine")}
-        </button>
-      </div>
-    );
+    return null;
   }
 
   if (analysisState.status === "loading") {
@@ -695,53 +687,13 @@ export function MyShelf({ displayName }: MyShelfProps) {
 
   return (
     <>
-      <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
-        <div>
-          <span className="font-serif text-lg font-medium" style={{ color: "var(--rose-gold)" }}>{t("myShelf.title")}</span>
-          {displayName && (
-            <span className="ml-2 text-sm text-muted-foreground">— {displayName}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {analysisData && (
-            analysisData.overallSafe ? (
-              <span
-                className="inline-flex items-center gap-1 rounded-full font-semibold"
-                style={{
-                  backgroundColor: "#E8F2E5",
-                  color: "var(--sage-deep)",
-                  fontSize: 10,
-                  padding: "3px 8px",
-                  fontWeight: 600,
-                }}
-              >
-                <ShieldCheck className="h-3 w-3 shrink-0" /> {t("myShelf.allClear")}
-              </span>
-            ) : (
-              <span
-                className="inline-flex items-center gap-1 rounded-full font-semibold"
-                style={{
-                  backgroundColor: "#FCE4E0",
-                  color: "#8C2A1A",
-                  fontSize: 10,
-                  padding: "3px 8px",
-                  fontWeight: 600,
-                }}
-              >
-                <ShieldOff className="h-3 w-3 shrink-0" />
-                {(analysisData.highRiskCount + analysisData.cautionCount) === 1
-                  ? t("myShelf.oneConflictBadge")
-                  : t("myShelf.manyConflictsBadgeFmt").replace("{count}", String(analysisData.highRiskCount + analysisData.cautionCount))}
-              </span>
-            )
-          )}
-          <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">
-            {allProducts.length === 1
-              ? t("myShelf.oneProductCount")
-              : t("myShelf.manyProductsCountFmt").replace("{count}", String(allProducts.length))}
-          </span>
-        </div>
-      </div>
+      <SectionHeader
+        label={t("myShelf.productsLabel")}
+        count={allProducts.length}
+        ctaLabel={`+ ${t("myShelf.addProductBtn")}`}
+        onCta={() => setShowAddForm(true)}
+        className="px-4 pt-4"
+      />
 
       <div className="border-b border-border/30 px-3 py-3">
         <div className="-mx-1 flex gap-2 overflow-x-auto pb-0.5" style={{ WebkitOverflowScrolling: "touch" }}>
@@ -842,95 +794,83 @@ export function MyShelf({ displayName }: MyShelfProps) {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3">
-            {gridProducts.map((product) => {
-              const productName = product.productName?.trim() || t("shelf.unknownProduct");
-              const imageUrl = (product as { imageUrl?: string | null }).imageUrl ?? null;
-              const pc = conflictsInvolvingProduct(productName, analysisData?.conflicts);
-              const dot = dotForConflicts(pc);
-              const bannerC = pickBannerConflict(pc);
-              return (
-                <div key={product.id} className="flex min-w-0 flex-col gap-2">
-                  <div className="relative">
-                    <button
-                    type="button"
-                    onClick={() =>
-                      setDetailProduct({
-                        product: {
-                          product_name: productName,
-                          productName,
-                          ingredients: product.ingredients,
-                          image_url: imageUrl,
-                          imageUrl,
-                        },
-                        status: dot,
-                        conflicts: pc,
-                      })
-                    }
-                    className="relative flex min-h-[190px] w-full flex-col items-center overflow-hidden bg-white text-center transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_40%,transparent)]"
-                    style={{
-                      borderRadius: 16,
-                      boxShadow: "0 1px 0 rgba(31,26,23,0.04)",
-                    }}
-                  >
-                    <div className="pointer-events-none absolute right-3 top-3">
-                      <IngredientStatusDot status={dot} />
-                    </div>
-                    {imageUrl ? (
-                      <img src={imageUrl} alt="" className="h-[120px] max-h-[120px] w-full object-cover" />
-                    ) : (
-                      <div
-                        className="flex h-[120px] max-h-[120px] w-full shrink-0 items-center justify-center"
-                        style={{ backgroundColor: "var(--cream-warm)" }}
-                        aria-hidden
-                      >
-                        <Package className="h-8 w-8" style={{ color: "var(--ink-soft)" }} strokeWidth={1.75} />
-                      </div>
-                    )}
-                    <p
-                      className="line-clamp-3 w-full px-3 py-3 text-center leading-snug"
-                      style={{
-                        fontSize: 17,
-                        fontWeight: 600,
-                        fontFamily: "var(--font-sans, ui-sans-serif, system-ui, sans-serif)",
-                        color: "var(--ink)",
-                      }}
-                    >
-                      {productName}
-                    </p>
-                  </button>
-                  <button
-                      type="button"
-                      onClick={() => setRemoveTarget({ id: product.id, name: productName })}
-                      disabled={removeMutation.isPending}
-                      className="absolute left-2 top-2 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-red-50 hover:text-red-600"
-                      style={{ pointerEvents: "auto" }}
-                      aria-label={t("myShelf.removeProduct")}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {bannerC && (
-                    <ShelfConflictBanner>
-                      <span className="block font-medium">{bannerC.pair}</span>
-                      <span className="mt-1 block font-normal leading-snug" style={{ color: "var(--rose-gold-deep)" }}>
-                        {bannerC.explanation}
-                      </span>
-                    </ShelfConflictBanner>
-                  )}
-                </div>
-              );
-            })}
+            <div className="space-y-2 px-4 pb-2">
+              {gridProducts.map((product) => {
+                const productName =
+                  product.productName?.trim() || t("shelf.unknownProduct");
+                const pc = conflictsInvolvingProduct(
+                  productName, analysisData?.conflicts
+                );
+                const status = toStatusLevel(dotForConflicts(pc));
+                const bannerConflict = pickBannerConflict(pc);
+                const topConflictName = bannerConflict
+                  ? bannerConflict.product1Name === productName
+                    ? bannerConflict.product2Name
+                    : bannerConflict.product1Name
+                  : undefined;
 
-            {isFree && allProducts.length >= FREE_TIER_LIMIT && (
-              <>
-                <LockedPremiumSlotCard key="lock-a" onOpenPaywall={() => setPaywallOpen(true)} />
-                <LockedPremiumSlotCard key="lock-b" onOpenPaywall={() => setPaywallOpen(true)} />
-              </>
-            )}
-            {isFree && allProducts.length < FREE_TIER_LIMIT && (
-              <DashedAddSlotCard onAdd={() => setShowAddForm(true)} />
-            )}
+                return (
+                  <div key={product.id} className="flex flex-col gap-1">
+                    <ProductListRow
+                      productName={productName}
+                      brand={(product as { brand?: string | null }).brand ?? null}
+                      routineSlot={
+                        product.routineSlot as RoutineSlot
+                      }
+                      status={status}
+                      conflictWith={topConflictName}
+                      warningCount={status === "caution" ? pc.length : undefined}
+                      onOpen={() =>
+                        setDetailProduct({
+                          product: {
+                            product_name: productName,
+                            productName,
+                            ingredients: product.ingredients,
+                            image_url: null,
+                            imageUrl: null,
+                          },
+                          status,
+                          conflicts: pc,
+                        })
+                      }
+                      onRemove={() =>
+                        setRemoveTarget({ id: product.id, name: productName })
+                      }
+                      removeAriaLabel={t("myShelf.removeProduct")}
+                      removeDisabled={removeMutation.isPending}
+                    />
+                    {bannerConflict && (
+                      <ShelfConflictBanner>
+                        <span className="block font-medium">
+                          {bannerConflict.pair}
+                        </span>
+                        <span
+                          className="mt-1 block font-normal leading-snug"
+                          style={{ color: "var(--rose-gold-deep)" }}
+                        >
+                          {bannerConflict.explanation}
+                        </span>
+                      </ShelfConflictBanner>
+                    )}
+                  </div>
+                );
+              })}
+
+              {isFree && allProducts.length >= FREE_TIER_LIMIT && (
+                <>
+                  <LockedPremiumSlotCard
+                    key="lock-a"
+                    onOpenPaywall={() => setPaywallOpen(true)}
+                  />
+                  <LockedPremiumSlotCard
+                    key="lock-b"
+                    onOpenPaywall={() => setPaywallOpen(true)}
+                  />
+                </>
+              )}
+              {isFree && allProducts.length < FREE_TIER_LIMIT && (
+                <DashedAddSlotCard onAdd={() => setShowAddForm(true)} />
+              )}
             </div>
             {isFree && allProducts.length >= FREE_TIER_LIMIT && (
               <>
@@ -947,23 +887,46 @@ export function MyShelf({ displayName }: MyShelfProps) {
           <AddProductForm onClose={() => setShowAddForm(false)} onAdded={handleAdded} />
         </div>
       ) : (
-        <div className="px-4 pb-4 space-y-3">
-          {(isPremium || (isFree && allProducts.length < FREE_TIER_LIMIT)) && (
+        <div className="space-y-2 px-4 pb-4">
+
+          {/* FIX: btn-dashed signalerar "tom plats att fylla" */}
+          {(isPremium ||
+            (isFree && allProducts.length < FREE_TIER_LIMIT)) && (
             <button
+              type="button"
               onClick={() => setShowAddForm(true)}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground text-sm hover:border-primary hover:text-primary transition-colors duration-200"
+              className="btn-dashed"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="h-4 w-4" />
               {t("myShelf.addProductBtn")}
             </button>
           )}
+
+          {allProducts.length >= 2 &&
+            analysisState.status === "idle" && (
+            <button
+              type="button"
+              onClick={handleRunAnalysis}
+              className="btn-primary"
+            >
+              <Zap className="h-4 w-4" />
+              {t("myShelf.checkMyRoutine")}
+            </button>
+          )}
+
           <button
+            type="button"
             onClick={() => setShowContributeModal(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-200 bg-amber-50/50 text-amber-700 text-xs font-medium hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200"
+            className="btn-contribute"
           >
-            <PackagePlus className="w-3.5 h-3.5" />
-            {t("myShelf.contributeCta")}
+            <span className="flex items-center gap-2">
+              <PackagePlus className="h-4 w-4" />
+              {t("myShelf.contributeCta")}
+            </span>
+            <ChevronRight className="h-4 w-4"
+                          style={{ color: "var(--rose-gold)" }} />
           </button>
+
         </div>
       )}
 

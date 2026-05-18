@@ -416,6 +416,18 @@ Anthropic äger INTE Voyage AI. Voyage AI köptes av **MongoDB** (inte Anthropic
 - **Konsekvens:** `index.css` CSS-variabelblock uppdateras i sin helhet. `remotion-cimiq/src/brand.ts` uppdateras separat. Alla Tailwind-tokens som refererar gamla sage/rose-gold-värden behöver kontrolleras.
 - **Källa:** Cowork-session 2026-05-13, Pias godkännande av Design Reference.html Forest + Clay-preset.
 
+### SS-070 — 2026-05-18 — Kategoriikoner i produktlistan
+I `<ProductListRow>` visas en slot-ikon (Sun/Moon/CalendarDays/Bookmark/Package)
+baserat på `routineSlot`-prop. Ikonen ger visuell kontext utan extra text.
+
+### SS-071 — 2026-05-18 — Design system etablerat
+Tre-lagers arkitektur: Atomer (CSS `@layer components`) / Molekyler (React-komponenter) / Organismer.
+Canonical CSS i `src/index.css`. Canonical typer i `src/types/design-system.ts`.
+Nya gemensamma komponenter: `StatusBadge`, `ProductListRow`, `SectionHeader`.
+`VerdictPill` i Home.tsx borttagen — ersatt av `<StatusBadge status={toStatusLevel(...)}>`.
+`IngredientStatusLevel` är nu ett alias för `StatusLevel` (bakåtkompatibelt).
+Regel: duplicera aldrig UI — extrahera till `/components/` och kalla på komponenten.
+
 ---
 
 *Senast uppdaterad: 2026-05-14 (BESLUT-SS-019 profil-tillägg: ålder + mål i `SkinProfileChips`).*
