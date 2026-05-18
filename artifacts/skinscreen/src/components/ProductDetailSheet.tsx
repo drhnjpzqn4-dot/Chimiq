@@ -318,7 +318,8 @@ export function ProductDetailSheet({
                     type="button"
                     disabled={completionSaving}
                     onClick={() => imageInputRef.current?.click()}
-                    className="mt-3 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                    className="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                    style={{ backgroundColor: "var(--premium-gold)" }}
                   >
                     {completionSaving ? t("common.loading") : t("complete.photoCta")}
                   </button>
@@ -336,7 +337,8 @@ export function ProductDetailSheet({
                     type="button"
                     disabled={completionSaving || !completionValue.trim()}
                     onClick={() => void saveCompletion(missingField, completionValue)}
-                    className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    className="rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    style={{ backgroundColor: "var(--premium-gold)" }}
                   >
                     {t("complete.save")}
                   </button>
@@ -349,13 +351,17 @@ export function ProductDetailSheet({
             </section>
           )}
 
+          {/* Bidrags-CTA: produkten saknar real barcode = inte i cached_products
+              än. Använder premium-gold för att visuellt skilja "hjälp
+              Chimiq"-handlingar från "för dig"-handlingar (BESLUT-SS-067).
+              Endast synlig om Scan.tsx skickat med onContribute-callback. */}
           {isNotInDb && onContribute && (
             <section className="border-t border-[var(--line)] pt-5">
               <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
-                {t("complete.saveProductPrompt")}
+                {t("complete.contributeProductPrompt")}
               </h3>
               <p className="mt-1 text-xs" style={{ color: "var(--ink-soft)" }}>
-                {t("complete.saveProductHint")}
+                {t("complete.contributeProductHint")}
               </p>
               <button
                 type="button"
@@ -367,9 +373,9 @@ export function ProductDetailSheet({
                   })
                 }
                 className="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
-                style={{ backgroundColor: "var(--sage)" }}
+                style={{ backgroundColor: "var(--premium-gold)" }}
               >
-                {t("complete.saveProductCta")}
+                {t("complete.contributeProductCta")}
               </button>
               <p className="mt-2 text-xs font-medium" style={{ color: "var(--rose-gold-deep)" }}>
                 {t("complete.points")}

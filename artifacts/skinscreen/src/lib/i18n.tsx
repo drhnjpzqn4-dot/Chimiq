@@ -107,6 +107,9 @@ const en: Dict = {
   "complete.saveProductPrompt": "Save this product?",
   "complete.saveProductHint": "Add this to our database so other users can benefit from your scan.",
   "complete.saveProductCta": "Save this product",
+  "complete.contributeProductPrompt": "Help us build the database",
+  "complete.contributeProductHint": "Add this product so others can find it next time. Verified by Chimiq before going public.",
+  "complete.contributeProductCta": "Contribute this product",
 
   // ───── Severity / frequency labels (used across Discover) ─────
   "severity.HIGH": "High risk",
@@ -1507,6 +1510,9 @@ const sv: Dict = {
   "complete.saveProductPrompt": "Spara denna produkt?",
   "complete.saveProductHint": "Lägg till den i vår databas så fler kan dra nytta av din skanning.",
   "complete.saveProductCta": "Spara denna produkt",
+  "complete.contributeProductPrompt": "Hjälp oss bygga databasen",
+  "complete.contributeProductHint": "Lägg till denna produkt så andra kan hitta den nästa gång. Granskas av Chimiq innan den blir publik.",
+  "complete.contributeProductCta": "Bidra med denna produkt",
 
   // ───── Severity / frequency ─────
   "severity.HIGH": "Hög risk",
@@ -2915,6 +2921,9 @@ const fr: Dict = {
   "complete.saveProductPrompt": "Enregistrer ce produit ?",
   "complete.saveProductHint": "Ajoutez-le à notre base de données pour que d'autres utilisateurs puissent en bénéficier.",
   "complete.saveProductCta": "Enregistrer ce produit",
+  "complete.contributeProductPrompt": "Aidez-nous à enrichir la base",
+  "complete.contributeProductHint": "Ajoutez ce produit pour que d'autres le trouvent la prochaine fois. Vérifié par Chimiq avant publication.",
+  "complete.contributeProductCta": "Contribuer ce produit",
 
   // ───── Severity / frequency ─────
   "severity.HIGH": "Risque élevé",
@@ -4318,6 +4327,9 @@ const es: Dict = {
   "complete.saveProductPrompt": "¿Guardar este producto?",
   "complete.saveProductHint": "Añádelo a nuestra base de datos para que otros usuarios puedan aprovecharlo.",
   "complete.saveProductCta": "Guardar este producto",
+  "complete.contributeProductPrompt": "Ayúdanos a construir la base de datos",
+  "complete.contributeProductHint": "Añade este producto para que otros lo encuentren la próxima vez. Revisado por Chimiq antes de hacerse público.",
+  "complete.contributeProductCta": "Contribuir este producto",
 
   // ───── Severity / frequency ─────
   "severity.HIGH": "Riesgo alto",

@@ -338,12 +338,18 @@ export default function ScanScreen() {
   const handleScanResult = (product: ProductResult) => {
     const name = product.productName ?? product.product_name;
     const imageUrl = product.imageUrl ?? product.image_url ?? null;
+    // Propagate barcode so ProductDetailSheet can tell whether the product
+    // is in cached_products (real barcode) or a fresh OCR scan (no barcode)
+    // — which controls whether the gold "Spara denna produkt"-bidragsknapp
+    // is shown.
+    const barcode = product.barcode ?? null;
 
     if (product.analysis_result_json) {
       const detail: ProductDetailProduct = {
         product_name: name,
         productName: name,
         brand: product.brand,
+        barcode,
         ingredients: product.ingredients,
         image_url: imageUrl,
         imageUrl,
@@ -371,6 +377,7 @@ export default function ScanScreen() {
             product_name: name,
             productName: name,
             brand: product.brand,
+            barcode,
             ingredients,
             image_url: imageUrl,
             imageUrl,

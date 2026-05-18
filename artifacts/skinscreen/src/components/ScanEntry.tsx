@@ -10,6 +10,11 @@ export interface ProductResult {
   product_name: string;
   productName?: string;
   brand?: string;
+  /** Real EAN/UPC if produkten finns i cached_products. Null/undefined för
+   * färska OCR/paste-scans som inte har en DB-post än — ProductDetailSheet
+   * använder detta för att avgöra om "Spara denna produkt"-knappen ska
+   * visas (bara om barcode saknas). */
+  barcode?: string | null;
   image_url?: string | null;
   imageUrl?: string | null;
   ingredients?: string;
@@ -137,7 +142,10 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
   }, [input, active]);
 
   // Pull full product (with ingredients) for a tapped suggestion, then emit
-  // onResult so the parent runs analyse + opens ProductDetailSheet.
+  // onResult so the parent runs analyse + opens ProductDetailSheet. We pass
+  // the suggestion's barcode straight through so ProductDetailSheet knows
+  // this product is already in cached_products and does NOT show the
+  // "Spara denna produkt"-bidragsknapp.
   const selectSuggestion = async (suggestion: ProductSuggestion) => {
     setLoading(true);
     try {
@@ -156,6 +164,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         product_name: name,
         productName: name,
         brand: data.brand,
+        barcode: suggestion.barcode,
         ingredients: data.ingredients,
         image_url: data.imageUrl ?? null,
         imageUrl: data.imageUrl ?? null,
@@ -187,10 +196,15 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
   const emitLookupResult = (data: ProductLookupResult, fallbackName: string) => {
     if (!data.found || !data.ingredients) return false;
     const name = [data.brand, data.productName].filter(Boolean).join(" ");
+    // Om input var en EAN (8-14 siffror) så är `fallbackName` faktiskt
+    // streckkoden. Propagera den så ProductDetailSheet vet att produkten
+    // finns i DB:n (= dölj bidrag-knappen).
+    const looksLikeEan = /^\d{8,14}$/.test(fallbackName);
     onResult?.({
       product_name: name || data.productName || fallbackName,
       productName: name || data.productName || fallbackName,
       brand: data.brand,
+      barcode: looksLikeEan ? fallbackName : undefined,
       ingredients: data.ingredients,
       image_url: data.imageUrl ?? null,
       imageUrl: data.imageUrl ?? null,
@@ -268,6 +282,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                 setBarcodeResult({
                   product_name: name,
                   productName: name,
+                  barcode: barcode ?? null,
                   ingredients,
                   image_url: null,
                   imageUrl: null,
