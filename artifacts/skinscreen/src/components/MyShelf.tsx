@@ -694,7 +694,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
   const analysisData = analysisState.status === "done" ? analysisState.data : null;
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-border/40 overflow-hidden">
+    <>
       <div className="bg-primary/8 px-6 py-4 border-b border-border/30 flex items-center justify-between">
         <div>
           <span className="font-serif text-lg font-medium" style={{ color: "var(--rose-gold)" }}>{t("myShelf.title")}</span>
@@ -1054,7 +1054,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
         )}
       </div>
       <PaywallModal open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </>
   );
 }
 

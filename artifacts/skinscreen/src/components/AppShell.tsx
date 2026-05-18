@@ -5,11 +5,12 @@ import { WarningIndicator } from "@/components/WarningIndicator";
 interface AppShellProps {
   title?: string;
   subtitle?: string;
+  pageLabel?: string;
   rightSlot?: ReactNode;
   children: ReactNode;
 }
 
-export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps) {
+export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: AppShellProps) {
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
   return (
@@ -21,7 +22,7 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
         className="sticky top-0 z-40 border-b bg-white/85 backdrop-blur-md"
         style={{ paddingTop: "var(--safe-top)", borderColor: "var(--line)" }}
       >
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
+        <div className="relative mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <a href={base + "/"} className="flex items-center gap-2" data-touch-target aria-label="Chimiq home">
             <img
               src="/favicon.svg"
@@ -47,6 +48,23 @@ export function AppShell({ title, subtitle, rightSlot, children }: AppShellProps
             </span>
             <span className="sr-only">Chimiq</span>
           </a>
+          {pageLabel && (
+            <span
+              style={{
+                fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
+                fontSize: 13,
+                color: "var(--ink-soft)",
+                fontWeight: 500,
+                letterSpacing: "0.01em",
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%)",
+              }}
+              aria-hidden
+            >
+              {pageLabel}
+            </span>
+          )}
           <div className="flex min-h-[2.25rem] items-center justify-end gap-1">
             <WarningIndicator />
             {rightSlot && <div className="flex items-center">{rightSlot}</div>}

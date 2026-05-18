@@ -100,8 +100,7 @@ export default function ShelfScreen() {
 
   return (
     <AppShell
-      title={t("shelf.titleGreeting", { name: displayName })}
-      subtitle={t("shelf.subtitle")}
+      pageLabel={t("tabs.shelf")}
     >
       {stats?.premiumJustUnlocked && stats.premiumUntil && (
         <PremiumUnlockedBanner premiumUntil={stats.premiumUntil} />
