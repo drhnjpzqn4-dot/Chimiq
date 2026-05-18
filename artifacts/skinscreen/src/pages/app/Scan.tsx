@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useAnalyzeSingle } from "@workspace/api-client-react";
 import { AppShell } from "@/components/AppShell";
+import { ContributeModal } from "@/components/ContributeModal";
 import { GamificationBanner } from "@/components/GamificationBanner";
 import { ProductDetailSheet, type ProductDetailProduct } from "@/components/ProductDetailSheet";
 import { ScanEntry, type ProductResult } from "@/components/ScanEntry";
@@ -90,6 +91,7 @@ export default function ScanScreen() {
   const [scansToday, setScansToday] = useState<number>(() => readScanCount());
   const [recent, setRecent] = useState<RecentScan[]>(() => readRecent());
   const [detailProduct, setDetailProduct] = useState<ProductDetailProduct | null>(null);
+  const [contributeOpen, setContributeOpen] = useState(false);
   const { isPremium, trialEligible, trialDays } = useUserPlan();
   const { t } = useTranslation();
   const analyzeSingle = useAnalyzeSingle({});
@@ -112,6 +114,24 @@ export default function ScanScreen() {
       )
       .catch(() => {});
   };
+
+  // Back-compat: GamificationBanner used to navigate to
+  // /app/scan?contribute=true. We now open the modal inline via the
+  // banner's onClick, but other surfaces (Profile, etc.) might still link
+  // here with the query param, so we honour it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("contribute") === "true") {
+      setContributeOpen(true);
+      // Clean the URL so a refresh doesn't keep re-opening the modal.
+      params.delete("contribute");
+      const search = params.toString();
+      const newUrl =
+        window.location.pathname + (search ? `?${search}` : "") + window.location.hash;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, []);
 
   useEffect(() => {
     refreshServerCount();
@@ -219,22 +239,31 @@ export default function ScanScreen() {
           imageUrl?: string | null;
         }) => {
           if (data.found && data.ingredients) {
+            const ingredients = data.ingredients;
             const name =
               parsed.productName ??
               [data.brand, data.productName].filter(Boolean).join(" ");
             setSeedProductName(name || null);
             analyzeSingle.mutate(
-              { data: { ingredients: data.ingredients } },
+              { data: { ingredients } },
               {
                 onSuccess: (analysis) => {
-                  setDetailProduct({
+                  const detail: ProductDetailProduct = {
                     product_name: name,
                     productName: name,
                     brand: data.brand,
-                    ingredients: data.ingredients,
+                    ingredients,
                     image_url: data.imageUrl ?? null,
                     imageUrl: data.imageUrl ?? null,
                     analysis_result_json: analysis,
+                  };
+                  setDetailProduct(detail);
+                  emitScanCompleted({
+                    productName: name,
+                    ingredients,
+                    imageUrl: data.imageUrl ?? null,
+                    analysis,
+                    product: detail,
                   });
                 },
               },
@@ -251,12 +280,62 @@ export default function ScanScreen() {
   const remaining = Math.max(0, FREE_DAILY_LIMIT - scansToday);
   const overLimit = !isPremium && scansToday >= FREE_DAILY_LIMIT;
 
+  // Replaces the analytics + recent-scans event that used to be emitted by
+  // the old IngredientScanner. Computes a verdict from the analysis payload,
+  // POSTs to /api/scan-events (for server-side counts), and dispatches the
+  // browser custom event the Home and Scan recents-listeners already listen
+  // for.
+  const emitScanCompleted = (args: {
+    productName: string;
+    ingredients: string;
+    imageUrl: string | null;
+    analysis: unknown;
+    product: ProductDetailProduct;
+  }) => {
+    if (typeof window === "undefined") return;
+    const flagsArr =
+      (args.analysis as { flags?: Array<{ severity?: string }> })?.flags ?? [];
+    const overallSafe =
+      (args.analysis as { overallSafe?: boolean })?.overallSafe ?? false;
+    const hasHigh = flagsArr.some((f) => f?.severity === "HIGH_RISK");
+    const verdict: "safe" | "warning" | "high" = overallSafe
+      ? "safe"
+      : hasHigh
+        ? "high"
+        : "warning";
+
+    apiFetch("/api/scan-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        productName: args.productName,
+        verdict,
+        scanMode: "single",
+      }),
+    }).catch(() => {});
+
+    window.dispatchEvent(
+      new CustomEvent("skinscreen:scan-completed", {
+        detail: {
+          kind: "single",
+          productName: args.productName,
+          verdict,
+          ingredients: args.ingredients,
+          imageUrl: args.imageUrl ?? undefined,
+          analysis_result_json: args.analysis,
+          product: args.product,
+        },
+      }),
+    );
+  };
+
   const handleScanResult = (product: ProductResult) => {
     const name = product.productName ?? product.product_name;
     const imageUrl = product.imageUrl ?? product.image_url ?? null;
 
     if (product.analysis_result_json) {
-      setDetailProduct({
+      const detail: ProductDetailProduct = {
         product_name: name,
         productName: name,
         brand: product.brand,
@@ -264,6 +343,14 @@ export default function ScanScreen() {
         image_url: imageUrl,
         imageUrl,
         analysis_result_json: product.analysis_result_json,
+      };
+      setDetailProduct(detail);
+      emitScanCompleted({
+        productName: name,
+        ingredients: product.ingredients ?? "",
+        imageUrl,
+        analysis: product.analysis_result_json,
+        product: detail,
       });
       return;
     }
@@ -275,7 +362,7 @@ export default function ScanScreen() {
       { data: { ingredients } },
       {
         onSuccess: (analysis) => {
-          setDetailProduct({
+          const detail: ProductDetailProduct = {
             product_name: name,
             productName: name,
             brand: product.brand,
@@ -283,6 +370,14 @@ export default function ScanScreen() {
             image_url: imageUrl,
             imageUrl,
             analysis_result_json: analysis,
+          };
+          setDetailProduct(detail);
+          emitScanCompleted({
+            productName: name,
+            ingredients,
+            imageUrl,
+            analysis,
+            product: detail,
           });
         },
       },
@@ -392,7 +487,12 @@ export default function ScanScreen() {
       )}
 
       {stats !== null && (
-        <GamificationBanner contributionsCount={stats.acceptedContributions} targetCount={MILESTONE} className="mb-6" />
+        <GamificationBanner
+          contributionsCount={stats.acceptedContributions}
+          targetCount={MILESTONE}
+          className="mb-6"
+          onClick={() => setContributeOpen(true)}
+        />
       )}
 
       {recent.length > 0 && (
@@ -428,6 +528,20 @@ export default function ScanScreen() {
 
       {detailProduct && (
         <ProductDetailSheet product={detailProduct} onClose={() => setDetailProduct(null)} />
+      )}
+
+      {contributeOpen && (
+        <ContributeModal
+          onClose={() => setContributeOpen(false)}
+          onSuccess={() => {
+            setContributeOpen(false);
+            // Refresh contribution stats so the banner counter updates
+            apiFetch("/api/contribute/stats", { credentials: "include" })
+              .then((r) => r.json())
+              .then((d) => setStats(d as ContributeStats))
+              .catch(() => {});
+          }}
+        />
       )}
 
       </div>

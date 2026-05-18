@@ -7,12 +7,20 @@ interface GamificationBannerProps {
   contributionsCount: number;
   targetCount?: number;
   className?: string;
+  /**
+   * Optional click handler. When provided, replaces the default
+   * `navigate("/app/scan?contribute=true")` behaviour. Use this when the
+   * banner sits inside a page that wants to open ContributeModal inline
+   * instead of round-tripping through the URL.
+   */
+  onClick?: () => void;
 }
 
 export function GamificationBanner({
   contributionsCount,
   targetCount = 30,
   className,
+  onClick,
 }: GamificationBannerProps) {
   const [, navigate] = useLocation();
   const { t } = useTranslation();
@@ -25,7 +33,13 @@ export function GamificationBanner({
     <button
       type="button"
       data-touch-target
-      onClick={() => navigate("/app/scan?contribute=true")}
+      onClick={() => {
+        if (onClick) {
+          onClick();
+          return;
+        }
+        navigate("/app/scan?contribute=true");
+      }}
       className={cn(
         "flex w-full items-center justify-between gap-3 rounded-full border px-4 py-3 text-left shadow-sm transition-opacity hover:opacity-95",
         className,
