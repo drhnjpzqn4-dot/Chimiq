@@ -344,9 +344,7 @@ export function ProductDetailSheet({
                   </button>
                 </div>
               )}
-              <p className="mt-2 text-xs font-medium" style={{ color: "var(--rose-gold-deep)" }}>
-                {t("complete.points")}
-              </p>
+              {/* Poäng-text borttagen per SS-059 (bidrag är inte en spel-mekanik) */}
               {completionError && <p className="mt-2 text-xs text-red-500">{completionError}</p>}
             </section>
           )}
@@ -377,9 +375,7 @@ export function ProductDetailSheet({
               >
                 {t("complete.contributeProductCta")}
               </button>
-              <p className="mt-2 text-xs font-medium" style={{ color: "var(--rose-gold-deep)" }}>
-                {t("complete.points")}
-              </p>
+              {/* Poäng-text borttagen per SS-059 */}
             </section>
           )}
 

@@ -115,41 +115,55 @@ export function IngredientsCapture({
 
   return (
     <div className={className}>
-      {cameraVisible && (
-        <>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFile}
-            className="hidden"
-          />
-          <button
-            type="button"
-            data-touch-target
-            onClick={() => fileInputRef.current?.click()}
-            disabled={scanLabel.isPending}
-            className="mb-2 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
-            style={{ backgroundColor: "var(--sage)", color: "#FFFFFF" }}
-          >
-            {scanLabel.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <Camera className="h-4 w-4" aria-hidden />
-            )}
-            {scanLabel.isPending ? t("scanEntry.ocrProcessing") : t("scanEntry.cameraOpen")}
-          </button>
-        </>
-      )}
+      <div className="relative">
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder ?? t("scanEntry.pastePlaceholder")}
+          rows={effectiveRows}
+          className={`w-full resize-none rounded-xl border border-[var(--line)] bg-[var(--cream)] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+            cameraVisible ? "pr-12" : ""
+          }`}
+        />
 
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder ?? t("scanEntry.pastePlaceholder")}
-        rows={effectiveRows}
-        className="w-full resize-none rounded-xl border border-[var(--line)] bg-[var(--cream)] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-      />
+        {cameraVisible && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFile}
+              className="hidden"
+            />
+            {/* Liten kameraikon överlagd i textareans övre högra hörn.
+                Klick → öppnar kamera/galleri. Pia's UX-princip: kameran
+                tillhör fältet den fyller, inte en separat knapp ovan. */}
+            <button
+              type="button"
+              data-touch-target
+              onClick={() => fileInputRef.current?.click()}
+              disabled={scanLabel.isPending}
+              aria-label={t("scanEntry.cameraOpen")}
+              title={t("scanEntry.cameraOpen")}
+              className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-lg transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+              style={{ backgroundColor: "var(--sage)", color: "#FFFFFF" }}
+            >
+              {scanLabel.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Camera className="h-4 w-4" aria-hidden />
+              )}
+            </button>
+          </>
+        )}
+      </div>
+
+      {scanLabel.isPending && (
+        <p className="mt-2 text-xs" style={{ color: "var(--ink-soft)" }}>
+          {t("scanEntry.ocrProcessing")}
+        </p>
+      )}
 
       {ocrError && (
         <p className="mt-2 text-xs" style={{ color: "var(--rose-gold-deep)" }}>

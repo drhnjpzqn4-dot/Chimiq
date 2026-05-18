@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import type { ReactNode } from "react";
 import { Loader2, CheckCircle2, X } from "lucide-react";
 import { IngredientsCapture } from "@/components/IngredientsCapture";
+import { ProductImageCapture } from "@/components/ProductImageCapture";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 
@@ -36,6 +37,7 @@ export function ContributeModal({
   const [productName, setProductName] = useState(initialProductName);
   const [brand, setBrand] = useState(initialBrand);
   const [barcodeInput, setBarcodeInput] = useState(() => (barcode ?? "").replace(/\D/g, ""));
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [ingredientsText, setIngredientsText] = useState(initialIngredients);
   const [sourceType, setSourceType] = useState<SourceType>("");
   const [sourceOther, setSourceOther] = useState("");
@@ -108,6 +110,11 @@ export function ContributeModal({
           brand: brand.trim() || undefined,
           barcode: trimmedBarcode || undefined,
           ingredients: trimmedText || undefined,
+          // Förpackningsbild som data-URL (image/* base64). Backend lägger
+          // den i Supabase storage och uppdaterar cached_products.image_url
+          // efter att bidraget godkänts. Om backend-stöd saknas just nu
+          // ignoreras fältet — gör inte submit oanvändbar.
+          imageDataUrl: imageDataUrl ?? undefined,
           source_type: sourceType || undefined,
           source_note: sourceType === "other" ? sourceOther.trim() || undefined : undefined,
         }),
@@ -230,8 +237,17 @@ export function ContributeModal({
                 />
               </Field>
 
+              {/* Förpackningsbild — separat från ingrediens-OCR. Blir
+                  image_url i cached_products efter moderation. */}
+              <Field label={t("contribute.productImage")}>
+                <ProductImageCapture
+                  value={imageDataUrl}
+                  onChange={setImageDataUrl}
+                />
+              </Field>
+
               <Field label={t("contribute.ingredients")}>
-                {/* Delad input — kamera-knapp + paste-textarea + inbyggd OCR
+                {/* Delad input — kameraikon i textareans hörn + inbyggd OCR
                     via samma pipeline som ScanEntry's OCR-rad. EN modul,
                     samma beteende överallt (BESLUT-SS-066). */}
                 <IngredientsCapture
