@@ -17,7 +17,6 @@ void [
   CardContent,
   CardHeader,
   CardTitle,
-  BatchRecallBanner,
 ];
 
 interface ContributeStats {
@@ -139,6 +138,11 @@ export default function HomeScreen() {
         data-home-contrib-pct={progressPct}
         data-home-stats={stats?.acceptedContributions ?? ""}
       >
+        {/* SEKTION 0 — EU Safety Gate (recalls) — visar coming-soon-state
+            tills pollern fyllt `recalls`-tabellen, sedan aktuella varningar.
+            Synlig högt upp eftersom säkerhet är core value-prop. */}
+        <BatchRecallBanner />
+
         {/* SEKTION 1 — Senast skannat */}
         {recent.length > 0 && (
           <section className="animate-pop-in">

@@ -187,6 +187,9 @@ const en: Dict = {
   "recalls.bannerCta": "New safety alert — check your products",
   "recalls.toggleShow": "Show alert titles",
   "recalls.toggleHide": "Hide list",
+  "recalls.comingSoonTitle": "Coming soon — EU Safety Gate alerts",
+  "recalls.comingSoonHint": "We'll warn you automatically if a product in your routine is recalled by EU authorities.",
+  "recalls.learnMore": "How it works",
 
   // ───── In-app: profile ─────
   "profile.title": "Profile",
@@ -1590,6 +1593,9 @@ const sv: Dict = {
   "recalls.bannerCta": "Nytt säkerhetslarm — kontrollera dina produkter",
   "recalls.toggleShow": "Visa larmtitlar",
   "recalls.toggleHide": "Dölj lista",
+  "recalls.comingSoonTitle": "Snart — bevakning av EU Safety Gate",
+  "recalls.comingSoonHint": "Vi varnar dig automatiskt om en produkt i din rutin återkallas av EU.",
+  "recalls.learnMore": "Så fungerar det",
 
   // ───── Profile ─────
   "profile.title": "Profil",
@@ -3007,6 +3013,9 @@ const fr: Dict = {
   "recalls.bannerCta": "Nouvelle alerte sécurité — vérifiez vos produits",
   "recalls.toggleShow": "Afficher les titres d'alerte",
   "recalls.toggleHide": "Masquer la liste",
+  "recalls.comingSoonTitle": "Bientôt — alertes EU Safety Gate",
+  "recalls.comingSoonHint": "Nous vous avertirons automatiquement si un produit de votre routine est rappelé par les autorités européennes.",
+  "recalls.learnMore": "Comment ça fonctionne",
 
   "profile.title": "Profil",
   "profile.subtitle": "Votre compte, votre forfait et vos contributions.",
@@ -4413,6 +4422,9 @@ const es: Dict = {
   "recalls.bannerCta": "Nueva alerta de seguridad — revisa tus productos",
   "recalls.toggleShow": "Ver títulos de alertas",
   "recalls.toggleHide": "Ocultar lista",
+  "recalls.comingSoonTitle": "Próximamente — alertas EU Safety Gate",
+  "recalls.comingSoonHint": "Te avisaremos automáticamente si un producto de tu rutina es retirado por las autoridades europeas.",
+  "recalls.learnMore": "Cómo funciona",
 
   "profile.title": "Perfil",
   "profile.subtitle": "Tu cuenta, tu plan y tus contribuciones.",
