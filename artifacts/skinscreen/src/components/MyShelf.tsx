@@ -19,7 +19,6 @@ import {
 import PaywallModal from "@/components/PaywallModal";
 import { FadeIn } from "@/components/FadeIn";
 import { ProductListRow } from "@/components/ProductListRow";
-import { SectionHeader } from "@/components/SectionHeader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -687,15 +686,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
 
   return (
     <>
-      <SectionHeader
-        label={t("myShelf.productsLabel")}
-        count={allProducts.length}
-        ctaLabel={`+ ${t("myShelf.addProductBtn")}`}
-        onCta={() => setShowAddForm(true)}
-        className="px-4 pt-4"
-      />
-
-      <div className="border-b border-border/30 px-3 py-3">
+      <div className="border-b border-border/30 px-2 py-2">
         <div className="-mx-1 flex gap-2 overflow-x-auto pb-0.5" style={{ WebkitOverflowScrolling: "touch" }}>
           {(["morgon", "kväll", "ibland", "sparat"] as const).map((key) => {
             const active = shelfFilter === key;
@@ -732,7 +723,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
         </div>
       </div>
 
-      <div className="min-h-[160px] p-4" style={{ backgroundColor: "var(--cream)" }}>
+      <div className="min-h-[160px] py-2" style={{ backgroundColor: "var(--cream)" }}>
         {shelfQuery.isLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
@@ -794,7 +785,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
           </div>
         ) : (
           <>
-            <div className="space-y-2 px-4 pb-2">
+            <div className="space-y-2 px-2 pb-2">
               {gridProducts.map((product) => {
                 const productName =
                   product.productName?.trim() || t("shelf.unknownProduct");

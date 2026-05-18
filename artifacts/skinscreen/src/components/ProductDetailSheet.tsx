@@ -95,13 +95,16 @@ export function ProductDetailSheet({
   const [completionSaving, setCompletionSaving] = useState(false);
   const [completionDone, setCompletionDone] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
+  const [localAnalysis, setLocalAnalysis] = useState<typeof product.analysis_result_json | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const imageUrl = product.image_url ?? product.imageUrl ?? null;
   const barcode = product.barcode ?? null;
   const productName = product.product_name ?? product.productName ?? t("shelf.unknownProduct");
-  const analysis = product.analysis_result_json ?? null;
-  const verdict = verdictFromProduct(product, status);
-  const flaggedIngredients = normalizeFlags(product);
+  const analysis = localAnalysis ?? product.analysis_result_json ?? null;
+  const productForAnalysis = { ...product, analysis_result_json: analysis };
+  const verdict = verdictFromProduct(productForAnalysis, status);
+  const flaggedIngredients = normalizeFlags(productForAnalysis);
   const summary = analysis?.summary ?? analysis?.verdictSummary ?? null;
   const substantiveConflicts = conflicts.filter((conflict) => conflict.severity !== "SAFE");
   const rawIngredients = product.ingredients?.trim() ?? "";
@@ -173,6 +176,27 @@ export function ProductDetailSheet({
     }
   };
 
+  const handleAnalyze = async () => {
+    if (!rawIngredients || isAnalyzing) return;
+    setIsAnalyzing(true);
+    try {
+      const res = await apiFetch("/api/analyze-single", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients: rawIngredients }),
+      });
+      if (res.ok) {
+        const data = await res.json() as typeof product.analysis_result_json;
+        setLocalAnalysis(data);
+      }
+    } catch {
+      // silent fail — user sees "ingen analys" och kan försöka igen
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <Sheet open onOpenChange={(open) => {
       if (!open) onClose();
@@ -215,6 +239,16 @@ export function ProductDetailSheet({
             >
               {verdictCopy}
             </span>
+          ) : rawIngredients.length > 10 ? (
+            <button
+              type="button"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="btn-primary"
+              style={{ fontSize: 13, padding: "10px 16px" }}
+            >
+              {isAnalyzing ? t("scanner.analysing") : t("product.analyzeNow")}
+            </button>
           ) : (
             <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
               {t("product.noAnalysis")}

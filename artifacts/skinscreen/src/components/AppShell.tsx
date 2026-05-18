@@ -54,7 +54,7 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
                 aria-hidden
                 style={{
                   fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-                  fontSize: 18,
+                  fontSize: 22,
                   color: "var(--ink)",
                   fontWeight: 500,
                   letterSpacing: "-0.01em",
@@ -69,7 +69,10 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
         </div>
 
         {(title || subtitle) && (
-          <div className="mx-auto max-w-3xl px-4 pb-3 pt-1">
+          <div
+            className="mx-auto max-w-3xl px-4 pb-2 pt-0.5"
+            style={!title && pageLabel ? { textAlign: "right" } : undefined}
+          >
             {title && (
               <h1
                 className="leading-tight"
@@ -84,7 +87,7 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
               </h1>
             )}
             {subtitle && (
-              <p className="mt-1" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+              <p className={title ? "mt-1" : ""} style={{ fontSize: 13, color: "var(--ink-soft)" }}>
                 {subtitle}
               </p>
             )}
