@@ -92,6 +92,11 @@ export default function ScanScreen() {
   const [recent, setRecent] = useState<RecentScan[]>(() => readRecent());
   const [detailProduct, setDetailProduct] = useState<ProductDetailProduct | null>(null);
   const [contributeOpen, setContributeOpen] = useState(false);
+  const [contributePrefill, setContributePrefill] = useState<{
+    productName?: string;
+    brand?: string;
+    ingredients?: string;
+  } | null>(null);
   const { isPremium, trialEligible, trialDays } = useUserPlan();
   const { t } = useTranslation();
   const analyzeSingle = useAnalyzeSingle({});
@@ -527,15 +532,33 @@ export default function ScanScreen() {
       )}
 
       {detailProduct && (
-        <ProductDetailSheet product={detailProduct} onClose={() => setDetailProduct(null)} />
+        <ProductDetailSheet
+          product={detailProduct}
+          onClose={() => setDetailProduct(null)}
+          onContribute={(prefill) => {
+            setContributePrefill(prefill);
+            setContributeOpen(true);
+            setDetailProduct(null);
+          }}
+        />
       )}
 
       {contributeOpen && (
         <ContributeModal
-          onClose={() => setContributeOpen(false)}
+          initialProductName={contributePrefill?.productName}
+          initialBrand={contributePrefill?.brand}
+          initialIngredients={contributePrefill?.ingredients}
+          onClose={() => {
+            setContributeOpen(false);
+            setContributePrefill(null);
+          }}
           onSuccess={() => {
             setContributeOpen(false);
+            setContributePrefill(null);
             // Refresh contribution stats so the banner counter updates
+            // (note: counter only reflects APPROVED contributions; the
+            // pending submission will show up once moderation marks it
+            // accepted — see LOGGAR/2026-05-18.md for moderation TODO)
             apiFetch("/api/contribute/stats", { credentials: "include" })
               .then((r) => r.json())
               .then((d) => setStats(d as ContributeStats))

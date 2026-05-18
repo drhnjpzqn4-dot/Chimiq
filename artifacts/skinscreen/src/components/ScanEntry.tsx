@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Barcode, Camera, ChevronRight, Loader2, Search } from "lucide-react";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import { useScanLabel } from "@workspace/api-client-react";
@@ -36,6 +36,13 @@ interface ProductLookupResult {
   analysis?: ProductDetailAnalysis | null;
 }
 
+interface ProductSuggestion {
+  barcode: string;
+  productName: string;
+  brand: string;
+  imageUrl: string | null;
+}
+
 interface ScanEntryProps {
   onResult?: (product: ProductResult) => void;
   mode?: "all" | "search" | "barcode" | "ocr";
@@ -55,6 +62,8 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
   const [barcodeResult, setBarcodeResult] = useState<ProductResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [ocrError, setOcrError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // OCR mutation — when a photo is captured we POST the image to the backend
@@ -88,6 +97,95 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         : active === "ocr"
           ? pasteText.trim().length > 0
           : false;
+
+  // Debounced typeahead against the Chimiq cached_products table. Hits
+  // /api/products?q=...&limit=8, which is the right endpoint for searching
+  // our own DB (the older /api/products/lookup queries OpenBeautyFacts
+  // externally and misses our 900+ cached products). EAN-only inputs
+  // (8–14 digits) skip the suggestions and go through the barcode lookup
+  // on Analysera.
+  useEffect(() => {
+    if (active !== "search") return;
+    const query = input.trim();
+    if (query.length < 2 || /^\d{8,14}$/.test(query)) {
+      setSuggestions([]);
+      setSuggestLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setSuggestLoading(true);
+    const timer = window.setTimeout(() => {
+      apiFetch(`/api/products?q=${encodeURIComponent(query)}&limit=8`, {
+        credentials: "include",
+        signal: controller.signal,
+      })
+        .then(async (res) => {
+          if (!res.ok) return { products: [] };
+          return (await res.json()) as {
+            products?: Array<{
+              barcode: string;
+              productName: string;
+              brand: string;
+              imageUrl: string | null;
+            }>;
+          };
+        })
+        .then((data) => {
+          setSuggestions(
+            (data.products ?? []).map((p) => ({
+              barcode: p.barcode,
+              productName: p.productName,
+              brand: p.brand,
+              imageUrl: p.imageUrl,
+            })),
+          );
+        })
+        .catch((err) => {
+          if (!(err instanceof DOMException && err.name === "AbortError")) {
+            setSuggestions([]);
+          }
+        })
+        .finally(() => setSuggestLoading(false));
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [input, active]);
+
+  // Pull full product (with ingredients) for a tapped suggestion, then emit
+  // onResult so the parent runs analyse + opens ProductDetailSheet.
+  const selectSuggestion = async (suggestion: ProductSuggestion) => {
+    setLoading(true);
+    try {
+      const res = await apiFetch(`/api/products/${encodeURIComponent(suggestion.barcode)}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        productName?: string;
+        brand?: string;
+        ingredients?: string;
+        imageUrl?: string | null;
+      };
+      const name = [data.brand, data.productName].filter(Boolean).join(" ") || suggestion.productName;
+      onResult?.({
+        product_name: name,
+        productName: name,
+        brand: data.brand,
+        ingredients: data.ingredients,
+        image_url: data.imageUrl ?? null,
+        imageUrl: data.imageUrl ?? null,
+        analysis_result_json: null,
+      });
+      setInput("");
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Mirror of IngredientScanner's photo-to-OCR pipeline: resize on canvas
   // (max 1500px edge) before sending base64 JPEG to the backend OCR endpoint.
@@ -291,6 +389,68 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                   )}
                 </div>
 
+                {/* Typeahead-suggestions från Chimiqs DB. Visas medan
+                    användaren skriver, klick → fetch full + emit onResult. */}
+                {suggestions.length > 0 && (
+                  <div className="mt-2 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--cream)]">
+                    {suggestions.map((s) => (
+                      <button
+                        key={s.barcode}
+                        type="button"
+                        data-touch-target
+                        onClick={() => void selectSuggestion(s)}
+                        className="flex w-full items-center gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-white"
+                      >
+                        {s.imageUrl ? (
+                          <img
+                            src={s.imageUrl}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-md object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="h-10 w-10 shrink-0 rounded-md"
+                            style={{ backgroundColor: "var(--cream-warm)" }}
+                          />
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className="block truncate text-sm font-medium"
+                            style={{ color: "var(--ink)" }}
+                          >
+                            {s.productName}
+                          </span>
+                          {s.brand && (
+                            <span
+                              className="mt-0.5 block truncate text-xs"
+                              style={{ color: "var(--ink-soft)" }}
+                            >
+                              {s.brand}
+                            </span>
+                          )}
+                        </span>
+                        <ChevronRight
+                          className="h-4 w-4 shrink-0"
+                          style={{ color: "var(--ink-soft)" }}
+                          aria-hidden
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {suggestLoading && suggestions.length === 0 && trimmedInput.length >= 2 && (
+                  <p
+                    className="mt-2 text-xs"
+                    style={{ color: "var(--ink-soft)" }}
+                  >
+                    {t("common.loading")}
+                  </p>
+                )}
+
+                {/* Tidigare "Analysera-trigger"-träff från lookupProduct.
+                    Behålls för EAN-flödet (när användaren matar in 8-14 siffror
+                    direkt och trycker Analysera). */}
                 {lookupResult?.found && lookupResult.ingredients && (
                   <button
                     type="button"
@@ -310,9 +470,12 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                   </button>
                 )}
 
-                {trimmedInput && lookupResult && !lookupResult.found && !loading && (
-                  <p className="mt-2 text-xs text-muted-foreground">{t("myShelf.productNotFound")}</p>
-                )}
+                {trimmedInput && lookupResult && !lookupResult.found && !loading &&
+                  suggestions.length === 0 && !suggestLoading && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {t("myShelf.productNotFound")}
+                    </p>
+                  )}
               </div>
             )}
 

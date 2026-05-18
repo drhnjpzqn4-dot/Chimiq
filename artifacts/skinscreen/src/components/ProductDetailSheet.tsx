@@ -44,6 +44,17 @@ interface ProductDetailSheetProps {
   status?: IngredientStatusLevel;
   conflicts?: RoutineConflict[];
   onClose: () => void;
+  /**
+   * Optional callback invoked when the user wants to contribute / save this
+   * product to the public DB. Triggered when the product has no real barcode
+   * (i.e. it came from a fresh OCR/paste scan and is not in cached_products
+   * yet). Receives the prefill that should be passed to ContributeModal.
+   */
+  onContribute?: (prefill: {
+    productName?: string;
+    brand?: string;
+    ingredients?: string;
+  }) => void;
 }
 
 function verdictFromProduct(product: ProductDetailProduct, status?: IngredientStatusLevel): ProductVerdict | null {
@@ -76,6 +87,7 @@ export function ProductDetailSheet({
   status,
   conflicts = [],
   onClose,
+  onContribute,
 }: ProductDetailSheetProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -108,16 +120,19 @@ export function ProductDetailSheet({
       : verdict === "caution"
         ? { backgroundColor: "var(--premium-gold)", color: "var(--ink)" }
         : { backgroundColor: "var(--sage)", color: "#FFFFFF" };
+  // Products without a real barcode cannot be patched in cached_products.
+  // Offer a contribution flow instead so OCR/paste scans can be saved.
+  const isNotInDb = !barcode || barcode.startsWith("CHIMIQ_");
   const missingField =
-    barcode && (!barcode || barcode.startsWith("CHIMIQ_"))
-      ? "barcode"
-      : barcode && !imageUrl
+    isNotInDb
+      ? null
+      : !imageUrl
         ? "image"
-        : barcode && !product.brand
+        : !product.brand
           ? "brand"
           : null;
 
-  const saveCompletion = async (field: "barcode" | "brand", value: string) => {
+  const saveCompletion = async (field: "brand", value: string) => {
     if (!barcode || !value.trim()) return;
     setCompletionSaving(true);
     setCompletionError(null);
@@ -281,9 +296,7 @@ export function ProductDetailSheet({
           {missingField && !completionDone && (
             <section className="border-t border-[var(--line)] pt-5">
               <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
-                {missingField === "barcode"
-                  ? t("complete.barcodePrompt")
-                  : missingField === "image"
+                {missingField === "image"
                     ? t("complete.imagePrompt")
                     : t("complete.brandPrompt")}
               </h3>
@@ -314,13 +327,9 @@ export function ProductDetailSheet({
                 <div className="mt-3 flex gap-2">
                   <input
                     type="text"
-                    inputMode={missingField === "barcode" ? "numeric" : "text"}
+                    inputMode="text"
                     value={completionValue}
-                    onChange={(event) => setCompletionValue(
-                      missingField === "barcode"
-                        ? event.target.value.replace(/\D/g, "").slice(0, 14)
-                        : event.target.value,
-                    )}
+                    onChange={(event) => setCompletionValue(event.target.value)}
                     className="min-w-0 flex-1 rounded-xl border border-[var(--line)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   <button
@@ -337,6 +346,34 @@ export function ProductDetailSheet({
                 {t("complete.points")}
               </p>
               {completionError && <p className="mt-2 text-xs text-red-500">{completionError}</p>}
+            </section>
+          )}
+
+          {isNotInDb && onContribute && (
+            <section className="border-t border-[var(--line)] pt-5">
+              <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                {t("complete.saveProductPrompt")}
+              </h3>
+              <p className="mt-1 text-xs" style={{ color: "var(--ink-soft)" }}>
+                {t("complete.saveProductHint")}
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  onContribute({
+                    productName: productName !== t("shelf.unknownProduct") ? productName : undefined,
+                    brand: product.brand ?? undefined,
+                    ingredients: rawIngredients || undefined,
+                  })
+                }
+                className="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                style={{ backgroundColor: "var(--sage)" }}
+              >
+                {t("complete.saveProductCta")}
+              </button>
+              <p className="mt-2 text-xs font-medium" style={{ color: "var(--rose-gold-deep)" }}>
+                {t("complete.points")}
+              </p>
             </section>
           )}
 

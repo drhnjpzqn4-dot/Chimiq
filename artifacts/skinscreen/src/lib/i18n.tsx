@@ -104,6 +104,9 @@ const en: Dict = {
   "complete.points": "+10 contribution points",
   "complete.thanks": "Thank you! We saved your update.",
   "complete.saveError": "Could not save the update",
+  "complete.saveProductPrompt": "Save this product?",
+  "complete.saveProductHint": "Add this to our database so other users can benefit from your scan.",
+  "complete.saveProductCta": "Save this product",
 
   // ───── Severity / frequency labels (used across Discover) ─────
   "severity.HIGH": "High risk",
@@ -1501,6 +1504,9 @@ const sv: Dict = {
   "complete.points": "+10 bidragspoäng",
   "complete.thanks": "Tack! Vi sparade din komplettering.",
   "complete.saveError": "Kunde inte spara kompletteringen",
+  "complete.saveProductPrompt": "Spara denna produkt?",
+  "complete.saveProductHint": "Lägg till den i vår databas så fler kan dra nytta av din skanning.",
+  "complete.saveProductCta": "Spara denna produkt",
 
   // ───── Severity / frequency ─────
   "severity.HIGH": "Hög risk",
@@ -2906,6 +2912,9 @@ const fr: Dict = {
   "complete.points": "+10 points de contribution",
   "complete.thanks": "Merci ! Nous avons enregistré votre ajout.",
   "complete.saveError": "Impossible d'enregistrer l'ajout",
+  "complete.saveProductPrompt": "Enregistrer ce produit ?",
+  "complete.saveProductHint": "Ajoutez-le à notre base de données pour que d'autres utilisateurs puissent en bénéficier.",
+  "complete.saveProductCta": "Enregistrer ce produit",
 
   // ───── Severity / frequency ─────
   "severity.HIGH": "Risque élevé",
@@ -4306,6 +4315,9 @@ const es: Dict = {
   "complete.points": "+10 puntos de contribución",
   "complete.thanks": "¡Gracias! Guardamos tu actualización.",
   "complete.saveError": "No se pudo guardar la actualización",
+  "complete.saveProductPrompt": "¿Guardar este producto?",
+  "complete.saveProductHint": "Añádelo a nuestra base de datos para que otros usuarios puedan aprovecharlo.",
+  "complete.saveProductCta": "Guardar este producto",
 
   // ───── Severity / frequency ─────
   "severity.HIGH": "Riesgo alto",
