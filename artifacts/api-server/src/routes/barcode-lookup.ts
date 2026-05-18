@@ -27,6 +27,9 @@ async function lookupOpenBeautyFacts(barcode: string): Promise<{
   brand: string;
   ingredientsText: string;
   imageUrl: string | null;
+  quantity: string | null;
+  categories: string | null;
+  labels: string | null;
 } | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), OBF_TIMEOUT_MS);
@@ -47,6 +50,10 @@ async function lookupOpenBeautyFacts(barcode: string): Promise<{
         brands?: string;
         ingredients_text?: string;
         image_url?: string;
+        image_front_url?: string;
+        quantity?: string;
+        categories_en?: string;
+        labels_en?: string;
       };
     };
     if (data.status !== "success" || !data.product) return null;
@@ -56,7 +63,10 @@ async function lookupOpenBeautyFacts(barcode: string): Promise<{
       productName: p.product_name ?? "Unknown product",
       brand: p.brands ?? "",
       ingredientsText: p.ingredients_text,
-      imageUrl: p.image_url ?? null,
+      imageUrl: p.image_front_url ?? p.image_url ?? null,
+      quantity: p.quantity ?? null,
+      categories: p.categories_en ?? null,
+      labels: p.labels_en ?? null,
     };
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") return null;
@@ -140,6 +150,9 @@ router.get("/barcode/:code", async (req, res) => {
       ingredients,
       image_url: imageUrl,
       source: "obf",
+      quantity: obfProduct.quantity,
+      categories: obfProduct.categories,
+      labels: obfProduct.labels,
       analysis_cache_hash: analysis.cacheHash,
       analysis_result_json: analysis,
     });
