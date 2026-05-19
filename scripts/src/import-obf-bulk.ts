@@ -206,9 +206,23 @@ async function importBatch(rows: OBFRow[]): Promise<number> {
   return records.length;
 }
 
+async function testSupabaseConnection(): Promise<void> {
+  console.log("[supabase] Testar anslutning...");
+  const { error } = await supabase
+    .from("cached_products")
+    .select("barcode")
+    .limit(1);
+  if (error) {
+    throw new Error(`Supabase-anslutning misslyckades: ${error.message}`);
+  }
+  console.log("[supabase] Anslutning OK ✓");
+}
+
 async function main(): Promise<void> {
   console.log("=== OBF Bulk Import ===");
   console.log(`Supabase: ${SUPABASE_URL}`);
+
+  await testSupabaseConnection();
 
   await downloadFile(OBF_DUMP_URL, DOWNLOAD_PATH);
   await decompressFile(DOWNLOAD_PATH, CSV_PATH);
@@ -224,6 +238,8 @@ async function main(): Promise<void> {
       columns: true,
       delimiter: "\t",
       relax_column_count: true,
+      relax_quotes: true,
+      skip_records_with_error: true,
       skip_empty_lines: true,
       bom: true,
     }),
