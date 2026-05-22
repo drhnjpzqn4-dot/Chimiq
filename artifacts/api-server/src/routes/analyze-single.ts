@@ -339,7 +339,11 @@ export async function analyzeSingleIngredients(input: {
     if (validated?.success) {
       bumpCacheUsage(hash).catch(() => {});
 
-      if (stale) {
+      const lacksVerdictSummary =
+        typeof validated.data.verdictSummary !== "string" ||
+        validated.data.verdictSummary.trim().length === 0;
+
+      if (stale || lacksVerdictSummary) {
         const parsedIngredients = parseIngredients(ingredients);
         const { needsAnalysis, safe } = partitionIngredients(parsedIngredients);
         const risks = getRisksInList(parsedIngredients);

@@ -759,6 +759,12 @@ components:
         onboardingCompleted:
           type: boolean
           description: False until the in-app onboarding wizard is completed.
+        displayName:
+          type: [string, 'null']
+          description: Optional display name override; null uses firstName from auth.
+        avatarEmoji:
+          type: [string, 'null']
+          description: Emoji shown on the profile avatar circle; default ✨.
     RecipeEligibility:
       type: object
       required: [canSubmit, emailVerified, reason]

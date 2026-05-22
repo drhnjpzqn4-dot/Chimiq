@@ -20,12 +20,14 @@ if (!isBuild && (Number.isNaN(port) || port <= 0)) {
 }
 
 const basePath = process.env.BASE_PATH ?? "/";
+const isCapacitor = process.env.VITE_CAPACITOR === "true";
 
 export default defineConfig({
   base: basePath,
   plugins: [
     react(),
     tailwindcss(),
+    !isCapacitor &&
     VitePWA({
       registerType: "autoUpdate",
       strategies: "generateSW",
@@ -126,9 +128,17 @@ export default defineConfig({
         enabled: false,
       },
     }),
-  ],
+  ].filter(Boolean),
   resolve: {
     alias: {
+      ...(isCapacitor
+        ? {
+            "virtual:pwa-register": path.resolve(
+              import.meta.dirname,
+              "src/lib/pwa-register-stub.ts",
+            ),
+          }
+        : {}),
       "@": path.resolve(import.meta.dirname, "src"),
       "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
     },

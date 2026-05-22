@@ -54,7 +54,9 @@ const AuthContext = createContext<AuthState | null>(null);
 
 async function fetchBackendUserProfile(
   accessToken: string,
-): Promise<Partial<Pick<AuthUser, "onboardingCompleted">> | null> {
+): Promise<Partial<
+  Pick<AuthUser, "onboardingCompleted" | "displayName" | "avatarEmoji">
+> | null> {
   try {
     const res = await apiFetch("/api/auth/user", {
       credentials: "include",
@@ -63,7 +65,11 @@ async function fetchBackendUserProfile(
     if (!res.ok) return null;
     const data = (await res.json()) as { user: AuthUser | null };
     return data.user
-      ? { onboardingCompleted: data.user.onboardingCompleted }
+      ? {
+          onboardingCompleted: data.user.onboardingCompleted,
+          displayName: data.user.displayName ?? null,
+          avatarEmoji: data.user.avatarEmoji ?? null,
+        }
       : null;
   } catch {
     return null;
@@ -83,7 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = session.access_token;
     const extra = await fetchBackendUserProfile(token);
     const onboardingCompleted = extra?.onboardingCompleted ?? false;
-    const nextUser = mapSupabaseUserToAuthUser(session.user, onboardingCompleted);
+    const nextUser = {
+      ...mapSupabaseUserToAuthUser(session.user, onboardingCompleted),
+      displayName: extra?.displayName ?? null,
+      avatarEmoji: extra?.avatarEmoji ?? null,
+    };
     setUser(nextUser);
     setIsLoading(false);
     return nextUser;

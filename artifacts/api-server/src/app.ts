@@ -42,7 +42,24 @@ app.use(
   }),
 );
 
-app.use(cors({ credentials: true, origin: true }));
+const CORS_ALLOWED_ORIGINS = ["capacitor://localhost"];
+
+app.use(
+  cors({
+    credentials: true,
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (CORS_ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, origin);
+        return;
+      }
+      callback(null, origin);
+    },
+  }),
+);
 app.use(cookieParser());
 
 app.post(

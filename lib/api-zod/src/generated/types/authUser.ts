@@ -20,4 +20,8 @@ export interface AuthUser {
   emailVerified: boolean;
   /** False until the in-app onboarding wizard is completed. */
   onboardingCompleted: boolean;
+  /** @nullable */
+  displayName?: string | null;
+  /** @nullable */
+  avatarEmoji?: string | null;
 }

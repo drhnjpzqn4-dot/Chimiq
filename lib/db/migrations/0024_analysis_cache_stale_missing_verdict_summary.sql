@@ -1,0 +1,10 @@
+-- Mark single-analysis cache rows without verdictSummary as stale for background revalidation.
+-- isStale() uses created_at age + flagged_outdated; updated_at is set for ops visibility.
+
+UPDATE analysis_cache
+SET
+  created_at = '2020-01-01'::timestamptz,
+  updated_at = '2020-01-01'::timestamptz,
+  flagged_outdated = true
+WHERE scan_type = 'single'
+  AND (result_json::jsonb ->> 'verdictSummary') IS NULL;

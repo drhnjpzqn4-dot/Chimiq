@@ -113,7 +113,9 @@ function Router() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Switch>
-        <Route path="/" component={Home} />
+        <Route path="/">
+          {() => (isNative() ? <Redirect to="/app" replace /> : <Home />)}
+        </Route>
         <Route path="/a" component={HomeA} />
         <Route path="/b" component={HomeB} />
         <Route path="/pricing" component={Pricing} />

@@ -4,15 +4,15 @@
   "private": true,
   "description": "Capacitor native shell for Chimiq (iOS + Android). NOT a pnpm workspace member — keeps @capacitor/* out of the web bundle.",
   "scripts": {
-    "sync": "cap sync",
-    "sync:ios": "cap sync ios",
+    "sync": "cap sync && bash scripts/configure-native-post-add.sh",
+    "sync:ios": "cap sync ios && bash scripts/configure-native-post-add.sh",
     "sync:android": "cap sync android",
     "open:ios": "cap open ios",
     "open:android": "cap open android",
     "add:ios": "cap add ios",
     "add:android": "cap add android",
     "build:android": "cd android && ./gradlew bundleRelease",
-    "assets": "capacitor-assets generate --assetPath ../../public/images"
+    "assets": "capacitor-assets generate --iconBackgroundColor '#F5F1EB' --iconBackgroundColorDark '#F5F1EB' --splashBackgroundColor '#F5F1EB' --splashBackgroundColorDark '#F5F1EB' --assetPath resources"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",

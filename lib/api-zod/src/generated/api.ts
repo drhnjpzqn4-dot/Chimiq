@@ -224,6 +224,16 @@ export const GetCurrentAuthUserResponse = zod.object({
       onboardingCompleted: zod
         .boolean()
         .describe("False until the in-app onboarding wizard is completed."),
+      displayName: zod
+        .string()
+        .nullable()
+        .optional()
+        .describe("Optional display name override; null uses firstName from auth."),
+      avatarEmoji: zod
+        .string()
+        .nullable()
+        .optional()
+        .describe("Emoji shown on the profile avatar circle; default ✨."),
     }),
     zod.null(),
   ]),

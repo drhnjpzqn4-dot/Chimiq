@@ -79,7 +79,13 @@ cd artifacts/skinscreen/mobile/capacitor
 npm run assets
 ```
 
-The script reads `artifacts/skinscreen/public/images/logo-chimiq-long.png` (and falls back to `icon-1024.png` in `store/icons/` if you prefer a square source).
+Source: `resources/logo.png` (1024×1024), copied from `chimiq-logo_1000.png` in the Chimiq logomapp. Background `#F5F1EB` (cream, matches splash). Regenerate after updating the logo:
+
+```bash
+cp "/Users/pia/PiasVentures/skinscreen/logotypes Chimiq/Chimiq logo/chimiq-logo_1000.png" resources/logo.png
+sips -z 1024 1024 resources/logo.png
+npm run assets
+```
 
 If you want fully manual control, drop the following sources into `mobile/capacitor/resources/` before running `npx capacitor-assets generate`:
 

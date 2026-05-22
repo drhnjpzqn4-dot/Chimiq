@@ -74,6 +74,9 @@ export async function applySwUpdate(): Promise<void> {
 }
 
 export function registerServiceWorker(): void {
+  if (import.meta.env.VITE_CAPACITOR === "true") {
+    return;
+  }
   if (!import.meta.env.PROD) {
     return;
   }

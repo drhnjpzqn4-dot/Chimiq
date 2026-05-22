@@ -5,16 +5,28 @@ import {
   LogoutMobileSessionResponse,
 } from "@workspace/api-zod";
 import { verifyJWT } from "../lib/auth.js";
+import { getUserProfileFields } from "../lib/userProfile.js";
 import { supabaseAdmin, supabaseAnon } from "../lib/supabase-admin.js";
 
 const router: IRouter = Router();
 
-router.get("/me", (req: Request, res: Response) => {
+router.get("/me", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  res.json(req.user);
+  try {
+    const fields = await getUserProfileFields(req.user.id);
+    res.json({
+      ...req.user,
+      onboardingCompleted: fields.onboardingCompleted,
+      displayName: fields.displayName,
+      avatarEmoji: fields.avatarEmoji ?? "✨",
+    });
+  } catch (err) {
+    req.log?.error?.({ err }, "Failed to load /me profile fields");
+    res.status(500).json({ error: "Could not load user" });
+  }
 });
 
 const CURRENT_TERMS_VERSION = "1.0";
@@ -143,17 +155,13 @@ const handleAuthUserGet = async (req: Request, res: Response) => {
     return;
   }
   try {
-    const supabase = supabaseAdmin;
-    const { data: row, error } = await supabase
-      .from("users")
-      .select("onboarding_completed")
-      .eq("id", req.user.id)
-      .maybeSingle();
-    if (error) throw error;
+    const fields = await getUserProfileFields(req.user.id);
     const user = {
       ...req.user,
       emailVerified: req.user.emailVerified === true,
-      onboardingCompleted: (row?.onboarding_completed as boolean | undefined) ?? false,
+      onboardingCompleted: fields.onboardingCompleted,
+      displayName: fields.displayName,
+      avatarEmoji: fields.avatarEmoji ?? "✨",
     };
     res.json(GetCurrentAuthUserResponse.parse({ user }));
   } catch (err) {

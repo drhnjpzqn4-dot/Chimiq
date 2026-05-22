@@ -29,6 +29,7 @@ import checkoutAbandonmentRouter from "./checkout-abandonment.js";
 import checkoutRecoveryRouter from "./checkout-recovery.js";
 import recallsRouter from "./recalls.js";
 import profileOnboardingRouter from "./profile-onboarding.js";
+import profileRouter from "./profile.js";
 
 const router: IRouter = Router();
 
@@ -62,5 +63,6 @@ router.use(checkoutAbandonmentRouter);
 router.use(checkoutRecoveryRouter);
 router.use(recallsRouter);
 router.use(profileOnboardingRouter);
+router.use(profileRouter);
 
 export default router;

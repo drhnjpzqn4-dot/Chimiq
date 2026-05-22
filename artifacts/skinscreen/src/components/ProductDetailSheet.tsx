@@ -108,7 +108,15 @@ export function ProductDetailSheet({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const initialImageUrl = product.image_url ?? product.imageUrl ?? null;
   const initialBarcode = product.barcode ?? null;
-  const initialProductName = product.product_name ?? product.productName ?? t("shelf.unknownProduct");
+  const rawNameSource = (product.product_name ?? product.productName ?? "").trim();
+  const placeholderProductNames = new Set([
+    t("scanner.scannedProductFallback"),
+    t("shelf.unknownProduct"),
+  ]);
+  const hasRealProductName =
+    rawNameSource.length > 0 && !placeholderProductNames.has(rawNameSource);
+  const initialProductName = hasRealProductName ? rawNameSource : "";
+  const needsNameInput = !hasRealProductName;
   const initialIngredients = product.ingredients?.trim() ?? "";
   const [localProductName, setLocalProductName] = useState(initialProductName);
   const [localBrand, setLocalBrand] = useState(product.brand ?? "");
@@ -137,6 +145,8 @@ export function ProductDetailSheet({
   const showAnalyzeButton =
     (!verdict && rawIngredients.length > 10) ||
     (editMode && editedIngredients.length > 10 && editedIngredients !== rawIngredients);
+  const showVerdictBadge = Boolean(verdict);
+  const showNoAnalysisHint = !verdict && rawIngredients.length <= 10;
   const ingredientPreview = expanded || rawIngredients.length <= 520
     ? rawIngredients
     : `${rawIngredients.slice(0, 520).trim()}...`;
@@ -378,11 +388,15 @@ export function ProductDetailSheet({
         </div>
 
         <SheetHeader className="px-5 pb-2 pt-4 text-left">
-          {editMode ? (
+          {editMode || needsNameInput ? (
             <input
               type="text"
               value={editName}
-              onChange={(event) => setEditName(event.target.value)}
+              onChange={(event) => {
+                setEditName(event.target.value);
+                if (needsNameInput) setLocalProductName(event.target.value);
+              }}
+              placeholder={needsNameInput ? t("product.tapToAddName") : undefined}
               className="input-base font-serif text-xl"
               style={{ color: "var(--ink)" }}
             />
@@ -437,28 +451,32 @@ export function ProductDetailSheet({
         </SheetHeader>
 
         <div className="space-y-5 px-5 pb-8 pt-3">
-          {showAnalyzeButton ? (
-            <button
-              type="button"
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-              className="btn-primary"
-              style={{ fontSize: 13, padding: "10px 16px" }}
-            >
-              {isAnalyzing ? t("scanner.analysing") : t("product.analyzeNow")}
-            </button>
-          ) : verdict ? (
-            <span
-              className="inline-flex rounded-full px-4 py-2 text-sm font-semibold"
-              style={verdictStyle}
-            >
-              {verdictCopy}
-            </span>
-          ) : (
-            <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
-              {t("product.noAnalysis")}
-            </p>
-          )}
+          <div className="space-y-3">
+            {showVerdictBadge && (
+              <span
+                className="inline-flex rounded-full px-4 py-2 text-sm font-semibold"
+                style={verdictStyle}
+              >
+                {verdictCopy}
+              </span>
+            )}
+            {showNoAnalysisHint && (
+              <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
+                {t("product.noAnalysis")}
+              </p>
+            )}
+            {showAnalyzeButton && (
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={isAnalyzing}
+                className="btn-primary w-full sm:w-auto"
+                style={{ fontSize: 13, padding: "10px 16px" }}
+              >
+                {isAnalyzing ? t("scanner.analysing") : t("product.analyzeNow")}
+              </button>
+            )}
+          </div>
 
           {summary && (
             <p className="text-sm leading-relaxed" style={{ color: "var(--ink-soft)" }}>

@@ -21,6 +21,10 @@ export interface AuthUser {
   profileImageUrl: string | null;
   emailVerified: boolean;
   onboardingCompleted?: boolean;
+  /** Override shown in app; NULL → use firstName from auth/onboarding. */
+  displayName?: string | null;
+  /** Profile header emoji; default ✨ when unset in DB. */
+  avatarEmoji?: string | null;
 }
 
 let supabaseJwks: ReturnType<typeof createRemoteJWKSet> | null = null;
