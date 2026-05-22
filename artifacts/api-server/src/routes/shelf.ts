@@ -14,6 +14,7 @@ const router: IRouter = Router();
 
 type ShelfProductResponse = ShelfProduct & {
   imageUrl: string | null;
+  barcode: string | null;
   analysisResultJson: unknown | null;
 };
 
@@ -23,6 +24,7 @@ function mapShelfRow(row: Record<string, unknown>): ShelfProductResponse {
     userId: row.user_id as string,
     productName: row.product_name as string,
     ingredients: row.ingredients as string,
+    barcode: (row.barcode as string | null | undefined) ?? null,
     imageUrl: (row.image_url as string | null | undefined) ?? null,
     routineSlot: row.routine_slot as ShelfProduct["routineSlot"],
     addedAt: new Date(row.added_at as string),
@@ -32,16 +34,24 @@ function mapShelfRow(row: Record<string, unknown>): ShelfProductResponse {
 
 const routineSlotSchema = z.enum(["morning", "evening", "both", "occasional", "wishlist"]);
 
+const shelfBarcodeSchema = z
+  .string()
+  .regex(/^[0-9]{6,14}$/)
+  .nullable()
+  .optional();
+
 const AddToShelfBodySchema = z.object({
   productName: z.string().min(1).max(200),
   ingredients: z.string().min(1).max(5000),
   image_url: z.string().url().nullable().optional(),
   routineSlot: routineSlotSchema.optional().default("both"),
+  barcode: shelfBarcodeSchema,
 });
 
 const PatchShelfBodySchema = z.object({
   routineSlot: routineSlotSchema.optional(),
   analysisResultJson: z.record(z.string(), z.unknown()).nullable().optional(),
+  barcode: shelfBarcodeSchema,
 });
 
 router.get("/shelf", async (req: Request, res: Response) => {
@@ -112,6 +122,7 @@ router.post("/shelf", async (req: Request, res: Response) => {
       ingredients: safeIngredients,
       image_url: parsed.data.image_url ?? null,
       routine_slot: parsed.data.routineSlot,
+      barcode: parsed.data.barcode ?? null,
     })
     .select()
     .single();
@@ -144,6 +155,9 @@ router.patch("/shelf/:id", async (req: Request, res: Response) => {
   }
   if (parsed.data.analysisResultJson !== undefined) {
     updateFields.analysis_result_json = parsed.data.analysisResultJson;
+  }
+  if (parsed.data.barcode !== undefined) {
+    updateFields.barcode = parsed.data.barcode;
   }
 
   if (Object.keys(updateFields).length === 0) {

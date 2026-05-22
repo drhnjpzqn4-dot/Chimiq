@@ -16,4 +16,5 @@ export interface ShelfProduct {
   routineSlot: RoutineSlot;
   addedAt: Date;
   analysisResultJson?: ShelfProductAnalysisResultJson;
+  barcode?: string | null;
 }

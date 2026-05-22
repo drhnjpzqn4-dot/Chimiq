@@ -10,5 +10,7 @@ import type { RoutineSlot } from "./routineSlot";
 
 export interface PatchShelfProductRequest {
   routineSlot?: RoutineSlot;
+  /** @pattern ^[0-9]{6,14}$ */
+  barcode?: string | null;
   analysisResultJson?: PatchShelfProductRequestAnalysisResultJson;
 }

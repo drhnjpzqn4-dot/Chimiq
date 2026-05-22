@@ -113,6 +113,35 @@ router.get("/barcode/:code", async (req, res) => {
     return;
   }
 
+  const { data: pending, error: pendingError } = await supabaseAdmin
+    .from("user_submitted_products")
+    .select("product_name, brand, ingredients")
+    .eq("barcode", code)
+    .in("status", ["needs_admin", "ai_reviewing", "pending"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{
+      product_name: string | null;
+      brand: string | null;
+      ingredients: string | null;
+    }>();
+  if (pendingError) {
+    req.log.warn({ err: pendingError }, "Pending user submission lookup failed");
+  }
+  if (pending?.ingredients?.trim()) {
+    res.json({
+      found: true,
+      productName: pending.product_name ?? "Unknown product",
+      brand: pending.brand ?? "",
+      ingredients: pending.ingredients,
+      imageUrl: null,
+      source: "user_submitted_pending",
+      analysis: null,
+      fromCache: false,
+    });
+    return;
+  }
+
   try {
     const obfProduct = await lookupOpenBeautyFacts(code);
     if (!obfProduct) {

@@ -905,6 +905,9 @@ components:
           type: object
           nullable: true
           additionalProperties: true
+        barcode:
+          type: string
+          nullable: true
     ShelfResponse:
       type: object
       required: [products]
@@ -929,11 +932,19 @@ components:
           format: uri
         routineSlot:
           $ref: '#/components/schemas/RoutineSlot'
+        barcode:
+          type: string
+          nullable: true
+          pattern: '^[0-9]{6,14}$'
     PatchShelfProductRequest:
       type: object
       properties:
         routineSlot:
           $ref: '#/components/schemas/RoutineSlot'
+        barcode:
+          type: string
+          nullable: true
+          pattern: '^[0-9]{6,14}$'
         analysisResultJson:
           type: object
           nullable: true

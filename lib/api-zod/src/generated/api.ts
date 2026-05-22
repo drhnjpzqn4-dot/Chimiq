@@ -357,6 +357,7 @@ export const GetShelfResponse = zod.object({
       ]),
       addedAt: zod.date(),
       analysisResultJson: zod.record(zod.string(), zod.unknown()).nullish(),
+      barcode: zod.string().nullish(),
     }),
   ),
 });
@@ -375,6 +376,8 @@ export const addToShelfBodyProductNameMax = 200;
 
 export const addToShelfBodyIngredientsMax = 5000;
 
+export const addToShelfBodyBarcodeRegExp = new RegExp("^[0-9]{6,14}$");
+
 export const AddToShelfBody = zod.object({
   productName: zod.string().max(addToShelfBodyProductNameMax),
   ingredients: zod.string().max(addToShelfBodyIngredientsMax),
@@ -382,6 +385,7 @@ export const AddToShelfBody = zod.object({
   routineSlot: zod
     .enum(["morning", "evening", "both", "occasional", "wishlist"])
     .optional(),
+  barcode: zod.string().regex(addToShelfBodyBarcodeRegExp).nullish(),
 });
 
 export const AddToShelfResponse = zod.object({
@@ -398,6 +402,7 @@ export const AddToShelfResponse = zod.object({
   ]),
   addedAt: zod.date(),
   analysisResultJson: zod.record(zod.string(), zod.unknown()).nullish(),
+  barcode: zod.string().nullish(),
 });
 
 /**
@@ -450,10 +455,13 @@ export const PatchShelfProductHeader = zod.object({
     .describe("Opaque session token — `Bearer <sid>`."),
 });
 
+export const patchShelfProductBodyBarcodeRegExp = new RegExp("^[0-9]{6,14}$");
+
 export const PatchShelfProductBody = zod.object({
   routineSlot: zod
     .enum(["morning", "evening", "both", "occasional", "wishlist"])
     .optional(),
+  barcode: zod.string().regex(patchShelfProductBodyBarcodeRegExp).nullish(),
   analysisResultJson: zod.record(zod.string(), zod.unknown()).nullish(),
 });
 
@@ -471,6 +479,7 @@ export const PatchShelfProductResponse = zod.object({
   ]),
   addedAt: zod.date(),
   analysisResultJson: zod.record(zod.string(), zod.unknown()).nullish(),
+  barcode: zod.string().nullish(),
 });
 
 /**

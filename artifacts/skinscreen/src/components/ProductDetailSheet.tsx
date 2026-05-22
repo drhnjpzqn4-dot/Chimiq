@@ -194,6 +194,7 @@ export function ProductDetailSheet({
             ingredients: rawIngredients,
             routineSlot: slot,
             image_url: imageUrlForShelf ?? null,
+            barcode: barcode ?? null,
           },
         });
         setLocalShelfId(created.id);

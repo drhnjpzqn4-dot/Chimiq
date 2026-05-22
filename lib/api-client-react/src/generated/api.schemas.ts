@@ -323,6 +323,7 @@ export interface ShelfProduct {
   routineSlot: RoutineSlot;
   addedAt: string;
   analysisResultJson?: ShelfProductAnalysisResultJson;
+  barcode?: string | null;
 }
 
 export interface ShelfResponse {
@@ -336,6 +337,8 @@ export interface AddToShelfRequest {
   ingredients: string;
   image_url?: string | null;
   routineSlot?: RoutineSlot;
+  /** @pattern ^[0-9]{6,14}$ */
+  barcode?: string | null;
 }
 
 export type PatchShelfProductRequestAnalysisResultJson = {
@@ -344,6 +347,8 @@ export type PatchShelfProductRequestAnalysisResultJson = {
 
 export interface PatchShelfProductRequest {
   routineSlot?: RoutineSlot;
+  /** @pattern ^[0-9]{6,14}$ */
+  barcode?: string | null;
   analysisResultJson?: PatchShelfProductRequestAnalysisResultJson;
 }
 

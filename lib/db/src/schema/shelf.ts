@@ -13,6 +13,7 @@ export const shelfProductsTable = pgTable("shelf_products", {
     .references(() => usersTable.id, { onDelete: "cascade" }),
   productName: text("product_name").notNull(),
   ingredients: text("ingredients").notNull(),
+  barcode: text("barcode"),
   imageUrl: text("image_url"),
   routineSlot: text("routine_slot").$type<RoutineSlot>().notNull().default("both"),
   addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),

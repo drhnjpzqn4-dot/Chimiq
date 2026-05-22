@@ -14,4 +14,6 @@ export interface AddToShelfRequest {
   ingredients: string;
   image_url?: string | null;
   routineSlot?: RoutineSlot;
+  /** @pattern ^[0-9]{6,14}$ */
+  barcode?: string | null;
 }

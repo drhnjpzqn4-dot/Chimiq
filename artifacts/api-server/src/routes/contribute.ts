@@ -362,6 +362,24 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
       .single<{ id: string }>();
     if (error) throw error;
 
+    // Auto-cache produkter med riktig EAN så att de hittas direkt vid nästa skanning
+    if (barcode && !barcode.startsWith("CHIMIQ_") && safeIngredients?.trim()) {
+      const { error: cacheError } = await supabaseAdmin.from("cached_products").upsert(
+        {
+          barcode,
+          product_name: safeName ?? "Unknown product",
+          brand: safeBrand ?? "",
+          ingredients: safeIngredients,
+          source: "user",
+          image_url: null,
+        },
+        { onConflict: "barcode", ignoreDuplicates: true },
+      );
+      if (cacheError) {
+        req.log.warn({ err: cacheError }, "Auto-cache of user submission failed (non-fatal)");
+      }
+    }
+
     res.json({
       submissionId: data.id,
       status: "needs_admin",
