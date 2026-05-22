@@ -10,6 +10,7 @@
     "seed:stripe": "tsx ./src/seed-stripe-products.ts",
     "import:obf": "tsx ./src/import-obf-bulk.ts",
     "refresh:obf-images": "tsx ./src/refresh-obf-images.ts",
+    "backfill:obf-images": "tsx ./src/backfill-obf-images.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
