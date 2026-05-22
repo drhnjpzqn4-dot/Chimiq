@@ -47,7 +47,8 @@ router.post("/profile/onboarding", async (req: Request, res: Response) => {
   }
 
   const consentFlag = parentalConsentGiven === true;
-  if (ageGroup === "under16" && !consentFlag) {
+  const needsParentalConsent = ageGroup === "under16" || ageGroup === "16-17";
+  if (needsParentalConsent && !consentFlag) {
     res.status(400).json({ error: "Parental consent required" });
     return;
   }

@@ -372,6 +372,14 @@
   .status-badge--caution .status-badge__dot { background: var(--amber-deep); }
   .status-badge--high    { color: var(--red-deep); }
   .status-badge--high    .status-badge__dot { background: var(--red-deep); }
+  .status-badge--unknown {
+    background-color: var(--surface-raised, #f0ede8);
+    color: var(--ink-soft);
+  }
+  .status-badge--unknown .status-badge__dot {
+    background-color: var(--ink-soft);
+    opacity: 0.4;
+  }
 
 
   /* ── INGREDIENS-PILLS ── */

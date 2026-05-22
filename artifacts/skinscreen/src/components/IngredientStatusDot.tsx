@@ -35,6 +35,16 @@ const DOT: Record<IngredientStatusLevel, CSSProperties> = {
     boxSizing: "border-box",
     flexShrink: 0,
   },
+  unknown: {
+    width: 10,
+    height: 10,
+    borderRadius: "50%",
+    backgroundColor: "var(--surface-raised, #f0ede8)",
+    border: "1.5px solid var(--ink-soft)",
+    opacity: 0.5,
+    boxSizing: "border-box",
+    flexShrink: 0,
+  },
 };
 
 export function IngredientStatusDot({ status }: { status: IngredientStatusLevel }) {

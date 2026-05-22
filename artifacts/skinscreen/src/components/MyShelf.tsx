@@ -35,7 +35,7 @@ import { useUserPlan } from "@/hooks/useUserPlan";
 import { useTranslation } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import { toStatusLevel } from "@/lib/status";
-import type { RoutineSlot } from "@/types/design-system";
+import type { RoutineSlot, StatusLevel } from "@/types/design-system";
 import {
   ShelfConflictBanner,
   type IngredientStatusLevel,
@@ -792,7 +792,9 @@ export function MyShelf({ displayName }: MyShelfProps) {
                 const pc = conflictsInvolvingProduct(
                   productName, analysisData?.conflicts
                 );
-                const status = toStatusLevel(dotForConflicts(pc));
+                const status: StatusLevel = analysisData
+                  ? toStatusLevel(dotForConflicts(pc))
+                  : "unknown";
                 const bannerConflict = pickBannerConflict(pc);
                 const topConflictName = bannerConflict
                   ? bannerConflict.product1Name === productName
@@ -822,6 +824,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
                             image_url: product.imageUrl ?? null,
                             imageUrl: product.imageUrl ?? null,
                             analysisResultJson: product.analysisResultJson ?? null,
+                            routineSlot: product.routineSlot,
                           },
                           status,
                           conflicts: pc,

@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
-import { Star, Gift, Sparkles } from "lucide-react";
+import { Star, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MyShelf } from "@/components/MyShelf";
 import { useTranslation } from "@/lib/i18n";
@@ -46,42 +46,6 @@ function PremiumUnlockedBanner({ premiumUntil }: { premiumUntil: string }) {
   );
 }
 
-function ContributionBadge({ count }: { count: number }) {
-  const { t } = useTranslation();
-  if (count === 0) return null;
-  const nextMilestone = Math.ceil(count / PREMIUM_CONTRIBUTION_MILESTONE) * PREMIUM_CONTRIBUTION_MILESTONE;
-  const remaining = nextMilestone - count;
-  const progress =
-    count % PREMIUM_CONTRIBUTION_MILESTONE === 0 && count > 0
-      ? PREMIUM_CONTRIBUTION_MILESTONE
-      : count % PREMIUM_CONTRIBUTION_MILESTONE;
-  const filledStars = Math.round((progress / PREMIUM_CONTRIBUTION_MILESTONE) * STARS_DISPLAYED);
-  const emptyStars = STARS_DISPLAYED - filledStars;
-  return (
-    <div className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-      <Gift className="h-4 w-4 shrink-0 text-amber-600" />
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-amber-700">
-          {count === 1
-            ? t("shelf.productContributedOneFmt", { count })
-            : t("shelf.productContributedManyFmt", { count })}
-          {remaining > 0 && (
-            <span className="font-normal text-amber-600">{t("shelf.moreForFreeMonthFmt", { remaining })}</span>
-          )}
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-0.5">
-        {[...Array(filledStars)].map((_, i) => (
-          <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
-        ))}
-        {[...Array(emptyStars)].map((_, i) => (
-          <Star key={`e-${i}`} className="h-3 w-3 text-amber-200" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function ShelfScreen() {
   const { user, isAuthenticated } = useAuth();
   const [stats, setStats] = useState<ContributeStats | null>(null);
@@ -105,9 +69,6 @@ export default function ShelfScreen() {
     >
       {stats?.premiumJustUnlocked && stats.premiumUntil && (
         <PremiumUnlockedBanner premiumUntil={stats.premiumUntil} />
-      )}
-      {!stats?.premiumJustUnlocked && stats && stats.acceptedContributions > 0 && (
-        <ContributionBadge count={stats.acceptedContributions} />
       )}
 
       <MyShelf userId={user.id} displayName={displayName} />

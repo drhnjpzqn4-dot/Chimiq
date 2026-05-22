@@ -106,7 +106,7 @@ export default function OnboardingFlow() {
   const canContinueParental = parentalConsentGiven;
   const canFinish = goal !== null;
 
-  const needsParentalStep = age === "under16";
+  const needsParentalStep = age === "under16" || age === "16-17";
   const progressDotCount = needsParentalStep ? 5 : 4;
 
   const progressActive = useMemo(() => {
@@ -126,7 +126,7 @@ export default function OnboardingFlow() {
   }, [user?.firstName]);
 
   useEffect(() => {
-    if (age !== "under16") setParentalConsentGiven(false);
+    if (age !== "under16" && age !== "16-17") setParentalConsentGiven(false);
   }, [age]);
 
   if (isLoading) {
@@ -158,7 +158,7 @@ export default function OnboardingFlow() {
 
   async function submitAll() {
     if (!skin || !age || !goal || !nameOk) return;
-    if (age === "under16" && !parentalConsentGiven) return;
+    if (needsParentalStep && !parentalConsentGiven) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -172,7 +172,7 @@ export default function OnboardingFlow() {
           skinType: skin,
           ageGroup: age,
           skinGoal: goal,
-          parentalConsentGiven: age === "under16" ? parentalConsentGiven : false,
+          parentalConsentGiven: needsParentalStep ? parentalConsentGiven : false,
         }),
       });
       console.info("[Chimiq onboarding] POST response", res.status, res.statusText);
@@ -337,7 +337,7 @@ export default function OnboardingFlow() {
               className="mt-8 h-12 w-full rounded-full text-base font-semibold disabled:opacity-90"
               style={primaryButtonStyle(canContinueStep3)}
               disabled={!canContinueStep3}
-              onClick={() => setStep(age === "under16" ? 4 : 5)}
+              onClick={() => setStep(needsParentalStep ? 4 : 5)}
               data-touch-target
             >
               {t("onboarding.continue")}

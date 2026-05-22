@@ -55,6 +55,7 @@ const en: Dict = {
   "home.diyRecipes": "DIY recipes",
   "home.diyComingSoon": "Saved recipes — coming soon",
   "home.diyComingSoonHint": "Save recipes from Discover straight here.",
+  "home.pillUnknown": "Not yet analyzed",
   "home.pillSafe": "Safe",
   "home.pillCaution": "Caution",
   "home.pillHigh": "High risk",
@@ -262,7 +263,7 @@ const en: Dict = {
   "onboarding.age.46plus.desc": "Hormonal shifts thin the skin; more hydration is needed",
   "onboarding.parentalConsent.title": "Parental consent required",
   "onboarding.parentalConsent.body":
-    "Because you are under 16, a parent or guardian must have read and agreed to our Terms of Service and Privacy Policy on your behalf.",
+    "Because you are under 18, a parent or guardian must have read and agreed to our Terms of Service and Privacy Policy on your behalf.",
   "onboarding.parentalConsent.checkboxLabel":
     "I confirm that my parent or guardian has read and agreed to the terms on my behalf.",
   "onboarding.goalTitle": "What do you want to achieve?",
@@ -1145,6 +1146,11 @@ const en: Dict = {
   "productCapture.contributeToDb": "Contribute to database",
   "productCapture.addManually": "Add manually",
   "product.analyzeNow": "Analyze ingredients",
+  "product.addToRoutine": "Add to routine",
+  "product.addedToRoutine": "Added to routine ✓",
+  "product.routineSlotMorning": "Morning",
+  "product.routineSlotEvening": "Evening",
+  "product.routineSlotOccasional": "Occasionally",
   "product.comboConflictContext":
     "This product is safe alone — the warnings below are from combining it with other products in your routine.",
   "product.noAnalysis": "No analysis available",
@@ -1509,6 +1515,7 @@ const sv: Dict = {
   "home.diyRecipes": "DIY-recept",
   "home.diyComingSoon": "Sparade recept — kommer snart",
   "home.diyComingSoonHint": "Spara recept från Discover direkt hit.",
+  "home.pillUnknown": "Ej analyserad",
   "home.pillSafe": "Trygg",
   "home.pillCaution": "Försiktig",
   "home.pillHigh": "Hög risk",
@@ -1716,7 +1723,7 @@ const sv: Dict = {
   "onboarding.age.46plus.desc": "Hormonförändringar gör huden tunnare och torrare, mer återfuktning behövs",
   "onboarding.parentalConsent.title": "Föräldrasamtycke krävs",
   "onboarding.parentalConsent.body":
-    "Eftersom du är under 16 år måste en förälder eller vårdnadshavare ha läst och godkänt våra Villkor och Integritetspolicy för din räkning.",
+    "Eftersom du är under 18 år måste en förälder eller vårdnadshavare ha läst och godkänt våra Villkor och Integritetspolicy för din räkning.",
   "onboarding.parentalConsent.checkboxLabel":
     "Jag bekräftar att min förälder eller vårdnadshavare har läst och godkänt villkoren för mig.",
   "onboarding.goalTitle": "Vad vill du uppnå?",
@@ -2606,6 +2613,11 @@ const sv: Dict = {
   "productCapture.contributeToDb": "Bidra till databasen",
   "productCapture.addManually": "Lägg till manuellt",
   "product.analyzeNow": "Analysera ingredienser",
+  "product.addToRoutine": "Lägg till i rutin",
+  "product.addedToRoutine": "Tillagd i rutinen ✓",
+  "product.routineSlotMorning": "Morgon",
+  "product.routineSlotEvening": "Kväll",
+  "product.routineSlotOccasional": "Ibland",
   "product.comboConflictContext":
     "Produkten är säker ensam — varningarna nedan gäller kombinationen med andra produkter i din rutin.",
   "product.noAnalysis": "Ingen analys tillgänglig",
@@ -2971,6 +2983,7 @@ const fr: Dict = {
   "home.diyRecipes": "Recettes DIY",
   "home.diyComingSoon": "Recettes enregistrées — bientôt disponible",
   "home.diyComingSoonHint": "Enregistrez des recettes depuis Découvrir directement ici.",
+  "home.pillUnknown": "Non analysé",
   "home.pillSafe": "OK",
   "home.pillCaution": "Prudence",
   "home.pillHigh": "Risque élevé",
@@ -3182,7 +3195,7 @@ const fr: Dict = {
   "onboarding.age.46plus.desc": "Les changements hormonaux amincissent la peau ; plus d'hydratation est nécessaire",
   "onboarding.parentalConsent.title": "Consentement parental requis",
   "onboarding.parentalConsent.body":
-    "Parce que vous avez moins de 16 ans, un parent ou un tuteur légal doit avoir lu et accepté nos Conditions d'utilisation et notre Politique de confidentialité en votre nom.",
+    "Parce que vous avez moins de 18 ans, un parent ou un tuteur légal doit avoir lu et accepté nos Conditions d'utilisation et notre Politique de confidentialité en votre nom.",
   "onboarding.parentalConsent.checkboxLabel":
     "Je confirme que mon parent ou mon tuteur légal a lu et accepté les conditions en mon nom.",
   "onboarding.goalTitle": "Que souhaitez-vous améliorer ?",
@@ -4062,6 +4075,11 @@ const fr: Dict = {
   "productCapture.contributeToDb": "Contribuer à la base de données",
   "productCapture.addManually": "Ajouter manuellement",
   "product.analyzeNow": "Analyser les ingrédients",
+  "product.addToRoutine": "Ajouter à la routine",
+  "product.addedToRoutine": "Ajouté à la routine ✓",
+  "product.routineSlotMorning": "Matin",
+  "product.routineSlotEvening": "Soir",
+  "product.routineSlotOccasional": "Parfois",
   "product.comboConflictContext":
     "Ce produit est sûr seul — les avertissements ci-dessous concernent sa combinaison avec d'autres produits de votre routine.",
   "product.noAnalysis": "Aucune analyse disponible",
@@ -4427,6 +4445,7 @@ const es: Dict = {
   "home.diyRecipes": "Recetas DIY",
   "home.diyComingSoon": "Recetas guardadas — próximamente",
   "home.diyComingSoonHint": "Guarda recetas desde Descubrir directamente aquí.",
+  "home.pillUnknown": "No analizado",
   "home.pillSafe": "Sin riesgo",
   "home.pillCaution": "Precaución",
   "home.pillHigh": "Alto riesgo",
@@ -4638,7 +4657,7 @@ const es: Dict = {
   "onboarding.age.46plus.desc": "Los cambios hormonales adelgazan la piel; necesita más hidratación",
   "onboarding.parentalConsent.title": "Se requiere consentimiento parental",
   "onboarding.parentalConsent.body":
-    "Como eres menor de 16 años, un padre, madre o tutor legal debe haber leído y aceptado nuestros Términos del servicio y la Política de privacidad en tu nombre.",
+    "Como eres menor de 18 años, un padre, madre o tutor legal debe haber leído y aceptado nuestros Términos del servicio y la Política de privacidad en tu nombre.",
   "onboarding.parentalConsent.checkboxLabel":
     "Confirmo que mi padre, madre o tutor legal ha leído y aceptado los términos en mi nombre.",
   "onboarding.goalTitle": "¿Qué quieres lograr?",
@@ -5518,6 +5537,11 @@ const es: Dict = {
   "productCapture.contributeToDb": "Contribuir a la base de datos",
   "productCapture.addManually": "Añadir manuellement",
   "product.analyzeNow": "Analizar ingredientes",
+  "product.addToRoutine": "Añadir a rutina",
+  "product.addedToRoutine": "Añadido a la rutina ✓",
+  "product.routineSlotMorning": "Mañana",
+  "product.routineSlotEvening": "Noche",
+  "product.routineSlotOccasional": "A veces",
   "product.comboConflictContext":
     "Este producto es seguro solo — las advertencias son por combinarlo con otros productos de tu rutina.",
   "product.noAnalysis": "No hay análisis disponible",

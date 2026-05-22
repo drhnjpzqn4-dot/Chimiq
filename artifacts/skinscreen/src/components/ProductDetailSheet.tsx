@@ -1,8 +1,12 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, FlaskConical, Plus } from "lucide-react";
-import { getGetShelfQueryKey } from "@workspace/api-client-react";
-import type { RoutineConflict, ShelfResponse } from "@workspace/api-client-react";
+import { CalendarDays, Camera, CheckCircle2, FlaskConical, Moon, Plus, Sun } from "lucide-react";
+import {
+  getGetShelfQueryKey,
+  useAddToShelf,
+  usePatchShelfProduct,
+} from "@workspace/api-client-react";
+import type { RoutineConflict, RoutineSlot, ShelfResponse } from "@workspace/api-client-react";
 import { ShelfConflictBanner, type IngredientStatusLevel } from "@/components/IngredientStatusDot";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTranslation } from "@/lib/i18n";
@@ -45,6 +49,7 @@ export interface ProductDetailProduct {
   ingredients?: string | null;
   analysis_result_json?: ProductAnalysis | null;
   analysisResultJson?: ProductAnalysis | null;
+  routineSlot?: RoutineSlot | string | null;
 }
 
 interface ProductDetailSheetProps {
@@ -133,6 +138,16 @@ export function ProductDetailSheet({
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [, setEditDone] = useState(false);
+  const [slotPickerOpen, setSlotPickerOpen] = useState(false);
+  const [addedConfirm, setAddedConfirm] = useState(false);
+  const [addToRoutineError, setAddToRoutineError] = useState<string | null>(null);
+  const [localShelfId, setLocalShelfId] = useState<number | undefined>(product.shelfId);
+  const [localRoutineSlot, setLocalRoutineSlot] = useState<string | null | undefined>(
+    product.routineSlot ?? null,
+  );
+
+  const addToShelfMutation = useAddToShelf();
+  const patchShelfMutation = usePatchShelfProduct();
   const imageUrl = localImageUrl;
   const barcode = localBarcode || null;
   const productName = localProductName;
@@ -147,6 +162,53 @@ export function ProductDetailSheet({
   const showAnalyzeButton =
     (!verdict && rawIngredients.length > 10 && substantiveConflicts.length === 0) ||
     (editMode && editedIngredients.length > 10 && editedIngredients !== rawIngredients);
+
+  const displayName =
+    [localBrand.trim(), productName.trim()].filter(Boolean).join(" ") ||
+    productName.trim() ||
+    t("contribute.scannedProductFallback");
+  const effectiveShelfId = localShelfId ?? product.shelfId;
+  const effectiveRoutineSlot = localRoutineSlot ?? product.routineSlot ?? null;
+  const canAddToRoutine =
+    rawIngredients.length > 10 &&
+    !addedConfirm &&
+    (!effectiveShelfId || effectiveRoutineSlot === "wishlist");
+
+  const handleAddToRoutine = async (slot: "morning" | "evening" | "occasional") => {
+    setAddToRoutineError(null);
+    try {
+      if (effectiveShelfId) {
+        await patchShelfMutation.mutateAsync({
+          id: effectiveShelfId,
+          data: { routineSlot: slot },
+        });
+        setLocalRoutineSlot(slot);
+      } else {
+        const imageUrlForShelf =
+          imageUrl && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))
+            ? imageUrl
+            : undefined;
+        const created = await addToShelfMutation.mutateAsync({
+          data: {
+            productName: displayName,
+            ingredients: rawIngredients,
+            routineSlot: slot,
+            image_url: imageUrlForShelf ?? null,
+          },
+        });
+        setLocalShelfId(created.id);
+        setLocalRoutineSlot(slot);
+      }
+      await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
+      setSlotPickerOpen(false);
+      setAddedConfirm(true);
+      window.setTimeout(() => setAddedConfirm(false), 2000);
+    } catch {
+      setAddToRoutineError(t("complete.saveError"));
+    }
+  };
+
+  const addToRoutinePending = addToShelfMutation.isPending || patchShelfMutation.isPending;
   const showVerdictBadge = Boolean(verdict);
   const showNoAnalysisHint = !verdict && rawIngredients.length <= 10;
   const ingredientPreview = expanded || rawIngredients.length <= 520
@@ -514,6 +576,77 @@ export function ProductDetailSheet({
               </button>
             )}
           </div>
+
+          {canAddToRoutine && (
+            <section className="space-y-2">
+              {addedConfirm ? (
+                <p
+                  className="flex items-center gap-2 text-sm font-medium"
+                  style={{ color: "var(--sage-deep)" }}
+                >
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                  {t("product.addedToRoutine")}
+                </p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={addToRoutinePending}
+                    onClick={() => setSlotPickerOpen((open) => !open)}
+                    className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ backgroundColor: "var(--sage)" }}
+                  >
+                    {addToRoutinePending ? t("myShelf.adding") : t("product.addToRoutine")}
+                  </button>
+                  {slotPickerOpen && (
+                    <div
+                      className="flex gap-2 rounded-xl border border-[var(--line)] p-2"
+                      style={{ backgroundColor: "var(--cream-warm)" }}
+                      role="group"
+                      aria-label={t("product.addToRoutine")}
+                    >
+                      {(
+                        [
+                          {
+                            slot: "morning" as const,
+                            icon: Sun,
+                            label: t("product.routineSlotMorning"),
+                          },
+                          {
+                            slot: "evening" as const,
+                            icon: Moon,
+                            label: t("product.routineSlotEvening"),
+                          },
+                          {
+                            slot: "occasional" as const,
+                            icon: CalendarDays,
+                            label: t("product.routineSlotOccasional"),
+                          },
+                        ] as const
+                      ).map(({ slot, icon: Icon, label }) => (
+                        <button
+                          key={slot}
+                          type="button"
+                          disabled={addToRoutinePending}
+                          onClick={() => void handleAddToRoutine(slot)}
+                          className="flex flex-1 flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-xs font-semibold text-white transition-opacity disabled:opacity-60"
+                          style={{ backgroundColor: "var(--sage)" }}
+                        >
+                          <Icon className="h-4 w-4" aria-hidden />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+              {addToRoutineError && (
+                <p className="text-xs" style={{ color: "var(--rose-gold-deep)" }}>
+                  {addToRoutineError}
+                </p>
+              )}
+            </section>
+          )}
 
           {summary && (
             <p className="text-sm leading-relaxed" style={{ color: "var(--ink-soft)" }}>

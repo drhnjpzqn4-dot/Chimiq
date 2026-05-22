@@ -22,6 +22,7 @@ function useStatusLabel(
   warningCount?: number
 ): string {
   const { t } = useTranslation();
+  if (status === "unknown") return t("home.pillUnknown");
   if (status === "safe") return t("home.pillSafe");
   if (status === "high") {
     if (conflictWith)

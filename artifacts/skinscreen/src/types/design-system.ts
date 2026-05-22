@@ -3,7 +3,7 @@
 // Runtime-hjälpfunktioner → src/lib/status.ts
 // Se docs/DESIGN-SYSTEM.md
 
-export type StatusLevel = "safe" | "caution" | "high";
+export type StatusLevel = "safe" | "caution" | "high" | "unknown";
 
 export type RoutineSlot =
   | "morning"

@@ -9,7 +9,7 @@ import { onOfflineReady } from "@/lib/register-sw";
 import { useToast } from "@/hooks/use-toast";
 import Home from "@/pages/Home";
 import { useNativeAuthDeepLink } from "@/hooks/useNativeAuthDeepLink";
-import { AUTH_REFRESH_EVENT, AuthProvider } from "@/hooks/useAuth";
+import { AUTH_REFRESH_EVENT, AuthProvider, useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { I18nProvider } from "@/lib/i18n";
 import { ConsentGateProvider } from "@/components/ConsentGate";
@@ -109,12 +109,21 @@ function HashTokenHandler() {
   return null;
 }
 
+function NativeHomeRoute() {
+  const { user, isLoading, isAuthenticated } = useAuth();
+  if (!isNative()) return <Home />;
+  if (isLoading) return null;
+  if (!isAuthenticated || !user) return <Redirect to="/login" replace />;
+  if (!user.onboardingCompleted) return <Redirect to="/onboarding" replace />;
+  return <Redirect to="/app" replace />;
+}
+
 function Router() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Switch>
         <Route path="/">
-          {() => (isNative() ? <Redirect to="/app" replace /> : <Home />)}
+          {() => <NativeHomeRoute />}
         </Route>
         <Route path="/a" component={HomeA} />
         <Route path="/b" component={HomeB} />
