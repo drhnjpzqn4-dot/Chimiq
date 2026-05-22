@@ -148,7 +148,7 @@ Kvar för bakåtkompatibilitet — en 10×10 px cirkel. `IngredientStatusLevel` 
 | Komponent | Innehåller | Sida |
 |---|---|---|
 | `<ScanEntry>` | Sök/Barcode/Foto — tre likvärdiga val | `/app/scan`, MyShelf, ContributeModal |
-| `<ProductDetailSheet>` | Produktvisning med bild, badge, analys | Scan, MyShelf, Home |
+| `<ProductDetailSheet>` | Produktdatablad — bild, badge, analys | Scan, MyShelf, Home |
 | `<IngredientsCapture>` | Kamera+paste+OCR | ScanEntry, ContributeModal |
 | `<GamificationBanner>` | Bidrag-progress pill | Scan-sidan |
 | `<MyShelf>` | Hela rutinsidan inkl. lista + knappar + analys | Shelf.tsx |

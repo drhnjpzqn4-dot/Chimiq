@@ -8,6 +8,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 
+// Called "Produktdatablad" in product language
+
 type ProductVerdict = "safe" | "caution" | "danger";
 
 type ProductAnalysis = {
@@ -143,7 +145,7 @@ export function ProductDetailSheet({
   const rawIngredients = localIngredients.trim();
   const editedIngredients = editIngredients.trim();
   const showAnalyzeButton =
-    (!verdict && rawIngredients.length > 10) ||
+    (!verdict && rawIngredients.length > 10 && substantiveConflicts.length === 0) ||
     (editMode && editedIngredients.length > 10 && editedIngredients !== rawIngredients);
   const showVerdictBadge = Boolean(verdict);
   const showNoAnalysisHint = !verdict && rawIngredients.length <= 10;
@@ -164,28 +166,57 @@ export function ProductDetailSheet({
         : { backgroundColor: "var(--sage)", color: "#FFFFFF" };
   // Products without a real barcode cannot be patched in cached_products.
   // Offer a contribution flow instead so OCR/paste scans can be saved.
-  const isNotInDb = !barcode || barcode.startsWith("CHIMIQ_");
-  const missingField =
-    isNotInDb
-      ? null
-      : !imageUrl
-        ? "image"
-          : !localBrand
+  const hasRealBarcode = Boolean(barcode && !barcode.startsWith("CHIMIQ_"));
+  const isNotInDb = !hasRealBarcode && !product.shelfId;
+  const missingField = isNotInDb
+    ? null
+    : !imageUrl
+      ? "image"
+      : !hasRealBarcode
+        ? "barcode"
+        : !localBrand.trim()
           ? "brand"
           : null;
 
-  const saveCompletion = async (field: "brand", value: string) => {
-    if (!barcode || !value.trim()) return;
+  const saveCompletion = async (field: "brand" | "barcode", value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
     setCompletionSaving(true);
     setCompletionError(null);
     try {
+      if (field === "barcode" && !hasRealBarcode) {
+        const digits = trimmed.replace(/\D/g, "").slice(0, 14);
+        if (digits.length < 8) throw new Error("invalid");
+        const res = await apiFetch("/api/contribute/manual", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            barcode: digits,
+            productName: productName || undefined,
+            brand: localBrand.trim() || undefined,
+            ingredients: rawIngredients || undefined,
+          }),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        setLocalBarcode(digits);
+        setCompletionDone(true);
+        return;
+      }
+
+      if (!barcode) return;
+      const body =
+        field === "barcode"
+          ? { barcode: trimmed.replace(/\D/g, "").slice(0, 14) }
+          : { [field]: trimmed };
       const res = await apiFetch(`/api/products/${encodeURIComponent(barcode)}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value.trim() }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error(String(res.status));
+      if (field === "barcode") setLocalBarcode(trimmed.replace(/\D/g, "").slice(0, 14));
       setCompletionDone(true);
     } catch {
       setCompletionError(t("complete.saveError"));
@@ -450,6 +481,12 @@ export function ProductDetailSheet({
           </div>
         </SheetHeader>
 
+        {substantiveConflicts.length > 0 && product.shelfId && (
+          <p className="px-5 pb-1 pt-3 text-xs" style={{ color: "var(--ink-soft)" }}>
+            {t("product.comboConflictContext")}
+          </p>
+        )}
+
         <div className="space-y-5 px-5 pb-8 pt-3">
           <div className="space-y-3">
             {showVerdictBadge && (
@@ -604,9 +641,16 @@ export function ProductDetailSheet({
             <section className="border-t border-[var(--line)] pt-5">
               <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
                 {missingField === "image"
-                    ? t("complete.imagePrompt")
+                  ? t("complete.imagePrompt")
+                  : missingField === "barcode"
+                    ? t("complete.barcodePrompt")
                     : t("complete.brandPrompt")}
               </h3>
+              {missingField === "barcode" && (
+                <p className="mt-1 text-xs" style={{ color: "var(--ink-soft)" }}>
+                  {t("complete.barcodeHint")}
+                </p>
+              )}
               {missingField === "image" ? (
                 <>
                   <input
@@ -635,9 +679,16 @@ export function ProductDetailSheet({
                 <div className="mt-3 flex gap-2">
                   <input
                     type="text"
-                    inputMode="text"
+                    inputMode={missingField === "barcode" ? "numeric" : "text"}
+                    maxLength={missingField === "barcode" ? 14 : undefined}
                     value={completionValue}
-                    onChange={(event) => setCompletionValue(event.target.value)}
+                    onChange={(event) =>
+                      setCompletionValue(
+                        missingField === "barcode"
+                          ? event.target.value.replace(/\D/g, "").slice(0, 14)
+                          : event.target.value,
+                      )
+                    }
                     className="min-w-0 flex-1 rounded-xl border border-[var(--line)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   <button

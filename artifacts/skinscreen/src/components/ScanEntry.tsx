@@ -12,7 +12,7 @@ export interface ProductResult {
   productName?: string;
   brand?: string;
   /** Real EAN/UPC if produkten finns i cached_products. Null/undefined för
-   * färska OCR/paste-scans som inte har en DB-post än — ProductDetailSheet
+   * färska OCR/paste-scans som inte har en DB-post än — Produktdatablad (ProductDetailSheet)
    * använder detta för att avgöra om "Spara denna produkt"-knappen ska
    * visas (bara om barcode saknas). */
   barcode?: string | null;
