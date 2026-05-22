@@ -17,6 +17,7 @@ import {
   Clock, Heart, CalendarDays, Bookmark, Package,
 } from "lucide-react";
 import PaywallModal from "@/components/PaywallModal";
+import { EmptyState } from "@/components/EmptyState";
 import { FadeIn } from "@/components/FadeIn";
 import { ProductListRow } from "@/components/ProductListRow";
 import {
@@ -731,9 +732,9 @@ export function MyShelf({ displayName }: MyShelfProps) {
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-              {shelfFilter === "morgon" ? (
+          <EmptyState
+            icon={
+              shelfFilter === "morgon" ? (
                 <Sun className="h-5 w-5 text-primary" />
               ) : shelfFilter === "kväll" ? (
                 <Moon className="h-5 w-5 text-primary" />
@@ -743,46 +744,44 @@ export function MyShelf({ displayName }: MyShelfProps) {
                 <Heart className="h-5 w-5 text-primary" />
               ) : (
                 <Package className="h-5 w-5 text-primary" />
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {shelfFilter === "morgon"
-                  ? t("myShelf.emptyMorning")
+              )
+            }
+            message={
+              shelfFilter === "morgon"
+                ? t("myShelf.emptyMorning")
+                : shelfFilter === "kväll"
+                  ? t("myShelf.emptyEvening")
+                  : shelfFilter === "ibland"
+                    ? t("myShelf.emptyOccasional")
+                    : t("myShelf.emptyWishlist")
+            }
+            hint={
+              shelfQuery.isSuccess && allProducts.length === 0
+                ? undefined
+                : shelfFilter === "morgon"
+                  ? t("myShelf.addFirstMorning")
                   : shelfFilter === "kväll"
-                    ? t("myShelf.emptyEvening")
+                    ? t("myShelf.addFirstEvening")
                     : shelfFilter === "ibland"
-                      ? t("myShelf.emptyOccasional")
-                      : t("myShelf.emptyWishlist")}
-            </p>
-            {shelfQuery.isSuccess && allProducts.length === 0 ? (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={handleLoadDemo}
-                  disabled={loadingDemo}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-60"
-                >
-                  {loadingDemo ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Zap className="h-3 w-3" />
-                  )}
-                  {loadingDemo ? t("myShelf.loading") : t("myShelf.loadExample")}
-                </button>
-                <p className="mt-1.5 text-[11px] text-muted-foreground/50">{t("myShelf.threeRealProducts")}</p>
-              </div>
-            ) : (
-              <p className="mt-1 text-xs text-muted-foreground/70">
-                {shelfFilter === "morgon"
-                    ? t("myShelf.addFirstMorning")
-                    : shelfFilter === "kväll"
-                      ? t("myShelf.addFirstEvening")
-                      : shelfFilter === "ibland"
-                        ? t("myShelf.addFirstOccasional")
-                        : t("myShelf.addFirstWishlist")}
-              </p>
-            )}
-          </div>
+                      ? t("myShelf.addFirstOccasional")
+                      : t("myShelf.addFirstWishlist")
+            }
+            action={
+              shelfQuery.isSuccess && allProducts.length === 0
+                ? {
+                    label: loadingDemo ? t("myShelf.loading") : t("myShelf.loadExample"),
+                    onClick: handleLoadDemo,
+                    loading: loadingDemo,
+                    icon: <Zap className="h-3 w-3" />,
+                  }
+                : undefined
+            }
+            actionNote={
+              shelfQuery.isSuccess && allProducts.length === 0
+                ? t("myShelf.threeRealProducts")
+                : undefined
+            }
+          />
         ) : (
           <>
             <div className="space-y-2 px-2 pb-2">

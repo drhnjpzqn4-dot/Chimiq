@@ -61,6 +61,7 @@ function readRecentScans(): RecentScanRow[] {
 export default function HomeScreen() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const displayName = user?.firstName ?? user?.email?.split("@")[0] ?? null;
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [recent, setRecent] = useState<RecentScanRow[]>(() => readRecentScans());
   const [detailProduct, setDetailProduct] = useState<ProductDetailProduct | null>(null);
@@ -118,7 +119,11 @@ export default function HomeScreen() {
   void setNotes;
 
   return (
-    <AppShell pageLabel={t("tabs.today")} subtitle={t("home.subtitle")}>
+    <AppShell
+      pageLabel={t("tabs.today")}
+      title={displayName ? t("home.greeting", { name: displayName }) : undefined}
+      subtitle={t("home.subtitle")}
+    >
       <div
         className="space-y-6 p-4 sm:p-5"
         style={{ backgroundColor: "var(--cream)" }}
