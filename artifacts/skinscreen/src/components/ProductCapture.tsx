@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CheckCircle2, FlaskConical, Loader2 } from "lucide-react";
 import { IngredientsCapture } from "@/components/IngredientsCapture";
+import { ProductNameCapture } from "@/components/ProductNameCapture";
 import { ProductImageCapture } from "@/components/ProductImageCapture";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
@@ -141,19 +142,11 @@ export function ProductCapture({ initialData, onAnalyzed, className }: ProductCa
 
       {/* Formulärfält */}
       <div className="space-y-3">
-        <input
-          type="text"
-          value={productName}
-          onChange={(e) => setProductName(e.target.value)}
-          placeholder={t("contribute.productName")}
-          className="input-base"
-        />
-        <input
-          type="text"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-          placeholder={t("contribute.brand")}
-          className="input-base"
+        <ProductNameCapture
+          productName={productName}
+          brand={brand}
+          onProductNameChange={setProductName}
+          onBrandChange={setBrand}
         />
         <input
           type="text"

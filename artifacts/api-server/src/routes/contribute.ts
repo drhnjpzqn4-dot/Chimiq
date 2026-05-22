@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
+import { extractProductNameFromImage } from "../lib/extractProductNameFromImage.js";
 import { uploadBufferToGcs } from "../lib/objectStorage.js";
 import { getAdminEmails, getRequestEmail, isRequestAdmin } from "../lib/admin.js";
 import { randomUUID } from "crypto";
@@ -53,42 +54,12 @@ async function extractFromFrontImage(
   imageBase64: string,
   anthropic: Anthropic,
 ): Promise<{ productName?: string; brand?: string; confidence: "high" | "low" }> {
-  try {
-    const message = await anthropic.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 512,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: { type: "base64", media_type: "image/jpeg", data: imageBase64 },
-            },
-            {
-              type: "text",
-              text: `Look at this product image. Extract the product name and brand.
-Return ONLY valid JSON: {"productName": "...", "brand": "...", "confidence": "high"|"low"}
-If you cannot clearly read the product name or brand, set confidence to "low".
-Return only JSON, no other text.`,
-            },
-          ],
-        },
-      ],
-    });
-    const block = message.content[0];
-    const raw = block.type === "text" ? block.text.trim() : "{}";
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return { confidence: "low" };
-    const parsed = JSON.parse(jsonMatch[0]) as { productName?: string; brand?: string; confidence?: string };
-    return {
-      productName: parsed.productName ?? undefined,
-      brand: parsed.brand ?? undefined,
-      confidence: parsed.confidence === "high" ? "high" : "low",
-    };
-  } catch {
-    return { confidence: "low" };
-  }
+  const result = await extractProductNameFromImage(imageBase64, "image/jpeg", anthropic);
+  return {
+    productName: result.productName ?? undefined,
+    brand: result.brand ?? undefined,
+    confidence: result.confidence,
+  };
 }
 
 async function extractFromIngredientsImage(

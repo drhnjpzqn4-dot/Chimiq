@@ -31,6 +31,7 @@ import type {
   LogoutSuccess,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
+  PatchShelfProductRequest,
   ProductLookupParams,
   ProductLookupResponse,
   RecipeEligibility,
@@ -38,6 +39,8 @@ import type {
   RoutineConflictResponse,
   ScanLabelRequest,
   ScanLabelResponse,
+  ScanProductNameRequest,
+  ScanProductNameResponse,
   ShelfProduct,
   ShelfResponse,
   SuggestAlternativesRequest,
@@ -1384,6 +1387,93 @@ export const useAnalyzeRoutine = <
 };
 
 /**
+ * @summary Update a product on the user's shelf
+ */
+export const getPatchShelfProductUrl = (id: number) => {
+  return `/api/shelf/${id}`;
+};
+
+export const patchShelfProduct = async (
+  id: number,
+  patchShelfProductRequest: PatchShelfProductRequest,
+  options?: RequestInit,
+): Promise<ShelfProduct> => {
+  return customFetch<ShelfProduct>(getPatchShelfProductUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(patchShelfProductRequest),
+  });
+};
+
+export const getPatchShelfProductMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof patchShelfProduct>>,
+    TError,
+    { id: number; data: BodyType<PatchShelfProductRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof patchShelfProduct>>,
+  TError,
+  { id: number; data: BodyType<PatchShelfProductRequest> },
+  TContext
+> => {
+  const mutationKey = ["patchShelfProduct"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof patchShelfProduct>>,
+    { id: number; data: BodyType<PatchShelfProductRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return patchShelfProduct(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PatchShelfProductMutationResult = NonNullable<
+  Awaited<ReturnType<typeof patchShelfProduct>>
+>;
+export type PatchShelfProductMutationBody = BodyType<PatchShelfProductRequest>;
+export type PatchShelfProductMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a product on the user's shelf
+ */
+export const usePatchShelfProduct = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof patchShelfProduct>>,
+    TError,
+    { id: number; data: BodyType<PatchShelfProductRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof patchShelfProduct>>,
+  TError,
+  { id: number; data: BodyType<PatchShelfProductRequest> },
+  TContext
+> => {
+  return useMutation(getPatchShelfProductMutationOptions(options));
+};
+
+/**
  * @summary Remove a product from the user's shelf
  */
 export const getRemoveFromShelfUrl = (id: number) => {
@@ -1465,6 +1555,93 @@ export const useRemoveFromShelf = <
   TContext
 > => {
   return useMutation(getRemoveFromShelfMutationOptions(options));
+};
+
+/**
+ * Accepts a base64-encoded image of the product front and returns product name, brand, and confidence using Claude vision.
+ * @summary Scan product packaging front to extract name and brand
+ */
+export const getScanProductNameUrl = () => {
+  return `/api/scan-product-name`;
+};
+
+export const scanProductName = async (
+  scanProductNameRequest: ScanProductNameRequest,
+  options?: RequestInit,
+): Promise<ScanProductNameResponse> => {
+  return customFetch<ScanProductNameResponse>(getScanProductNameUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(scanProductNameRequest),
+  });
+};
+
+export const getScanProductNameMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scanProductName>>,
+    TError,
+    { data: BodyType<ScanProductNameRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof scanProductName>>,
+  TError,
+  { data: BodyType<ScanProductNameRequest> },
+  TContext
+> => {
+  const mutationKey = ["scanProductName"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof scanProductName>>,
+    { data: BodyType<ScanProductNameRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return scanProductName(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ScanProductNameMutationResult = NonNullable<
+  Awaited<ReturnType<typeof scanProductName>>
+>;
+export type ScanProductNameMutationBody = BodyType<ScanProductNameRequest>;
+export type ScanProductNameMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Scan product packaging front to extract name and brand
+ */
+export const useScanProductName = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scanProductName>>,
+    TError,
+    { data: BodyType<ScanProductNameRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof scanProductName>>,
+  TError,
+  { data: BodyType<ScanProductNameRequest> },
+  TContext
+> => {
+  return useMutation(getScanProductNameMutationOptions(options));
 };
 
 /**

@@ -196,6 +196,14 @@ export const GetMeResponse = zod.object({
   onboardingCompleted: zod
     .boolean()
     .describe("False until the in-app onboarding wizard is completed."),
+  displayName: zod
+    .string()
+    .nullish()
+    .describe("Optional display name override; null uses firstName from auth."),
+  avatarEmoji: zod
+    .string()
+    .nullish()
+    .describe("Emoji shown on the profile avatar circle; default ✨."),
 });
 
 /**
@@ -226,13 +234,13 @@ export const GetCurrentAuthUserResponse = zod.object({
         .describe("False until the in-app onboarding wizard is completed."),
       displayName: zod
         .string()
-        .nullable()
-        .optional()
-        .describe("Optional display name override; null uses firstName from auth."),
+        .nullish()
+        .describe(
+          "Optional display name override; null uses firstName from auth.",
+        ),
       avatarEmoji: zod
         .string()
-        .nullable()
-        .optional()
+        .nullish()
         .describe("Emoji shown on the profile avatar circle; default ✨."),
     }),
     zod.null(),
@@ -339,6 +347,7 @@ export const GetShelfResponse = zod.object({
       id: zod.number(),
       productName: zod.string(),
       ingredients: zod.string(),
+      imageUrl: zod.string().nullish(),
       routineSlot: zod.enum([
         "morning",
         "evening",
@@ -347,6 +356,7 @@ export const GetShelfResponse = zod.object({
         "wishlist",
       ]),
       addedAt: zod.date(),
+      analysisResultJson: zod.record(zod.string(), zod.unknown()).nullish(),
     }),
   ),
 });
@@ -368,6 +378,7 @@ export const addToShelfBodyIngredientsMax = 5000;
 export const AddToShelfBody = zod.object({
   productName: zod.string().max(addToShelfBodyProductNameMax),
   ingredients: zod.string().max(addToShelfBodyIngredientsMax),
+  image_url: zod.string().url().nullish(),
   routineSlot: zod
     .enum(["morning", "evening", "both", "occasional", "wishlist"])
     .optional(),
@@ -377,6 +388,7 @@ export const AddToShelfResponse = zod.object({
   id: zod.number(),
   productName: zod.string(),
   ingredients: zod.string(),
+  imageUrl: zod.string().nullish(),
   routineSlot: zod.enum([
     "morning",
     "evening",
@@ -385,6 +397,7 @@ export const AddToShelfResponse = zod.object({
     "wishlist",
   ]),
   addedAt: zod.date(),
+  analysisResultJson: zod.record(zod.string(), zod.unknown()).nullish(),
 });
 
 /**
@@ -424,6 +437,43 @@ export const AnalyzeRoutineResponse = zod.object({
 });
 
 /**
+ * @summary Update a product on the user's shelf
+ */
+export const PatchShelfProductParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const PatchShelfProductHeader = zod.object({
+  Authorization: zod
+    .string()
+    .optional()
+    .describe("Opaque session token — `Bearer <sid>`."),
+});
+
+export const PatchShelfProductBody = zod.object({
+  routineSlot: zod
+    .enum(["morning", "evening", "both", "occasional", "wishlist"])
+    .optional(),
+  analysisResultJson: zod.record(zod.string(), zod.unknown()).nullish(),
+});
+
+export const PatchShelfProductResponse = zod.object({
+  id: zod.number(),
+  productName: zod.string(),
+  ingredients: zod.string(),
+  imageUrl: zod.string().nullish(),
+  routineSlot: zod.enum([
+    "morning",
+    "evening",
+    "both",
+    "occasional",
+    "wishlist",
+  ]),
+  addedAt: zod.date(),
+  analysisResultJson: zod.record(zod.string(), zod.unknown()).nullish(),
+});
+
+/**
  * @summary Remove a product from the user's shelf
  */
 export const RemoveFromShelfParams = zod.object({
@@ -439,6 +489,31 @@ export const RemoveFromShelfHeader = zod.object({
 
 export const RemoveFromShelfResponse = zod.object({
   success: zod.boolean(),
+});
+
+/**
+ * Accepts a base64-encoded image of the product front and returns product name, brand, and confidence using Claude vision.
+ * @summary Scan product packaging front to extract name and brand
+ */
+export const ScanProductNameBody = zod.object({
+  imageBase64: zod.string().describe("Base64-encoded image data (JPEG or PNG)"),
+  mimeType: zod
+    .enum(["image/jpeg", "image/png", "image/webp", "image/gif"])
+    .describe("MIME type of the image"),
+});
+
+export const ScanProductNameResponse = zod.object({
+  productName: zod
+    .string()
+    .nullable()
+    .describe("Extracted product name, or null if not found"),
+  brand: zod
+    .string()
+    .nullable()
+    .describe("Extracted brand name, or null if not found"),
+  confidence: zod
+    .enum(["high", "low"])
+    .describe("Confidence in the extraction"),
 });
 
 /**

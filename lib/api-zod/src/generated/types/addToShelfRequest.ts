@@ -12,5 +12,6 @@ export interface AddToShelfRequest {
   productName: string;
   /** @maxLength 5000 */
   ingredients: string;
+  image_url?: string | null;
   routineSlot?: RoutineSlot;
 }

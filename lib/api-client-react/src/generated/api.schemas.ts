@@ -131,6 +131,46 @@ export interface AnalyzeResponse {
 /**
  * MIME type of the image
  */
+export type ScanProductNameRequestMimeType =
+  (typeof ScanProductNameRequestMimeType)[keyof typeof ScanProductNameRequestMimeType];
+
+export const ScanProductNameRequestMimeType = {
+  "image/jpeg": "image/jpeg",
+  "image/png": "image/png",
+  "image/webp": "image/webp",
+  "image/gif": "image/gif",
+} as const;
+
+export interface ScanProductNameRequest {
+  /** Base64-encoded image data (JPEG or PNG) */
+  imageBase64: string;
+  /** MIME type of the image */
+  mimeType: ScanProductNameRequestMimeType;
+}
+
+/**
+ * Confidence in the extraction
+ */
+export type ScanProductNameResponseConfidence =
+  (typeof ScanProductNameResponseConfidence)[keyof typeof ScanProductNameResponseConfidence];
+
+export const ScanProductNameResponseConfidence = {
+  high: "high",
+  low: "low",
+} as const;
+
+export interface ScanProductNameResponse {
+  /** Extracted product name, or null if not found */
+  productName: string | null;
+  /** Extracted brand name, or null if not found */
+  brand: string | null;
+  /** Confidence in the extraction */
+  confidence: ScanProductNameResponseConfidence;
+}
+
+/**
+ * MIME type of the image
+ */
 export type ScanLabelRequestMimeType =
   (typeof ScanLabelRequestMimeType)[keyof typeof ScanLabelRequestMimeType];
 
@@ -203,9 +243,15 @@ export interface AuthUser {
   emailVerified: boolean;
   /** False until the in-app onboarding wizard is completed. */
   onboardingCompleted: boolean;
-  /** @nullable */
+  /**
+   * Optional display name override; null uses firstName from auth.
+   * @nullable
+   */
   displayName?: string | null;
-  /** @nullable */
+  /**
+   * Emoji shown on the profile avatar circle; default ✨.
+   * @nullable
+   */
   avatarEmoji?: string | null;
 }
 
@@ -267,6 +313,8 @@ export const RoutineSlot = {
   wishlist: "wishlist",
 } as const;
 
+export type ShelfProductAnalysisResultJson = { [key: string]: unknown } | null;
+
 export interface ShelfProduct {
   id: number;
   productName: string;
@@ -274,7 +322,7 @@ export interface ShelfProduct {
   imageUrl?: string | null;
   routineSlot: RoutineSlot;
   addedAt: string;
-  analysisResultJson?: { [key: string]: unknown } | null;
+  analysisResultJson?: ShelfProductAnalysisResultJson;
 }
 
 export interface ShelfResponse {
@@ -288,6 +336,15 @@ export interface AddToShelfRequest {
   ingredients: string;
   image_url?: string | null;
   routineSlot?: RoutineSlot;
+}
+
+export type PatchShelfProductRequestAnalysisResultJson = {
+  [key: string]: unknown;
+} | null;
+
+export interface PatchShelfProductRequest {
+  routineSlot?: RoutineSlot;
+  analysisResultJson?: PatchShelfProductRequestAnalysisResultJson;
 }
 
 export type RoutineConflictSeverity =

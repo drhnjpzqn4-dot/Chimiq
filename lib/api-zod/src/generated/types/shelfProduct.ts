@@ -6,11 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RoutineSlot } from "./routineSlot";
+import type { ShelfProductAnalysisResultJson } from "./shelfProductAnalysisResultJson";
 
 export interface ShelfProduct {
   id: number;
   productName: string;
   ingredients: string;
+  imageUrl?: string | null;
   routineSlot: RoutineSlot;
   addedAt: Date;
+  analysisResultJson?: ShelfProductAnalysisResultJson;
 }

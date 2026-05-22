@@ -20,8 +20,14 @@ export interface AuthUser {
   emailVerified: boolean;
   /** False until the in-app onboarding wizard is completed. */
   onboardingCompleted: boolean;
-  /** @nullable */
+  /**
+   * Optional display name override; null uses firstName from auth.
+   * @nullable
+   */
   displayName?: string | null;
-  /** @nullable */
+  /**
+   * Emoji shown on the profile avatar circle; default ✨.
+   * @nullable
+   */
   avatarEmoji?: string | null;
 }

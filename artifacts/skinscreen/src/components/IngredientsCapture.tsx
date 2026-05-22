@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { useScanLabel } from "@workspace/api-client-react";
 import { useTranslation } from "@/lib/i18n";
+import { resizeImageFileToBase64 } from "@/lib/imageUtils";
 
 /**
  * IngredientsCapture — delad input för "ta foto / klistra in" av ingredienslista.
@@ -77,39 +78,11 @@ export function IngredientsCapture({
     const file = event.target.files?.[0];
     if (!file) return;
     setOcrError(null);
-    const reader = new FileReader();
-    reader.onerror = () => setOcrError(t("scanner.errReadFile"));
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const img = new Image();
-      img.onerror = () => setOcrError(t("scanner.errDecode"));
-      img.onload = () => {
-        const MAX_EDGE = 1500;
-        let { width, height } = img;
-        if (width > MAX_EDGE || height > MAX_EDGE) {
-          if (width >= height) {
-            height = Math.round((height * MAX_EDGE) / width);
-            width = MAX_EDGE;
-          } else {
-            width = Math.round((width * MAX_EDGE) / height);
-            height = MAX_EDGE;
-          }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          setOcrError(t("scanner.errImgProcessing"));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        const base64 = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+    resizeImageFileToBase64(file)
+      .then((base64) => {
         scanLabel.mutate({ data: { imageBase64: base64, mimeType: "image/jpeg" } });
-      };
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
+      })
+      .catch(() => setOcrError(t("scanner.errReadFile")));
     event.target.value = "";
   };
 

@@ -465,6 +465,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /scan-product-name:
+    post:
+      operationId: scanProductName
+      tags: [scanner]
+      summary: Scan product packaging front to extract name and brand
+      description: Accepts a base64-encoded image of the product front and returns product name, brand, and confidence using Claude vision.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanProductNameRequest"
+      responses:
+        "200":
+          description: Extracted product name and brand
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanProductNameResponse"
+        "400":
+          description: Invalid input (missing or invalid image)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Scan service error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /scan-label:
     post:
       operationId: scanLabel
@@ -663,6 +694,38 @@ components:
       required:
         - conflicts
         - overallSafe
+    ScanProductNameRequest:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+          description: Base64-encoded image data (JPEG or PNG)
+        mimeType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp, image/gif]
+          description: MIME type of the image
+      required:
+        - imageBase64
+        - mimeType
+    ScanProductNameResponse:
+      type: object
+      properties:
+        productName:
+          type: string
+          nullable: true
+          description: Extracted product name, or null if not found
+        brand:
+          type: string
+          nullable: true
+          description: Extracted brand name, or null if not found
+        confidence:
+          type: string
+          enum: [high, low]
+          description: Confidence in the extraction
+      required:
+        - productName
+        - brand
+        - confidence
     ScanLabelRequest:
       type: object
       properties:
