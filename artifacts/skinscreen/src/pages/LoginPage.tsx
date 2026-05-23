@@ -1,4 +1,5 @@
 import { useState } from "react";
+import WelcomeSlides from "@/components/WelcomeSlides";
 import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
 import { useTranslation } from "@/lib/i18n";
@@ -14,6 +15,11 @@ function useNextParam(): string {
 export default function LoginPage() {
   const { t } = useTranslation();
   const next = useNextParam();
+  const [showWelcome, setShowWelcome] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      localStorage.getItem("chimiq.welcome_seen") !== "true",
+  );
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -93,8 +99,14 @@ export default function LoginPage() {
     if (newMode !== "signup") setFirstName("");
   };
 
+  const welcomeOverlay = showWelcome ? (
+    <WelcomeSlides onDone={() => setShowWelcome(false)} />
+  ) : null;
+
   if (signupDone) {
     return (
+      <>
+        {welcomeOverlay}
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-border/60 shadow-sm p-8 text-center">
           <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-6" />
@@ -111,11 +123,14 @@ export default function LoginPage() {
           </button>
         </div>
       </div>
+      </>
     );
   }
 
   if (mode === "forgot" && forgotSent) {
     return (
+      <>
+        {welcomeOverlay}
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-border/60 shadow-sm p-8 text-center">
           <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-6" />
@@ -132,6 +147,7 @@ export default function LoginPage() {
           </button>
         </div>
       </div>
+      </>
     );
   }
 
@@ -139,6 +155,8 @@ export default function LoginPage() {
   const submitLabel = mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link";
 
   return (
+    <>
+      {welcomeOverlay}
     <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white rounded-2xl border border-border/60 shadow-sm p-8">
         <div className="text-center mb-6">
@@ -258,5 +276,6 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }

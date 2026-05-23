@@ -2,6 +2,7 @@ node_modules/
 
 # webDir points at ../../dist/public — no local www/ directory is created.
 
+ios/build/
 ios/App/Pods/
 ios/App/Podfile.lock
 ios/App/output/
