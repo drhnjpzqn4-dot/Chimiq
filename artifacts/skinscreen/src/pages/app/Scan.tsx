@@ -541,6 +541,7 @@ export default function ScanScreen() {
       {detailProduct && (
         <ProductDetailSheet
           product={detailProduct}
+          fromScan
           onClose={() => setDetailProduct(null)}
           onContribute={(prefill) => {
             setContributePrefill(prefill);

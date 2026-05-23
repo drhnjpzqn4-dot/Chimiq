@@ -69,6 +69,8 @@ interface ProductDetailSheetProps {
     ingredients?: string;
   }) => void;
   initialEditMode?: boolean;
+  /** Sant när kortet öppnas direkt från scan-flödet (captured state → öppna produktkort) */
+  fromScan?: boolean;
 }
 
 function verdictFromProduct(product: ProductDetailProduct, status?: IngredientStatusLevel): ProductVerdict | null {
@@ -102,6 +104,7 @@ export function ProductDetailSheet({
   conflicts = [],
   onClose,
   initialEditMode,
+  fromScan = false,
 }: ProductDetailSheetProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -544,6 +547,69 @@ export function ProductDetailSheet({
           </div>
         </SheetHeader>
 
+        {fromScan && showAnalyzeButton && !isAnalyzing && !verdict && (
+          <div className="space-y-3 px-5 pt-3">
+            <div
+              className="rounded-2xl px-4 py-4 space-y-3"
+              style={{ backgroundColor: "rgba(60, 92, 68, 0.08)" }}
+            >
+              <p className="text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
+                {t("product.analyzeReady")}
+              </p>
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={isAnalyzing}
+                className="w-full rounded-xl py-3 text-base font-semibold text-white disabled:opacity-60"
+                style={{ backgroundColor: "var(--sage)" }}
+              >
+                {t("product.analyzeNow")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {fromScan && isAnalyzing && (
+          <div className="px-5 pt-3">
+            <div
+              className="rounded-2xl px-4 py-4"
+              style={{ backgroundColor: "rgba(60, 92, 68, 0.08)" }}
+            >
+              <p
+                className="animate-pulse text-center text-sm font-medium"
+                style={{ color: "var(--sage)" }}
+              >
+                {t("scanner.analysing")}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {fromScan && !rawIngredients && !verdict && (
+          <div className="space-y-2 px-5 pt-3">
+            <div
+              className="rounded-2xl px-4 py-4 space-y-2"
+              style={{ backgroundColor: "var(--cream-warm)" }}
+            >
+              <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                {t("product.missingIngredients")}
+              </p>
+              <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
+                {t("product.missingIngredientsHint")}
+              </p>
+              <button
+                type="button"
+                onClick={() => setEditMode(true)}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
+                style={{ backgroundColor: "var(--premium-gold)", color: "#fff" }}
+              >
+                <Plus className="h-3 w-3" aria-hidden />
+                {t("product.addIngredients")}
+              </button>
+            </div>
+          </div>
+        )}
+
         {substantiveConflicts.length > 0 && product.shelfId && (
           <p className="px-5 pb-1 pt-3 text-xs" style={{ color: "var(--ink-soft)" }}>
             {t("product.comboConflictContext")}
@@ -560,12 +626,12 @@ export function ProductDetailSheet({
                 {verdictCopy}
               </span>
             )}
-            {showNoAnalysisHint && (
+            {showNoAnalysisHint && !(fromScan && !rawIngredients) && (
               <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
                 {t("product.noAnalysis")}
               </p>
             )}
-            {showAnalyzeButton && (
+            {(!fromScan || verdict) && showAnalyzeButton && (
               <button
                 type="button"
                 onClick={handleAnalyze}
