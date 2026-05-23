@@ -529,7 +529,7 @@ export default function ScanScreen() {
         </section>
       )}
 
-      {stats !== null && (
+      {!isPremium && stats !== null && (
         <GamificationBanner
           contributionsCount={stats.acceptedContributions}
           targetCount={MILESTONE}

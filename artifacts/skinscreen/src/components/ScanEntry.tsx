@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Barcode, Camera, ChevronRight, Loader2, Search } from "lucide-react";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import { IngredientsCapture } from "@/components/IngredientsCapture";
@@ -70,6 +70,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [showCapture, setShowCapture] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const visibleRows = mode === "all" ? ROWS : ROWS.filter((row) => row === mode);
   const isTouchDevice = useMemo(() => {
@@ -155,6 +156,10 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
   // this product is already in cached_products and does NOT show the
   // "Spara denna produkt"-bidragsknapp.
   const selectSuggestion = async (suggestion: ProductSuggestion) => {
+    setInput("");
+    setSuggestions([]);
+    setLookupResult(null);
+    searchInputRef.current?.blur();
     setLoading(true);
     try {
       const res = await apiFetch(`/api/products/${encodeURIComponent(suggestion.barcode)}`, {
@@ -178,8 +183,6 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         imageUrl: data.imageUrl ?? null,
         analysis_result_json: null,
       });
-      setInput("");
-      setSuggestions([]);
     } finally {
       setLoading(false);
     }
@@ -187,7 +190,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
 
   const rowCopy: Record<RowKind, { label: string; hint: string; icon: typeof Search }> = {
     search: { label: t("scanEntry.searchLabel"), hint: t("scanEntry.searchHint"), icon: Search },
-    barcode: { label: t("scanEntry.barcodeLabel"), hint: t("scanEntry.barcodeHint"), icon: Barcode },
+    barcode: { label: t("scanEntry.barcodeLabel"), hint: t("scan.barcodeDistanceHint"), icon: Barcode },
     ocr: { label: t("scanEntry.photoLabel"), hint: t("scanEntry.photoHint"), icon: Camera },
   };
 
@@ -203,6 +206,10 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
 
   const emitLookupResult = (data: ProductLookupResult, fallbackName: string) => {
     if (!data.found || !data.ingredients) return false;
+    setInput("");
+    setSuggestions([]);
+    setLookupResult(null);
+    searchInputRef.current?.blur();
     const name = [data.brand, data.productName].filter(Boolean).join(" ");
     // Om input var en EAN (8-14 siffror) så är `fallbackName` faktiskt
     // streckkoden. Propagera den så ProductDetailSheet vet att produkten
@@ -333,6 +340,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                     aria-hidden
                   />
                   <input
+                    ref={searchInputRef}
                     type="text"
                     value={input}
                     onChange={(event) => {

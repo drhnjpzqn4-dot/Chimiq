@@ -196,7 +196,11 @@ export function BarcodeScanButton({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: {
+          facingMode: "environment",
+          // Närfokus där webbläsaren stödjer det (Safari iOS ignorerar ofta).
+          advanced: [{ focusMode: "continuous" }, { focusMode: "near" }],
+        } as unknown as MediaTrackConstraints,
       });
       streamRef.current = stream;
 
@@ -333,6 +337,9 @@ export function BarcodeScanButton({
                   </div>
                   <p className="text-sm text-center text-muted-foreground">
                     {t("barcodeScan.pointCamera")}
+                  </p>
+                  <p className="mt-1.5 text-xs text-center text-muted-foreground/80">
+                    {t("scan.barcodeDistanceHint")}
                   </p>
                 </>
               )}
