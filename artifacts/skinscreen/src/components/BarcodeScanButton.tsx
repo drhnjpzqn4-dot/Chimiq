@@ -3,7 +3,7 @@ import { Barcode, X, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributeModal } from "@/components/ContributeModal";
 import { isNative } from "@/lib/native";
-import { BarcodeScanner, BarcodeFormat } from "@capacitor-mlkit/barcode-scanning";
+import { BarcodeScanner } from "capacitor-barcode-scanner";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 
@@ -133,50 +133,29 @@ export function BarcodeScanButton({
     setShowContribute(false);
     scannedRef.current = false;
 
-    // Native fast path: use Capacitor MLKit barcode scanner when running
-    // inside the iOS / Android shell. Falls through to the web flow on
-    // any failure (plugin missing, permission denied, etc.).
+    // Native fast path: AVFoundation (iOS) / Play Services ML Kit (Android).
+    // Falls through to web BarcodeDetector on failure.
     if (isNative()) {
       setState("requesting");
       setModalOpen(true);
       try {
-        try {
-          await BarcodeScanner.requestPermissions();
-        } catch {
-          /* permissions API may not be available on every plugin version */
-        }
-        const result = await BarcodeScanner.scan({
-          formats: [
-            BarcodeFormat.Ean13,
-            BarcodeFormat.Ean8,
-            BarcodeFormat.UpcA,
-            BarcodeFormat.UpcE,
-            BarcodeFormat.Code128,
-            BarcodeFormat.Code39,
-            BarcodeFormat.QrCode,
-          ],
-        });
-        const code = result.barcodes?.[0]?.rawValue ?? result.barcodes?.[0]?.displayValue;
-        if (code) {
-          await handleBarcodeFound(code);
+        const result = await BarcodeScanner.scan();
+        if (result.result && result.code) {
+          await handleBarcodeFound(result.code);
         } else {
           setState("idle");
           setModalOpen(false);
         }
         return;
       } catch (err) {
-        // Fall through to the web flow if the native plugin is missing or
-        // the user cancelled. Surface a useful message if nothing else works.
         if (!("BarcodeDetector" in window)) {
           setState("error");
           setErrorMsg(
-            err instanceof Error
-              ? err.message
-              : t("barcodeScan.errNativeUnavail"),
+            err instanceof Error ? err.message : t("barcodeScan.errNativeUnavail"),
           );
           return;
         }
-        // else: drop into the web BarcodeDetector branch below.
+        // Fall through to web BarcodeDetector
       }
     }
 

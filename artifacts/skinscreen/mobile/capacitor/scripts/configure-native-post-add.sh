@@ -51,4 +51,19 @@ else
   echo "iOS: registered $SCHEME:// deep link"
 fi
 
+# capacitor-barcode-scanner ships QR + Code128 only; Chimiq needs retail EAN/UPC.
+BARCODE_SWIFT="$CAP_DIR/node_modules/capacitor-barcode-scanner/ios/Plugin/BarcodeScannerViewController.swift"
+if [ -f "$BARCODE_SWIFT" ]; then
+  if grep -q '\.ean13' "$BARCODE_SWIFT"; then
+    echo "iOS: barcode scanner EAN/UPC types already patched"
+  else
+    sed -i '' \
+      's/metadataOutput.metadataObjectTypes = \[.qr,.code128\]/metadataOutput.metadataObjectTypes = [.qr, .code128, .ean13, .ean8, .upce]/' \
+      "$BARCODE_SWIFT"
+    echo "iOS: patched barcode scanner for EAN-13, EAN-8, UPC-E"
+  fi
+else
+  echo "iOS: barcode scanner Swift not found — run npm install in mobile/capacitor"
+fi
+
 echo "Native post-add configuration complete."
