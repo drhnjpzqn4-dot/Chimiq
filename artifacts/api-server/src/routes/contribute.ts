@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
+import { Resend } from "resend";
 import { extractProductNameFromImage } from "../lib/extractProductNameFromImage.js";
 import { uploadBufferToGcs } from "../lib/objectStorage.js";
 import { getAdminEmails, getRequestEmail, isRequestAdmin } from "../lib/admin.js";
@@ -15,6 +16,43 @@ import { evaluateContributionBadges } from "../lib/gamification.js";
 import { requireAuth } from "../lib/authGate.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
 import { supabaseAdmin } from "../lib/supabase-admin.js";
+
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
+
+function notifyAdminsOfNewSubmission(
+  params: { productName: string; brand: string; barcode: string },
+  log: { warn: (obj: unknown, msg: string) => void },
+): void {
+  if (!resend) return;
+
+  const adminEmails = getAdminEmails();
+  if (adminEmails.length === 0) return;
+
+  const { productName, brand, barcode } = params;
+  const subject = `Ny produktinlämning: ${productName} (${barcode})`;
+  const text = `En ny produkt har skickats in och väntar på granskning.
+
+Produkt: ${productName}
+Märke: ${brand}
+Streckkod: ${barcode}
+
+Granska på: https://chimiq.com/admin/submissions`;
+
+  void (async () => {
+    try {
+      await resend.emails.send({
+        from: "Chimiq Admin <noreply@chimiq.com>",
+        to: adminEmails,
+        subject,
+        text,
+      });
+    } catch (err) {
+      log.warn({ err }, "Admin submission notification email failed");
+    }
+  })();
+}
 
 const StartBody = z.object({
   barcode: z.string().trim().regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required."),
@@ -379,6 +417,15 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
         req.log.warn({ err: cacheError }, "Auto-cache of user submission failed (non-fatal)");
       }
     }
+
+    notifyAdminsOfNewSubmission(
+      {
+        productName: safeName ?? "(okänt)",
+        brand: safeBrand ?? "",
+        barcode: effectiveBarcode,
+      },
+      req.log,
+    );
 
     res.json({
       submissionId: data.id,
