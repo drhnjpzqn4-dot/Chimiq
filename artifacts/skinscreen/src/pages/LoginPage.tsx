@@ -1,5 +1,5 @@
-import { useState } from "react";
-import WelcomeSlides from "@/components/WelcomeSlides";
+import { useState, type ReactNode } from "react";
+import WelcomeSlides, { WELCOME_BG_WHITE } from "@/components/WelcomeSlides";
 import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
 import { useTranslation } from "@/lib/i18n";
@@ -10,6 +10,26 @@ function useNextParam(): string {
   const next = params.get("next") ?? params.get("returnTo");
   if (next && next.startsWith("/")) return next;
   return "/app/scan";
+}
+
+function LoginPageShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative min-h-screen">
+      <img
+        src={WELCOME_BG_WHITE}
+        alt=""
+        aria-hidden
+        className="pointer-events-none fixed inset-0 h-full w-full object-cover"
+      />
+      <div
+        className="pointer-events-none fixed inset-0 bg-[rgba(255,255,255,0.75)]"
+        aria-hidden
+      />
+      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+        {children}
+      </div>
+    </div>
+  );
 }
 
 export default function LoginPage() {
@@ -107,22 +127,25 @@ export default function LoginPage() {
     return (
       <>
         {welcomeOverlay}
-      <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-border/60 shadow-sm p-8 text-center">
-          <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-6" />
-          <h2 className="text-xl font-serif font-medium text-foreground mb-3">Check your email</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            We sent a confirmation link to <strong>{email}</strong>. Click it and then sign in.
-          </p>
-          <button
-            type="button"
-            onClick={() => { setMode("signin"); setSignupDone(false); }}
-            className="text-sm font-medium text-primary-strong hover:underline"
-          >
-            Back to sign in
-          </button>
-        </div>
-      </div>
+        <LoginPageShell>
+          <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-white p-8 text-center shadow-sm">
+            <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="mx-auto mb-6 h-8" />
+            <h2 className="mb-3 font-serif text-xl font-medium text-foreground">Check your email</h2>
+            <p className="mb-6 text-sm text-muted-foreground">
+              We sent a confirmation link to <strong>{email}</strong>. Click it and then sign in.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signin");
+                setSignupDone(false);
+              }}
+              className="text-sm font-medium text-primary-strong hover:underline"
+            >
+              Back to sign in
+            </button>
+          </div>
+        </LoginPageShell>
       </>
     );
   }
@@ -131,22 +154,22 @@ export default function LoginPage() {
     return (
       <>
         {welcomeOverlay}
-      <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-border/60 shadow-sm p-8 text-center">
-          <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-6" />
-          <h2 className="text-xl font-serif font-medium text-foreground mb-3">Check your email</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            If <strong>{email}</strong> is registered, you will receive a reset link shortly.
-          </p>
-          <button
-            type="button"
-            onClick={() => switchMode("signin")}
-            className="text-sm font-medium text-primary-strong hover:underline"
-          >
-            Back to sign in
-          </button>
-        </div>
-      </div>
+        <LoginPageShell>
+          <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-white p-8 text-center shadow-sm">
+            <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="mx-auto mb-6 h-8" />
+            <h2 className="mb-3 font-serif text-xl font-medium text-foreground">Check your email</h2>
+            <p className="mb-6 text-sm text-muted-foreground">
+              If <strong>{email}</strong> is registered, you will receive a reset link shortly.
+            </p>
+            <button
+              type="button"
+              onClick={() => switchMode("signin")}
+              className="text-sm font-medium text-primary-strong hover:underline"
+            >
+              Back to sign in
+            </button>
+          </div>
+        </LoginPageShell>
       </>
     );
   }
@@ -157,125 +180,137 @@ export default function LoginPage() {
   return (
     <>
       {welcomeOverlay}
-    <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-border/60 shadow-sm p-8">
-        <div className="text-center mb-6">
-          <a href={base + "/"}>
-            <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="h-8 mx-auto mb-4" />
-          </a>
-          <h1 className="text-2xl font-serif font-medium text-foreground">{title}</h1>
-          {mode === "forgot" && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Enter your email and we'll send you a reset link.
-            </p>
-          )}
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-            {error}
+      <LoginPageShell>
+        <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-white p-8 shadow-sm">
+          <div className="mb-6 text-center">
+            <a href={base + "/"}>
+              <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="mx-auto mb-4 h-8" />
+            </a>
+            <h1 className="font-serif text-2xl font-medium text-foreground">{title}</h1>
+            {mode === "forgot" && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                Enter your email and we'll send you a reset link.
+              </p>
+            )}
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === "signup" && (
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === "signup" && (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="firstName">
+                  {t("signup.firstNameLabel")}
+                </label>
+                <input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  autoComplete="given-name"
+                  className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder={t("signup.firstNamePlaceholder")}
+                />
+              </div>
+            )}
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="firstName">
-                {t("signup.firstNameLabel")}
+              <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="email">
+                Email
               </label>
               <input
-                id="firstName"
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
-                autoComplete="given-name"
+                autoComplete="email"
                 className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder={t("signup.firstNamePlaceholder")}
+                placeholder="you@example.com"
               />
             </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
-              placeholder="you@example.com"
-            />
-          </div>
-          {mode !== "forgot" && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-foreground" htmlFor="password">
-                  Password
-                </label>
-                {mode === "signin" && (
-                  <button
-                    type="button"
-                    onClick={() => switchMode("forgot")}
-                    className="text-xs text-muted-foreground hover:text-primary-strong hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                )}
+            {mode !== "forgot" && (
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="block text-sm font-medium text-foreground" htmlFor="password">
+                    Password
+                  </label>
+                  {mode === "signin" && (
+                    <button
+                      type="button"
+                      onClick={() => switchMode("forgot")}
+                      className="text-xs text-muted-foreground hover:text-primary-strong hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="••••••••"
+                />
               </div>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
-                placeholder="••••••••"
-              />
-            </div>
-          )}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-primary-strong hover:bg-primary-strong/90 text-white py-3 rounded-full text-sm font-semibold transition-all disabled:opacity-50"
-          >
-            {isLoading ? "…" : submitLabel}
-          </button>
-        </form>
+            )}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-full bg-primary-strong py-3 text-sm font-semibold text-white transition-all hover:bg-primary-strong/90 disabled:opacity-50"
+            >
+              {isLoading ? "…" : submitLabel}
+            </button>
+          </form>
 
-        <p className="mt-5 text-center text-sm text-muted-foreground">
-          {mode === "signin" && (
-            <>
-              No account yet?{" "}
-              <button type="button" onClick={() => switchMode("signup")} className="text-primary-strong font-medium hover:underline">
-                Create one
-              </button>
-            </>
-          )}
-          {mode === "signup" && (
-            <>
-              Already have an account?{" "}
-              <button type="button" onClick={() => switchMode("signin")} className="text-primary-strong font-medium hover:underline">
-                Sign in
-              </button>
-            </>
-          )}
-          {mode === "forgot" && (
-            <>
-              Remembered it?{" "}
-              <button type="button" onClick={() => switchMode("signin")} className="text-primary-strong font-medium hover:underline">
-                Sign in
-              </button>
-            </>
-          )}
-        </p>
-      </div>
-    </div>
+          <p className="mt-5 text-center text-sm text-muted-foreground">
+            {mode === "signin" && (
+              <>
+                No account yet?{" "}
+                <button
+                  type="button"
+                  onClick={() => switchMode("signup")}
+                  className="font-medium text-primary-strong hover:underline"
+                >
+                  Create one
+                </button>
+              </>
+            )}
+            {mode === "signup" && (
+              <>
+                Already have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => switchMode("signin")}
+                  className="font-medium text-primary-strong hover:underline"
+                >
+                  Sign in
+                </button>
+              </>
+            )}
+            {mode === "forgot" && (
+              <>
+                Remembered it?{" "}
+                <button
+                  type="button"
+                  onClick={() => switchMode("signin")}
+                  className="font-medium text-primary-strong hover:underline"
+                >
+                  Sign in
+                </button>
+              </>
+            )}
+          </p>
+        </div>
+      </LoginPageShell>
     </>
   );
 }

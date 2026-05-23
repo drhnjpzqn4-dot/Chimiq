@@ -4,7 +4,7 @@ const WELCOME_SEEN_KEY = "chimiq.welcome_seen";
 const SWIPE_THRESHOLD_PX = 50;
 
 const baseUrl = import.meta.env.BASE_URL ?? "/";
-const BG_WHITE = `${baseUrl}images/welcome-bg-white.jpg`;
+export const WELCOME_BG_WHITE = `${baseUrl}images/welcome-bg-white.jpg`;
 const BG_MARBLE = `${baseUrl}images/welcome-bg-marble.jpg`;
 
 const SLIDES = [
@@ -50,7 +50,7 @@ function hasWelcomeBeenSeen(): boolean {
 export default function WelcomeSlides({ onDone }: WelcomeSlidesProps) {
   const [alreadySeen] = useState(() => hasWelcomeBeenSeen());
   const [slideIndex, setSlideIndex] = useState(0);
-  const [bgSrc, setBgSrc] = useState(BG_WHITE);
+  const [bgSrc, setBgSrc] = useState(WELCOME_BG_WHITE);
   const dragStartX = useRef<number | null>(null);
   const isDragging = useRef(false);
 
@@ -87,6 +87,8 @@ export default function WelcomeSlides({ onDone }: WelcomeSlidesProps) {
     setBgSrc((prev) => (prev === BG_MARBLE ? prev : BG_MARBLE));
   };
 
+  const isLastSlide = slideIndex === SLIDES.length - 1;
+
   if (alreadySeen) {
     return null;
   }
@@ -94,10 +96,6 @@ export default function WelcomeSlides({ onDone }: WelcomeSlidesProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col overflow-hidden"
-      style={{
-        paddingTop: "env(safe-area-inset-top, 0px)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
-      }}
       aria-modal
       role="dialog"
       aria-label="Välkommen till Chimiq"
@@ -109,15 +107,11 @@ export default function WelcomeSlides({ onDone }: WelcomeSlidesProps) {
         className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         onError={onBgError}
       />
-      <div
-        className="pointer-events-none absolute inset-0 bg-black/[0.06]"
-        aria-hidden
-      />
 
       <button
         type="button"
         onClick={finish}
-        className="absolute right-4 top-4 z-10 text-sm font-medium text-[var(--sage-deep)]/80 hover:text-[var(--sage-deep)]"
+        className="absolute right-4 z-20 text-sm font-medium text-white/90 hover:text-white"
         style={{ top: "max(1rem, env(safe-area-inset-top, 0px))" }}
       >
         Hoppa över
@@ -145,37 +139,27 @@ export default function WelcomeSlides({ onDone }: WelcomeSlidesProps) {
             className="flex h-full w-full transition-transform duration-300 ease-out"
             style={{ transform: `translateX(-${slideIndex * 100}%)` }}
           >
-            {SLIDES.map((slide, i) => (
-              <section
-                key={slide.title}
-                className="flex h-full w-full shrink-0 flex-col justify-end px-6 pb-4"
-              >
-                <div className="mx-auto w-full max-w-md pb-6 pt-16 text-center">
-                  <h2 className="font-serif text-2xl font-medium leading-snug text-[var(--sage-deep)] sm:text-3xl">
+            {SLIDES.map((slide) => (
+              <section key={slide.title} className="relative flex h-full w-full shrink-0 flex-col">
+                <div
+                  className="pointer-events-none absolute inset-x-0 top-0 z-[1]"
+                  style={{
+                    height: "40%",
+                    background:
+                      "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)",
+                  }}
+                  aria-hidden
+                />
+                <div
+                  className="relative z-[2] px-6 text-left"
+                  style={{
+                    paddingTop: "max(60px, calc(env(safe-area-inset-top, 0px) + 48px))",
+                  }}
+                >
+                  <h2 className="font-serif text-[28px] font-medium leading-snug text-white">
                     {slide.title}
                   </h2>
-                  <p className="mt-4 text-base leading-relaxed text-foreground/80">
-                    {slide.subtitle}
-                  </p>
-
-                  {"isLast" in slide && slide.isLast && (
-                    <div className="mt-8 space-y-4">
-                      <button
-                        type="button"
-                        onClick={finish}
-                        className="w-full rounded-2xl bg-white px-4 py-3.5 text-base font-semibold text-[var(--sage-deep)] shadow-md transition-transform active:scale-[0.98]"
-                      >
-                        Skapa konto gratis
-                      </button>
-                      <button
-                        type="button"
-                        onClick={finish}
-                        className="text-sm text-[var(--sage-deep)]/90 underline-offset-2 hover:underline"
-                      >
-                        Har du redan ett konto? Logga in
-                      </button>
-                    </div>
-                  )}
+                  <p className="mt-3 text-[15px] leading-relaxed text-white/80">{slide.subtitle}</p>
                 </div>
               </section>
             ))}
@@ -184,25 +168,60 @@ export default function WelcomeSlides({ onDone }: WelcomeSlidesProps) {
       </div>
 
       <div
-        className="flex shrink-0 justify-center gap-2 pb-8"
-        style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom, 0px))" }}
-        role="tablist"
-        aria-label="Välkomststeg"
+        className="relative z-10 shrink-0 px-6"
+        style={{
+          paddingBottom: "max(48px, env(safe-area-inset-bottom, 0px))",
+        }}
       >
-        {SLIDES.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => goToSlide(i)}
-            className="h-2 w-2 rounded-full transition-colors"
-            style={{
-              backgroundColor:
-                i === slideIndex ? "var(--sage)" : "color-mix(in srgb, var(--sage) 25%, transparent)",
-            }}
-            aria-label={`Steg ${i + 1}`}
-            aria-current={i === slideIndex ? "step" : undefined}
-          />
-        ))}
+        {isLastSlide && (
+          <div className="mx-auto mb-6 w-full max-w-md space-y-4">
+            <button
+              type="button"
+              onClick={finish}
+              className="w-full rounded-2xl bg-white px-4 py-3.5 text-base font-semibold text-[var(--sage-deep)] shadow-md transition-transform active:scale-[0.98]"
+            >
+              Skapa konto gratis
+            </button>
+            <button
+              type="button"
+              onClick={finish}
+              className="block w-full text-center text-[13px] text-white/70 underline-offset-2 hover:underline"
+            >
+              Har du redan ett konto? Logga in
+            </button>
+          </div>
+        )}
+
+        <p
+          className="mb-2 text-center text-xs text-white/60"
+          style={{ textShadow: "0 1px 3px rgba(0,0,0,0.35)" }}
+          aria-live="polite"
+        >
+          {slideIndex + 1} / {SLIDES.length}
+        </p>
+        <div
+          className="flex justify-center gap-2.5"
+          role="tablist"
+          aria-label="Välkomststeg"
+        >
+          {SLIDES.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => goToSlide(i)}
+              className="h-3 w-3 rounded-full transition-colors"
+              style={{
+                backgroundColor:
+                  i === slideIndex
+                    ? "var(--sage)"
+                    : "rgba(255,255,255,0.45)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
+              }}
+              aria-label={`Steg ${i + 1}`}
+              aria-current={i === slideIndex ? "step" : undefined}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
