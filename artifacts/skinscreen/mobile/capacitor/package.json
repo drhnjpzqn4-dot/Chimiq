@@ -1,6 +1,6 @@
 {
   "name": "chimiq-mobile",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Capacitor native shell for Chimiq (iOS + Android). NOT a pnpm workspace member — keeps @capacitor/* out of the web bundle.",
   "scripts": {

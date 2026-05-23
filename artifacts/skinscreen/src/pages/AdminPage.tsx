@@ -296,14 +296,6 @@ function AdminPageInner() {
       </nav>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-12">
-        <TesterPromoAdmin />
-
-        <FeedbackAdmin />
-
-        <DiscoverRatingsAdmin />
-
-        <ScanInsightsAdmin />
-
         <div>
           <div className="mb-6">
             <h1 className="text-3xl font-serif font-medium text-foreground mb-1">
@@ -603,6 +595,14 @@ function AdminPageInner() {
             </div>
           )}
         </div>
+
+        <TesterPromoAdmin />
+
+        <FeedbackAdmin />
+
+        <DiscoverRatingsAdmin />
+
+        <ScanInsightsAdmin />
       </main>
     </div>
   );
