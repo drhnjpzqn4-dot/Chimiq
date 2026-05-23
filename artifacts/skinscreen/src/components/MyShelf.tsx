@@ -42,6 +42,7 @@ import {
   type IngredientStatusLevel,
 } from "@/components/IngredientStatusDot";
 import { ProductDetailSheet, type ProductDetailProduct } from "@/components/ProductDetailSheet";
+import { ReportProductButton } from "@/components/ReportProductButton";
 
 function normName(s: string) {
   return s.trim().toLowerCase();
@@ -835,6 +836,9 @@ export function MyShelf({ displayName }: MyShelfProps) {
                       removeAriaLabel={t("myShelf.removeProduct")}
                       removeDisabled={removeMutation.isPending}
                     />
+                    {product.barcode && (
+                      <ReportProductButton barcode={product.barcode} />
+                    )}
                     {bannerConflict && (
                       <ShelfConflictBanner>
                         <span className="block font-medium">

@@ -31,6 +31,7 @@ import checkoutRecoveryRouter from "./checkout-recovery.js";
 import recallsRouter from "./recalls.js";
 import profileOnboardingRouter from "./profile-onboarding.js";
 import profileRouter from "./profile.js";
+import reportRouter from "./report.js";
 
 const router: IRouter = Router();
 
@@ -66,5 +67,6 @@ router.use(checkoutRecoveryRouter);
 router.use(recallsRouter);
 router.use(profileOnboardingRouter);
 router.use(profileRouter);
+router.use(reportRouter);
 
 export default router;
