@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import WelcomeSlides, { WELCOME_BG_WHITE } from "@/components/WelcomeSlides";
+import WelcomeSlides from "@/components/WelcomeSlides";
+import { WELCOME_SEEN_STORAGE_KEY, welcomeBgWhiteUrl } from "@/lib/welcome-assets";
 import { supabase } from "@/lib/supabase";
 import { apiFetch } from "@/lib/api";
 import { useTranslation } from "@/lib/i18n";
@@ -12,20 +13,24 @@ function useNextParam(): string {
   return "/app/scan";
 }
 
+const LOGIN_CARD_CLASS =
+  "w-full max-w-sm rounded-2xl border border-white/50 bg-white/80 p-8 shadow-lg backdrop-blur-sm";
+
 function LoginPageShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative min-h-screen">
       <img
-        src={WELCOME_BG_WHITE}
+        src={welcomeBgWhiteUrl()}
         alt=""
         aria-hidden
         className="pointer-events-none fixed inset-0 h-full w-full object-cover"
       />
       <div
-        className="pointer-events-none fixed inset-0 bg-[rgba(255,255,255,0.75)]"
-        aria-hidden
-      />
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+        className="relative z-10 flex min-h-screen w-full items-start justify-center px-4 pb-10"
+        style={{
+          paddingTop: "max(5rem, calc(env(safe-area-inset-top, 0px) + 3.5rem))",
+        }}
+      >
         {children}
       </div>
     </div>
@@ -38,7 +43,7 @@ export default function LoginPage() {
   const [showWelcome, setShowWelcome] = useState(
     () =>
       typeof window !== "undefined" &&
-      localStorage.getItem("chimiq.welcome_seen") !== "true",
+      localStorage.getItem(WELCOME_SEEN_STORAGE_KEY) !== "true",
   );
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -128,7 +133,7 @@ export default function LoginPage() {
       <>
         {welcomeOverlay}
         <LoginPageShell>
-          <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-white p-8 text-center shadow-sm">
+          <div className={`${LOGIN_CARD_CLASS} text-center`}>
             <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="mx-auto mb-6 h-8" />
             <h2 className="mb-3 font-serif text-xl font-medium text-foreground">Check your email</h2>
             <p className="mb-6 text-sm text-muted-foreground">
@@ -155,7 +160,7 @@ export default function LoginPage() {
       <>
         {welcomeOverlay}
         <LoginPageShell>
-          <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-white p-8 text-center shadow-sm">
+          <div className={`${LOGIN_CARD_CLASS} text-center`}>
             <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="mx-auto mb-6 h-8" />
             <h2 className="mb-3 font-serif text-xl font-medium text-foreground">Check your email</h2>
             <p className="mb-6 text-sm text-muted-foreground">
@@ -181,7 +186,7 @@ export default function LoginPage() {
     <>
       {welcomeOverlay}
       <LoginPageShell>
-        <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-white p-8 shadow-sm">
+        <div className={LOGIN_CARD_CLASS}>
           <div className="mb-6 text-center">
             <a href={base + "/"}>
               <img src={`${base}/images/logo-chimiq-long.png`} alt="Chimiq" className="mx-auto mb-4 h-8" />

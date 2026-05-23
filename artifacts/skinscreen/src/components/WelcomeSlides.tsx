@@ -1,11 +1,11 @@
 import { useCallback, useRef, useState } from "react";
+import {
+  WELCOME_SEEN_STORAGE_KEY,
+  welcomeBgMarbleUrl,
+  welcomeBgWhiteUrl,
+} from "@/lib/welcome-assets";
 
-const WELCOME_SEEN_KEY = "chimiq.welcome_seen";
 const SWIPE_THRESHOLD_PX = 50;
-
-const baseUrl = import.meta.env.BASE_URL ?? "/";
-export const WELCOME_BG_WHITE = `${baseUrl}images/welcome-bg-white.jpg`;
-const BG_MARBLE = `${baseUrl}images/welcome-bg-marble.jpg`;
 
 const SLIDES = [
   {
@@ -32,7 +32,7 @@ export interface WelcomeSlidesProps {
 
 function markWelcomeSeen(): void {
   try {
-    localStorage.setItem(WELCOME_SEEN_KEY, "true");
+    localStorage.setItem(WELCOME_SEEN_STORAGE_KEY, "true");
   } catch {
     /* private mode / quota */
   }
@@ -41,7 +41,7 @@ function markWelcomeSeen(): void {
 function hasWelcomeBeenSeen(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    return localStorage.getItem(WELCOME_SEEN_KEY) === "true";
+    return localStorage.getItem(WELCOME_SEEN_STORAGE_KEY) === "true";
   } catch {
     return false;
   }
@@ -50,7 +50,7 @@ function hasWelcomeBeenSeen(): boolean {
 export default function WelcomeSlides({ onDone }: WelcomeSlidesProps) {
   const [alreadySeen] = useState(() => hasWelcomeBeenSeen());
   const [slideIndex, setSlideIndex] = useState(0);
-  const [bgSrc, setBgSrc] = useState(WELCOME_BG_WHITE);
+  const [bgSrc, setBgSrc] = useState(welcomeBgWhiteUrl);
   const dragStartX = useRef<number | null>(null);
   const isDragging = useRef(false);
 
@@ -84,7 +84,8 @@ export default function WelcomeSlides({ onDone }: WelcomeSlidesProps) {
   };
 
   const onBgError = () => {
-    setBgSrc((prev) => (prev === BG_MARBLE ? prev : BG_MARBLE));
+    const marble = welcomeBgMarbleUrl();
+    setBgSrc((prev) => (prev === marble ? prev : marble));
   };
 
   const isLastSlide = slideIndex === SLIDES.length - 1;
@@ -166,6 +167,15 @@ export default function WelcomeSlides({ onDone }: WelcomeSlidesProps) {
           </div>
         </div>
       </div>
+
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[38%]"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.12) 45%, transparent 100%)",
+        }}
+        aria-hidden
+      />
 
       <div
         className="relative z-10 shrink-0 px-6"
