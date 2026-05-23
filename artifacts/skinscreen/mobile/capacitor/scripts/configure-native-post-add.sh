@@ -33,6 +33,13 @@ add_plist_key NSPhotoLibraryUsageDescription string \
 add_plist_key NSPhotoLibraryAddUsageDescription string \
   "Chimiq kan spara produktbilder till ditt fotobibliotek."
 
+if /usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$INFO_PLIST" >/dev/null 2>&1; then
+  echo "iOS: ITSAppUsesNonExemptEncryption already set"
+else
+  /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$INFO_PLIST"
+  echo "iOS: added ITSAppUsesNonExemptEncryption (export compliance)"
+fi
+
 if grep -q "<string>$SCHEME</string>" "$INFO_PLIST"; then
   echo "iOS: $SCHEME URL scheme already registered"
 else
