@@ -54,6 +54,62 @@ Granska på: https://chimiq.com/admin/submissions`;
   })();
 }
 
+const AUTO_APPROVE_ENABLED = process.env.AUTO_APPROVE_ENABLED === "true";
+
+function normalizeProductNameWords(name: string): string[] {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/** True when submitted and extracted names share ≥80% of words (by max word count). */
+function productNamesSimilarityMatch(submitted: string, extracted: string): boolean {
+  const submittedWords = normalizeProductNameWords(submitted);
+  const extractedWords = normalizeProductNameWords(extracted);
+  if (submittedWords.length === 0 || extractedWords.length === 0) return false;
+
+  const extractedSet = new Set(extractedWords);
+  const overlap = submittedWords.filter((w) => extractedSet.has(w)).length;
+  return overlap / Math.max(submittedWords.length, extractedWords.length) >= 0.8;
+}
+
+function evaluatePhotoAutoApproval(params: {
+  frontImageConfidence: "high" | "low" | undefined;
+  ingredientsImageConfidence: "high" | "low" | undefined;
+  submittedProductName: string | null;
+  extractedProductName: string | null;
+  ingredients: string | null;
+}): { autoApprove: boolean; aiReviewNote: string } {
+  if (params.frontImageConfidence !== "high") {
+    return { autoApprove: false, aiReviewNote: "Low confidence: front image" };
+  }
+  if (params.ingredientsImageConfidence !== "high") {
+    return { autoApprove: false, aiReviewNote: "Low confidence: ingredients image" };
+  }
+
+  const submitted = params.submittedProductName?.trim() ?? "";
+  const extracted = params.extractedProductName?.trim() ?? "";
+  if (!submitted || !extracted || !productNamesSimilarityMatch(submitted, extracted)) {
+    return {
+      autoApprove: false,
+      aiReviewNote: `Name mismatch: submitted '${submitted || "(empty)"}' vs extracted '${extracted || "(empty)"}'`,
+    };
+  }
+
+  const ingredients = params.ingredients?.trim() ?? "";
+  if (ingredients.length < 20) {
+    return { autoApprove: false, aiReviewNote: "Insufficient ingredients text" };
+  }
+
+  return {
+    autoApprove: true,
+    aiReviewNote: "Auto-approved: high confidence on all signals",
+  };
+}
+
 const StartBody = z.object({
   barcode: z.string().trim().regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required."),
   productName: z.string().trim().min(1, "Product name is required.").max(500),
@@ -501,8 +557,8 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
   let extractedProductName: string | undefined;
   let extractedBrand: string | undefined;
   let extractedIngredients: string | undefined;
-  let confidence: "high" | "low" = "high";
-  let aiNote: string | undefined;
+  let frontImageConfidence: "high" | "low" | undefined;
+  let ingredientsImageConfidence: "high" | "low" | undefined;
 
   if ((frontImageBase64 || ingredientsImageBase64) && baseURL && apiKey) {
     const anthropic = new Anthropic({ apiKey });
@@ -516,14 +572,11 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
     if (frontResult.status === "fulfilled" && frontResult.value) {
       extractedProductName = frontResult.value.productName;
       extractedBrand = frontResult.value.brand;
-      if (frontResult.value.confidence === "low") confidence = "low";
+      frontImageConfidence = frontResult.value.confidence;
     }
     if (ingredientsResult.status === "fulfilled" && ingredientsResult.value) {
       extractedIngredients = ingredientsResult.value.ingredients;
-      if (ingredientsResult.value.confidence === "low") confidence = "low";
-    }
-    if (confidence === "low") {
-      aiNote = "AI extraction had low confidence — please verify the extracted data.";
+      ingredientsImageConfidence = ingredientsResult.value.confidence;
     }
   }
 
@@ -605,8 +658,32 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
   const isCompleteContribution =
     hasIngredients && hasProductName && hasFrontPhoto && hasRealBarcode;
 
-  const status =
-    isCompleteContribution && confidence === "high" ? "approved" : "needs_admin";
+  let status: SubmissionStatus;
+  let aiReviewNote: string | null;
+
+  if (AUTO_APPROVE_ENABLED && isCompleteContribution) {
+    const decision = evaluatePhotoAutoApproval({
+      frontImageConfidence,
+      ingredientsImageConfidence,
+      submittedProductName: existing.productName,
+      extractedProductName: safeExtractedProductName,
+      ingredients: finalIngredients,
+    });
+    if (decision.autoApprove) {
+      status = "approved";
+      aiReviewNote = decision.aiReviewNote;
+      req.log.info(`[AI auto-approve] ${existing.barcode} – ${finalProductName}`);
+    } else {
+      status = "needs_admin";
+      aiReviewNote = decision.aiReviewNote;
+    }
+  } else {
+    status = "needs_admin";
+    aiReviewNote =
+      frontImageConfidence === "low" || ingredientsImageConfidence === "low"
+        ? "AI extraction had low confidence — please verify the extracted data."
+        : null;
+  }
 
   try {
     const { data: updatedRow, error: updateError } = await supabaseAdmin
@@ -617,7 +694,7 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
         ingredients: finalIngredients ?? null,
         submitted_by: userId ?? existing.submittedBy,
         status,
-        ai_review_note: aiNote ?? null,
+        ai_review_note: aiReviewNote,
         front_image_url: frontImageUrl ?? existing.frontImageUrl,
         ingredients_image_url: ingredientsImageUrl ?? existing.ingredientsImageUrl,
       })
@@ -654,6 +731,17 @@ router.post("/contribute/photos", requireAuth, contributePhotosLimiter, async (r
         premiumUnlocked = reward.premiumUnlocked;
         premiumUntil = reward.premiumUntil;
       }
+    }
+
+    if (status === "needs_admin") {
+      notifyAdminsOfNewSubmission(
+        {
+          productName: finalProductName ?? "(okänt)",
+          brand: finalBrand ?? "",
+          barcode: existing.barcode,
+        },
+        req.log,
+      );
     }
 
     res.json({
