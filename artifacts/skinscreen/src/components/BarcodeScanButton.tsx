@@ -112,14 +112,8 @@ export function BarcodeScanButton({
 
         if (data.found && data.ingredients) {
           const name = [data.brand, data.productName].filter(Boolean).join(" ") || t("contribute.scannedProductFallback");
-          setScannedProduct(name);
-          setState("success");
-          setTimeout(() => {
-            onResult(data.ingredients!, name, code);
-            setModalOpen(false);
-            setState("idle");
-            setScannedProduct(null);
-          }, 1200);
+          onResult(data.ingredients, name, code);
+          close();
         } else {
           setScannedBarcode(code);
           setPrefillName(data.productName ?? "");

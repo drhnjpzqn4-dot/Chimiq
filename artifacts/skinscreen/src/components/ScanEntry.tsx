@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, ChevronRight, Loader2, Search } from "lucide-react";
+import { Barcode, Camera, CheckCircle2, ChevronRight, Loader2, Search } from "lucide-react";
 import { BarcodeScanButton } from "@/components/BarcodeScanButton";
 import { IngredientsCapture } from "@/components/IngredientsCapture";
 import { ProductCapture } from "@/components/ProductCapture";
@@ -40,6 +40,7 @@ interface ProductLookupResult {
   ingredients?: string;
   imageUrl?: string | null;
   analysis?: ProductDetailAnalysis | null;
+  barcode?: string;
 }
 
 interface ProductSuggestion {
@@ -78,14 +79,44 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
     return "ontouchstart" in window || navigator.maxTouchPoints > 0;
   }, []);
   const trimmedInput = input.trim();
+  const hasCapturedResult =
+    (active === "barcode" && barcodeResult !== null) ||
+    (active === "search" && lookupResult?.found === true && Boolean(lookupResult.ingredients)) ||
+    (active === "ocr" && pasteText.trim().length > 0);
   const canAnalyze =
     active === "search"
-      ? trimmedInput.length >= 2
+      ? hasCapturedResult || trimmedInput.length >= 2
       : active === "barcode"
         ? Boolean(barcodeResult)
         : active === "ocr"
           ? pasteText.trim().length > 0
           : false;
+
+  const clearCaptured = () => {
+    setBarcodeResult(null);
+    setLookupResult(null);
+    setInput("");
+    setPasteText("");
+    setSuggestions([]);
+    setShowCapture(false);
+  };
+
+  const capturedDisplayName =
+    active === "barcode"
+      ? barcodeResult?.product_name ?? barcodeResult?.productName ?? ""
+      : active === "search"
+        ? [lookupResult?.brand, lookupResult?.productName].filter(Boolean).join(" ") ||
+          lookupResult?.productName ||
+          ""
+        : t("scanner.scannedProductFallback");
+
+  const capturedBrand =
+    active === "barcode" ? barcodeResult?.brand : lookupResult?.brand;
+
+  const capturedEan =
+    active === "barcode"
+      ? barcodeResult?.barcode ?? null
+      : lookupResult?.barcode ?? (/^\d{8,14}$/.test(trimmedInput) ? trimmedInput : null);
 
   // Debounced typeahead against the Chimiq cached_products table. Hits
   // /api/products?q=...&limit=8, which searches product_name, brand AND
@@ -172,16 +203,14 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         ingredients?: string;
         imageUrl?: string | null;
       };
-      const name = [data.brand, data.productName].filter(Boolean).join(" ") || suggestion.productName;
-      onResult?.({
-        product_name: name,
-        productName: name,
-        brand: data.brand,
-        barcode: suggestion.barcode,
+      setLookupResult({
+        found: true,
+        productName: data.productName ?? suggestion.productName,
+        brand: data.brand ?? suggestion.brand,
         ingredients: data.ingredients,
-        image_url: data.imageUrl ?? null,
         imageUrl: data.imageUrl ?? null,
-        analysis_result_json: null,
+        analysis: null,
+        barcode: suggestion.barcode,
       });
     } finally {
       setLoading(false);
@@ -206,20 +235,14 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
 
   const emitLookupResult = (data: ProductLookupResult, fallbackName: string) => {
     if (!data.found || !data.ingredients) return false;
-    setInput("");
-    setSuggestions([]);
-    setLookupResult(null);
-    searchInputRef.current?.blur();
     const name = [data.brand, data.productName].filter(Boolean).join(" ");
-    // Om input var en EAN (8-14 siffror) så är `fallbackName` faktiskt
-    // streckkoden. Propagera den så ProductDetailSheet vet att produkten
-    // finns i DB:n (= dölj bidrag-knappen).
     const looksLikeEan = /^\d{8,14}$/.test(fallbackName);
+    const barcode = data.barcode ?? (looksLikeEan ? fallbackName : undefined);
     onResult?.({
       product_name: name || data.productName || fallbackName,
       productName: name || data.productName || fallbackName,
       brand: data.brand,
-      barcode: looksLikeEan ? fallbackName : undefined,
+      barcode,
       ingredients: data.ingredients,
       image_url: data.imageUrl ?? null,
       imageUrl: data.imageUrl ?? null,
@@ -248,11 +271,19 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
       return;
     }
 
+    if (lookupResult?.found && lookupResult.ingredients) {
+      emitLookupResult(lookupResult, lookupResult.barcode ?? trimmedInput);
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await lookupProduct(trimmedInput);
-      setLookupResult(data);
-      emitLookupResult(data, trimmedInput);
+      const enriched: ProductLookupResult =
+        data.found && /^\d{8,14}$/.test(trimmedInput)
+          ? { ...data, barcode: trimmedInput }
+          : data;
+      setLookupResult(enriched);
     } finally {
       setLoading(false);
     }
@@ -331,7 +362,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
               {rowContent(kind)}
             </button>
 
-            {kind === "search" && isActive && (
+            {kind === "search" && isActive && !hasCapturedResult && (
               <div className="mt-2 rounded-xl border border-[var(--line)] bg-white p-3">
                 <div className="relative">
                   <Search
@@ -422,25 +453,6 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                 {/* Tidigare "Analysera-trigger"-träff från lookupProduct.
                     Behålls för EAN-flödet (när användaren matar in 8-14 siffror
                     direkt och trycker Analysera). */}
-                {lookupResult?.found && lookupResult.ingredients && (
-                  <button
-                    type="button"
-                    onClick={() => emitLookupResult(lookupResult, trimmedInput)}
-                    className="mt-3 flex w-full items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-3 text-left hover:bg-primary/10"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-foreground">
-                        {lookupResult.productName}
-                      </span>
-                      {lookupResult.brand && (
-                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                          {lookupResult.brand}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                )}
-
                 {trimmedInput && lookupResult && !lookupResult.found && !loading &&
                   suggestions.length === 0 && !suggestLoading && (
                     showCapture ? (
@@ -477,7 +489,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
               </div>
             )}
 
-            {kind === "ocr" && isActive && (
+            {kind === "ocr" && isActive && !hasCapturedResult && (
               <IngredientsCapture
                 value={pasteText}
                 onChange={setPasteText}
@@ -487,6 +499,60 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
           </div>
         );
       })}
+
+      {hasCapturedResult && active && (
+        <div
+          className="mt-3 rounded-xl border bg-white p-4"
+          style={{ borderColor: "var(--line)" }}
+        >
+          <div className="flex items-start gap-3">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: "var(--sage)", color: "#FFFFFF" }}
+              aria-hidden
+            >
+              <CheckCircle2 className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--sage-deep)" }}>
+                {t("scan.productFound")}
+              </p>
+              <p className="mt-1 text-[15px] font-medium leading-snug" style={{ color: "var(--ink)" }}>
+                {capturedDisplayName}
+              </p>
+              {capturedBrand && (
+                <p className="mt-0.5 text-sm" style={{ color: "var(--ink-soft)" }}>
+                  {capturedBrand}
+                </p>
+              )}
+              {capturedEan && !String(capturedEan).startsWith("CHIMIQ_") && (
+                <p className="mt-1 text-xs tabular-nums" style={{ color: "var(--ink-soft)" }}>
+                  {t("scan.capturedEan")} {capturedEan}
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            data-touch-target
+            disabled={loading}
+            onClick={() => void handleAnalyze()}
+            className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-opacity disabled:opacity-60"
+            style={{ backgroundColor: "var(--sage)", color: "#FFFFFF" }}
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+            {t("scan.openProductCard")}
+          </button>
+          <button
+            type="button"
+            className="mt-3 w-full text-center text-sm font-semibold transition-opacity hover:opacity-80"
+            style={{ color: "var(--sage-deep)" }}
+            onClick={clearCaptured}
+          >
+            {t("scan.scanAnother")}
+          </button>
+        </div>
+      )}
 
       <button
         type="button"
