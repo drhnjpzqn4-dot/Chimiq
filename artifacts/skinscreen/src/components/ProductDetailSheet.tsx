@@ -11,6 +11,7 @@ import { ShelfConflictBanner, type IngredientStatusLevel } from "@/components/In
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
+import { IngredientTokenList } from "@/components/IngredientTokenList";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import type { ProductType } from "@/components/ProductTypeBadge";
 
@@ -780,12 +781,12 @@ export function ProductDetailSheet({
                     className="textarea-base mt-2 font-mono text-xs"
                   />
                 ) : (
-                  <p
-                    className="mt-2 max-h-40 overflow-hidden whitespace-pre-wrap rounded-2xl border border-[var(--line)] bg-[var(--cream-warm)] p-3 font-mono text-xs leading-relaxed"
-                    style={{ color: "var(--ink-soft)", maxHeight: expanded ? "none" : 160 }}
+                  <div
+                    className="mt-2 max-h-40 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--cream-warm)] p-3 leading-relaxed"
+                    style={{ maxHeight: expanded ? "none" : 160 }}
                   >
-                    {ingredientPreview}
-                  </p>
+                    <IngredientTokenList ingredientsText={ingredientPreview} />
+                  </div>
                 )}
                 {!editMode && rawIngredients.length > 520 && (
                   <button

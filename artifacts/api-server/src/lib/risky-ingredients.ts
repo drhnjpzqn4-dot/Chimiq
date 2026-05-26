@@ -64,6 +64,40 @@ export interface RiskEntry {
    * Benzophenone-3, "Ethylhexyl Methoxycinnamate" for Octinoxate).
    */
   aliases?: string[];
+
+  /** Slug för URL, t.ex. /discover/ingredients/dmdm-hydantoin */
+  slug?: string;
+  /** Längre beskrivning för encyklopedi-detailsidan. */
+  description?: string;
+  description_se?: string;
+  /** Produkttyper där ingrediensen vanligt förekommer. */
+  commonIn?: string[];
+  commonIn_se?: string[];
+  /** Sant när källan är SCCS, IARC, EU-reglering eller peer-reviewed journal. */
+  medicallyReviewed?: boolean;
+}
+
+export type RiskEntryWithSlug = RiskEntry & { slug: string; key: string };
+
+function inferMedicallyReviewed(entry: RiskEntry): boolean {
+  if (entry.medicallyReviewed !== undefined) return entry.medicallyReviewed;
+  const cite = `${entry.citation} ${entry.citationUrl}`.toLowerCase();
+  return (
+    /sccs|iarc|eur-lex|eu regulation|reach|ntp\.niehs|pubmed|fda\.gov|echa\.europa|who\.int|cosmetics regulation/.test(
+      cite,
+    )
+  );
+}
+
+export function slugifyRiskDisplay(display: string): string {
+  return display
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function slugForEntry(key: string, entry: RiskEntry): string {
+  return entry.slug ?? key.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
 /**
@@ -83,6 +117,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     hint_se: "Frigör långsamt formaldehyd — ett ämne som klassas som cancerframkallande för människa och är en vanlig kontaktallergen.",
     citation: "IARC Monographs Vol. 100F, 2012.",
     citationUrl: "https://publications.iarc.fr/123",
+    slug: "dmdm-hydantoin",
+    description:
+      "DMDM Hydantoin is a preservative that slowly releases tiny amounts of formaldehyde to prevent bacteria growth in cosmetics. Formaldehyde is a known human carcinogen and a frequent cause of allergic skin reactions. It is found in many shampoos, conditioners, and liquid soaps.",
+    description_se:
+      "DMDM Hydantoin är ett konserveringsmedel som långsamt frigör små mängder formaldehyd för att hindra bakterietillväxt i kosmetiska produkter. Formaldehyd klassas som cancerframkallande för människa och är en vanlig orsak till allergiska hudreaktioner. Det förekommer i många schampon, balsam och flytande tvålar.",
+    commonIn: ["shampoo", "conditioner", "liquid soap", "moisturizer"],
+    commonIn_se: ["schampo", "balsam", "flytande tvål", "fuktkräm"],
+    medicallyReviewed: true,
   },
   "diazolidinyl urea": {
     display: "Diazolidinyl Urea",
@@ -110,6 +152,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     hint_se: "Den starkaste formaldehydfrigöraren i kosmetika; hög risk för kontakteksem.",
     citation: "de Groot AC, 2010. Contact Dermatitis.",
     citationUrl: "https://pubmed.ncbi.nlm.nih.gov/20136890/",
+    slug: "quaternium-15",
+    description:
+      "Quaternium-15 is one of the most potent formaldehyde-releasing preservatives used in cosmetics. It helps products last longer on the shelf but can trigger allergic contact dermatitis, especially in people with sensitive skin or eczema.",
+    description_se:
+      "Quaternium-15 är en av de starkaste formaldehydfrigörande konserveringsmedlen i kosmetika. Det förlänger produktens hållbarhet men kan utlösa allergiskt kontakteksem, särskilt hos personer med känslig hud eller atopiskt eksem.",
+    commonIn: ["shampoo", "conditioner", "body lotion", "liquid soap"],
+    commonIn_se: ["schampo", "balsam", "body lotion", "flytande tvål"],
+    medicallyReviewed: true,
   },
   "bronopol": {
     display: "2-Bromo-2-Nitropropane-1,3-Diol (Bronopol)",
@@ -248,6 +298,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     hint_se: "Antibakteriellt ämne med oro för sköldkörtelpåverkan och antibiotikaresistens; begränsat i EU till 0,3 %.",
     citation: "FDA Final Rule 2017; SCCS/1414/11.",
     citationUrl: "https://www.federalregister.gov/documents/2016/09/06/2016-21337/",
+    slug: "triclosan",
+    description:
+      "Triclosan is an antibacterial agent once common in hand soaps and toothpaste. Studies link it to hormone disruption and concerns about antibiotic resistance. It is heavily restricted in the EU and largely phased out of consumer products.",
+    description_se:
+      "Triclosan är ett antibakteriellt ämne som tidigare fanns i handtvål och tandkräm. Studier kopplar det till hormonpåverkan och oro för antibiotikaresistens. Det är kraftigt begränsat i EU och i stort sett borttaget från konsumentprodukter.",
+    commonIn: ["toothpaste", "hand soap", "deodorant", "face wash"],
+    commonIn_se: ["tandkräm", "handtvål", "deodorant", "ansiktsrengöring"],
+    medicallyReviewed: true,
   },
   "triclocarban": {
     display: "Triclocarban",
@@ -291,6 +349,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     citation: "ECHA SVHC list; REACH Annex XVII entry 70.",
     citationUrl: "https://echa.europa.eu/substance-information/-/substanceinfo/100.005.281",
     aliases: ["d4"],
+    slug: "cyclotetrasiloxane-d4",
+    description:
+      "Cyclotetrasiloxane (D4) is a silicone that makes products feel silky and spread easily. EU authorities classify it as harmful to reproduction and very persistent in the environment. It is restricted in rinse-off cosmetics and under further regulatory scrutiny.",
+    description_se:
+      "Cyclotetrasiloxane (D4) är en silikon som ger produkter en len känsla. EU myndigheter klassar den som reproduktionsskadande och mycket långlivad i miljön. Den är begränsad i avsköljbara produkter och under fortsatt regulatorisk granskning.",
+    commonIn: ["foundation", "primer", "hair serum", "deodorant"],
+    commonIn_se: ["foundation", "primer", "hårserum", "deodorant"],
+    medicallyReviewed: true,
   },
 
   // ─── Triethanolamine (nitrosamine concern) ──────────────────────────────
@@ -337,6 +403,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     hint_se: "DEA-baserad tensid som kan frigöra dietanolamin och bilda cancerframkallande nitrosaminer i vanliga produktformuleringar; IARC har klassificerat kokamid-DEA som möjligen cancerframkallande för människa (grupp 2B).",
     citation: "IARC Monographs Vol. 101, 2013.",
     citationUrl: "https://publications.iarc.fr/Book-And-Report-Series/Iarc-Monographs-On-The-Identification-Of-Carcinogenic-Hazards-To-Humans/Some-Chemicals-Present-In-Industrial-And-Consumer-Products-Food-And-Drinking-Water-2013",
+    slug: "cocamide-dea",
+    description:
+      "Cocamide DEA is a foam-boosting ingredient derived from coconut oil. In some formulas it can react with other chemicals to form nitrosamines, which are linked to cancer. It appears mainly in shampoos, body washes, and bubble baths.",
+    description_se:
+      "Cocamide DEA är ett skumförstärkande ämne från kokosolja. I vissa recepturer kan det reagera och bilda nitrosaminer, som kopplas till cancer. Det finns främst i schampo, duschgel och bubbelbad.",
+    commonIn: ["shampoo", "body wash", "bubble bath", "face wash"],
+    commonIn_se: ["schampo", "duschgel", "bubbelbad", "ansiktsrengöring"],
+    medicallyReviewed: true,
   },
   "lauramide dea": {
     display: "Lauramide DEA",
@@ -449,6 +523,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     hint_se: "Receptbelagd retinoid; helt kontraindicerad under graviditet (fosterskadande).",
     citation: "Loureiro KD et al., 2005. Am J Med Genet A.",
     citationUrl: "https://pubmed.ncbi.nlm.nih.gov/16216923/",
+    slug: "tretinoin",
+    description:
+      "Tretinoin is a prescription-strength vitamin A acid used for acne and anti-ageing. It increases sun sensitivity and must not be used during pregnancy because it can harm fetal development. Daily SPF is essential when using it.",
+    description_se:
+      "Tretinoin är en receptbelagd A-vitaminsyra mot akne och åldrande hud. Den ökar känsligheten för sol och får inte användas under graviditet eftersom den kan skada fostret. Daglig solskyddsfaktor är nödvändig.",
+    commonIn: ["acne cream", "anti-age serum", "prescription gel"],
+    commonIn_se: ["aknekräm", "anti-age-serum", "receptbelagd gel"],
+    medicallyReviewed: true,
   },
   "adapalene": {
     display: "Adapalene",
@@ -743,6 +825,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     hint_se: "En av de fem vanligaste kontaktallergenerna det senaste decenniet; förbjuden i EU:s leave-on-produkter.",
     citation: "SCCS/1521/13.",
     citationUrl: "https://health.ec.europa.eu/scientific-committees/scientific-committee-consumer-safety-sccs_en",
+    slug: "methylisothiazolinone",
+    description:
+      "Methylisothiazolinone (MI) is a powerful preservative that prevents mould in water-based products. It is one of the most common causes of allergic contact dermatitis in Europe and is banned in leave-on cosmetics in the EU.",
+    description_se:
+      "Methylisothiazolinone (MI) är ett starkt konserveringsmedel som hindrar mögel i vattenbaserade produkter. Det är en av de vanligaste orsakerna till allergiskt kontakteksem i Europa och är förbjudet i leave-on-kosmetika i EU.",
+    commonIn: ["shampoo", "wet wipes", "liquid soap", "household cleaner"],
+    commonIn_se: ["schampo", "våtservetter", "flytande tvål", "rengöringsmedel"],
+    medicallyReviewed: true,
   },
   "methylchloroisothiazolinone": {
     display: "Methylchloroisothiazolinone (MCI)",
@@ -876,6 +966,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     citation: "IARC Monographs Vol. 100F (2012).",
     citationUrl: "https://publications.iarc.fr/123",
     aliases: ["coal tar solution", "steinkohlenteer", "tar"],
+    slug: "coal-tar",
+    description:
+      "Coal tar is a thick liquid made from coal, used in some anti-dandruff and psoriasis treatments. IARC classifies it as a known human carcinogen. It is banned in cosmetic products in the EU.",
+    description_se:
+      "Kolbeck är en tjock vätska från kol som använts i vissa mjäll- och psoriasisbehandlingar. IARC klassar det som bevisat cancerframkallande för människa. Det är förbjudet i kosmetiska produkter i EU.",
+    commonIn: ["anti-dandruff shampoo", "psoriasis treatment", "hair dye"],
+    commonIn_se: ["mjällschampo", "psoriasisbehandling", "hårfärg"],
+    medicallyReviewed: true,
   },
 
   // ─── Synthetic antioxidants (endocrine concerns) ────────────────────────
@@ -927,6 +1025,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     citation: "EU Cosmetics Regulation (EC) No 1223/2009, Annex II (prohibited substances).",
     citationUrl: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32009R1223",
     aliases: ["lead", "plumbum aceticum"],
+    slug: "lead-acetate",
+    description:
+      "Lead acetate is a lead salt that was used in some gradual hair darkening products. Lead is a neurotoxin with no safe level of exposure, especially dangerous for children. It is prohibited in all EU cosmetics.",
+    description_se:
+      "Blyacetat är ett blysalt som använts i vissa gradvisa hårmörkningsprodukter. Bly är ett nervgift utan säker exponeringsnivå, särskilt farligt för barn. Det är förbjudet i all EU-kosmetika.",
+    commonIn: ["gradual hair dye", "eyebrow tint"],
+    commonIn_se: ["gradvis hårfärg", "ögonbrynsfärg"],
+    medicallyReviewed: true,
   },
   "chromium oxide greens": {
     display: "Chromium Oxide Greens (CI 77288)",
@@ -1088,4 +1194,25 @@ export function buildMandatoryFlagsBlock(matches: MatchedRisk[], skinProfile?: s
     "Default behaviour: include a flag for each ingredient above using the supplied category and severity. Write your own 1–2 sentence explanation that incorporates the hint and adapts the tone to the user's skin profile.",
     "Exception: if an entry is marked CONCENTRATION CHECK REQUIRED and the position in the INCI list strongly suggests a trace amount (e.g. last third of a list of 8+ ingredients), you MAY skip the flag. For very short lists (≤5 ingredients), do not skip — concentration cannot be inferred reliably. You may also add additional flags for other concerning ingredients you identify outside this list.",
   ].join("\n");
+}
+
+/**
+ * All curated risk entries with slug and inferred medicallyReviewed flag.
+ */
+export function getRiskEntries(): RiskEntryWithSlug[] {
+  return Object.entries(RAW_RISKS).map(([key, entry]) => ({
+    ...entry,
+    key,
+    slug: slugForEntry(key, entry),
+    medicallyReviewed: inferMedicallyReviewed(entry),
+  }));
+}
+
+/**
+ * Lookup a single encyclopedia entry by URL slug.
+ */
+export function getRiskEntryBySlug(slug: string): RiskEntryWithSlug | null {
+  const normalized = slug.trim().toLowerCase();
+  if (!normalized) return null;
+  return getRiskEntries().find((e) => e.slug === normalized) ?? null;
 }

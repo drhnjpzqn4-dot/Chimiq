@@ -32,6 +32,7 @@ import recallsRouter from "./recalls.js";
 import profileOnboardingRouter from "./profile-onboarding.js";
 import profileRouter from "./profile.js";
 import reportRouter from "./report.js";
+import encyclopediaRouter from "./encyclopedia.js";
 
 const router: IRouter = Router();
 
@@ -68,5 +69,6 @@ router.use(recallsRouter);
 router.use(profileOnboardingRouter);
 router.use(profileRouter);
 router.use(reportRouter);
+router.use(encyclopediaRouter);
 
 export default router;

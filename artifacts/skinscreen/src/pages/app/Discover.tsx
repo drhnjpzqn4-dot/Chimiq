@@ -17,6 +17,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
+import { IngredientCard } from "@/components/IngredientCard";
+import {
+  EncyclopediaIngredientSheet,
+  type EncyclopediaIngredientDetail,
+} from "@/components/EncyclopediaIngredientSheet";
 
 /** BESLUT-SS-017: community tips UI off until dermatologist Q&A ships. */
 const ENABLE_COMMUNITY_TIPS = false;
@@ -60,6 +65,45 @@ export default function DiscoverScreen() {
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+  const [ingredientSearch, setIngredientSearch] = useState("");
+  const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null);
+  const [ingredientDetailOpen, setIngredientDetailOpen] = useState(false);
+
+  const ingredientsQuery = useQuery({
+    queryKey: ["encyclopedia-ingredients", ingredientSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: "20" });
+      if (ingredientSearch.trim()) params.set("search", ingredientSearch.trim());
+      const res = await apiFetch(`/api/encyclopedia/ingredients?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch ingredients");
+      return res.json() as Promise<{
+        total: number;
+        items: Array<{
+          slug: string;
+          display: string;
+          category: string;
+          severity: "HIGH_RISK" | "CAUTION";
+          hint_se: string;
+          commonIn_se?: string[];
+          medicallyReviewed?: boolean;
+        }>;
+      }>;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const ingredientDetailQuery = useQuery({
+    queryKey: ["encyclopedia-ingredient", selectedIngredient],
+    queryFn: async (): Promise<EncyclopediaIngredientDetail | null> => {
+      if (!selectedIngredient) return null;
+      const res = await apiFetch(
+        `/api/encyclopedia/ingredients/${encodeURIComponent(selectedIngredient)}`,
+      );
+      if (!res.ok) throw new Error("Failed to fetch ingredient");
+      return (await res.json()) as EncyclopediaIngredientDetail;
+    },
+    enabled: Boolean(selectedIngredient),
+  });
 
   const featuredRecipesQuery = useQuery({
     queryKey: ["discover-recipes-featured"],
@@ -459,6 +503,75 @@ export default function DiscoverScreen() {
         </div>
       </section>
       )}
+
+      {/* Ingredienslexikon */}
+      <section className="mb-6 rounded-2xl border border-border/40 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2
+            className="leading-tight"
+            style={{
+              fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
+              fontSize: 20,
+              fontWeight: 500,
+              color: "var(--ink)",
+            }}
+          >
+            Ingredienslexikon
+          </h2>
+          <span className="rounded-full bg-[var(--cream-warm)] px-2 py-0.5 text-xs text-[var(--ink-soft)]">
+            Hudvård och smink
+          </span>
+        </div>
+        <p className="mb-3 text-sm text-[var(--ink-soft)]">
+          Sök efter ett ämne för att förstå vad det gör och varför det flaggas.
+        </p>
+
+        <input
+          type="search"
+          placeholder="Sök ingrediens, t.ex. parabener, formaldehyd..."
+          value={ingredientSearch}
+          onChange={(e) => setIngredientSearch(e.target.value)}
+          className="mb-4 w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sage)]"
+        />
+
+        {ingredientsQuery.isLoading ? (
+          <p className="py-8 text-center text-sm text-[var(--ink-soft)]">Laddar...</p>
+        ) : (
+          <div className="space-y-2">
+            {(ingredientsQuery.data?.items ?? []).map((ing) => (
+              <IngredientCard
+                key={ing.slug}
+                slug={ing.slug}
+                display={ing.display}
+                severity={ing.severity}
+                hint_se={ing.hint_se}
+                commonIn_se={ing.commonIn_se}
+                medicallyReviewed={ing.medicallyReviewed}
+                onClick={(slug) => {
+                  setSelectedIngredient(slug);
+                  setIngredientDetailOpen(true);
+                }}
+              />
+            ))}
+            {(ingredientsQuery.data?.items?.length ?? 0) === 0 && (
+              <p className="py-8 text-center text-sm text-[var(--ink-soft)]">
+                {ingredientSearch.trim()
+                  ? `Ingen ingrediens hittades för "${ingredientSearch.trim()}".`
+                  : "Inga ingredienser att visa."}
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+
+      <EncyclopediaIngredientSheet
+        ingredient={ingredientDetailQuery.data ?? null}
+        open={ingredientDetailOpen}
+        onClose={() => {
+          setIngredientDetailOpen(false);
+          setSelectedIngredient(null);
+        }}
+      />
 
       {/* Find dermatologist */}
       <section className="mb-2 -mx-4">
