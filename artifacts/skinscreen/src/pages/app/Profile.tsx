@@ -528,7 +528,9 @@ export default function ProfileScreen() {
           )}
         </div>
 
-        {/* 4. Bidrag & belöningar */}
+        {/* 4. Bidrag & belöningar — DOLD tills belöningssystemet är byggt.
+            Backend, DB och routes är intakta. Sätt till true för att återaktivera. */}
+        {false && (
         <div>
           <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--ink-soft)" }}>
             {t("profile.contributionProgress")}
@@ -560,6 +562,7 @@ export default function ProfileScreen() {
             </button>
           </div>
         </div>
+        )}
 
         {/* 5. Appen */}
         <div>

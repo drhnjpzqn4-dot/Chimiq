@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetShelf, getGetShelfQueryKey } from "@workspace/api-client-react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import BatchRecallBanner from "@/components/BatchRecallBanner";
 import { ProductDetailSheet, type ProductDetailProduct } from "@/components/ProductDetailSheet";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useTranslation } from "@/lib/i18n";
 import { PREMIUM_CONTRIBUTION_MILESTONE } from "@/pages/app/Shelf";
 import { apiFetch } from "@/lib/api";
@@ -77,6 +78,9 @@ export default function HomeScreen() {
       return [];
     }
   });
+  const [diarySheetOpen, setDiarySheetOpen] = useState(false);
+  const [newNoteText, setNewNoteText] = useState("");
+  const noteInputRef = useRef<HTMLTextAreaElement>(null);
 
   const shelfQuery = useGetShelf({
     query: { queryKey: getGetShelfQueryKey(), enabled: Boolean(user) },
@@ -116,7 +120,24 @@ export default function HomeScreen() {
     };
   }, []);
 
-  void setNotes;
+  const saveNote = () => {
+    const text = newNoteText.trim();
+    if (!text) return;
+    const entry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      text,
+      date: new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }),
+    };
+    const updated = [entry, ...notes];
+    setNotes(updated);
+    try {
+      localStorage.setItem("chimiq.diary", JSON.stringify(updated));
+    } catch {
+      // ignore quota errors
+    }
+    setNewNoteText("");
+    setDiarySheetOpen(false);
+  };
 
   return (
     <AppShell
@@ -155,7 +176,7 @@ export default function HomeScreen() {
                     if (r.product) setDetailProduct(r.product);
                   }}
                   disabled={!r.product}
-                  className="w-[130px] shrink-0 rounded-2xl border border-border/40 bg-white p-2.5 text-left shadow-sm transition-opacity active:opacity-70 disabled:cursor-default"
+                  className="w-[130px] shrink-0 rounded-3xl border border-border/40 bg-white p-2.5 text-left shadow-sm transition-opacity active:opacity-70 disabled:cursor-default"
                 >
                   {(() => {
                     const imgUrl = r.product?.image_url ?? r.product?.imageUrl ?? null;
@@ -194,7 +215,7 @@ export default function HomeScreen() {
             {t("home.savedProducts")}
           </p>
           {shelfProducts.length > 0 ? (
-            <div className="overflow-hidden rounded-2xl border border-border/40 bg-white">
+            <div className="overflow-hidden rounded-3xl border border-border/40 bg-white">
               {shelfProducts.slice(0, 5).map((product) => {
                 const name = product.productName ?? t("shelf.unknownProduct");
                 const detailProduct: ProductDetailProduct = {
@@ -254,7 +275,7 @@ export default function HomeScreen() {
               )}
             </div>
           ) : (
-            <div className="rounded-2xl border-2 border-dashed border-border/50 bg-white/90 px-4 py-8 text-center">
+            <div className="rounded-3xl border-2 border-dashed border-border/50 bg-white/90 px-4 py-8 text-center">
               <p className="text-sm font-medium text-foreground">{t("home.savedProductsEmpty")}</p>
               <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--ink-soft)" }}>
                 {t("home.savedProductsHint")}
@@ -275,14 +296,15 @@ export default function HomeScreen() {
               className="shrink-0 text-[13px] font-semibold transition-opacity hover:opacity-80"
               style={{ color: "var(--sage-deep)" }}
               onClick={() => {
-                /* Sprint 5: placeholder — diary editor routing later */
+                setDiarySheetOpen(true);
+                window.setTimeout(() => noteInputRef.current?.focus(), 100);
               }}
             >
               + {t("home.diaryAddNote")}
             </button>
           </div>
           {notes.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-border/50 bg-white/90 px-4 py-8 text-center">
+            <div className="rounded-3xl border-2 border-dashed border-border/50 bg-white/90 px-4 py-8 text-center">
               <p className="text-sm leading-relaxed" style={{ color: "var(--ink-soft)" }}>
                 {t("home.diaryEmpty")}
               </p>
@@ -292,7 +314,7 @@ export default function HomeScreen() {
               {notes.map((n) => (
                 <li
                   key={n.id}
-                  className="flex gap-3 rounded-2xl border border-border/40 bg-white p-3.5 shadow-sm"
+                  className="flex gap-3 rounded-3xl border border-border/40 bg-white p-3.5 shadow-sm"
                 >
                   <span className="shrink-0 text-xl leading-none" aria-hidden>
                     {n.productName ? "🧴" : "📝"}
@@ -323,7 +345,7 @@ export default function HomeScreen() {
             {t("home.diyRecipes")}
           </p>
           <div
-            className="rounded-2xl border-2 border-dashed border-[var(--line)] px-4 py-6 text-left"
+            className="rounded-3xl border-2 border-dashed border-[var(--line)] px-4 py-6 text-left"
             style={{ backgroundColor: "var(--rose-soft)" }}
           >
             <p className="text-sm font-semibold text-foreground">{t("home.diyComingSoon")}</p>
@@ -339,6 +361,50 @@ export default function HomeScreen() {
             onClose={() => setDetailProduct(null)}
           />
         )}
+
+        {/* Dagbok — lägg till anteckning */}
+        <Sheet open={diarySheetOpen} onOpenChange={setDiarySheetOpen}>
+          <SheetContent side="bottom" className="rounded-t-3xl p-0">
+            <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/20" />
+            <div className="px-5 pb-8 pt-5">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-serif text-lg font-medium" style={{ color: "var(--ink)" }}>
+                  {t("home.diaryAddNote")}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setDiarySheetOpen(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full"
+                  style={{ background: "var(--cream-warm)" }}
+                  aria-label={t("common.close")}
+                >
+                  <X className="h-4 w-4" style={{ color: "var(--ink-soft)" }} aria-hidden />
+                </button>
+              </div>
+              <textarea
+                ref={noteInputRef}
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                rows={5}
+                placeholder={t("home.diaryPlaceholder")}
+                className="textarea-base w-full text-sm"
+                style={{ color: "var(--ink)" }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveNote();
+                }}
+              />
+              <button
+                type="button"
+                onClick={saveNote}
+                disabled={!newNoteText.trim()}
+                className="mt-4 w-full rounded-2xl py-3 text-sm font-semibold text-white disabled:opacity-40"
+                style={{ backgroundColor: "var(--sage)" }}
+              >
+                {t("home.diarySave")}
+              </button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </AppShell>
   );
