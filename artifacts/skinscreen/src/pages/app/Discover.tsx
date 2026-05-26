@@ -10,10 +10,14 @@ import {
   Loader2,
   Send,
   Heart,
+  ShieldAlert,
+  BookOpen,
+  X,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { FindDermatologist } from "@/components/FindDermatologist";
 import { Card, CardContent } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
@@ -68,6 +72,8 @@ export default function DiscoverScreen() {
   const [ingredientSearch, setIngredientSearch] = useState("");
   const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null);
   const [ingredientDetailOpen, setIngredientDetailOpen] = useState(false);
+  const [mistakesOpen, setMistakesOpen] = useState(false);
+  const [lexikonOpen, setLexikonOpen] = useState(false);
 
   const ingredientsQuery = useQuery({
     queryKey: ["encyclopedia-ingredients", ingredientSearch],
@@ -214,12 +220,14 @@ export default function DiscoverScreen() {
         </div>
       </section>
 
-      {/* Problems deep-link — direkt efter AI-chat, före Top 5 */}
-      <section className="mb-4 animate-pop-in">
+      {/* ── Tre rad-kort ────────────────────────────────────── */}
+      <section className="mb-4 flex flex-col gap-3 animate-pop-in">
+
+        {/* 1. Ingrediensproblem */}
         <Link href="/app/problems">
           <a
             data-touch-target
-            className="flex items-center gap-3 rounded-3xl border border-border/50 bg-white p-4 shadow-sm transition-transform hover:-translate-y-0.5"
+            className="flex items-center gap-3 rounded-3xl border border-border/50 bg-white p-4 shadow-sm transition-transform active:scale-[0.98]"
           >
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <Compass className="h-5 w-5" />
@@ -233,57 +241,58 @@ export default function DiscoverScreen() {
             <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           </a>
         </Link>
-      </section>
 
-      {/* Top mistakes (curated) */}
-      <section className="mb-6 rounded-2xl border border-border/40 bg-white p-4 shadow-sm sm:p-5">
-        <h2
-          className="mb-4 leading-tight"
-          style={{
-            fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-            fontSize: 20,
-            fontWeight: 500,
-            color: "var(--ink)",
-          }}
+        {/* 2. Vanligaste misstagen → Sheet */}
+        <button
+          type="button"
+          data-touch-target
+          onClick={() => setMistakesOpen(true)}
+          className="flex w-full items-center gap-3 rounded-3xl border border-border/50 bg-white p-4 shadow-sm transition-transform active:scale-[0.98] text-left"
         >
-          {t("discover.top10Title")}
-        </h2>
-        <ul className="space-y-4">
-          {TOP_10_MISTAKES.map((item, index) => (
-            <li key={item.titleKey} className="flex gap-3">
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums"
-                style={{
-                  backgroundColor: "var(--rose-soft)",
-                  color: "var(--rose-gold-deep)",
-                }}
-              >
-                {index + 1}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold leading-snug" style={{ color: "var(--ink)" }}>
-                  {t(item.titleKey)}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--ink-soft)" }}>
-                  {t(item.bodyKey)}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+            style={{ backgroundColor: "var(--rose-soft)", color: "var(--rose-gold-deep)" }}
+          >
+            <ShieldAlert className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-serif text-base font-medium text-foreground">
+              {t("discover.top10Title")}
+            </p>
+            <p className="text-xs text-muted-foreground">{TOP_10_MISTAKES.length} vanliga misstag att undvika</p>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        </button>
+
+        {/* 3. Ingredienslexikon → Sheet */}
+        <button
+          type="button"
+          data-touch-target
+          onClick={() => setLexikonOpen(true)}
+          className="flex w-full items-center gap-3 rounded-3xl border border-border/50 bg-white p-4 shadow-sm transition-transform active:scale-[0.98] text-left"
+        >
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+            style={{ backgroundColor: "color-mix(in srgb, var(--sage) 12%, transparent)", color: "var(--sage)" }}
+          >
+            <BookOpen className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-serif text-base font-medium text-foreground">
+              Ingredienslexikon
+            </p>
+            <p className="text-xs text-muted-foreground">Hudvård och smink · sök & lär dig mer</p>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        </button>
       </section>
 
       {/* Dermatologist Q&A teaser (hidden until recruitment) */}
-      {ENABLE_DERMATOLOGIST_QA ? (
-        <section className="mb-6" aria-hidden />
-      ) : (
-        <section className="mb-6">
+      {!ENABLE_DERMATOLOGIST_QA && (
+        <section className="mb-4">
           <div
             className="rounded-2xl border border-dashed p-4 sm:p-5"
-            style={{
-              backgroundColor: "var(--cream-warm)",
-              borderColor: "var(--line)",
-            }}
+            style={{ backgroundColor: "var(--cream-warm)", borderColor: "var(--line)" }}
           >
             <p
               className="text-[11px] font-semibold uppercase tracking-widest"
@@ -311,7 +320,7 @@ export default function DiscoverScreen() {
             className="leading-tight"
             style={{
               fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-              fontSize: 28,
+              fontSize: 24,
               fontWeight: 500,
               color: "var(--ink)",
             }}
@@ -344,11 +353,7 @@ export default function DiscoverScreen() {
                     <CardContent className="p-3">
                       <div className="mb-2 aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted/50">
                         {r.photoUrl ? (
-                          <img
-                            src={r.photoUrl}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
+                          <img src={r.photoUrl} alt="" className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full min-h-[72px] items-center justify-center text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             {r.category}
@@ -366,7 +371,7 @@ export default function DiscoverScreen() {
           </div>
         )}
 
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-3">
           <Link href="/app/recipes/new">
             <a
               data-touch-target
@@ -504,65 +509,91 @@ export default function DiscoverScreen() {
       </section>
       )}
 
-      {/* Ingredienslexikon */}
-      <section className="mb-6 rounded-2xl border border-border/40 bg-white p-4 shadow-sm sm:p-5">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h2
-            className="leading-tight"
-            style={{
-              fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
-              fontSize: 20,
-              fontWeight: 500,
-              color: "var(--ink)",
-            }}
-          >
-            Ingredienslexikon
-          </h2>
-          <span className="rounded-full bg-[var(--cream-warm)] px-2 py-0.5 text-xs text-[var(--ink-soft)]">
-            Hudvård och smink
-          </span>
-        </div>
-        <p className="mb-3 text-sm text-[var(--ink-soft)]">
-          Sök efter ett ämne för att förstå vad det gör och varför det flaggas.
-        </p>
-
-        <input
-          type="search"
-          placeholder="Sök ingrediens, t.ex. parabener, formaldehyd..."
-          value={ingredientSearch}
-          onChange={(e) => setIngredientSearch(e.target.value)}
-          className="mb-4 w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sage)]"
-        />
-
-        {ingredientsQuery.isLoading ? (
-          <p className="py-8 text-center text-sm text-[var(--ink-soft)]">Laddar...</p>
-        ) : (
-          <div className="space-y-2">
-            {(ingredientsQuery.data?.items ?? []).map((ing) => (
-              <IngredientCard
-                key={ing.slug}
-                slug={ing.slug}
-                display={ing.display}
-                severity={ing.severity}
-                hint_se={ing.hint_se}
-                commonIn_se={ing.commonIn_se}
-                medicallyReviewed={ing.medicallyReviewed}
-                onClick={(slug) => {
-                  setSelectedIngredient(slug);
-                  setIngredientDetailOpen(true);
-                }}
-              />
+      {/* ── Sheet: Vanligaste misstagen ─────────────────────── */}
+      <Sheet open={mistakesOpen} onOpenChange={setMistakesOpen}>
+        <SheetContent side="bottom" className="h-[85dvh] overflow-y-auto rounded-t-3xl px-4 pb-8 pt-6">
+          <SheetHeader className="mb-5">
+            <SheetTitle
+              className="font-serif text-xl font-medium"
+              style={{ color: "var(--ink)" }}
+            >
+              {t("discover.top10Title")}
+            </SheetTitle>
+          </SheetHeader>
+          <ul className="space-y-5">
+            {TOP_10_MISTAKES.map((item, index) => (
+              <li key={item.titleKey} className="flex gap-3">
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums"
+                  style={{ backgroundColor: "var(--rose-soft)", color: "var(--rose-gold-deep)" }}
+                >
+                  {index + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold leading-snug" style={{ color: "var(--ink)" }}>
+                    {t(item.titleKey)}
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--ink-soft)" }}>
+                    {t(item.bodyKey)}
+                  </p>
+                </div>
+              </li>
             ))}
-            {(ingredientsQuery.data?.items?.length ?? 0) === 0 && (
-              <p className="py-8 text-center text-sm text-[var(--ink-soft)]">
-                {ingredientSearch.trim()
-                  ? `Ingen ingrediens hittades för "${ingredientSearch.trim()}".`
-                  : "Inga ingredienser att visa."}
-              </p>
-            )}
-          </div>
-        )}
-      </section>
+          </ul>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Sheet: Ingredienslexikon ─────────────────────────── */}
+      <Sheet open={lexikonOpen} onOpenChange={setLexikonOpen}>
+        <SheetContent side="bottom" className="h-[92dvh] overflow-y-auto rounded-t-3xl px-4 pb-8 pt-6">
+          <SheetHeader className="mb-4">
+            <SheetTitle
+              className="font-serif text-xl font-medium"
+              style={{ color: "var(--ink)" }}
+            >
+              Ingredienslexikon
+            </SheetTitle>
+          </SheetHeader>
+          <p className="mb-4 text-sm" style={{ color: "var(--ink-soft)" }}>
+            Sök efter ett ämne för att förstå vad det gör och varför det flaggas.
+          </p>
+          <input
+            type="search"
+            placeholder="Sök ingrediens, t.ex. parabener, formaldehyd..."
+            value={ingredientSearch}
+            onChange={(e) => setIngredientSearch(e.target.value)}
+            className="mb-4 w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--sage)]"
+          />
+          {ingredientsQuery.isLoading ? (
+            <p className="py-8 text-center text-sm" style={{ color: "var(--ink-soft)" }}>Laddar...</p>
+          ) : (
+            <div className="space-y-2">
+              {(ingredientsQuery.data?.items ?? []).map((ing) => (
+                <IngredientCard
+                  key={ing.slug}
+                  slug={ing.slug}
+                  display={ing.display}
+                  severity={ing.severity}
+                  hint_se={ing.hint_se}
+                  commonIn_se={ing.commonIn_se}
+                  medicallyReviewed={ing.medicallyReviewed}
+                  onClick={(slug) => {
+                    setSelectedIngredient(slug);
+                    setIngredientDetailOpen(true);
+                  }}
+                />
+              ))}
+              {(ingredientsQuery.data?.items?.length ?? 0) === 0 && (
+                <p className="py-8 text-center text-sm" style={{ color: "var(--ink-soft)" }}>
+                  {ingredientSearch.trim()
+                    ? `Ingen ingrediens hittades för "${ingredientSearch.trim()}".`
+                    : "Inga ingredienser att visa."}
+                </p>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <EncyclopediaIngredientSheet
         ingredient={ingredientDetailQuery.data ?? null}
