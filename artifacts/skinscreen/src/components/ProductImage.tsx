@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ProductImageProps {
   src: string | null | undefined;
@@ -15,11 +15,12 @@ interface ProductImageProps {
 /**
  * Enhetlig produktbild med automatisk emoji-fallback.
  *
+ * Använder Image()-preload i useEffect istället för React:s syntetiska onError,
+ * eftersom onError inte är tillförlitligt i WKWebView (Capacitor/iOS).
+ *
  * Visar emoji-platshållare om:
  *   - src saknas / är null / undefined
- *   - bilden inte kan laddas (onError)
- *
- * Följer SS-designsystemet: cream-warm bakgrund på fallback.
+ *   - bilden inte kan laddas (404, nätverksfel, CORS, etc.)
  */
 export function ProductImage({
   src,
@@ -28,9 +29,23 @@ export function ProductImage({
   fallbackEmoji = "🧴",
   alt = "",
 }: ProductImageProps) {
-  const [failed, setFailed] = useState(false);
+  const [status, setStatus] = useState<"loading" | "ok" | "failed">(
+    src ? "loading" : "failed",
+  );
 
-  if (!src || failed) {
+  useEffect(() => {
+    if (!src) {
+      setStatus("failed");
+      return;
+    }
+    setStatus("loading");
+    const img = new window.Image();
+    img.onload = () => setStatus("ok");
+    img.onerror = () => setStatus("failed");
+    img.src = src;
+  }, [src]);
+
+  if (status === "failed") {
     return (
       <span
         className={fallbackClassName}
@@ -42,12 +57,15 @@ export function ProductImage({
     );
   }
 
+  // status === "loading" eller "ok" — visa bilden (hidden tills ok för att undvika blink)
   return (
     <img
-      src={src}
+      src={src ?? ""}
       alt={alt}
       className={imgClassName}
-      onError={() => setFailed(true)}
+      style={status === "loading" ? { opacity: 0 } : undefined}
+      onLoad={() => setStatus("ok")}
+      onError={() => setStatus("failed")}
     />
   );
 }
