@@ -74,6 +74,10 @@ export const AnalyzeSingleBody = zod.object({
     .enum(["sensitive", "young", "mature", "pregnant"])
     .optional()
     .describe("Optional skin profile to personalise analysis"),
+  productType: zod
+    .enum(["skincare", "haircare", "cosmetics", "other"])
+    .optional()
+    .describe("Optional product category for exposure-route context"),
 });
 
 export const AnalyzeSingleResponse = zod.object({
@@ -89,6 +93,8 @@ export const AnalyzeSingleResponse = zod.object({
           "PHOTOSENSITISER",
           "KNOWN_ALLERGEN",
           "NANOPARTICLE",
+          "HEAVY_METAL",
+          "CARCINOGEN",
           "CAUTION",
         ])
         .describe("Risk category"),

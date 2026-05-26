@@ -31,6 +31,7 @@ export * from "./patchShelfProductRequest";
 export * from "./patchShelfProductRequestAnalysisResultJson";
 export * from "./productLookupParams";
 export * from "./productLookupResponse";
+export * from "./productType";
 export * from "./recipeEligibility";
 export * from "./recipeEligibilityReason";
 export * from "./removeFromShelfResponse";

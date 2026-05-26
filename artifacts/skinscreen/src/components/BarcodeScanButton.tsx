@@ -8,7 +8,12 @@ import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 
 interface BarcodeScanButtonProps {
-  onResult: (ingredients: string, productName: string, barcode?: string) => void;
+  onResult: (
+    ingredients: string,
+    productName: string,
+    barcode?: string,
+    productType?: string,
+  ) => void;
   disabled?: boolean;
   /**
    * Optional override for the trigger element. When provided, renders a button
@@ -107,12 +112,13 @@ export function BarcodeScanButton({
           productName?: string;
           brand?: string;
           ingredients?: string;
+          productType?: string;
           reason?: string;
         };
 
         if (data.found && data.ingredients) {
           const name = [data.brand, data.productName].filter(Boolean).join(" ") || t("contribute.scannedProductFallback");
-          onResult(data.ingredients, name, code);
+          onResult(data.ingredients, name, code, data.productType);
           close();
         } else {
           setScannedBarcode(code);

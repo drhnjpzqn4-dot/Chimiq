@@ -87,9 +87,13 @@ function normalizeIngredients(raw: string): string {
     .join(",");
 }
 
-export function computeSingleHash(ingredients: string, skinProfile?: string): string {
+export function computeSingleHash(
+  ingredients: string,
+  skinProfile?: string,
+  productType?: string,
+): string {
   const normalized = normalizeIngredients(ingredients);
-  const key = `${normalized}|||${skinProfile ?? ""}|||single`;
+  const key = `${normalized}|||${skinProfile ?? ""}|||${productType ?? ""}|||single`;
   return crypto.createHash("sha256").update(key).digest("hex");
 }
 

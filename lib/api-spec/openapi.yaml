@@ -579,8 +579,14 @@ components:
         skinProfile:
           $ref: "#/components/schemas/SkinProfile"
           description: Optional skin profile to personalise analysis
+        productType:
+          $ref: "#/components/schemas/ProductType"
+          description: Optional product category for exposure-route context (lip/eye/nail)
       required:
         - ingredients
+    ProductType:
+      type: string
+      enum: [skincare, haircare, cosmetics, other]
     IngredientFlagCategory:
       type: string
       enum:
@@ -591,6 +597,8 @@ components:
         - PHOTOSENSITISER
         - KNOWN_ALLERGEN
         - NANOPARTICLE
+        - HEAVY_METAL
+        - CARCINOGEN
         - CAUTION
     IngredientFlagSeverity:
       type: string

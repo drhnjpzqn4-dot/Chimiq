@@ -9,6 +9,7 @@ import {
   SanitizationError,
 } from "../lib/sanitize.js";
 import { uploadBufferToGcs } from "../lib/objectStorage.js";
+import { detectProductType } from "../lib/product-type.js";
 import { supabaseAdmin } from "../lib/supabase-admin.js";
 import { randomUUID } from "crypto";
 
@@ -134,7 +135,7 @@ router.get("/products", async (req, res) => {
     const supabase = supabaseAdmin;
     let dataQuery = supabase
       .from("cached_products")
-      .select("barcode,product_name,brand,ingredients,image_url,cached_at")
+      .select("barcode,product_name,brand,ingredients,image_url,cached_at,categories,product_type")
       .order("cached_at", { ascending: false })
       .range(offset, offset + limit - 1);
     let countQuery = supabase
@@ -168,6 +169,8 @@ router.get("/products", async (req, res) => {
       ingredients: string;
       image_url: string | null;
       cached_at: string;
+      categories: string | null;
+      product_type: string | null;
     }>;
 
     const ingMap = new Map<string, string>();
@@ -182,6 +185,7 @@ router.get("/products", async (req, res) => {
         imageUrl: p.image_url,
         cachedAt: new Date(p.cached_at).toISOString(),
         category: deriveCategory(p.product_name, p.brand),
+        productType: p.product_type ?? detectProductType(p.categories),
         verifiedSafe: safetyMap.get(p.barcode) === true,
         ingredientsPreview:
           p.ingredients.length > 140 ? `${p.ingredients.slice(0, 140)}…` : p.ingredients,

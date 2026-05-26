@@ -354,6 +354,7 @@ export default function ScanScreen() {
         image_url: imageUrl,
         imageUrl,
         analysis_result_json: product.analysis_result_json,
+        productType: product.productType,
       };
       setDetailProduct(detail);
       emitScanCompleted({
@@ -370,7 +371,7 @@ export default function ScanScreen() {
     if (!ingredients.trim()) return;
 
     analyzeSingle.mutate(
-      { data: { ingredients } },
+      { data: { ingredients, productType: product.productType } },
       {
         onSuccess: (analysis) => {
           const detail: ProductDetailProduct = {
@@ -382,6 +383,7 @@ export default function ScanScreen() {
             image_url: imageUrl,
             imageUrl,
             analysis_result_json: analysis,
+            productType: product.productType,
           };
           setDetailProduct(detail);
           emitScanCompleted({

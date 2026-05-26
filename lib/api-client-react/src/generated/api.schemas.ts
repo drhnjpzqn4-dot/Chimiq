@@ -37,6 +37,15 @@ export interface AnalyzeRequest {
   skinProfile?: SkinProfile;
 }
 
+export type ProductType = (typeof ProductType)[keyof typeof ProductType];
+
+export const ProductType = {
+  skincare: "skincare",
+  haircare: "haircare",
+  cosmetics: "cosmetics",
+  other: "other",
+} as const;
+
 export interface AnalyzeSingleRequest {
   /**
    * Ingredient list for the product to analyze
@@ -45,6 +54,8 @@ export interface AnalyzeSingleRequest {
   ingredients: string;
   /** Optional skin profile to personalise analysis */
   skinProfile?: SkinProfile;
+  /** Optional product category for exposure-route context */
+  productType?: ProductType;
 }
 
 export type IngredientFlagCategory =
@@ -58,6 +69,8 @@ export const IngredientFlagCategory = {
   PHOTOSENSITISER: "PHOTOSENSITISER",
   KNOWN_ALLERGEN: "KNOWN_ALLERGEN",
   NANOPARTICLE: "NANOPARTICLE",
+  HEAVY_METAL: "HEAVY_METAL",
+  CARCINOGEN: "CARCINOGEN",
   CAUTION: "CAUTION",
 } as const;
 

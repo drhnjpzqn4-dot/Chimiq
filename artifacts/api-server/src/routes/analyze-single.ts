@@ -14,6 +14,7 @@ import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
 import { requireAuth } from "../lib/authGate.js";
 import { partitionIngredients } from "../lib/safe-ingredients.js";
 import { getRisksInList, buildMandatoryFlagsBlock } from "../lib/risky-ingredients.js";
+import { ProductTypeSchema, type ProductType } from "../lib/product-type.js";
 import { getUserPlan } from "../lib/userPlan.js";
 import {
   FREE_DAILY_SCAN_LIMIT,
@@ -27,6 +28,7 @@ const SkinProfileEnum = z.enum(["sensitive", "young", "mature", "pregnant"]).opt
 const AnalyzeSingleBody = z.object({
   ingredients: z.string().trim().min(1, "Ingredients are required").max(3000),
   skinProfile: SkinProfileEnum,
+  productType: ProductTypeSchema.optional(),
 });
 
 const FlagCategorySchema = z.enum([
@@ -37,6 +39,8 @@ const FlagCategorySchema = z.enum([
   "PHOTOSENSITISER",
   "KNOWN_ALLERGEN",
   "NANOPARTICLE",
+  "HEAVY_METAL",
+  "CARCINOGEN",
   "CAUTION",
 ]);
 
@@ -144,6 +148,8 @@ Flag these categories:
 - PHOTOSENSITISER: AHAs (glycolic acid, lactic acid, citric acid), BHAs, retinol, vitamin C — increase UV sensitivity, require strict SPF use
 - KNOWN_ALLERGEN: Nickel sulfate, balsam of Peru, propylene glycol (high concentration), lanolin — documented contact allergens
 - NANOPARTICLE: Nano zinc oxide, nano titanium dioxide (in sunscreens) — may penetrate beyond surface; research ongoing
+- HEAVY_METAL: Lead, chromium pigments (CI 77288/77289), and other heavy-metal colourants — neurotoxic or carcinogenic impurities matter
+- CARCINOGEN: Documented or probable carcinogens (coal tar, carbon black CI 77266, nitrosamine precursors, residual acrylamide from polymers)
 - CAUTION: Any other documented concern not fitting the above categories
 
 Common ingredients you must NOT flag (these are widely safe and well-tolerated for all skin types and life stages — flagging them is a false positive that erodes user trust):
@@ -215,17 +221,40 @@ Output:
   "verdictSummary": "This product contains two endocrine-disrupting parabens and a formaldehyde-releasing preservative, plus fragrance and an exfoliating acid that requires sun protection."
 }`;
 
-function buildDynamicContext(skinProfile?: string, regulatoryContext?: string): string {
+function buildProductTypeContext(productType?: ProductType): string {
+  if (productType === "cosmetics") {
+    return `
+IMPORTANT — This product is a COSMETIC (makeup), not a skincare product. Apply these additional considerations:
+- Lip products (lipstick, lip gloss, lip liner): Ingredients risk oral ingestion. Flag any ingredient with oral toxicity concern, even at low concentrations.
+- Eye products (mascara, eyeliner, eyeshadow): Proximity to eyes means mucous membrane exposure. Flag irritants and sensitisers with extra urgency.
+- Face powder/foundation: Large skin surface area, applied daily. Cumulative exposure to any flagged ingredient is amplified.
+- Nail products: Inhalation risk during application; absorbed through nail bed.
+When the product type is unknown, assume it could be any of the above and mention relevant exposure routes.`;
+  }
+  if (productType === "skincare") {
+    return `
+This is a SKINCARE product applied to skin. Standard topical exposure analysis applies.`;
+  }
+  return "";
+}
+
+function buildDynamicContext(
+  skinProfile?: string,
+  regulatoryContext?: string,
+  productType?: ProductType,
+): string {
   const profileNote = skinProfile ? `\n\nSkin profile: ${PROFILE_CONTEXT[skinProfile] ?? ""}` : "";
+  const productTypeNote = buildProductTypeContext(productType);
   const regulatoryNote = regulatoryContext
     ? `\n\n## Regulatory & Toxicology Data (ground your reasoning in this)\n${regulatoryContext}`
     : "";
-  return profileNote + regulatoryNote;
+  return profileNote + productTypeNote + regulatoryNote;
 }
 
 function buildSystemBlocks(
   skinProfile?: string,
   regulatoryContext?: string,
+  productType?: ProductType,
 ): Anthropic.Messages.TextBlockParam[] {
   // First block is the static template — Anthropic prompt caching will store
   // and reuse this prefix across calls for ~90% discount on subsequent
@@ -233,7 +262,7 @@ function buildSystemBlocks(
   const blocks: Anthropic.Messages.TextBlockParam[] = [
     { type: "text", text: SINGLE_SYSTEM_BASE, cache_control: { type: "ephemeral" } },
   ];
-  const dynamic = buildDynamicContext(skinProfile, regulatoryContext);
+  const dynamic = buildDynamicContext(skinProfile, regulatoryContext, productType);
   if (dynamic) {
     blocks.push({ type: "text", text: dynamic });
   }
@@ -247,6 +276,7 @@ async function runAIAnalysis(
   mandatoryFlagsBlock: string,
   skinProfile: string | undefined,
   regulatoryContext: string | undefined,
+  productType: ProductType | undefined,
   log: (msg: string, data?: unknown) => void,
 ): Promise<z.infer<typeof AnalyzeSingleResponseSchema> | null> {
   // If we pre-filtered some ingredients on the safe list, mention this to the
@@ -261,7 +291,7 @@ async function runAIAnalysis(
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 8192,
-      system: buildSystemBlocks(skinProfile, regulatoryContext),
+      system: buildSystemBlocks(skinProfile, regulatoryContext, productType),
       messages: [
         {
           role: "user",
@@ -315,12 +345,13 @@ const SAFE_SINGLE_RESULT = {
 export async function analyzeSingleIngredients(input: {
   ingredients: string;
   skinProfile?: z.infer<typeof SkinProfileEnum>;
+  productType?: ProductType;
   apiKey: string;
   log: AnalyzeSingleLogger;
 }): Promise<AnalyzeSingleResult | null> {
   const ingredients = sanitizeIngredients(input.ingredients, false);
-  const { skinProfile } = input;
-  const hash = computeSingleHash(ingredients, skinProfile);
+  const { skinProfile, productType } = input;
+  const hash = computeSingleHash(ingredients, skinProfile, productType);
 
   const cached = await getCacheEntry(hash).catch(() => null);
 
@@ -358,7 +389,7 @@ export async function analyzeSingleIngredients(input: {
             if (ctx.pubchem.length > 0) { lines.push("### PubChem GHS Hazard Data"); lines.push(...ctx.pubchem); }
             if (lines.length > 0) regulatoryContext = lines.join("\n");
             const fresh = needsAnalysis.length > 0
-              ? await runAIAnalysis(anthropic, needsAnalysis.join(", "), safe.length, mandatory, skinProfile, regulatoryContext, () => {})
+              ? await runAIAnalysis(anthropic, needsAnalysis.join(", "), safe.length, mandatory, skinProfile, regulatoryContext, productType, () => {})
               : SAFE_SINGLE_RESULT;
             if (fresh) await saveCacheEntry(hash, "single", skinProfile, JSON.stringify(fresh));
           } catch {}
@@ -415,6 +446,7 @@ export async function analyzeSingleIngredients(input: {
     mandatoryFlagsBlock,
     skinProfile,
     regulatoryContext,
+    productType,
     (msg, data) => input.log.error(data ?? {}, msg),
   );
 
@@ -505,6 +537,7 @@ router.post("/analyze-single", requireAuth, async (req, res) => {
     const result = await analyzeSingleIngredients({
       ingredients: parseResult.data.ingredients,
       skinProfile: parseResult.data.skinProfile,
+      productType: parseResult.data.productType,
       apiKey,
       log: req.log,
     });

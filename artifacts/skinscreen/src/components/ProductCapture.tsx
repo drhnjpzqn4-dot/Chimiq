@@ -6,6 +6,7 @@ import { ProductImageCapture } from "@/components/ProductImageCapture";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 import type { ProductResult } from "@/components/ScanEntry";
+import type { ProductType } from "@/components/ProductTypeBadge";
 
 interface ProductCaptureInitialData {
   productName?: string;
@@ -50,6 +51,7 @@ export function ProductCapture({ initialData, onAnalyzed, className }: ProductCa
   const [isContributing, setIsContributing] = useState(false);
   const [contributed, setContributed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [productType, setProductType] = useState<ProductType>("skincare");
 
   const canAnalyze = ingredients.trim().length > 10 && !isAnalyzing;
 
@@ -66,6 +68,7 @@ export function ProductCapture({ initialData, onAnalyzed, className }: ProductCa
     image_url: imageDataUrl,
     imageUrl: imageDataUrl,
     analysis_result_json: analysisData as ProductResult["analysis_result_json"],
+    productType,
   });
 
   const handleAnalyze = async () => {
@@ -77,7 +80,7 @@ export function ProductCapture({ initialData, onAnalyzed, className }: ProductCa
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: ingredients.trim() }),
+        body: JSON.stringify({ ingredients: ingredients.trim(), productType }),
       });
       if (res.ok) {
         const data = (await res.json()) as AnalysisResult;
@@ -111,6 +114,7 @@ export function ProductCapture({ initialData, onAnalyzed, className }: ProductCa
           brand: brand.trim() || undefined,
           barcode: barcode.trim() || undefined,
           ingredients: ingredients.trim() || undefined,
+          productType,
           imageDataUrl: imageDataUrl ?? undefined,
           source_type: "package",
         }),
@@ -156,6 +160,20 @@ export function ProductCapture({ initialData, onAnalyzed, className }: ProductCa
           placeholder={t("contribute.barcode")}
           className="input-base"
         />
+        <div>
+          <label className="text-sm font-medium text-[var(--ink)] block mb-1">
+            Produkttyp
+          </label>
+          <select
+            value={productType}
+            onChange={(e) => setProductType(e.target.value as ProductType)}
+            className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            <option value="skincare">Hudvård</option>
+            <option value="cosmetics">Smink</option>
+            <option value="other">Övrigt</option>
+          </select>
+        </div>
         {/* Ingredienser med kamera-OCR (IngredientsCapture = SS-066) */}
         <IngredientsCapture
           value={ingredients}

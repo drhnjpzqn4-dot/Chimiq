@@ -11,6 +11,8 @@ import { ShelfConflictBanner, type IngredientStatusLevel } from "@/components/In
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
+import { ProductTypeBadge } from "@/components/ProductTypeBadge";
+import type { ProductType } from "@/components/ProductTypeBadge";
 
 // Called "Produktdatablad" in product language
 
@@ -50,6 +52,7 @@ export interface ProductDetailProduct {
   analysis_result_json?: ProductAnalysis | null;
   analysisResultJson?: ProductAnalysis | null;
   routineSlot?: RoutineSlot | string | null;
+  productType?: ProductType | string | null;
 }
 
 interface ProductDetailSheetProps {
@@ -375,7 +378,10 @@ export function ProductDetailSheet({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: ingredientsToAnalyze }),
+        body: JSON.stringify({
+          ingredients: ingredientsToAnalyze,
+          productType: product.productType ?? undefined,
+        }),
       });
       if (res.ok) {
         const data = await res.json() as ProductAnalysis;
@@ -498,9 +504,12 @@ export function ProductDetailSheet({
               style={{ color: "var(--ink)" }}
             />
           ) : (
-            <SheetTitle className="font-serif text-2xl font-medium leading-tight" style={{ color: "var(--ink)" }}>
-              {productName}
-            </SheetTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <SheetTitle className="font-serif text-2xl font-medium leading-tight" style={{ color: "var(--ink)" }}>
+                {productName}
+              </SheetTitle>
+              <ProductTypeBadge productType={product.productType} />
+            </div>
           )}
           <div className="mt-1 flex items-center justify-between gap-2">
             {editMode ? (

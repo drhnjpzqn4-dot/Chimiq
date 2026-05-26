@@ -23,6 +23,8 @@ export type RiskCategory =
   | "PHOTOSENSITISER"
   | "KNOWN_ALLERGEN"
   | "NANOPARTICLE"
+  | "HEAVY_METAL"
+  | "CARCINOGEN"
   | "CAUTION";
 
 export type RiskSeverity = "HIGH_RISK" | "CAUTION";
@@ -272,7 +274,7 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     display: "Cyclopentasiloxane (D5)",
     category: "ENDOCRINE_DISRUPTOR",
     severity: "CAUTION",
-    profileOverrides: { pregnant: "CAUTION" },
+    profileOverrides: { young: "HIGH_RISK", pregnant: "HIGH_RISK" },
     hint: "Volatile silicone classified by ECHA as very persistent and very bioaccumulative (vPvB); EU restricted to <0.1% in rinse-off products from 2020 and in further leave-on categories from 2027.",
     hint_se: "Flyktig silikon som ECHA klassat som mycket långlivad och bioackumulerande (vPvB); EU begränsade den i avsköljbara produkter till under 0,1 % från 2020 och utvidgar förbudet till fler leave-on-produkter från 2027.",
     citation: "ECHA, 2018; EU Regulation 2018/35; EU Regulation 2024/1328.",
@@ -297,10 +299,14 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     category: "CAUTION",
     severity: "CAUTION",
     profileOverrides: { sensitive: "CAUTION", young: "HIGH_RISK", pregnant: "HIGH_RISK" },
-    hint: "Can react with nitrosating preservatives to form carcinogenic nitrosamines; restricted under EU Annex III.",
-    hint_se: "Kan reagera med vissa konserveringsmedel och bilda cancerframkallande nitrosaminer; begränsat enligt EU:s bilaga III.",
-    citation: "SCCS/1463/12.",
+    hint: "pH adjuster; can form carcinogenic nitrosamines in products also containing nitrosating agents. EU limits apply.",
+    hint_se: "pH-justerare som kan bilda cancerframkallande nitrosaminer i produkter som också innehåller nitrosatorer. EU har gränsvärden.",
+    citation: "SCCS/1284/13.",
     citationUrl: "https://health.ec.europa.eu/scientific-committees/scientific-committee-consumer-safety-sccs_en",
+    aliases: ["tea", "2,2',2''-nitrilotriethanol", "trolamine"],
+    concentrationDependent: true,
+    concentrationNote:
+      "Flag only when appearing in the first half of the INCI list (likely >1%). Low concentrations may be acceptable.",
   },
   "diethanolamine": {
     display: "Diethanolamine (DEA)",
@@ -324,7 +330,7 @@ const RAW_RISKS: Record<string, RiskEntry> = {
   },
   "cocamide dea": {
     display: "Cocamide DEA",
-    category: "CAUTION",
+    category: "CARCINOGEN",
     severity: "HIGH_RISK",
     profileOverrides: { sensitive: "HIGH_RISK", pregnant: "HIGH_RISK", young: "HIGH_RISK" },
     hint: "DEA-based surfactant that can release diethanolamine and form carcinogenic nitrosamines under typical formulation conditions; classified by IARC as possibly carcinogenic to humans (Group 2B).",
@@ -837,35 +843,39 @@ const RAW_RISKS: Record<string, RiskEntry> = {
   },
   "resorcinol": {
     display: "Resorcinol",
-    category: "CAUTION",
-    severity: "CAUTION",
+    category: "ENDOCRINE_DISRUPTOR",
+    severity: "HIGH_RISK",
     profileOverrides: { pregnant: "HIGH_RISK", young: "HIGH_RISK", sensitive: "HIGH_RISK" },
-    hint: "Phenolic compound used in hair colour and some anti-acne products; SCCS lists it as a suspected endocrine disruptor (thyroid) and EU restricts use to specified concentrations and product categories.",
-    hint_se: "Fenolisk substans som används i hårfärg och vissa aknemedel; SCCS listar den som misstänkt hormonstörare (sköldkörtel) och EU begränsar användningen till specifika halter och produkttyper.",
-    citation: "SCCS/1619/20.",
+    hint: "Hair dye component; thyroid disruptor and skin sensitiser. Restricted in EU at >0.5% in leave-on products.",
+    hint_se: "Ingrediens i hårfärg; stör sköldkörtelfunktionen och är en hudsensibiliserare. Begränsad till >0,5% i EU för produkter som inte sköljs av.",
+    citation: "SCCS/1205/08; EU Cosmetics Regulation Annex III.",
     citationUrl: "https://health.ec.europa.eu/scientific-committees/scientific-committee-consumer-safety-sccs_en",
+    aliases: ["1,3-benzenediol", "1,3-dihydroxybenzene", "resorcin"],
   },
 
   // ─── Ethanolamines / acrylamide ─────────────────────────────────────────
   "polyacrylamide": {
     display: "Polyacrylamide",
-    category: "CAUTION",
+    category: "CARCINOGEN",
     severity: "CAUTION",
-    hint: "Residual acrylamide monomer is a known carcinogen; well-manufactured products keep it under 0.1 ppm.",
-    hint_se: "Restmonomeren akrylamid är ett känt cancerframkallande ämne; bra tillverkning håller halten under 0,1 ppm.",
-    citation: "SCCNFP/0716/03.",
-    citationUrl: "https://health.ec.europa.eu/scientific-committees/scientific-committee-consumer-safety-sccs_en",
+    hint: "Polymer that may contain residual acrylamide monomer — a neurotoxin and probable human carcinogen (IARC Group 2A). EU limits residual acrylamide at 0.1 ppm.",
+    hint_se: "Polymer som kan innehålla restmonomer akrylamid — ett nervgift och troligt cancerframkallande ämne (IARC Grupp 2A). EU begränsar restmängden till 0,1 ppm.",
+    citation: "IARC Monographs Vol. 60 (1994); EU Cosmetics Regulation Annex III.",
+    citationUrl: "https://publications.iarc.fr/69",
+    aliases: ["poly(acrylamide)", "pam"],
+    concentrationNote: "The polymer itself is not the concern; the concern is residual acrylamide monomer.",
   },
 
   // ─── Coal tar derivatives ───────────────────────────────────────────────
   "coal tar": {
     display: "Coal Tar",
-    category: "CAUTION",
+    category: "CARCINOGEN",
     severity: "HIGH_RISK",
-    hint: "IARC Group 1 human carcinogen; banned from EU cosmetics.",
-    hint_se: "IARC grupp 1 — bevisat cancerframkallande för människa; förbjudet i EU-kosmetika.",
-    citation: "EU Regulation 1223/2009 Annex II, entry 1136.",
-    citationUrl: "https://eur-lex.europa.eu/eli/reg/2009/1223/oj",
+    hint: "Complex mixture of polycyclic aromatic hydrocarbons; IARC Group 1 carcinogen. Used historically in some hair dyes and dandruff shampoos.",
+    hint_se: "Komplex blandning av polycykliska aromatiska kolväten; IARC Grupp 1-karcinogen. Förekom i vissa hårfärger och mjällschampon.",
+    citation: "IARC Monographs Vol. 100F (2012).",
+    citationUrl: "https://publications.iarc.fr/123",
+    aliases: ["coal tar solution", "steinkohlenteer", "tar"],
   },
 
   // ─── Synthetic antioxidants (endocrine concerns) ────────────────────────
@@ -897,11 +907,88 @@ const RAW_RISKS: Record<string, RiskEntry> = {
     display: "Talc",
     category: "CAUTION",
     severity: "CAUTION",
-    profileOverrides: { young: "CAUTION", pregnant: "CAUTION" },
-    hint: "Cosmetic talc may be contaminated with asbestos depending on mining source; reputable suppliers test for asbestos-free grade. Avoid loose powder products on the face.",
-    hint_se: "Kosmetisk talk kan vara kontaminerad med asbest beroende på brytningskälla; seriösa leverantörer testar för asbestfri kvalitet. Undvik lös puder på ansiktet.",
-    citation: "FDA, 2023. Talc safety guidance.",
+    profileOverrides: { young: "HIGH_RISK" },
+    hint: "Generally safe, but cosmetic-grade talc has been found contaminated with asbestos in some products; lung risk if inhaled (loose powders, baby powder).",
+    hint_se: "Vanligtvis säkert men kosmetisk talk har i vissa produkter hittats förorenad med asbest; lungskaderisk om det inhaleras (löst puder, babypuder).",
+    citation: "FDA Talc Information page; IARC Monographs Vol. 93 (perineal use: Group 2B).",
     citationUrl: "https://www.fda.gov/cosmetics/cosmetic-ingredients/talc",
+    aliases: ["talcum", "talcum powder", "magnesium silicate"],
+    concentrationNote: "Higher concern for loose powders and dry-finish products that can be inhaled.",
+  },
+
+  // ─── Tungmetaller i smink ───────────────────────────────────────────────
+  "lead acetate": {
+    display: "Lead Acetate",
+    category: "HEAVY_METAL",
+    severity: "HIGH_RISK",
+    profileOverrides: { young: "HIGH_RISK", pregnant: "HIGH_RISK" },
+    hint: "Lead compound used in some hair dyes; neurotoxin with no safe exposure level. Banned in EU cosmetics.",
+    hint_se: "Blyförening som förekommer i vissa hårfärger. Nervgift utan säker exponeringsnivå. Förbjudet i EU-kosmetika.",
+    citation: "EU Cosmetics Regulation (EC) No 1223/2009, Annex II (prohibited substances).",
+    citationUrl: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32009R1223",
+    aliases: ["lead", "plumbum aceticum"],
+  },
+  "chromium oxide greens": {
+    display: "Chromium Oxide Greens (CI 77288)",
+    category: "HEAVY_METAL",
+    severity: "CAUTION",
+    profileOverrides: { sensitive: "HIGH_RISK" },
+    hint: "Chromium pigment used in eyeshadows; hexavalent chromium impurities are carcinogenic — quality/purity matters.",
+    hint_se: "Krom-pigment i ögonskuggor; föroreningar av sexvärt krom är cancerframkallande — produktkvalitet avgör risken.",
+    citation: "SCCS/1585/17, Opinion on Chromium compounds.",
+    citationUrl: "https://health.ec.europa.eu/scientific-committees/scientific-committee-consumer-safety-sccs_en",
+    aliases: ["ci 77288", "chromium(iii) oxide"],
+  },
+  "chromium hydroxide green": {
+    display: "Chromium Hydroxide Green (CI 77289)",
+    category: "HEAVY_METAL",
+    severity: "CAUTION",
+    hint: "Chromium pigment; same purity concerns as chromium oxide regarding hexavalent chromium impurities.",
+    hint_se: "Krom-pigment; samma renhetsrisker som kromoxid gällande sexvärt krom.",
+    citation: "SCCS/1585/17.",
+    citationUrl: "https://health.ec.europa.eu/scientific-committees/scientific-committee-consumer-safety-sccs_en",
+    aliases: ["ci 77289"],
+  },
+
+  // ─── Karcinogener i smink ───────────────────────────────────────────────
+  "carbon black": {
+    display: "Carbon Black (CI 77266)",
+    category: "CARCINOGEN",
+    severity: "CAUTION",
+    profileOverrides: { young: "HIGH_RISK" },
+    hint: "Black pigment used in mascara and eyeliner; classified IARC Group 2B (possibly carcinogenic). Nanoparticle form raises additional concerns.",
+    hint_se: "Svart pigment i mascara och eyeliner; klassificerat som IARC Grupp 2B (möjligen cancerframkallande). Nanopartikelform ger ytterligare oro.",
+    citation: "IARC Monographs Vol. 93 (2010); SCCS/1515/13.",
+    citationUrl:
+      "https://publications.iarc.fr/Book-And-Report-Series/Iarc-Monographs-On-The-Identification-Of-Carcinogenic-Hazards-To-Humans/Carbon-Black-Titanium-Dioxide-And-Talc-2010",
+    aliases: ["ci 77266", "lamp black", "channel black", "furnace black"],
+    concentrationDependent: false,
+  },
+
+  // ─── Cykliska silikoner (EU-begränsade) ─────────────────────────────────
+  "cyclohexasiloxane": {
+    display: "Cyclohexasiloxane (D6)",
+    category: "ENDOCRINE_DISRUPTOR",
+    severity: "CAUTION",
+    hint: "Cyclic silicone in the same restricted family as D4/D5; under regulatory review for endocrine disruption.",
+    hint_se: "Cyklisk silikon i samma begränsade familj som D4/D5; under regulatorisk granskning för hormonstörning.",
+    citation: "EU Commission Regulation (EU) 2018/1513.",
+    citationUrl: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32018R1513",
+    aliases: ["d6", "dodecamethylcyclohexasiloxane"],
+  },
+
+  // ─── PEG / 1,4-dioxan ───────────────────────────────────────────────────
+  "peg-100 stearate": {
+    display: "PEG-100 Stearate",
+    category: "CAUTION",
+    severity: "CAUTION",
+    hint: "Ethoxylated ingredient that may contain residual 1,4-dioxane (IARC Group 2B carcinogen) as a manufacturing byproduct.",
+    hint_se: "Etoxylerad ingrediens som kan innehålla restmängder av 1,4-dioxan (IARC Grupp 2B-karcinogen) som en tillverkningsbiproduk.",
+    citation: "FDA: 1,4-Dioxane in Cosmetics: A Manufacturing Byproduct.",
+    citationUrl: "https://www.fda.gov/cosmetics/cosmetic-ingredients/14-dioxane-cosmetics-manufacturing-byproduct",
+    aliases: ["peg-100", "polyethylene glycol 100 stearate"],
+    concentrationNote:
+      "Concern relates to residual 1,4-dioxane contamination, not the ingredient itself. Flag as general PEG caution.",
   },
 };
 

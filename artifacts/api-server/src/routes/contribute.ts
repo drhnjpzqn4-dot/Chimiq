@@ -15,6 +15,7 @@ import {
 import { evaluateContributionBadges } from "../lib/gamification.js";
 import { requireAuth } from "../lib/authGate.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
+import { ProductTypeSchema } from "../lib/product-type.js";
 import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const resend = process.env.RESEND_API_KEY
@@ -128,6 +129,7 @@ const ManualContributionBody = z.object({
   brand: z.string().trim().max(200).optional(),
   barcode: z.string().trim().regex(/^[0-9]{8,14}$/).optional(),
   ingredients: z.string().trim().max(10000).optional(),
+  productType: ProductTypeSchema.optional(),
   source_type: z.enum(["package", "manufacturer_site", "other"]).optional(),
   source_note: z.string().trim().max(500).optional(),
 }).refine((data) => Boolean(data.ingredients?.trim() || data.barcode?.trim()), {
@@ -420,7 +422,7 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
   }
 
   const userId = (req as { user?: { id?: string } }).user?.id ?? null;
-  const { barcode, productName, brand, ingredients } = parseResult.data;
+  const { barcode, productName, brand, ingredients, productType } = parseResult.data;
 
   let safeName: string | null = null;
   let safeBrand: string | null = null;
@@ -466,6 +468,7 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
           ingredients: safeIngredients,
           source: "user",
           image_url: null,
+          product_type: productType ?? "skincare",
         },
         { onConflict: "barcode", ignoreDuplicates: true },
       );

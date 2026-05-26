@@ -13,6 +13,7 @@ import { AppShell } from "@/components/AppShell";
 import { ContributeModal } from "@/components/ContributeModal";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
+import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 
 interface BrowseProduct {
   barcode: string;
@@ -21,6 +22,7 @@ interface BrowseProduct {
   imageUrl: string | null;
   cachedAt: string;
   category: string;
+  productType?: string;
   verifiedSafe: boolean;
   ingredientsPreview: string;
 }
@@ -247,9 +249,12 @@ export default function BrowseScreen() {
                       {p.brand}
                     </p>
                   )}
-                  <p className="truncate font-serif text-base font-medium text-foreground">
-                    {p.productName}
-                  </p>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <p className="truncate font-serif text-base font-medium text-foreground">
+                      {p.productName}
+                    </p>
+                    <ProductTypeBadge productType={p.productType} />
+                  </div>
                   <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                     {p.ingredientsPreview}
                   </p>

@@ -5,6 +5,43 @@ import https from "node:https";
 import { createClient } from "@supabase/supabase-js";
 import { parse } from "csv-parse";
 
+const COSMETIC_CATEGORY_TAGS = [
+  "en:make-up",
+  "en:makeup",
+  "en:face-makeup",
+  "en:foundations",
+  "en:face-foundations",
+  "en:concealer",
+  "en:concealers",
+  "en:face-powder",
+  "en:blush",
+  "en:bronzer",
+  "en:highlighter",
+  "en:primers",
+  "en:face-primer",
+  "en:eye-makeup",
+  "en:eye-shadows",
+  "en:eyeshadow",
+  "en:eyeliners",
+  "en:eyeliner",
+  "en:mascaras",
+  "en:mascara",
+  "en:eyebrow-makeup",
+  "en:lip-products",
+  "en:lipsticks",
+  "en:lip-gloss",
+  "en:lip-liner",
+  "en:lip-balm",
+  "en:nail-products",
+  "en:nail-polish",
+  "en:nail-care",
+  "en:makeup-removers",
+  "en:eye-makeup-remover",
+  "en:micellar-water",
+  "en:setting-sprays",
+  "en:face-mist",
+] as const;
+
 const SUPABASE_URL = process.env["SUPABASE_URL"];
 const SUPABASE_SERVICE_ROLE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"];
 
@@ -22,7 +59,7 @@ const DOWNLOAD_PATH = "/tmp/obf-products.csv.gz";
 const CSV_PATH = "/tmp/obf-products.csv";
 const BATCH_SIZE = 100;
 
-const INCLUDE_TERMS = [
+const SKINCARE_INCLUDE_TERMS = [
   "face cream", "facial cream", "moisturizer", "moisturiser",
   "face wash", "facial wash", "cleanser", "cleansing",
   "serum", "face oil", "facial oil", "eye cream", "eye serum",
@@ -39,6 +76,16 @@ const INCLUDE_TERMS = [
   "skincare", "skin care",
 ];
 
+function detectProductType(categories: string): "skincare" | "haircare" | "cosmetics" | "other" {
+  const lower = categories.toLowerCase();
+  if (/hair|shampoo|conditioner|hair dye|hair color/.test(lower)) return "haircare";
+  if (COSMETIC_CATEGORY_TAGS.some((tag) => lower.includes(tag))) return "cosmetics";
+  if (SKINCARE_INCLUDE_TERMS.some((term) => lower.includes(term))) return "skincare";
+  return "other";
+}
+
+const COSMETIC_CATEGORIES = [...COSMETIC_CATEGORY_TAGS];
+
 const EXCLUDE_TERMS = [
   "hair", "shampoo", "conditioner", "hair dye", "hair color",
   "toothpaste", "dental", "oral care", "mouthwash",
@@ -47,7 +94,6 @@ const EXCLUDE_TERMS = [
   "baby food", "infant",
   "shower gel", "body wash", "soap bar",
   "shaving", "razor",
-  "nail polish", "nail care",
 ];
 
 interface OBFRow {
@@ -56,6 +102,7 @@ interface OBFRow {
   brands?: string;
   categories?: string;
   categories_en?: string;
+  categories_tags?: string;
   ingredients_text?: string;
   ingredients_text_en?: string;
   image_front_url?: string;
@@ -74,13 +121,19 @@ interface CachedProductRecord {
   quantity: string | null;
   categories: string | null;
   labels: string | null;
+  product_type: string;
   cached_at: string;
 }
 
-function shouldInclude(categories: string): boolean {
-  const lower = categories.toLowerCase();
+function categoryBlob(row: OBFRow): string {
+  return [row.categories_tags, row.categories_en, row.categories].filter(Boolean).join(",");
+}
+
+function shouldInclude(row: OBFRow): boolean {
+  const lower = categoryBlob(row).toLowerCase();
   if (EXCLUDE_TERMS.some((term) => lower.includes(term))) return false;
-  return INCLUDE_TERMS.some((term) => lower.includes(term));
+  if (COSMETIC_CATEGORIES.some((tag) => lower.includes(tag))) return true;
+  return SKINCARE_INCLUDE_TERMS.some((term) => lower.includes(term));
 }
 
 function normalizeBarcode(value: string | undefined): string {
@@ -170,6 +223,9 @@ function mapRow(row: OBFRow): CachedProductRecord | null {
   if (productName.length < 2) return null;
   if (ingredients.length < 10) return null;
 
+  const categories = trimOrNull(row.categories_en ?? row.categories, 500);
+  const categorySource = categoryBlob(row) || categories || "";
+
   return {
     barcode,
     product_name: productName,
@@ -178,8 +234,9 @@ function mapRow(row: OBFRow): CachedProductRecord | null {
     image_url: trimOrNull(row.image_front_url ?? row.image_url, 1000),
     source: "obf",
     quantity: trimOrNull(row.quantity, 100),
-    categories: trimOrNull(row.categories_en ?? row.categories, 500),
+    categories,
     labels: trimOrNull(row.labels_en, 300),
+    product_type: detectProductType(categorySource),
     cached_at: new Date().toISOString(),
   };
 }
@@ -248,8 +305,7 @@ async function main(): Promise<void> {
   for await (const row of parser as AsyncIterable<OBFRow>) {
     totalParsed++;
 
-    const categories = row.categories_en || row.categories || "";
-    if (!shouldInclude(categories)) {
+    if (!shouldInclude(row)) {
       totalSkipped++;
       continue;
     }

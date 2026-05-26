@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProductType } from "./productType";
 import type { SkinProfile } from "./skinProfile";
 
 export interface AnalyzeSingleRequest {
@@ -15,4 +16,6 @@ export interface AnalyzeSingleRequest {
   ingredients: string;
   /** Optional skin profile to personalise analysis */
   skinProfile?: SkinProfile;
+  /** Optional product category for exposure-route context (lip/eye/nail) */
+  productType?: ProductType;
 }

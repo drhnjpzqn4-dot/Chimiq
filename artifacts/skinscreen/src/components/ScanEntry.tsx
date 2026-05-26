@@ -6,11 +6,13 @@ import { ProductCapture } from "@/components/ProductCapture";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
+import type { ProductType } from "@/components/ProductTypeBadge";
 
 export interface ProductResult {
   product_name: string;
   productName?: string;
   brand?: string;
+  productType?: ProductType;
   /** Real EAN/UPC if produkten finns i cached_products. Null/undefined för
    * färska OCR/paste-scans som inte har en DB-post än — Produktdatablad (ProductDetailSheet)
    * använder detta för att avgöra om "Spara denna produkt"-knappen ska
@@ -41,6 +43,7 @@ interface ProductLookupResult {
   imageUrl?: string | null;
   analysis?: ProductDetailAnalysis | null;
   barcode?: string;
+  productType?: ProductType;
 }
 
 interface ProductSuggestion {
@@ -71,6 +74,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [showCapture, setShowCapture] = useState(false);
+  const [productType, setProductType] = useState<ProductType | undefined>(undefined);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const visibleRows = mode === "all" ? ROWS : ROWS.filter((row) => row === mode);
@@ -89,7 +93,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
       : active === "barcode"
         ? Boolean(barcodeResult)
         : active === "ocr"
-          ? pasteText.trim().length > 0
+          ? pasteText.trim().length > 0 && Boolean(productType)
           : false;
 
   const clearCaptured = () => {
@@ -99,6 +103,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
     setPasteText("");
     setSuggestions([]);
     setShowCapture(false);
+    setProductType(undefined);
   };
 
   const capturedDisplayName =
@@ -247,6 +252,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
       image_url: data.imageUrl ?? null,
       imageUrl: data.imageUrl ?? null,
       analysis_result_json: data.analysis ?? null,
+      productType: data.productType,
     });
     return true;
   };
@@ -260,6 +266,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
     if (active === "ocr") {
       const text = pasteText.trim();
       if (!text) return;
+      if (!productType) return;
       onResult?.({
         product_name: t("scanner.scannedProductFallback"),
         productName: t("scanner.scannedProductFallback"),
@@ -267,6 +274,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         image_url: null,
         imageUrl: null,
         analysis_result_json: null,
+        productType,
       });
       return;
     }
@@ -323,7 +331,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
           return (
             <BarcodeScanButton
               key={kind}
-              onResult={(ingredients, name, barcode) => {
+              onResult={(ingredients, name, barcode, scannedProductType) => {
                 setActive("barcode");
                 setBarcodeResult({
                   product_name: name,
@@ -333,6 +341,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                   image_url: null,
                   imageUrl: null,
                   analysis_result_json: null,
+                  productType: scannedProductType as ProductType | undefined,
                 });
                 if (barcode) {
                   try {
@@ -490,11 +499,40 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
             )}
 
             {kind === "ocr" && isActive && !hasCapturedResult && (
-              <IngredientsCapture
-                value={pasteText}
-                onChange={setPasteText}
-                className="mt-2 rounded-xl border border-[var(--line)] bg-white p-3"
-              />
+              <>
+                <IngredientsCapture
+                  value={pasteText}
+                  onChange={setPasteText}
+                  className="mt-2 rounded-xl border border-[var(--line)] bg-white p-3"
+                />
+                {pasteText.trim().length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-sm text-[var(--ink-muted)] mb-2">
+                      Vilken typ av produkt är det?
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {(["skincare", "cosmetics", "other"] as const).map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setProductType(type)}
+                          className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                            productType === type
+                              ? "border-[var(--sage)] bg-[var(--sage)]/10 text-[var(--sage)] font-medium"
+                              : "border-[var(--border)] text-[var(--ink-muted)]"
+                          }`}
+                        >
+                          {type === "skincare"
+                            ? "Hudvård"
+                            : type === "cosmetics"
+                              ? "Smink"
+                              : "Övrigt"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );

@@ -7,6 +7,7 @@ import {
   sanitizeProductName,
 } from "../lib/sanitize.js";
 import { supabaseAdmin } from "../lib/supabase-admin.js";
+import { detectProductType } from "../lib/product-type.js";
 import { analyzeSingleIngredients } from "./analyze-single.js";
 
 const router: IRouter = Router();
@@ -18,6 +19,8 @@ interface CachedProductRow {
   ingredients: string;
   image_url: string | null;
   source: string | null;
+  categories: string | null;
+  product_type: string | null;
   analysis_cache_hash: string | null;
   analysis_result_json: unknown | null;
 }
@@ -86,7 +89,7 @@ router.get("/barcode/:code", async (req, res) => {
 
   const { data: cached, error: cachedError } = await supabaseAdmin
     .from("cached_products")
-    .select("product_name,brand,ingredients,image_url,source,analysis_cache_hash,analysis_result_json")
+    .select("product_name,brand,ingredients,image_url,source,categories,product_type,analysis_cache_hash,analysis_result_json")
     .eq("barcode", code)
     .maybeSingle<CachedProductRow>();
   if (cachedError) {
@@ -94,12 +97,15 @@ router.get("/barcode/:code", async (req, res) => {
   }
 
   if (cached) {
+    const productType =
+      cached.product_type ?? detectProductType(cached.categories);
     res.json({
       found: true,
       productName: cached.product_name,
       brand: cached.brand,
       ingredients: cached.ingredients,
       imageUrl: cached.image_url ?? null,
+      productType,
       source: cached.source ?? "chimiq",
       analysis: cached.analysis_result_json
         ? {
@@ -161,8 +167,10 @@ router.get("/barcode/:code", async (req, res) => {
     const brand = sanitizeBrand(obfProduct.brand, true);
     const ingredients = sanitizeIngredients(obfProduct.ingredientsText, false);
     const imageUrl = obfProduct.imageUrl;
+    const productType = detectProductType(obfProduct.categories);
     const analysis = await analyzeSingleIngredients({
       ingredients,
+      productType,
       apiKey,
       log: req.log,
     });
@@ -182,6 +190,7 @@ router.get("/barcode/:code", async (req, res) => {
       quantity: obfProduct.quantity,
       categories: obfProduct.categories,
       labels: obfProduct.labels,
+      product_type: productType,
       analysis_cache_hash: analysis.cacheHash,
       analysis_result_json: analysis,
     });
@@ -195,6 +204,7 @@ router.get("/barcode/:code", async (req, res) => {
       brand,
       ingredients,
       imageUrl,
+      productType,
       source: "obf",
       analysis,
     });
