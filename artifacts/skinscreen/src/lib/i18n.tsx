@@ -292,6 +292,7 @@ const en: Dict = {
   // ───── 404 page ─────
   "notFound.title": "404 Page Not Found",
   "notFound.body": "Did you forget to add the page to the router?",
+  "notFound.goHome": "Back to the app",
 
   // ───── Marketing landing: top nav ─────
   "nav.howItWorks": "How it works",
@@ -1765,6 +1766,7 @@ const sv: Dict = {
   // ───── 404 ─────
   "notFound.title": "404 Sidan hittades inte",
   "notFound.body": "Glömde du att lägga till sidan i routern?",
+  "notFound.goHome": "Tillbaka till appen",
 
   // ───── Marketing landing: nav ─────
   "nav.howItWorks": "Så funkar det",
@@ -3248,6 +3250,7 @@ const fr: Dict = {
 
   "notFound.title": "404 Page introuvable",
   "notFound.body": "Avez-vous oublié d'ajouter la page au routeur ?",
+  "notFound.goHome": "Retour à l'application",
 
   // Marketing nav
   "nav.howItWorks": "Comment ça marche",
@@ -4723,6 +4726,7 @@ const es: Dict = {
 
   "notFound.title": "404 Página no encontrada",
   "notFound.body": "¿Olvidaste añadir la página al enrutador?",
+  "notFound.goHome": "Volver a la aplicación",
 
   // Marketing nav
   "nav.howItWorks": "Cómo funciona",

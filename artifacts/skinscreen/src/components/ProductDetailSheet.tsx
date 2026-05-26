@@ -492,6 +492,7 @@ export function ProductDetailSheet({
                 src={imageUrl}
                 alt=""
                 className="h-[200px] max-h-[200px] w-full rounded-2xl object-cover"
+                onError={() => setLocalImageUrl(null)}
               />
               {editMode && (
                 <>

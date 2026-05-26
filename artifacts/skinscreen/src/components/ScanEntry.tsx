@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import type { ProductType } from "@/components/ProductTypeBadge";
+import { ProductImage } from "@/components/ProductImage";
 
 export interface ProductResult {
   product_name: string;
@@ -415,18 +416,11 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                         onClick={() => void selectSuggestion(s)}
                         className="flex w-full items-center gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-white"
                       >
-                        {s.imageUrl ? (
-                          <img
-                            src={s.imageUrl}
-                            alt=""
-                            className="h-10 w-10 shrink-0 rounded-md object-cover"
-                          />
-                        ) : (
-                          <div
-                            className="h-10 w-10 shrink-0 rounded-md"
-                            style={{ backgroundColor: "var(--cream-warm)" }}
-                          />
-                        )}
+                        <ProductImage
+                          src={s.imageUrl}
+                          imgClassName="h-10 w-10 shrink-0 rounded-md object-cover"
+                          fallbackClassName="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-xl"
+                        />
                         <span className="min-w-0 flex-1">
                           <span
                             className="block truncate text-sm font-medium"

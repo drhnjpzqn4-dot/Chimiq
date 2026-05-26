@@ -13,6 +13,7 @@ import { useTranslation } from "@/lib/i18n";
 import { PREMIUM_CONTRIBUTION_MILESTONE } from "@/pages/app/Shelf";
 import { apiFetch } from "@/lib/api";
 import { toStatusLevel } from "@/lib/status";
+import { ProductImage } from "@/components/ProductImage";
 
 void [
   Link,
@@ -62,7 +63,7 @@ function readRecentScans(): RecentScanRow[] {
 export default function HomeScreen() {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const displayName = user?.firstName ?? user?.email?.split("@")[0] ?? null;
+  const displayName = user?.displayName ?? user?.firstName ?? user?.email?.split("@")[0] ?? null;
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [recent, setRecent] = useState<RecentScanRow[]>(() => readRecentScans());
   const [detailProduct, setDetailProduct] = useState<ProductDetailProduct | null>(null);
@@ -178,24 +179,11 @@ export default function HomeScreen() {
                   disabled={!r.product}
                   className="w-[130px] shrink-0 rounded-3xl border border-border/40 bg-white p-2.5 text-left shadow-sm transition-opacity active:opacity-70 disabled:cursor-default"
                 >
-                  {(() => {
-                    const imgUrl = r.product?.image_url ?? r.product?.imageUrl ?? null;
-                    return imgUrl ? (
-                      <img
-                        src={imgUrl}
-                        alt=""
-                        className="h-[60px] w-full rounded-xl object-cover"
-                      />
-                    ) : (
-                      <div
-                        className="flex h-[60px] w-full items-center justify-center rounded-xl text-[22px]"
-                        style={{ backgroundColor: "var(--cream-warm)" }}
-                        aria-hidden
-                      >
-                        🧴
-                      </div>
-                    );
-                  })()}
+                  <ProductImage
+                    src={r.product?.image_url ?? r.product?.imageUrl}
+                    imgClassName="h-[60px] w-full rounded-xl object-cover"
+                    fallbackClassName="flex h-[60px] w-full items-center justify-center rounded-xl text-[22px]"
+                  />
                   <p className="mt-1.5 line-clamp-2 text-[12px] font-semibold leading-snug text-foreground">
                     {r.name}
                   </p>
@@ -238,21 +226,11 @@ export default function HomeScreen() {
                     onClick={() => setDetailProduct(detailProduct)}
                     className="flex w-full items-center gap-3 border-b border-border/30 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-[var(--cream)]"
                   >
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt=""
-                        className="h-10 w-10 shrink-0 rounded-xl object-cover"
-                      />
-                    ) : (
-                      <span
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl"
-                        style={{ backgroundColor: "var(--cream-warm)" }}
-                        aria-hidden
-                      >
-                        🧴
-                      </span>
-                    )}
+                    <ProductImage
+                      src={product.imageUrl}
+                      imgClassName="h-10 w-10 shrink-0 rounded-xl object-cover"
+                      fallbackClassName="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl"
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13px] font-semibold" style={{ color: "var(--ink)" }}>
                         {name}
