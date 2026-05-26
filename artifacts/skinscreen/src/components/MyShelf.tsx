@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { ContributeModal } from "@/components/ContributeModal";
 import { ScanEntry, type ProductResult } from "@/components/ScanEntry";
@@ -607,6 +608,7 @@ function DashedAddSlotCard({ onAdd }: { onAdd: () => void }) {
 
 export function MyShelf({ displayName }: MyShelfProps) {
   const { t } = useTranslation();
+  const [, setLocation] = useLocation();
   const [shelfFilter, setShelfFilter] = useState<ShelfFilter>("morgon");
   const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -989,10 +991,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
           <button
             type="button"
             data-touch-target
-            onClick={() => {
-              const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
-              window.open(`${base}/app/report`, "_blank", "noopener,noreferrer");
-            }}
+            onClick={() => setLocation("/app/report")}
             className="relative flex w-full items-center gap-3 rounded-2xl border border-border/40 bg-white px-4 py-3 text-left shadow-sm transition-[transform,box-shadow] hover:-translate-y-0.5"
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">

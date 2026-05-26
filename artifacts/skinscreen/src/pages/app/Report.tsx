@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { useAnalyzeRoutine, useGetShelf } from "@workspace/api-client-react";
 import type {
   RoutineConflict,
@@ -280,6 +281,7 @@ function ConflictSection({ conflicts }: { conflicts: RoutineConflict[] }) {
 
 export default function RoutineReport() {
   const { t } = useTranslation();
+  const [, setLocation] = useLocation();
   const shelfQuery = useGetShelf({});
   const analyzeRoutine = useAnalyzeRoutine();
   const products = shelfQuery.data?.products ?? [];
@@ -396,7 +398,22 @@ export default function RoutineReport() {
           color: "#2C1A0E",
         }}
       >
-        <div className="no-print" style={{ marginBottom: 24, textAlign: "right" }}>
+        <div className="no-print" style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button
+            onClick={() => setLocation("/app/shelf")}
+            style={{
+              backgroundColor: "transparent",
+              color: "#3C5C44",
+              border: "1.5px solid #3C5C44",
+              borderRadius: 10,
+              padding: "10px 18px",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            ← Tillbaka
+          </button>
           <button
             onClick={() => window.print()}
             style={{

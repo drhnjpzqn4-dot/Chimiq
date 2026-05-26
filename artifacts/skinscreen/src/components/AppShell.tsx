@@ -31,7 +31,7 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
 
       {/* ── Header ── */}
       <header
-        className="shrink-0 border-b bg-white/85 backdrop-blur-md"
+        className="shrink-0 border-b bg-white"
         style={{ paddingTop: "var(--safe-top)", borderColor: "var(--line)" }}
       >
         <div className="relative mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
