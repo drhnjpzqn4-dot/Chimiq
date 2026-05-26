@@ -309,9 +309,11 @@ export function ProductDetailSheet({
       setCompletionError(null);
     }
     try {
-      const imageBase64 = await fileToBase64(file);
+      // Resize to max 1200px / 82% JPEG before upload — keeps file small without Supabase Pro
+      const resized = await resizeImageFile(file);
+      const imageBase64 = await fileToBase64(resized);
       // Show local preview immediately while upload is in flight
-      setLocalImageUrl(`data:${file.type || "image/jpeg"};base64,${imageBase64}`);
+      setLocalImageUrl(`data:image/jpeg;base64,${imageBase64}`);
       if (!barcode) return;
       const res = await apiFetch(`/api/products/${encodeURIComponent(barcode)}`, {
         method: "PATCH",
@@ -1040,6 +1042,51 @@ export function ProductDetailSheet({
     />
     </>
   );
+}
+
+/**
+ * Resize an image File to at most `maxPx` on its longest side and re-encode
+ * as JPEG at `quality` (0–1). Returns a new File so MIME type is always
+ * image/jpeg. Falls back to the original file if Canvas is unavailable.
+ */
+function resizeImageFile(
+  file: File,
+  maxPx = 1200,
+  quality = 0.82,
+): Promise<File> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { naturalWidth: w, naturalHeight: h } = img;
+      // Skip resize if already small enough
+      if (w <= maxPx && h <= maxPx) {
+        resolve(file);
+        return;
+      }
+      const scale = maxPx / Math.max(w, h);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file); // fallback: no canvas support
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
 }
 
 function fileToBase64(file: File): Promise<string> {
