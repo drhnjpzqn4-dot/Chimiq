@@ -399,7 +399,7 @@ export default function ScanScreen() {
   };
 
   return (
-    <AppShell title={t("scan.title")} subtitle={t("scan.subtitle")}>
+    <AppShell pageLabel={t("tabs.scan")} subtitle={t("scan.subtitle")}>
       <div className="-mx-4 space-y-5 px-4 pb-6 sm:space-y-6" style={{ backgroundColor: "var(--cream)" }}>
       {/* SCAN PRODUCT — V11 choice cards (scan vs database) */}
       <section className="mb-6 animate-pop-in">

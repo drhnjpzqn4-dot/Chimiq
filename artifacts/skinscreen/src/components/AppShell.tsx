@@ -70,7 +70,7 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
 
         {(title || subtitle) && (
           <div
-            className="mx-auto max-w-3xl px-4 pb-2 pt-0.5"
+            className="mx-auto max-w-3xl px-4 pb-1.5 pt-0"
             style={!title && pageLabel ? { textAlign: "right" } : undefined}
           >
             {title && (
