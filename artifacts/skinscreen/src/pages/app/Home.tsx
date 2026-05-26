@@ -67,13 +67,22 @@ export default function HomeScreen() {
   const [stats, setStats] = useState<ContributeStats | null>(null);
   const [recent, setRecent] = useState<RecentScanRow[]>(() => readRecentScans());
   const [detailProduct, setDetailProduct] = useState<ProductDetailProduct | null>(null);
-  const [notes, setNotes] = useState<Array<{ id: string; productName?: string; text: string; date: string }>>(() => {
+  const [notes, setNotes] = useState<Array<{
+    id: string;
+    productName?: string;
+    text: string;
+    date: string;
+    day?: number;
+    monthShort?: string;
+  }>>(() => {
     try {
       return JSON.parse(localStorage.getItem("chimiq.diary") ?? "[]") as Array<{
         id: string;
         productName?: string;
         text: string;
         date: string;
+        day?: number;
+        monthShort?: string;
       }>;
     } catch {
       return [];
@@ -124,10 +133,13 @@ export default function HomeScreen() {
   const saveNote = () => {
     const text = newNoteText.trim();
     if (!text) return;
+    const d = new Date();
     const entry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       text,
-      date: new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }),
+      date: d.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }),
+      day: d.getDate(),
+      monthShort: d.toLocaleDateString(undefined, { month: "short" }),
     };
     const updated = [entry, ...notes];
     setNotes(updated);
@@ -296,19 +308,37 @@ export default function HomeScreen() {
               {notes.map((n) => (
                 <li
                   key={n.id}
-                  className="flex gap-3 rounded-3xl border border-border/40 bg-white p-3.5 shadow-sm"
+                  className="flex items-start gap-3 rounded-3xl border border-border/40 bg-white p-3.5 shadow-sm"
                 >
-                  <span className="shrink-0 text-xl leading-none" aria-hidden>
-                    {n.productName ? "🧴" : "📝"}
-                  </span>
+                  {/* Datumkolumn till vänster */}
+                  <div
+                    className="flex w-9 shrink-0 flex-col items-center justify-start pt-0.5"
+                    aria-hidden
+                  >
+                    <span
+                      className="text-[17px] font-semibold leading-none"
+                      style={{ color: "var(--ink)" }}
+                    >
+                      {n.day ?? n.date.split(" ")[0]}
+                    </span>
+                    <span
+                      className="mt-0.5 text-[9px] uppercase tracking-wide"
+                      style={{ color: "var(--ink-soft)" }}
+                    >
+                      {n.monthShort ?? n.date.split(" ")[1]?.slice(0, 3) ?? ""}
+                    </span>
+                  </div>
+                  {/* Separator */}
+                  <div className="mt-1 w-px self-stretch rounded-full" style={{ backgroundColor: "var(--line)" }} />
+                  {/* Innehåll */}
                   <div className="min-w-0 flex-1 text-left">
                     {n.productName ? (
-                      <p className="text-[11px] font-medium" style={{ color: "var(--ink-soft)" }}>
+                      <p className="text-[10px] font-medium" style={{ color: "var(--ink-soft)" }}>
                         {n.productName}
                       </p>
                     ) : null}
                     <p className="text-[13px] font-semibold leading-snug text-foreground">{n.text}</p>
-                    <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--ink-soft)" }}>
+                    <p className="mt-1 text-[10px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>
                       {n.date}
                     </p>
                   </div>
