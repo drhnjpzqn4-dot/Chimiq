@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetShelf, getGetShelfQueryKey } from "@workspace/api-client-react";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight, Lock, X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import BatchRecallBanner from "@/components/BatchRecallBanner";
 import { ProductDetailSheet, type ProductDetailProduct } from "@/components/ProductDetailSheet";
@@ -286,7 +286,7 @@ export default function HomeScreen() {
 
         {/* SEKTION 3 — Dagbok */}
         <section>
-          <div className="mb-2 flex items-baseline justify-between gap-3">
+          <div className="mb-1 flex items-baseline justify-between gap-3">
             <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--ink-soft)" }}>
               {t("home.diary")}
             </p>
@@ -303,6 +303,10 @@ export default function HomeScreen() {
               + {t("home.diaryAddNote")}
             </button>
           </div>
+          <p className="mb-2 flex items-center gap-1 text-[11px]" style={{ color: "var(--ink-soft)" }}>
+            <Lock className="h-2.5 w-2.5 shrink-0" aria-hidden />
+            {t("home.diaryLocalOnly")}
+          </p>
           {notes.length === 0 ? (
             <div className="rounded-3xl border-2 border-dashed border-border/50 bg-white/90 px-4 py-8 text-center">
               <p className="text-sm leading-relaxed" style={{ color: "var(--ink-soft)" }}>
@@ -393,11 +397,15 @@ export default function HomeScreen() {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveNote();
                 }}
               />
+              <p className="mt-3 flex items-center gap-1.5 text-[11px]" style={{ color: "var(--ink-soft)" }}>
+                <Lock className="h-3 w-3 shrink-0" aria-hidden />
+                {t("home.diaryLocalOnly")}
+              </p>
               <button
                 type="button"
                 onClick={saveNote}
                 disabled={!newNoteText.trim()}
-                className="mt-4 w-full rounded-2xl py-3 text-sm font-semibold text-white disabled:opacity-40"
+                className="mt-3 w-full rounded-2xl py-3 text-sm font-semibold text-white disabled:opacity-40"
                 style={{ backgroundColor: "var(--sage)" }}
               >
                 {t("home.diarySave")}
