@@ -336,6 +336,23 @@ router.get("/products/:barcode", async (req, res) => {
       return;
     }
     const safetyMap = await lookupSafety(new Map([[barcode, product.ingredients ?? ""]]));
+
+    // Also return the full cached analysis result so the client can skip
+    // the expensive AI call when opening an already-analysed product.
+    let analysisResultJson: unknown = null;
+    if (product.ingredients?.trim()) {
+      const hash = computeSingleHash(product.ingredients);
+      const { data: cacheRow } = await supabase
+        .from("analysis_cache")
+        .select("result_json")
+        .eq("hash", hash)
+        .eq("scan_type", "single")
+        .maybeSingle<{ result_json: string }>();
+      if (cacheRow?.result_json) {
+        try { analysisResultJson = JSON.parse(cacheRow.result_json); } catch { /* keep null */ }
+      }
+    }
+
     res.json({
       barcode: product.barcode,
       productName: product.product_name,
@@ -345,6 +362,7 @@ router.get("/products/:barcode", async (req, res) => {
       cachedAt: new Date(product.cached_at).toISOString(),
       category: deriveCategory(product.product_name, product.brand),
       verifiedSafe: safetyMap.get(barcode) === true,
+      analysisResultJson,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to load product detail");

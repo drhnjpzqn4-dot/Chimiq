@@ -550,6 +550,36 @@ export default function ScanScreen() {
             setContributeOpen(true);
             setDetailProduct(null);
           }}
+          onImageSaved={(newImageUrl) => {
+            // Update the in-memory detail product so the current sheet shows
+            // the permanent URL instead of the base64 preview.
+            setDetailProduct((prev) =>
+              prev ? { ...prev, image_url: newImageUrl, imageUrl: newImageUrl } : prev,
+            );
+            // Update the matching recent-scans entry in state + localStorage so
+            // the image persists the next time the product is opened from the
+            // recents list (fixes: image disappears after navigating away).
+            const productName =
+              (detailProduct.product_name ?? detailProduct.productName ?? "").toLowerCase();
+            if (!productName) return;
+            setRecent((prev) => {
+              const updated = prev.map((entry) => {
+                if (entry.name.toLowerCase() !== productName) return entry;
+                return {
+                  ...entry,
+                  product: entry.product
+                    ? { ...entry.product, image_url: newImageUrl, imageUrl: newImageUrl }
+                    : entry.product,
+                };
+              });
+              try {
+                localStorage.setItem(RECENT_SCANS_KEY, JSON.stringify(updated));
+              } catch {
+                // ignore quota / private-mode errors
+              }
+              return updated;
+            });
+          }}
         />
       )}
 

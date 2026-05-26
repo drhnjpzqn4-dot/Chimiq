@@ -73,6 +73,13 @@ interface ProductDetailSheetProps {
     brand?: string;
     ingredients?: string;
   }) => void;
+  /**
+   * Called with the permanent GCS URL after an image has been successfully
+   * uploaded and saved to the DB. The parent (Scan.tsx) uses this to update
+   * the matching recent-scans localStorage entry so the image persists the
+   * next time the product is opened from the recents list.
+   */
+  onImageSaved?: (newImageUrl: string) => void;
   initialEditMode?: boolean;
   /** Sant när kortet öppnas direkt från scan-flödet (captured state → öppna produktkort) */
   fromScan?: boolean;
@@ -108,6 +115,7 @@ export function ProductDetailSheet({
   status,
   conflicts = [],
   onClose,
+  onImageSaved,
   initialEditMode,
   fromScan = false,
 }: ProductDetailSheetProps) {
@@ -324,7 +332,13 @@ export function ProductDetailSheet({
       if (!res.ok) throw new Error(String(res.status));
       // Replace base64 preview with the permanent GCS URL returned by the server
       const json = await res.json() as { ok?: boolean; image_url?: string };
-      if (json.image_url) setLocalImageUrl(json.image_url);
+      if (json.image_url) {
+        setLocalImageUrl(json.image_url);
+        // Notify parent so it can update the recent-scans cache entry —
+        // otherwise the image won't show next time the product is opened
+        // from the recents list (localStorage has the old null value).
+        onImageSaved?.(json.image_url);
+      }
       if (!fromEditMode) setCompletionDone(true);
     } catch {
       const msg = t("complete.saveError");

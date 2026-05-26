@@ -207,6 +207,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         brand?: string;
         ingredients?: string;
         imageUrl?: string | null;
+        analysisResultJson?: ProductDetailAnalysis | null;
       };
       setLookupResult({
         found: true,
@@ -214,7 +215,9 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         brand: data.brand ?? suggestion.brand,
         ingredients: data.ingredients,
         imageUrl: data.imageUrl ?? null,
-        analysis: null,
+        // Use cached analysis so "Öppna" doesn't trigger a fresh AI call
+        // for products that have already been analysed.
+        analysis: data.analysisResultJson ?? null,
         barcode: suggestion.barcode,
       });
     } finally {
