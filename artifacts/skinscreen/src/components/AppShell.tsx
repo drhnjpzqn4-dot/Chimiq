@@ -13,24 +13,36 @@ interface AppShellProps {
 export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: AppShellProps) {
   const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
+  // Subtitle-only (no big title) → visa undertitel inline i header-raden
+  const inlineSubtitle = subtitle && !title;
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--cream)" }}>
+    <div
+      className="flex flex-col"
+      style={{
+        height: "100dvh",
+        overflow: "hidden",
+        backgroundColor: "var(--cream)",
+      }}
+    >
       <a href="#main-content" className="skip-to-content">
         Skip to main content
       </a>
+
+      {/* ── Header ── */}
       <header
-        className="sticky top-0 z-40 border-b bg-white/85 backdrop-blur-md"
+        className="shrink-0 border-b bg-white/85 backdrop-blur-md"
         style={{ paddingTop: "var(--safe-top)", borderColor: "var(--line)" }}
       >
-        <div className="relative mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
+        <div className="relative mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <a href={base + "/"} className="flex items-center gap-2" data-touch-target aria-label="Chimiq home">
             <img
               src="/favicon.svg"
               alt=""
-              width={48}
-              height={48}
+              width={44}
+              height={44}
               className="shrink-0 object-contain"
-              style={{ width: 48, height: 48, objectFit: "contain" }}
+              style={{ width: 44, height: 44, objectFit: "contain" }}
               aria-hidden
             />
             <span
@@ -48,7 +60,9 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
             </span>
             <span className="sr-only">Chimiq</span>
           </a>
-          <div className="flex min-h-[2.25rem] items-center justify-end gap-3">
+
+          {/* Höger sida: pageLabel + inline subtitle (om ingen stor titel) */}
+          <div className="flex flex-col items-end justify-center gap-0">
             {pageLabel && (
               <span
                 aria-hidden
@@ -58,21 +72,30 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
                   color: "var(--ink)",
                   fontWeight: 500,
                   letterSpacing: "-0.01em",
+                  lineHeight: 1.2,
                 }}
               >
                 {pageLabel}
               </span>
             )}
-            <WarningIndicator />
-            {rightSlot && <div className="flex items-center">{rightSlot}</div>}
+            {inlineSubtitle && (
+              <span
+                aria-hidden
+                style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.2 }}
+              >
+                {subtitle}
+              </span>
+            )}
+            <div className="flex items-center gap-3">
+              <WarningIndicator />
+              {rightSlot && <div className="flex items-center">{rightSlot}</div>}
+            </div>
           </div>
         </div>
 
-        {(title || subtitle) && (
-          <div
-            className="mx-auto max-w-3xl px-4 pb-1.5 pt-0"
-            style={!title && pageLabel ? { textAlign: "right" } : undefined}
-          >
+        {/* Stor titel + subtitle (t.ex. Idag-fliken med "Hej, Piff") */}
+        {(title || (subtitle && !inlineSubtitle)) && (
+          <div className="mx-auto max-w-3xl px-4 pb-2 pt-0">
             {title && (
               <h1
                 className="leading-tight"
@@ -86,7 +109,7 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
                 {title}
               </h1>
             )}
-            {subtitle && (
+            {subtitle && !inlineSubtitle && (
               <p className={title ? "mt-1" : ""} style={{ fontSize: 13, color: "var(--ink-soft)" }}>
                 {subtitle}
               </p>
@@ -95,10 +118,19 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
         )}
       </header>
 
-      <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl px-4 pt-4 pb-tab-bar animate-fade-up focus:outline-none">
+      {/* ── Scrollbar innehåll ── */}
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-3xl flex-1 overflow-y-auto px-4 pt-4 animate-fade-up focus:outline-none"
+        style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+      >
         {children}
+        {/* Extra utrymme i botten så sista innehållet inte döljs */}
+        <div className="h-6" aria-hidden />
       </main>
 
+      {/* ── Tab-bar — fast i flex-kolumnen, rör sig aldrig ── */}
       <BottomTabBar />
     </div>
   );

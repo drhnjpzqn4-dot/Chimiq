@@ -33,14 +33,14 @@ export function BottomTabBar() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-50 border-t bg-white/85 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70"
+      className="shrink-0 border-t bg-white/85 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70"
       style={{
         paddingBottom: "var(--safe-bottom)",
         borderColor: "var(--line)",
         boxShadow: "0 -8px 24px -16px rgba(15, 23, 42, 0.12)",
       }}
     >
-      <ul className="mx-auto flex max-w-xl items-end justify-around px-2 pb-0 pt-0">
+      <ul className="mx-auto flex max-w-xl items-end justify-around px-2 pb-1 pt-0.5">
         {TABS.map((tab) => {
           const active = location === tab.href || location.startsWith(`${tab.href}/`);
           const Icon = tab.icon;
@@ -95,7 +95,7 @@ export function BottomTabBar() {
                     showDot ? ` — ${unseenRecipes} new recipe updates` : ""
                   }`}
                   className={cn(
-                    "group relative flex h-14 w-full flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium transition-colors",
+                    "group relative flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--sage)_45%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--cream)]",
                   )}
                   style={{ color: active ? ACTIVE_TAB : INACTIVE_TAB }}
