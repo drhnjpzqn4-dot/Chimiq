@@ -29,6 +29,7 @@ const AnalyzeSingleBody = z.object({
   ingredients: z.string().trim().min(1, "Ingredients are required").max(3000),
   skinProfile: SkinProfileEnum,
   productType: ProductTypeSchema.optional(),
+  locale: z.enum(["en", "sv", "fr", "es"]).optional(),
 });
 
 const FlagCategorySchema = z.enum([
@@ -238,23 +239,35 @@ This is a SKINCARE product applied to skin. Standard topical exposure analysis a
   return "";
 }
 
+const LOCALE_LANGUAGE_NAMES: Record<string, string> = {
+  sv: "Swedish",
+  fr: "French",
+  es: "Spanish",
+};
+
 function buildDynamicContext(
   skinProfile?: string,
   regulatoryContext?: string,
   productType?: ProductType,
+  locale?: string,
 ): string {
   const profileNote = skinProfile ? `\n\nSkin profile: ${PROFILE_CONTEXT[skinProfile] ?? ""}` : "";
   const productTypeNote = buildProductTypeContext(productType);
   const regulatoryNote = regulatoryContext
     ? `\n\n## Regulatory & Toxicology Data (ground your reasoning in this)\n${regulatoryContext}`
     : "";
-  return profileNote + productTypeNote + regulatoryNote;
+  const language = locale ? LOCALE_LANGUAGE_NAMES[locale] : undefined;
+  const languageNote = language
+    ? `\n\n## Language instruction\nWrite ALL human-readable text fields (verdictTitle, verdictSummary, explanation) in ${language}. Keep ingredient names and category codes in English as they appear in INCI lists.`
+    : "";
+  return profileNote + productTypeNote + regulatoryNote + languageNote;
 }
 
 function buildSystemBlocks(
   skinProfile?: string,
   regulatoryContext?: string,
   productType?: ProductType,
+  locale?: string,
 ): Anthropic.Messages.TextBlockParam[] {
   // First block is the static template — Anthropic prompt caching will store
   // and reuse this prefix across calls for ~90% discount on subsequent
@@ -262,7 +275,7 @@ function buildSystemBlocks(
   const blocks: Anthropic.Messages.TextBlockParam[] = [
     { type: "text", text: SINGLE_SYSTEM_BASE, cache_control: { type: "ephemeral" } },
   ];
-  const dynamic = buildDynamicContext(skinProfile, regulatoryContext, productType);
+  const dynamic = buildDynamicContext(skinProfile, regulatoryContext, productType, locale);
   if (dynamic) {
     blocks.push({ type: "text", text: dynamic });
   }
@@ -277,6 +290,7 @@ async function runAIAnalysis(
   skinProfile: string | undefined,
   regulatoryContext: string | undefined,
   productType: ProductType | undefined,
+  locale: string | undefined,
   log: (msg: string, data?: unknown) => void,
 ): Promise<z.infer<typeof AnalyzeSingleResponseSchema> | null> {
   // If we pre-filtered some ingredients on the safe list, mention this to the
@@ -291,7 +305,7 @@ async function runAIAnalysis(
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 8192,
-      system: buildSystemBlocks(skinProfile, regulatoryContext, productType),
+      system: buildSystemBlocks(skinProfile, regulatoryContext, productType, locale),
       messages: [
         {
           role: "user",
@@ -346,11 +360,12 @@ export async function analyzeSingleIngredients(input: {
   ingredients: string;
   skinProfile?: z.infer<typeof SkinProfileEnum>;
   productType?: ProductType;
+  locale?: string;
   apiKey: string;
   log: AnalyzeSingleLogger;
 }): Promise<AnalyzeSingleResult | null> {
   const ingredients = sanitizeIngredients(input.ingredients, false);
-  const { skinProfile, productType } = input;
+  const { skinProfile, productType, locale } = input;
   const hash = computeSingleHash(ingredients, skinProfile, productType);
 
   const cached = await getCacheEntry(hash).catch(() => null);
@@ -389,7 +404,7 @@ export async function analyzeSingleIngredients(input: {
             if (ctx.pubchem.length > 0) { lines.push("### PubChem GHS Hazard Data"); lines.push(...ctx.pubchem); }
             if (lines.length > 0) regulatoryContext = lines.join("\n");
             const fresh = needsAnalysis.length > 0
-              ? await runAIAnalysis(anthropic, needsAnalysis.join(", "), safe.length, mandatory, skinProfile, regulatoryContext, productType, () => {})
+              ? await runAIAnalysis(anthropic, needsAnalysis.join(", "), safe.length, mandatory, skinProfile, regulatoryContext, productType, locale, () => {})
               : SAFE_SINGLE_RESULT;
             if (fresh) await saveCacheEntry(hash, "single", skinProfile, JSON.stringify(fresh));
           } catch {}
@@ -447,6 +462,7 @@ export async function analyzeSingleIngredients(input: {
     skinProfile,
     regulatoryContext,
     productType,
+    locale,
     (msg, data) => input.log.error(data ?? {}, msg),
   );
 
@@ -538,6 +554,7 @@ router.post("/analyze-single", requireAuth, async (req, res) => {
       ingredients: parseResult.data.ingredients,
       skinProfile: parseResult.data.skinProfile,
       productType: parseResult.data.productType,
+      locale: parseResult.data.locale,
       apiKey,
       log: req.log,
     });

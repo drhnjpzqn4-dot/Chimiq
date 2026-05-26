@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Camera, CheckCircle2, FlaskConical, Moon, Plus, Sun } from "lucide-react";
+import { BookOpen, CalendarDays, Camera, CheckCircle2, FlaskConical, Moon, Plus, Save, Sun } from "lucide-react";
 import {
   getGetShelfQueryKey,
   useAddToShelf,
@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 import { IngredientTokenList } from "@/components/IngredientTokenList";
+import { IngredientDetailSheet, type IngredientDetailFlag } from "@/components/IngredientDetailSheet";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import type { ProductType } from "@/components/ProductTypeBadge";
 
@@ -110,7 +111,7 @@ export function ProductDetailSheet({
   initialEditMode,
   fromScan = false,
 }: ProductDetailSheetProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [completionValue, setCompletionValue] = useState("");
@@ -148,6 +149,11 @@ export function ProductDetailSheet({
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
   const [addedConfirm, setAddedConfirm] = useState(false);
   const [addToRoutineError, setAddToRoutineError] = useState<string | null>(null);
+  const [openIngredient, setOpenIngredient] = useState<string | null>(null);
+  const [openIngredientFlag, setOpenIngredientFlag] = useState<IngredientDetailFlag | null>(null);
+  const [editImageError, setEditImageError] = useState<string | null>(null);
+  const [isSavingToShelf, setIsSavingToShelf] = useState(false);
+  const [savedToShelf, setSavedToShelf] = useState(false);
   const [localShelfId, setLocalShelfId] = useState<number | undefined>(product.shelfId);
   const [localRoutineSlot, setLocalRoutineSlot] = useState<string | null | undefined>(
     product.routineSlot ?? null,
@@ -232,7 +238,7 @@ export function ProductDetailSheet({
     verdict === "danger"
       ? { backgroundColor: "#C94F4F", color: "#FFFFFF" }
       : verdict === "caution"
-        ? { backgroundColor: "var(--premium-gold)", color: "var(--ink)" }
+        ? { backgroundColor: "var(--amber-soft)", color: "var(--amber-deep)" }
         : { backgroundColor: "var(--sage)", color: "#FFFFFF" };
   // Products without a real barcode cannot be patched in cached_products.
   // Offer a contribution flow instead so OCR/paste scans can be saved.
@@ -295,11 +301,16 @@ export function ProductDetailSheet({
     }
   };
 
-  const saveImageCompletion = async (file: File) => {
-    setCompletionSaving(true);
-    setCompletionError(null);
+  const saveImageCompletion = async (file: File, fromEditMode = false) => {
+    if (fromEditMode) {
+      setEditImageError(null);
+    } else {
+      setCompletionSaving(true);
+      setCompletionError(null);
+    }
     try {
       const imageBase64 = await fileToBase64(file);
+      // Show local preview immediately while upload is in flight
       setLocalImageUrl(`data:${file.type || "image/jpeg"};base64,${imageBase64}`);
       if (!barcode) return;
       const res = await apiFetch(`/api/products/${encodeURIComponent(barcode)}`, {
@@ -309,11 +320,47 @@ export function ProductDetailSheet({
         body: JSON.stringify({ imageBase64 }),
       });
       if (!res.ok) throw new Error(String(res.status));
-      setCompletionDone(true);
+      // Replace base64 preview with the permanent GCS URL returned by the server
+      const json = await res.json() as { ok?: boolean; image_url?: string };
+      if (json.image_url) setLocalImageUrl(json.image_url);
+      if (!fromEditMode) setCompletionDone(true);
     } catch {
-      setCompletionError(t("complete.saveError"));
+      const msg = t("complete.saveError");
+      if (fromEditMode) {
+        setEditImageError(msg);
+      } else {
+        setCompletionError(msg);
+      }
     } finally {
-      setCompletionSaving(false);
+      if (!fromEditMode) setCompletionSaving(false);
+    }
+  };
+
+  const handleSaveToShelf = async () => {
+    if (isSavingToShelf || savedToShelf || effectiveShelfId) return;
+    setIsSavingToShelf(true);
+    try {
+      const imageUrlForShelf =
+        imageUrl && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))
+          ? imageUrl
+          : undefined;
+      const created = await addToShelfMutation.mutateAsync({
+        data: {
+          productName: displayName,
+          ingredients: rawIngredients,
+          routineSlot: "wishlist",
+          image_url: imageUrlForShelf ?? null,
+          barcode: barcode ?? null,
+        },
+      });
+      setLocalShelfId(created.id);
+      setLocalRoutineSlot("wishlist");
+      await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
+      setSavedToShelf(true);
+    } catch {
+      // silent — user kan försöka igen
+    } finally {
+      setIsSavingToShelf(false);
     }
   };
 
@@ -382,6 +429,7 @@ export function ProductDetailSheet({
         body: JSON.stringify({
           ingredients: ingredientsToAnalyze,
           productType: product.productType ?? undefined,
+          locale: locale ?? undefined,
         }),
       });
       if (res.ok) {
@@ -415,6 +463,7 @@ export function ProductDetailSheet({
   };
 
   return (
+    <>
     <Sheet open onOpenChange={(open) => {
       if (!open) onClose();
     }}>
@@ -438,7 +487,7 @@ export function ProductDetailSheet({
                     className="hidden"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
-                      if (file) void saveImageCompletion(file);
+                      if (file) void saveImageCompletion(file, true);
                       event.target.value = "";
                     }}
                   />
@@ -472,7 +521,7 @@ export function ProductDetailSheet({
                     className="hidden"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
-                      if (file) void saveImageCompletion(file);
+                      if (file) void saveImageCompletion(file, true);
                       event.target.value = "";
                     }}
                   />
@@ -486,6 +535,9 @@ export function ProductDetailSheet({
                     <span className="text-xs font-semibold">{t("product.addImage")}</span>
                   </button>
                 </>
+              )}
+              {editImageError && (
+                <p className="mt-1 text-xs text-red-500">{editImageError}</p>
               )}
             </div>
           )}
@@ -557,41 +609,58 @@ export function ProductDetailSheet({
           </div>
         </SheetHeader>
 
-        {fromScan && showAnalyzeButton && !isAnalyzing && !verdict && (
-          <div className="space-y-3 px-5 pt-3">
-            <div
-              className="rounded-2xl px-4 py-4 space-y-3"
-              style={{ backgroundColor: "rgba(60, 92, 68, 0.08)" }}
-            >
-              <p className="text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
-                {t("product.analyzeReady")}
+        {/* fromScan CTA-rad: Spara → Analysera → Lägg i rutin */}
+        {fromScan && !verdict && (
+          <div className="space-y-2 px-5 pt-3">
+            {/* 1. Spara */}
+            {!effectiveShelfId && !savedToShelf ? (
+              <button
+                type="button"
+                onClick={() => void handleSaveToShelf()}
+                disabled={isSavingToShelf}
+                className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-base font-semibold text-white disabled:opacity-60"
+                style={{ backgroundColor: "var(--sage)" }}
+              >
+                <Save className="h-4 w-4" aria-hidden />
+                {isSavingToShelf ? t("common.loading") : t("contribute.save")}
+              </button>
+            ) : (
+              <p className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
+                <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                {t("product.addedToRoutine")}
               </p>
+            )}
+
+            {/* 2. Analysera */}
+            {showAnalyzeButton && !isAnalyzing && (
               <button
                 type="button"
                 onClick={handleAnalyze}
                 disabled={isAnalyzing}
-                className="w-full rounded-xl py-3 text-base font-semibold text-white disabled:opacity-60"
-                style={{ backgroundColor: "var(--sage)" }}
+                className="w-full rounded-xl py-3 text-base font-semibold disabled:opacity-60"
+                style={{ backgroundColor: "var(--amber-soft)", color: "var(--amber-deep)" }}
               >
                 {t("product.analyzeNow")}
               </button>
-            </div>
-          </div>
-        )}
-
-        {fromScan && isAnalyzing && (
-          <div className="px-5 pt-3">
-            <div
-              className="rounded-2xl px-4 py-4"
-              style={{ backgroundColor: "rgba(60, 92, 68, 0.08)" }}
-            >
-              <p
-                className="animate-pulse text-center text-sm font-medium"
-                style={{ color: "var(--sage)" }}
-              >
+            )}
+            {isAnalyzing && (
+              <p className="animate-pulse text-center text-sm font-medium py-2" style={{ color: "var(--sage)" }}>
                 {t("scanner.analysing")}
               </p>
-            </div>
+            )}
+
+            {/* 3. Lägg i rutin */}
+            {canAddToRoutine && !addedConfirm && (
+              <button
+                type="button"
+                disabled={addToRoutinePending}
+                onClick={() => setSlotPickerOpen((o) => !o)}
+                className="w-full rounded-xl py-3 text-base font-semibold disabled:opacity-60"
+                style={{ backgroundColor: "var(--cream-warm)", color: "var(--sage-deep)", border: "1px solid var(--line)" }}
+              >
+                {addToRoutinePending ? t("myShelf.adding") : t("product.addToRoutine")}
+              </button>
+            )}
           </div>
         )}
 
@@ -750,12 +819,21 @@ export function ProductDetailSheet({
               <div className="mt-3 space-y-3">
                 {flaggedIngredients.map((flag) => (
                   <div key={`${flag.name}-${flag.severity}`}>
-                    <span
-                      className="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenIngredient(flag.name);
+                        setOpenIngredientFlag({
+                          severity: flag.severity?.includes("high") ? "HIGH_RISK" : "CAUTION",
+                          explanation: flag.reason ?? null,
+                        });
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-80 active:opacity-60"
                       style={{ backgroundColor: "var(--rose-soft)", color: "var(--rose-gold-deep)" }}
                     >
                       {flag.name}
-                    </span>
+                      <BookOpen className="h-3 w-3 shrink-0 opacity-60" aria-hidden />
+                    </button>
                     {flag.reason && (
                       <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--ink-soft)" }}>
                         {flag.reason}
@@ -948,6 +1026,19 @@ export function ProductDetailSheet({
         </div>
       </SheetContent>
     </Sheet>
+
+    <IngredientDetailSheet
+      open={Boolean(openIngredient)}
+      onOpenChange={(next) => {
+        if (!next) {
+          setOpenIngredient(null);
+          setOpenIngredientFlag(null);
+        }
+      }}
+      ingredient={openIngredient}
+      flag={openIngredientFlag}
+    />
+    </>
   );
 }
 

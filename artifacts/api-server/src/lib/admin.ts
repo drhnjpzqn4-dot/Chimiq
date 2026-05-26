@@ -2,7 +2,7 @@
  * Single source of truth for "is this request the super admin?".
  *
  * The super admin email is read from the `SUPER_ADMIN_EMAIL` env var
- * (defaults to "pia@chimiq.com" when unset). The frontend contact
+ * (defaults to "pia@seafari.se" when unset). The frontend contact
  * form uses a parallel `VITE_CONTACT_EMAIL` env var (same default);
  * update both when the domain changes.
  *
@@ -20,7 +20,7 @@
  *     silent privilege escalation.
  */
 export const SUPER_ADMIN_EMAIL = (
-  process.env.SUPER_ADMIN_EMAIL ?? "pia@chimiq.com"
+  process.env.SUPER_ADMIN_EMAIL ?? "pia@seafari.se"
 ).trim().toLowerCase();
 
 let warnedOnce = false;

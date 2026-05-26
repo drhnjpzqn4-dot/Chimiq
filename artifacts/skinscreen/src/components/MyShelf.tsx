@@ -993,7 +993,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
               const base = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
               window.open(`${base}/app/report`, "_blank", "noopener,noreferrer");
             }}
-            className="relative flex w-full items-center gap-3 rounded-xl border border-border/40 bg-white px-4 py-3 text-left shadow-sm transition-[transform,box-shadow] hover:-translate-y-0.5"
+            className="relative flex w-full items-center gap-3 rounded-2xl border border-border/40 bg-white px-4 py-3 text-left shadow-sm transition-[transform,box-shadow] hover:-translate-y-0.5"
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               <FileText className="h-4 w-4 text-primary" aria-hidden />
@@ -1004,7 +1004,7 @@ export function MyShelf({ displayName }: MyShelfProps) {
             </div>
           </button>
         ) : (
-          <div className="relative flex cursor-not-allowed items-center gap-3 rounded-xl border border-dashed border-primary/30 bg-primary/[0.03] px-4 py-3 opacity-90 group">
+          <div className="relative flex cursor-not-allowed items-center gap-3 rounded-2xl border border-dashed border-primary/30 bg-primary/[0.03] px-4 py-3 opacity-90 group">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               <FileText className="h-4 w-4 text-primary" />
             </div>

@@ -323,7 +323,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
       {visibleRows.map((kind) => {
         const isActive = active === kind;
         const rowClassName = cn(
-          "flex min-h-[80px] w-full items-center gap-3 rounded-xl border px-4 py-4 transition-colors hover:bg-white",
+          "flex min-h-[80px] w-full items-center gap-3 rounded-2xl border px-4 py-4 transition-colors hover:bg-white",
           isActive ? "border-l-4 border-l-[var(--sage)] bg-white" : "bg-[var(--cream-warm)]",
         );
 
@@ -372,7 +372,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
             </button>
 
             {kind === "search" && isActive && !hasCapturedResult && (
-              <div className="mt-2 rounded-xl border border-[var(--line)] bg-white p-3">
+              <div className="mt-2 rounded-2xl border border-[var(--line)] bg-white p-3">
                 <div className="relative">
                   <Search
                     className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
@@ -403,7 +403,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                 {/* Typeahead-suggestions från Chimiqs DB. Visas medan
                     användaren skriver, klick → fetch full + emit onResult. */}
                 {suggestions.length > 0 && (
-                  <div className="mt-2 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--cream)]">
+                  <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--cream)]">
                     {suggestions.map((s) => (
                       <button
                         key={s.barcode}
@@ -503,7 +503,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                 <IngredientsCapture
                   value={pasteText}
                   onChange={setPasteText}
-                  className="mt-2 rounded-xl border border-[var(--line)] bg-white p-3"
+                  className="mt-2 rounded-2xl border border-[var(--line)] bg-white p-3"
                 />
                 {pasteText.trim().length > 0 && (
                   <div className="mt-3">

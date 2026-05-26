@@ -157,10 +157,25 @@ export default function HomeScreen() {
                   disabled={!r.product}
                   className="w-[130px] shrink-0 rounded-2xl border border-border/40 bg-white p-2.5 text-left shadow-sm transition-opacity active:opacity-70 disabled:cursor-default"
                 >
-                  <div className="text-[22px] leading-none" aria-hidden>
-                    🧴
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-[12px] font-semibold leading-snug text-foreground">
+                  {(() => {
+                    const imgUrl = r.product?.image_url ?? r.product?.imageUrl ?? null;
+                    return imgUrl ? (
+                      <img
+                        src={imgUrl}
+                        alt=""
+                        className="h-[60px] w-full rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="flex h-[60px] w-full items-center justify-center rounded-xl text-[22px]"
+                        style={{ backgroundColor: "var(--cream-warm)" }}
+                        aria-hidden
+                      >
+                        🧴
+                      </div>
+                    );
+                  })()}
+                  <p className="mt-1.5 line-clamp-2 text-[12px] font-semibold leading-snug text-foreground">
                     {r.name}
                   </p>
                   <StatusBadge status={toStatusLevel(r.verdict)} className="mt-1" />
@@ -202,9 +217,21 @@ export default function HomeScreen() {
                     onClick={() => setDetailProduct(detailProduct)}
                     className="flex w-full items-center gap-3 border-b border-border/30 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-[var(--cream)]"
                   >
-                    <span className="text-xl leading-none" aria-hidden>
-                      🧴
-                    </span>
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl"
+                        style={{ backgroundColor: "var(--cream-warm)" }}
+                        aria-hidden
+                      >
+                        🧴
+                      </span>
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13px] font-semibold" style={{ color: "var(--ink)" }}>
                         {name}
