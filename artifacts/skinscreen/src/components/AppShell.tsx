@@ -62,10 +62,11 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
           </a>
 
           {/* Höger sida: pageLabel + inline subtitle (om ingen stor titel) */}
-          <div className="flex flex-col items-end justify-center gap-0">
+          <div className="flex min-w-0 max-w-[58%] flex-col items-end justify-center gap-0">
             {pageLabel && (
               <span
                 aria-hidden
+                className="text-right"
                 style={{
                   fontFamily: '"Source Serif 4", "Iowan Old Style", Georgia, serif',
                   fontSize: 22,
@@ -81,7 +82,8 @@ export function AppShell({ title, subtitle, pageLabel, rightSlot, children }: Ap
             {inlineSubtitle && (
               <span
                 aria-hidden
-                style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.2 }}
+                className="text-right"
+                style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.3 }}
               >
                 {subtitle}
               </span>

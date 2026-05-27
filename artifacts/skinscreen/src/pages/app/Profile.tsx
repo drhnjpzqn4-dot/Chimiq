@@ -59,7 +59,31 @@ const SKIN_PROFILE_KEYS: Partial<
   pregnant: "scanner.skinType.pregnant",
 };
 
-const AVATAR_EMOJIS = ["✨", "🌿", "🌸", "🧴", "💚", "🌙", "☀️", "🌺", "💜", "🍃", "🦋", "🌊"] as const;
+/** Färgpaletter för avatar — fungerar i WKWebView utan emoji */
+const AVATAR_COLORS = [
+  { id: "#C9785A", bg: "#C9785A", text: "#fff" },
+  { id: "#3C5C44", bg: "#3C5C44", text: "#fff" },
+  { id: "#7B9E87", bg: "#7B9E87", text: "#fff" },
+  { id: "#B5705B", bg: "#B5705B", text: "#fff" },
+  { id: "#BC8F3D", bg: "#BC8F3D", text: "#fff" },
+  { id: "#6B8FAB", bg: "#6B8FAB", text: "#fff" },
+  { id: "#9B7FB6", bg: "#9B7FB6", text: "#fff" },
+  { id: "#C17B74", bg: "#C17B74", text: "#fff" },
+  { id: "#5B8A6E", bg: "#5B8A6E", text: "#fff" },
+  { id: "#A87C4F", bg: "#A87C4F", text: "#fff" },
+  { id: "#7A8FA6", bg: "#7A8FA6", text: "#fff" },
+  { id: "#B08080", bg: "#B08080", text: "#fff" },
+] as const;
+type AvatarColorId = typeof AVATAR_COLORS[number]["id"];
+
+/** Returnerar en giltig färg — fallback om gammalt emoji-värde lagrats */
+function resolveAvatarColor(val: string | undefined): AvatarColorId {
+  const found = AVATAR_COLORS.find((c) => c.id === val);
+  return found ? found.id : "#C9785A";
+}
+function getAvatarColor(colorId: string) {
+  return AVATAR_COLORS.find((c) => c.id === colorId) ?? AVATAR_COLORS[0];
+}
 
 async function patchProfile(body: {
   displayName?: string;
@@ -96,7 +120,7 @@ export default function ProfileScreen() {
   const [showEditor, setShowEditor] = useState(false);
   const [prefTick, bumpPrefs] = useReducer((n: number) => n + 1, 0);
   const [localDisplayName, setLocalDisplayName] = useState("");
-  const [localAvatarEmoji, setLocalAvatarEmoji] = useState("✨");
+  const [localAvatarEmoji, setLocalAvatarEmoji] = useState<AvatarColorId>("#C9785A");
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -108,7 +132,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!user) return;
     setLocalDisplayName(user.displayName ?? user.firstName ?? "");
-    setLocalAvatarEmoji(user.avatarEmoji ?? "✨");
+    setLocalAvatarEmoji(resolveAvatarColor(user.avatarEmoji));
   }, [user?.id, user?.displayName, user?.avatarEmoji, user?.firstName]);
 
   useEffect(() => {
@@ -268,11 +292,14 @@ export default function ProfileScreen() {
         <div className="overflow-hidden rounded-2xl border border-border/40 bg-white shadow-sm">
           <div className="flex items-center gap-4 px-4 py-3">
             <div
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-2xl"
-              style={{ background: "linear-gradient(135deg, var(--rose-gold), var(--gold))" }}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold select-none"
+              style={{
+                backgroundColor: getAvatarColor(localAvatarEmoji).bg,
+                color: getAvatarColor(localAvatarEmoji).text,
+              }}
               aria-hidden
             >
-              {localAvatarEmoji}
+              {(visibleName ?? "?")[0]?.toUpperCase()}
             </div>
 
             <div className="min-w-0 flex-1">
@@ -348,30 +375,22 @@ export default function ProfileScreen() {
               role="group"
               aria-label={t("profile.changeAvatar")}
             >
-              {AVATAR_EMOJIS.map((emoji) => {
-                const active = localAvatarEmoji === emoji;
+              {AVATAR_COLORS.map((color) => {
+                const active = localAvatarEmoji === color.id;
                 return (
                   <button
-                    key={emoji}
+                    key={color.id}
                     type="button"
-                    onClick={() => void pickAvatarEmoji(emoji)}
+                    onClick={() => void pickAvatarEmoji(color.id)}
                     data-touch-target
-                    className="flex h-10 w-10 items-center justify-center rounded-full border text-xl transition-colors"
-                    style={
-                      active
-                        ? {
-                            borderColor: "var(--sage)",
-                            backgroundColor: "var(--sage)",
-                          }
-                        : {
-                            borderColor: "var(--line)",
-                            backgroundColor: "#fff",
-                          }
-                    }
+                    className="flex h-10 w-10 items-center justify-center rounded-full transition-all"
+                    style={{
+                      backgroundColor: color.bg,
+                      outline: active ? `3px solid var(--sage)` : "none",
+                      outlineOffset: 2,
+                    }}
                     aria-pressed={active}
-                  >
-                    {emoji}
-                  </button>
+                  />
                 );
               })}
             </div>
