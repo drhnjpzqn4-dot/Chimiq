@@ -155,6 +155,7 @@ export function ProductDetailSheet({
   const [editError, setEditError] = useState<string | null>(null);
   const [, setEditDone] = useState(false);
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
+  const [changeSlotPickerOpen, setChangeSlotPickerOpen] = useState(false);
   const [addedConfirm, setAddedConfirm] = useState(false);
   const [addToRoutineError, setAddToRoutineError] = useState<string | null>(null);
   const [openIngredient, setOpenIngredient] = useState<string | null>(null);
@@ -195,6 +196,14 @@ export function ProductDetailSheet({
     !addedConfirm &&
     (!effectiveShelfId || effectiveRoutineSlot === "wishlist");
 
+  // Kan byta rutin-slot om produkten redan ligger i en "riktig" slot (morning/evening/occasional)
+  const canChangeRoutine =
+    !!effectiveShelfId &&
+    !!effectiveRoutineSlot &&
+    effectiveRoutineSlot !== "wishlist" &&
+    rawIngredients.length > 10 &&
+    !addedConfirm;
+
   const handleAddToRoutine = async (slot: "morning" | "evening" | "occasional") => {
     setAddToRoutineError(null);
     try {
@@ -223,6 +232,7 @@ export function ProductDetailSheet({
       }
       await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
       setSlotPickerOpen(false);
+      setChangeSlotPickerOpen(false);
       setAddedConfirm(true);
       window.setTimeout(() => setAddedConfirm(false), 2000);
     } catch {
@@ -794,6 +804,77 @@ export function ProductDetailSheet({
                           onClick={() => void handleAddToRoutine(slot)}
                           className="flex flex-1 flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-xs font-semibold text-white transition-opacity disabled:opacity-60"
                           style={{ backgroundColor: "var(--sage)" }}
+                        >
+                          <Icon className="h-4 w-4" aria-hidden />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+              {addToRoutineError && (
+                <p className="text-xs" style={{ color: "var(--rose-gold-deep)" }}>
+                  {addToRoutineError}
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* Flytta till annan rutin — visas när produkten redan har en slot (morning/evening/occasional) */}
+          {canChangeRoutine && (
+            <section className="space-y-2">
+              {addedConfirm ? (
+                <p
+                  className="flex items-center gap-2 text-sm font-medium"
+                  style={{ color: "var(--sage-deep)" }}
+                >
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                  {t("product.movedToRoutine")}
+                </p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={patchShelfMutation.isPending}
+                    onClick={() => setChangeSlotPickerOpen((o) => !o)}
+                    className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{
+                      backgroundColor: "var(--cream-warm)",
+                      color: "var(--sage-deep)",
+                      border: "1px solid var(--line)",
+                    }}
+                  >
+                    {patchShelfMutation.isPending
+                      ? t("myShelf.adding")
+                      : t("product.changeRoutine")}
+                  </button>
+                  {changeSlotPickerOpen && (
+                    <div
+                      className="flex gap-2 rounded-xl border border-[var(--line)] p-2"
+                      style={{ backgroundColor: "var(--cream-warm)" }}
+                      role="group"
+                      aria-label={t("product.changeRoutine")}
+                    >
+                      {(
+                        [
+                          { slot: "morning" as const, icon: Sun, label: t("product.routineSlotMorning") },
+                          { slot: "evening" as const, icon: Moon, label: t("product.routineSlotEvening") },
+                          { slot: "occasional" as const, icon: CalendarDays, label: t("product.routineSlotOccasional") },
+                        ] as const
+                      ).map(({ slot, icon: Icon, label }) => (
+                        <button
+                          key={slot}
+                          type="button"
+                          disabled={patchShelfMutation.isPending || slot === effectiveRoutineSlot}
+                          onClick={() => void handleAddToRoutine(slot)}
+                          className="flex flex-1 flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-xs font-semibold text-white transition-opacity disabled:opacity-40"
+                          style={{
+                            backgroundColor:
+                              slot === effectiveRoutineSlot
+                                ? "var(--sage-deep)"
+                                : "var(--sage)",
+                          }}
                         >
                           <Icon className="h-4 w-4" aria-hidden />
                           {label}
