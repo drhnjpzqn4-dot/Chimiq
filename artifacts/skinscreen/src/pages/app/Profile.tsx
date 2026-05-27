@@ -1,5 +1,6 @@
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { useAuth } from "@/hooks/useAuth";
 import { Check, ChevronRight, CreditCard, Loader2, Pencil, Sparkles, X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -85,6 +86,48 @@ function getAvatarColor(colorId: string) {
   return AVATAR_COLORS.find((c) => c.id === colorId) ?? AVATAR_COLORS[0];
 }
 
+const AVATAR_PHOTO_PREFIX = "chimiq_avatar_photo_";
+
+/** Komprimera base64-bild till max 256×256 JPEG via canvas */
+function compressBase64(base64: string, mimeType = "image/jpeg"): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const MAX = 256;
+      const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.88));
+    };
+    img.onerror = () => resolve(""); // fallback
+    img.src = `data:${mimeType};base64,${base64}`;
+  });
+}
+
+/** Komprimera File/Blob till data-URL via canvas */
+function compressFile(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const MAX = 256;
+        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.88));
+      };
+      img.onerror = () => resolve("");
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function patchProfile(body: {
   displayName?: string;
   avatarEmoji?: string;
@@ -121,7 +164,10 @@ export default function ProfileScreen() {
   const [prefTick, bumpPrefs] = useReducer((n: number) => n + 1, 0);
   const [localDisplayName, setLocalDisplayName] = useState("");
   const [localAvatarEmoji, setLocalAvatarEmoji] = useState<AvatarColorId>("#C9785A");
+  const [localAvatarPhoto, setLocalAvatarPhoto] = useState<string | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
@@ -133,6 +179,13 @@ export default function ProfileScreen() {
     if (!user) return;
     setLocalDisplayName(user.displayName ?? user.firstName ?? "");
     setLocalAvatarEmoji(resolveAvatarColor(user.avatarEmoji));
+    // Ladda lokalt sparad profilbild
+    try {
+      const saved = window.localStorage.getItem(AVATAR_PHOTO_PREFIX + user.id);
+      setLocalAvatarPhoto(saved ?? null);
+    } catch {
+      setLocalAvatarPhoto(null);
+    }
   }, [user?.id, user?.displayName, user?.avatarEmoji, user?.firstName]);
 
   useEffect(() => {
@@ -264,6 +317,62 @@ export default function ProfileScreen() {
     void refetch();
   };
 
+  /** Öppna bildarkivet och spara vald bild lokalt */
+  const pickAvatarPhoto = async () => {
+    if (!user) return;
+    setAvatarLoading(true);
+    try {
+      if (runningNative) {
+        // Native iOS/Android — öppna Foton-appen
+        const photo = await Camera.getPhoto({
+          quality: 80,
+          allowEditing: true,
+          resultType: CameraResultType.Base64,
+          source: CameraSource.Photos,
+        });
+        if (!photo.base64String) return;
+        const dataUrl = await compressBase64(photo.base64String, photo.format ? `image/${photo.format}` : "image/jpeg");
+        if (!dataUrl) return;
+        window.localStorage.setItem(AVATAR_PHOTO_PREFIX + user.id, dataUrl);
+        setLocalAvatarPhoto(dataUrl);
+        setEmojiPickerOpen(false);
+      } else {
+        // Webb-fallback — file input
+        fileInputRef.current?.click();
+      }
+    } catch {
+      // Användaren avbröt — inget fel
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  /** Webb-fallback: hantera vald fil */
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarLoading(true);
+    try {
+      const dataUrl = await compressFile(file);
+      if (!dataUrl) return;
+      window.localStorage.setItem(AVATAR_PHOTO_PREFIX + user.id, dataUrl);
+      setLocalAvatarPhoto(dataUrl);
+      setEmojiPickerOpen(false);
+    } finally {
+      setAvatarLoading(false);
+      // Rensa input så samma fil kan väljas igen
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  /** Ta bort profilbild → återgå till färgcirkel */
+  const removeAvatarPhoto = () => {
+    if (!user) return;
+    window.localStorage.removeItem(AVATAR_PHOTO_PREFIX + user.id);
+    setLocalAvatarPhoto(null);
+  };
+
   const startEditingName = () => {
     setNameDraft(visibleName);
     setNameError(null);
@@ -291,16 +400,25 @@ export default function ProfileScreen() {
         {/* 1. Avatar */}
         <div className="overflow-hidden rounded-2xl border border-border/40 bg-white shadow-sm">
           <div className="flex items-center gap-4 px-4 py-3">
-            <div
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold select-none"
-              style={{
-                backgroundColor: getAvatarColor(localAvatarEmoji).bg,
-                color: getAvatarColor(localAvatarEmoji).text,
-              }}
-              aria-hidden
-            >
-              {(visibleName ?? "?")[0]?.toUpperCase()}
-            </div>
+            {localAvatarPhoto ? (
+              <img
+                src={localAvatarPhoto}
+                alt=""
+                aria-hidden
+                className="h-12 w-12 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <div
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold select-none"
+                style={{
+                  backgroundColor: getAvatarColor(localAvatarEmoji).bg,
+                  color: getAvatarColor(localAvatarEmoji).text,
+                }}
+                aria-hidden
+              >
+                {(visibleName ?? "?")[0]?.toUpperCase()}
+              </div>
+            )}
 
             <div className="min-w-0 flex-1">
               {editingName ? (
@@ -358,15 +476,48 @@ export default function ProfileScreen() {
               </p>
             </div>
 
-            <button
-              type="button"
-              className="shrink-0 text-[11px] font-semibold"
-              style={{ color: "var(--rose-gold-deep)" }}
-              onClick={() => setEmojiPickerOpen((open) => !open)}
-              data-touch-target
-            >
-              {t("profile.changeAvatar")}
-            </button>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <button
+                type="button"
+                className="text-[11px] font-semibold"
+                style={{ color: "var(--rose-gold-deep)" }}
+                onClick={() => void pickAvatarPhoto()}
+                data-touch-target
+                disabled={avatarLoading}
+              >
+                {avatarLoading ? "..." : t("profile.changeAvatar")}
+              </button>
+              {localAvatarPhoto && (
+                <button
+                  type="button"
+                  className="text-[11px]"
+                  style={{ color: "var(--ink-soft)" }}
+                  onClick={removeAvatarPhoto}
+                  data-touch-target
+                >
+                  Ta bort foto
+                </button>
+              )}
+              {!localAvatarPhoto && (
+                <button
+                  type="button"
+                  className="text-[11px]"
+                  style={{ color: "var(--ink-soft)" }}
+                  onClick={() => setEmojiPickerOpen((o) => !o)}
+                  data-touch-target
+                >
+                  Välj färg
+                </button>
+              )}
+            </div>
+            {/* Webb-fallback file input (dold) */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => void handleFileInput(e)}
+            />
           </div>
           {emojiPickerOpen && (
             <div
