@@ -10,6 +10,7 @@ const config: CapacitorConfig = {
   webDir: "../../dist/public",
   bundledWebRuntime: false,
   server: {
+    url: "https://chimiq.com",
     androidScheme: "https",
     iosScheme: "https",
   },
