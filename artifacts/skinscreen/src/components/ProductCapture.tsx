@@ -120,7 +120,24 @@ export function ProductCapture({ initialData, onAnalyzed, className }: ProductCa
         }),
       });
       if (res.ok) {
+        const json = await res.json();
         setContributed(true);
+        // SS-074: uppdatera kortet live med serverbekräftad ingredients + imageUrl.
+        const confirmedIngredients = json.extractedIngredients ?? ingredients.trim();
+        const confirmedImageUrl = json.imageUrl ?? null;
+        if (confirmedIngredients && onAnalyzed) {
+          onAnalyzed({
+            product_name: productName,
+            productName,
+            brand,
+            barcode,
+            ingredients: confirmedIngredients,
+            image_url: confirmedImageUrl,
+            imageUrl: confirmedImageUrl,
+            analysis_result_json: null,
+            productType,
+          });
+        }
       } else {
         setError(t("contribute.errSubmitFailed"));
       }

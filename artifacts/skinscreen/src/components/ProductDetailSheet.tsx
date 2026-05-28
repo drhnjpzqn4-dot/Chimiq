@@ -51,6 +51,7 @@ export interface ProductDetailProduct {
   image_url?: string | null;
   imageUrl?: string | null;
   ingredients?: string | null;
+  ingredient_list?: string | null;
   analysis_result_json?: ProductAnalysis | null;
   analysisResultJson?: ProductAnalysis | null;
   routineSlot?: RoutineSlot | string | null;
@@ -86,6 +87,10 @@ interface ProductDetailSheetProps {
 }
 
 function verdictFromProduct(product: ProductDetailProduct, status?: IngredientStatusLevel): ProductVerdict | null {
+  // SS-074: Undvik falsk "safe" när ingredienslista saknas eller är för kort.
+  const rawIngredients = product.ingredients ?? product.ingredient_list ?? "";
+  if (!rawIngredients.trim() || rawIngredients.trim().length < 30) return null;
+
   const analysis = product.analysis_result_json ?? product.analysisResultJson ?? null;
   if (!analysis) return null;
   if (analysis?.verdict) return analysis.verdict;

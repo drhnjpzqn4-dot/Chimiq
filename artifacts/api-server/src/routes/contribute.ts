@@ -132,6 +132,8 @@ const ManualContributionBody = z.object({
   productType: ProductTypeSchema.optional(),
   source_type: z.enum(["package", "manufacturer_site", "other"]).optional(),
   source_note: z.string().trim().max(500).optional(),
+  // SS-074: base64-bilddata från frontendens ProductCapture
+  imageDataUrl: z.string().max(5_000_000).optional(),
 }).refine((data) => Boolean(data.ingredients?.trim() || data.barcode?.trim()), {
   message: "Ingredients or barcode is required.",
 });
@@ -422,7 +424,7 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
   }
 
   const userId = (req as { user?: { id?: string } }).user?.id ?? null;
-  const { barcode, productName, brand, ingredients, productType } = parseResult.data;
+  const { barcode, productName, brand, ingredients, productType, imageDataUrl } = parseResult.data;
 
   let safeName: string | null = null;
   let safeBrand: string | null = null;
@@ -438,6 +440,32 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
       return;
     }
     throw err;
+  }
+
+  // SS-074: Ladda upp produktbild till Supabase Storage om den skickats med.
+  let uploadedImageUrl: string | null = null;
+  if (imageDataUrl && barcode) {
+    try {
+      const base64 = imageDataUrl.includes(",") ? imageDataUrl.split(",")[1] : imageDataUrl;
+      const buffer = Buffer.from(base64 ?? "", "base64");
+      const filePath = `products/${barcode}/front-${Date.now()}.jpg`;
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("chimiq-uploads")
+        .upload(filePath, buffer, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+      if (!uploadError) {
+        const { data: publicUrlData } = supabaseAdmin.storage
+          .from("chimiq-uploads")
+          .getPublicUrl(filePath);
+        uploadedImageUrl = publicUrlData.publicUrl;
+      } else {
+        req.log.warn({ err: uploadError }, "Image upload failed (non-fatal)");
+      }
+    } catch (err) {
+      req.log.warn({ err }, "Image upload threw (non-fatal)");
+    }
   }
 
   try {
@@ -458,22 +486,39 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
       .single<{ id: string }>();
     if (error) throw error;
 
-    // Auto-cache produkter med riktig EAN så att de hittas direkt vid nästa skanning
-    if (barcode && !barcode.startsWith("CHIMIQ_") && safeIngredients?.trim()) {
-      const { error: cacheError } = await supabaseAdmin.from("cached_products").upsert(
-        {
-          barcode,
-          product_name: safeName ?? "Unknown product",
-          brand: safeBrand ?? "",
-          ingredients: safeIngredients,
-          source: "user",
-          image_url: null,
-          product_type: productType ?? "skincare",
-        },
-        { onConflict: "barcode", ignoreDuplicates: true },
-      );
+    // SS-074: Uppdatera existing kort istället för att ignorera dubletter.
+    if (barcode && !barcode.startsWith("CHIMIQ_")) {
+      const patch: Record<string, unknown> = {
+        barcode,
+        product_name: safeName ?? "Unknown product",
+        brand: safeBrand ?? "",
+        source: "user",
+        product_type: productType ?? "skincare",
+      };
+      if (safeIngredients?.trim()) patch.ingredients = safeIngredients;
+      if (uploadedImageUrl) patch.image_url = uploadedImageUrl;
+
+      const { error: cacheError } = await supabaseAdmin
+        .from("cached_products")
+        .upsert(patch, { onConflict: "barcode", ignoreDuplicates: false });
       if (cacheError) {
-        req.log.warn({ err: cacheError }, "Auto-cache of user submission failed (non-fatal)");
+        req.log.warn({ err: cacheError }, "Auto-cache upsert failed (non-fatal)");
+      } else if (safeIngredients?.trim()) {
+        // SS-074: Försök invalidera single-analysecache för aktuellt barcode.
+        // Om product_barcode inte finns loggar vi och går vidare.
+        const { error: cacheDelErr } = await supabaseAdmin
+          .from("analysis_cache")
+          .delete()
+          .eq("product_barcode", barcode)
+          .eq("scan_type", "single");
+        if (cacheDelErr) {
+          req.log.info(
+            { barcode, err: cacheDelErr },
+            "analysis_cache invalidation skipped (column may not exist — non-fatal)",
+          );
+        } else {
+          req.log.info({ barcode }, "analysis_cache invalidated after ingredient update");
+        }
       }
     }
 
@@ -490,6 +535,7 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
       submissionId: data.id,
       status: "needs_admin",
       extractedIngredients: safeIngredients,
+      imageUrl: uploadedImageUrl,
       message: "Thank you! Your submission is under review — we'll add it soon.",
     });
   } catch (err) {

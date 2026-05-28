@@ -9,7 +9,7 @@ interface ContributeModalProps {
   initialBrand?: string;
   initialIngredients?: string;
   initialImageUrl?: string | null;
-  onSuccess?: (ingredients: string, productName: string) => void;
+  onSuccess?: (ingredients: string, productName: string, imageUrl?: string | null) => void;
   onClose: () => void;
 }
 
@@ -28,8 +28,9 @@ export function ContributeModal({
     const name =
       result.productName ?? result.product_name ?? t("contribute.scannedProductFallback");
     const ing = result.ingredients ?? initialIngredients;
+    const imageUrl = result.imageUrl ?? result.image_url ?? null;
     if (ing && onSuccess) {
-      onSuccess(ing, name);
+      onSuccess(ing, name, imageUrl);
     }
     onClose();
   };
