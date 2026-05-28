@@ -251,6 +251,8 @@ const en: Dict = {
   "onboarding.skin.dry.desc": "Feels tight, may flake, needs plenty of moisture",
   "onboarding.skin.combination.title": "Combination",
   "onboarding.skin.combination.desc": "Oily in the T-zone, drier on the cheeks",
+  "onboarding.skin.mature.title": "Mature",
+  "onboarding.skin.mature.desc": "40+ — skin loses elasticity and moisture; needs extra nourishment",
   "onboarding.ageTitle": "How old are you?",
   "onboarding.ageHint": "Skin changes across life stages — we tailor advice to your age",
   "onboarding.age.under16.title": "Under 16",
@@ -1727,6 +1729,8 @@ const sv: Dict = {
   "onboarding.skin.dry.desc": "Känns stram, flagnar ibland, behöver mycket fukt",
   "onboarding.skin.combination.title": "Blandhy",
   "onboarding.skin.combination.desc": "Oljigt i T-zonen, torrare på kinderna",
+  "onboarding.skin.mature.title": "Mogen hud",
+  "onboarding.skin.mature.desc": "40+ — huden förlorar elasticitet och fukt; behöver extra näring",
   "onboarding.ageTitle": "Hur gammal är du?",
   "onboarding.ageHint": "Huden förändras i olika livsfaser — vi anpassar råden efter din ålder",
   "onboarding.age.under16.title": "Under 16 år",
@@ -3215,6 +3219,8 @@ const fr: Dict = {
   "onboarding.skin.dry.desc": "Tiraillements, parfois des desquamations, besoin de beaucoup d'hydratation",
   "onboarding.skin.combination.title": "Mixte",
   "onboarding.skin.combination.desc": "Zone T plus grasse, joues plus sèches",
+  "onboarding.skin.mature.title": "Mature",
+  "onboarding.skin.mature.desc": "40+ — la peau perd son élasticité et son hydratation ; a besoin d'un soin extra",
   "onboarding.ageTitle": "Quel âge avez-vous ?",
   "onboarding.ageHint": "La peau évolue selon les étapes de vie — nous adaptons les conseils à votre âge",
   "onboarding.age.under16.title": "Moins de 16 ans",
@@ -4693,6 +4699,8 @@ const es: Dict = {
   "onboarding.skin.dry.desc": "Sensación de tirantez, a veces descamación, necesita mucha hidratación",
   "onboarding.skin.combination.title": "Mixta",
   "onboarding.skin.combination.desc": "Zona T más grasa, mejillas más secas",
+  "onboarding.skin.mature.title": "Madura",
+  "onboarding.skin.mature.desc": "40+ — la piel pierde elasticidad e hidratación; necesita nutrición extra",
   "onboarding.ageTitle": "¿Cuántos años tienes?",
   "onboarding.ageHint": "La piel cambia con la edad — adaptamos los consejos a tu etapa",
   "onboarding.age.under16.title": "Menor de 16",
@@ -5964,18 +5972,12 @@ function isLocale(v: string | null | undefined): v is Locale {
  *      links — `?lang=en` is the safest demo URL for US jurors).
  *   2. Saved choice in localStorage (sticky once a user picks from the
  *      Profile language switcher).
- *   3. Default → en. We intentionally do NOT read `navigator.language`
- *      anymore: first-time visitors must always land in English so the
- *      marketing copy a US juror sees matches the demo, and so the
- *      landing-nav language selector (Task #111) is the explicit, sole
- *      mechanism for opting in to a non-English experience. Geo/IP-based
- *      auto-detection is tracked separately under Task #109.
- *
- * IMPORTANT: English is the default fallback. Do not change the final
- * `return "en"` to anything else.
+ *   3. Default → sv. Swedish is the primary market. Use ?lang=en in URLs
+ *      for English demos or QA. Geo/IP-based auto-detection is tracked
+ *      separately under Task #109.
  */
 function detectInitialLocale(): Locale {
-  if (typeof window === "undefined") return "en";
+  if (typeof window === "undefined") return "sv";
   try {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = params.get("lang");
@@ -5989,7 +5991,7 @@ function detectInitialLocale(): Locale {
   } catch {
     // ignore
   }
-  return "en";
+  return "sv";
 }
 
 function format(str: string, vars?: Record<string, string | number>): string {

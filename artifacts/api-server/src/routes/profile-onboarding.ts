@@ -3,7 +3,7 @@ import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 const router: IRouter = Router();
 
-const SKIN_TYPES = new Set(["sensitive", "oily", "dry", "combination"]);
+const SKIN_TYPES = new Set(["sensitive", "oily", "dry", "combination", "mature"]);
 const AGE_GROUPS = new Set([
   "under16",
   "16-17",

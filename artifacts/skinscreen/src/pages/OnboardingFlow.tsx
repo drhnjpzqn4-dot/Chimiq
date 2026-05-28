@@ -9,11 +9,11 @@ import { apiFetch } from "@/lib/api";
 
 const ASSET_BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
 
-type SkinId = "sensitive" | "oily" | "dry" | "combination";
+type SkinId = "sensitive" | "oily" | "dry" | "combination" | "mature";
 type AgeId = "under16" | "16-17" | "18-25" | "26-35" | "36-45" | "46plus";
 type GoalId = "calm" | "acne" | "antiaging" | "hydrate" | "protect";
 
-const SKIN_IDS: SkinId[] = ["sensitive", "oily", "dry", "combination"];
+const SKIN_IDS: SkinId[] = ["sensitive", "oily", "dry", "combination", "mature"];
 const AGE_IDS: AgeId[] = ["under16", "16-17", "18-25", "26-35", "36-45", "46plus"];
 const GOAL_IDS: GoalId[] = ["calm", "acne", "antiaging", "hydrate", "protect"];
 
