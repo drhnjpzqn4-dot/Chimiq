@@ -9,8 +9,12 @@ const config: CapacitorConfig = {
   // capacitor.config.ts file: artifacts/skinscreen/mobile/capacitor → ../../dist/public.
   webDir: "../../dist/public",
   bundledWebRuntime: false,
+  // OBS: ingen server.url i produktion. En TestFlight/App Store-build laddar
+  // sina INBYGGDA filer från webDir. server.url=https://chimiq.com gjorde att
+  // appen laddade sig själv från fjärrsajten → vit skärm/startar inte om sajten
+  // är långsam/onåbar (orsak till build 9-kraschen, 2026-05-31).
+  // Använd ENDAST server.url tillfälligt för live-reload under utveckling.
   server: {
-    url: "https://chimiq.com",
     androidScheme: "https",
     iosScheme: "https",
   },
