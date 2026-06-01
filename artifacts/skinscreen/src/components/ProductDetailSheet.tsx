@@ -15,6 +15,7 @@ import { IngredientTokenList } from "@/components/IngredientTokenList";
 import { IngredientDetailSheet, type IngredientDetailFlag } from "@/components/IngredientDetailSheet";
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import type { ProductType } from "@/components/ProductTypeBadge";
+import { ProductNameCapture } from "@/components/ProductNameCapture";
 
 // Called "Produktdatablad" in product language
 
@@ -621,7 +622,20 @@ export function ProductDetailSheet({
         </div>
 
         <SheetHeader className="px-5 pb-2 pt-4 text-left">
-          {editMode || needsNameInput ? (
+          {editMode ? (
+            // SCAN-FLOW-SPEC punkt 7: delad OCR-komponent — kamera på namn-fältet
+            // läser produktnamn + märke ur flaskbilden (EN modul, samma som
+            // ProductCapture). EAN hanteras separat nedanför.
+            <ProductNameCapture
+              productName={editName}
+              brand={editBrand}
+              onProductNameChange={(value) => {
+                setEditName(value);
+                if (needsNameInput) setLocalProductName(value);
+              }}
+              onBrandChange={setEditBrand}
+            />
+          ) : needsNameInput ? (
             <input
               type="text"
               value={editName}
@@ -629,7 +643,7 @@ export function ProductDetailSheet({
                 setEditName(event.target.value);
                 if (needsNameInput) setLocalProductName(event.target.value);
               }}
-              placeholder={needsNameInput ? t("product.tapToAddName") : undefined}
+              placeholder={t("product.tapToAddName")}
               className="input-base font-serif text-xl"
               style={{ color: "var(--ink)" }}
             />
@@ -644,13 +658,8 @@ export function ProductDetailSheet({
           <div className="mt-1 flex items-center justify-between gap-2">
             {editMode ? (
               <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <input
-                  type="text"
-                  value={editBrand}
-                  onChange={(event) => setEditBrand(event.target.value)}
-                  className="input-base text-sm"
-                  placeholder={t("contribute.brand")}
-                />
+                {/* Märke hanteras av ProductNameCapture ovan (punkt 7) — här
+                    bara EAN-fältet kvar. */}
                 <input
                   type="text"
                   inputMode="numeric"
