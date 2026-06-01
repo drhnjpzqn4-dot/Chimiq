@@ -142,6 +142,22 @@ export function sanitizeIngredients(raw: unknown, allowEmpty = false): string {
     .filter((t) => t.length > 0);
 
   if (tokens.length < 3) {
+    // Vissa källor (t.ex. Apotea) listar INCI med MELLANSLAG, utan kommatecken.
+    // Det går inte att dela på mellanslag (ingrediensnamn har egna mellanslag,
+    // t.ex. "Canola Oil", "Helianthus Annuus Hybrid Oil"), men analys-AI:n läser
+    // sådana listor utan problem. Acceptera om texten tydligt ÄR en INCI-lista:
+    // många ord, innehåller INCI-markörer, och inte prosa.
+    const words = cleaned.split(/\s+/).filter(Boolean);
+    const INCI_MARKERS =
+      /\b(aqua|water|glycerin|glycerine|parfum|fragrance|alcohol|acid|sodium|potassium|oil|extract|glycol|butter|dimethicone|stearate|phenoxyethanol|tocopherol|niacinamide|panthenol|citrate|hydroxide|paraffinum|cetearyl)\b/i;
+    const proseWordCount = words.filter((w) => PROSE_STOP_WORDS.has(w.toLowerCase())).length;
+    const looksLikeSpaceSeparatedInci =
+      words.length >= 6 &&
+      INCI_MARKERS.test(cleaned) &&
+      proseWordCount / words.length <= 0.15;
+    if (looksLikeSpaceSeparatedInci) {
+      return cleaned; // låt analys-AI:n tokenisera mellanslags-separerad INCI
+    }
     throw new SanitizationError(
       "Ingredient list must contain at least 3 ingredients separated by commas, semicolons, or new lines (e.g. 'Aqua, Glycerin, Niacinamide…').",
     );
