@@ -17,6 +17,7 @@ import { requireAuth } from "../lib/authGate.js";
 import { ipRateLimit } from "../lib/rateLimit.js";
 import { ProductTypeSchema } from "../lib/product-type.js";
 import { supabaseAdmin } from "../lib/supabase-admin.js";
+import { isValidGtin } from "../lib/ean.js";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -112,7 +113,11 @@ function evaluatePhotoAutoApproval(params: {
 }
 
 const StartBody = z.object({
-  barcode: z.string().trim().regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required."),
+  barcode: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{6,14}$/, "A valid 6–14 digit barcode is required.")
+    .refine(isValidGtin, "Streckkoden har felaktig kontrollsiffra — kontrollera siffrorna."),
   productName: z.string().trim().min(1, "Product name is required.").max(500),
   brand: z.string().trim().max(200).optional(),
 });
@@ -127,7 +132,12 @@ const PhotosBody = z.object({
 const ManualContributionBody = z.object({
   productName: z.string().trim().max(500).optional(),
   brand: z.string().trim().max(200).optional(),
-  barcode: z.string().trim().regex(/^[0-9]{8,14}$/).optional(),
+  barcode: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{8,14}$/)
+    .refine(isValidGtin, "Streckkoden har felaktig kontrollsiffra.")
+    .optional(),
   ingredients: z.string().trim().max(10000).optional(),
   productType: ProductTypeSchema.optional(),
   source_type: z.enum(["package", "manufacturer_site", "other"]).optional(),

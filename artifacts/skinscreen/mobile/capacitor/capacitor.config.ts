@@ -1,22 +1,27 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
+// ARKITEKTUR (BESLUT 2026-05-31): Chimiq är en INBYGGD app (väg B).
+// Appen laddar alltid sina egna filer från webDir i en uppladdad build.
+//
+// Live-reload under utveckling: sätt CAP_SERVER_URL i terminalen INNAN cap sync,
+// t.ex.   CAP_SERVER_URL=http://192.168.x.x:5173 npx cap run ios
+// Då laddar simulatorn/telefonen från din dev-server så du ser ändringar direkt.
+// Lämna variabeln OSATT för alla builds du laddar upp till TestFlight/App Store.
+// server.url får ALDRIG hårdkodas här (det orsakade build 9-kraschen).
+const DEV_SERVER_URL = process.env.CAP_SERVER_URL;
+
 const config: CapacitorConfig = {
   appId: "se.seafari.chimiq",
   appName: "Chimiq",
-  // Point at the Vite production build directly so the documented flow
-  //   pnpm --filter @workspace/skinscreen build && npx cap sync
-  // works without an intermediate copy step. Path is relative to this
-  // capacitor.config.ts file: artifacts/skinscreen/mobile/capacitor → ../../dist/public.
+  // Sökväg relativt denna fil: artifacts/skinscreen/mobile/capacitor → ../../dist/public.
+  // Byggflöde:  pnpm --filter @workspace/skinscreen build && npx cap sync
   webDir: "../../dist/public",
   bundledWebRuntime: false,
-  // OBS: ingen server.url i produktion. En TestFlight/App Store-build laddar
-  // sina INBYGGDA filer från webDir. server.url=https://chimiq.com gjorde att
-  // appen laddade sig själv från fjärrsajten → vit skärm/startar inte om sajten
-  // är långsam/onåbar (orsak till build 9-kraschen, 2026-05-31).
-  // Använd ENDAST server.url tillfälligt för live-reload under utveckling.
   server: {
     androidScheme: "https",
     iosScheme: "https",
+    // Endast satt om CAP_SERVER_URL finns (dev). Annars helt utelämnad → bundlat.
+    ...(DEV_SERVER_URL ? { url: DEV_SERVER_URL, cleartext: true } : {}),
   },
   ios: {
     contentInset: "always",

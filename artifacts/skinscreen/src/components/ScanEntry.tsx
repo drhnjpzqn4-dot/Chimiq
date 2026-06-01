@@ -87,7 +87,10 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
   const hasCapturedResult =
     (active === "barcode" && barcodeResult !== null) ||
     (active === "search" && lookupResult?.found === true && Boolean(lookupResult.ingredients)) ||
-    (active === "ocr" && pasteText.trim().length > 0);
+    // OCR: visa captured-kortet först när BÅDE text och produkttyp finns —
+    // annars försvinner produkttyp-väljaren innan användaren hinner välja, och
+    // "Öppna produktkort" blir dödfödd (handleAnalyze kräver productType).
+    (active === "ocr" && pasteText.trim().length > 0 && Boolean(productType));
   const canAnalyze =
     active === "search"
       ? hasCapturedResult || trimmedInput.length >= 2
@@ -570,9 +573,9 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
           <button
             type="button"
             data-touch-target
-            disabled={loading}
+            disabled={loading || !canAnalyze}
             onClick={() => void handleAnalyze()}
-            className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-opacity disabled:opacity-60"
+            className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ backgroundColor: "var(--sage)", color: "#FFFFFF" }}
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
