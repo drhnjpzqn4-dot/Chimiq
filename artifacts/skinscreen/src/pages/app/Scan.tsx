@@ -370,32 +370,22 @@ export default function ScanScreen() {
     const ingredients = product.ingredients ?? "";
     if (!ingredients.trim()) return;
 
-    analyzeSingle.mutate(
-      { data: { ingredients, productType: product.productType } },
-      {
-        onSuccess: (analysis) => {
-          const detail: ProductDetailProduct = {
-            product_name: name,
-            productName: name,
-            brand: product.brand,
-            barcode,
-            ingredients,
-            image_url: imageUrl,
-            imageUrl,
-            analysis_result_json: analysis,
-            productType: product.productType,
-          };
-          setDetailProduct(detail);
-          emitScanCompleted({
-            productName: name,
-            ingredients,
-            imageUrl,
-            analysis,
-            product: detail,
-          });
-        },
-      },
-    );
+    // Önskat flöde (2026-06-01): öppna produktkortet DIREKT med det inklistrade,
+    // UTAN att analysera. Analys är en egen knapp ("Analysera nu") inne i kortet.
+    // Tidigare kördes analyzeSingle här först → om den hängde öppnades kortet aldrig
+    // (orsaken till "verkar analysera men inget kort kommer upp").
+    const detail: ProductDetailProduct = {
+      product_name: name,
+      productName: name,
+      brand: product.brand,
+      barcode,
+      ingredients,
+      image_url: imageUrl,
+      imageUrl,
+      analysis_result_json: null,
+      productType: product.productType,
+    };
+    setDetailProduct(detail);
   };
 
   return (
