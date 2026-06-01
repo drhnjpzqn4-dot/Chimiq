@@ -133,6 +133,7 @@ export function ProductDetailSheet({
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [localAnalysis, setLocalAnalysis] = useState<ProductAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const initialImageUrl = product.image_url ?? product.imageUrl ?? null;
   const initialBarcode = product.barcode ?? null;
@@ -452,9 +453,10 @@ export function ProductDetailSheet({
   };
 
   const handleAnalyze = async () => {
-    const ingredientsToAnalyze = editMode ? editedIngredients : rawIngredients;
+    const ingredientsToAnalyze = (editMode ? editedIngredients : rawIngredients) || rawIngredients;
     if (!ingredientsToAnalyze || isAnalyzing) return;
     setIsAnalyzing(true);
+    setAnalyzeError(null);
     try {
       const res = await apiFetch("/api/analyze-single", {
         method: "POST",
@@ -488,9 +490,15 @@ export function ProductDetailSheet({
             body: JSON.stringify({ analysisResultJson: data }),
           });
         }
+      } else {
+        let detailMsg = "";
+        try { const j = await res.json(); detailMsg = j?.error ?? j?.message ?? ""; } catch { /* ignore */ }
+        setAnalyzeError(`Analysen misslyckades (${res.status}). ${detailMsg}`.trim());
       }
-    } catch {
-      // silent fail — user sees "ingen analys" och kan försöka igen
+    } catch (e) {
+      setAnalyzeError(
+        `Kunde inte nå analys-tjänsten. ${e instanceof Error ? e.message : ""}`.trim(),
+      );
     } finally {
       setIsAnalyzing(false);
     }
@@ -681,6 +689,11 @@ export function ProductDetailSheet({
             {isAnalyzing && (
               <p className="animate-pulse text-center text-sm font-medium py-2" style={{ color: "var(--sage)" }}>
                 {t("scanner.analysing")}
+              </p>
+            )}
+            {analyzeError && (
+              <p className="text-center text-sm font-medium py-2" style={{ color: "#C94F4F" }}>
+                {analyzeError}
               </p>
             )}
 
