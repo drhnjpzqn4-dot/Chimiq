@@ -115,6 +115,24 @@ function normalizeFlags(product: ProductDetailProduct) {
     .filter((flag) => flag.name);
 }
 
+// EAN-13/EAN-8 kontrollsiffre-validering (SCAN-FLOW-SPEC punkt 4). Returnerar
+// true om streckkoden är en giltig EAN-8 eller EAN-13 (rätt kontrollsiffra).
+// Andra längder (t.ex. UPC-12) godtas utan check så vi inte blockerar.
+function isValidEanCheckDigit(raw: string): boolean {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length !== 8 && digits.length !== 13) return true;
+  const nums = digits.split("").map(Number);
+  const check = nums.pop() as number;
+  // EAN-13: vikt 1,3,1,3...; EAN-8: vikt 3,1,3,1...
+  const reversed = nums.reverse();
+  const sum = reversed.reduce(
+    (acc, n, i) => acc + n * (i % 2 === 0 ? 3 : 1),
+    0,
+  );
+  const computed = (10 - (sum % 10)) % 10;
+  return computed === check;
+}
+
 export function ProductDetailSheet({
   product,
   status,
@@ -152,7 +170,23 @@ export function ProductDetailSheet({
   const [localBarcode, setLocalBarcode] = useState(initialBarcode ?? "");
   const [localIngredients, setLocalIngredients] = useState(initialIngredients);
   const [localImageUrl, setLocalImageUrl] = useState<string | null>(initialImageUrl);
-  const [editMode, setEditMode] = useState(initialEditMode ?? false);
+  // SCAN-FLOW-SPEC punkt 4 (Flöde B): okänd produkt från skanning ska öppna
+  // produktkortet med ALLA fält direkt redigerbara — inte tvinga klick på
+  // "Redigera". Auto-aktivera editMode när produkten saknar både riktigt namn
+  // och riktig streckkod (dvs. inte finns i DB), inte redan analyserad och inte
+  // ligger på hyllan.
+  const initialHasAnalysis = Boolean(
+    product.analysis_result_json ?? product.analysisResultJson,
+  );
+  const initialHasRealBarcode = Boolean(
+    initialBarcode && !initialBarcode.startsWith("CHIMIQ_"),
+  );
+  const initialIsUnknownScan =
+    fromScan &&
+    !initialHasAnalysis &&
+    !product.shelfId &&
+    (needsNameInput || !initialHasRealBarcode);
+  const [editMode, setEditMode] = useState(initialEditMode ?? initialIsUnknownScan);
   const [editName, setEditName] = useState(initialProductName);
   const [editBrand, setEditBrand] = useState(product.brand ?? "");
   const [editBarcode, setEditBarcode] = useState(initialBarcode ?? "");
@@ -619,11 +653,19 @@ export function ProductDetailSheet({
                 />
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={editBarcode}
                   onChange={(event) => setEditBarcode(event.target.value)}
                   className="input-base text-sm"
                   placeholder={t("contribute.barcode")}
                 />
+                {editBarcode.trim().replace(/\D/g, "").length >= 8 &&
+                  !isValidEanCheckDigit(editBarcode) && (
+                    <p className="text-xs" style={{ color: "var(--amber-deep)" }}>
+                      Kontrollera EAN — kontrollsiffran stämmer inte. Du kan
+                      spara ändå.
+                    </p>
+                  )}
               </div>
             ) : (
               <div className="min-w-0 flex-1">
@@ -651,6 +693,25 @@ export function ProductDetailSheet({
             )}
           </div>
         </SheetHeader>
+
+        {/* SCAN-FLOW-SPEC punkt 4 (Flöde B): tydlig "finns inte ännu"-text för
+            okända produkter. Inline svenska tills i18n-nycklar läggs till. */}
+        {fromScan && isNotInDb && !verdict && !completionDone && (
+          <div className="px-5 pt-3">
+            <div
+              className="rounded-2xl px-4 py-3"
+              style={{ backgroundColor: "var(--mauve-soft)" }}
+            >
+              <p className="text-sm font-medium" style={{ color: "var(--ink)" }}>
+                Den här produkten verkar inte finnas i vår databas ännu.
+              </p>
+              <p className="mt-1 text-xs" style={{ color: "var(--ink-soft)" }}>
+                Hjälp oss lägga in den, så analyserar vi den åt dig — fyll i
+                namn, EAN, ingredienser och en bild nedan.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* fromScan CTA-rad: Spara → Analysera → Lägg i rutin */}
         {fromScan && !verdict && (

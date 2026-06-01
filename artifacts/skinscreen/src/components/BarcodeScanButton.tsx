@@ -34,6 +34,7 @@ type ScanState =
   | "success"
   | "error"
   | "not_found"
+  | "manual"
   | "unsupported";
 
 declare const BarcodeDetector: {
@@ -62,6 +63,7 @@ export function BarcodeScanButton({
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const [prefillName, setPrefillName] = useState("");
   const [prefillBrand, setPrefillBrand] = useState("");
+  const [manualCode, setManualCode] = useState("");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -93,6 +95,7 @@ export function BarcodeScanButton({
     setScannedBarcode(null);
     setPrefillName("");
     setPrefillBrand("");
+    setManualCode("");
   }, [stopCamera]);
 
   const handleBarcodeFound = useCallback(
@@ -241,12 +244,25 @@ export function BarcodeScanButton({
 
   const handleTriggerClick = () => {
     if (state === "unsupported") {
-      setErrorMsg(t("barcodeScan.errUnsupportedBrowser"));
-      setState("error");
+      // Ingen kamera (webbläsare/simulator) → gå direkt till manuell inmatning
+      // istället för en återvändsgränd. SCAN-FLOW-SPEC punkt 6.
+      setManualCode("");
+      setState("manual");
       setModalOpen(true);
       return;
     }
     startScan();
+  };
+
+  const submitManualCode = () => {
+    const digits = manualCode.replace(/\D/g, "");
+    if (digits.length < 8) {
+      setErrorMsg("Ange en giltig streckkod (8–14 siffror).");
+      return;
+    }
+    setErrorMsg(null);
+    scannedRef.current = false;
+    void handleBarcodeFound(digits);
   };
 
   return (
@@ -349,10 +365,47 @@ export function BarcodeScanButton({
                   </div>
                   <p className="text-sm text-center text-muted-foreground">{errorMsg}</p>
                   <button
-                    onClick={close}
+                    onClick={() => {
+                      setManualCode("");
+                      setErrorMsg(null);
+                      setState("manual");
+                    }}
                     className="text-sm font-medium text-primary hover:underline"
                   >
                     {t("barcodeScan.enterManually")}
+                  </button>
+                </div>
+              )}
+
+              {state === "manual" && (
+                <div className="flex flex-col gap-3 py-2">
+                  <p className="text-sm text-muted-foreground">
+                    Skriv in streckkoden (EAN) som står på förpackningen:
+                  </p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoFocus
+                    value={manualCode}
+                    onChange={(e) => setManualCode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") submitManualCode();
+                    }}
+                    placeholder="t.ex. 7350053610019"
+                    className="input-base text-base tabular-nums"
+                  />
+                  {errorMsg && (
+                    <p className="text-xs" style={{ color: "#C94F4F" }}>
+                      {errorMsg}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={submitManualCode}
+                    disabled={manualCode.replace(/\D/g, "").length < 8}
+                    className="w-full py-3 rounded-xl bg-primary text-white text-sm font-semibold transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Slå upp
                   </button>
                 </div>
               )}

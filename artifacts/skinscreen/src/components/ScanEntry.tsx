@@ -395,6 +395,15 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                       setLookupResult(null);
                       setShowCapture(false);
                     }}
+                    onKeyDown={(event) => {
+                      // Enter söker i DB (namn ELLER EAN) via lookupProduct.
+                      // Ersätter den borttagna nedersta "Analysera"-knappen
+                      // (SCAN-FLOW-SPEC punkt 5: Enter ska göra något).
+                      if (event.key === "Enter" && canAnalyze && !loading) {
+                        event.preventDefault();
+                        void handleAnalyze();
+                      }
+                    }}
                     placeholder={t("scan.searchPlaceholder")}
                     className="h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--cream)] pl-9 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
@@ -592,21 +601,10 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         </div>
       )}
 
-      <button
-        type="button"
-        data-touch-target
-        disabled={!canAnalyze || loading}
-        onClick={() => void handleAnalyze()}
-        className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-opacity disabled:cursor-not-allowed"
-        style={
-          canAnalyze
-            ? { backgroundColor: "var(--sage)", color: "#FFFFFF" }
-            : { backgroundColor: "var(--line)", color: "var(--ink-soft)" }
-        }
-      >
-        {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-        {t("scanEntry.analyze")}
-      </button>
+      {/* SCAN-FLOW-SPEC punkt 3: den nedersta "Analysera"-knappen borttagen.
+          Analys sker ALLTID inne i produktkortet (+ på Rutin-sidan), aldrig
+          direkt från Skanna-fliken. Sök triggas via typeahead + Enter; OCR och
+          streckkod öppnar kortet via "Öppna produktkort" i captured-kortet. */}
     </div>
   );
 }
