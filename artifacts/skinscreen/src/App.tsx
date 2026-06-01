@@ -219,7 +219,10 @@ function App() {
               </WouterRouter>
               <Toaster />
               <UpdateBanner />
-              <FeedbackPrompt />
+              {/* FeedbackPrompt avstängd tillfälligt 2026-06-01: blockerade knappar i
+                  produktkortet och gick inte att stänga. Återaktivera när buggen är fixad.
+                  (Feedback lagras i feedback_submissions-tabellen — den är live, inte en dead end.) */}
+              {/* <FeedbackPrompt /> */}
               <OfflineReadyNotifier />
               <AnalyticsBootstrap />
               {!isNative() && <CookieBanner />}

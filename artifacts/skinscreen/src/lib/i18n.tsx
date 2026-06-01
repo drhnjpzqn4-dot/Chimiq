@@ -1599,7 +1599,7 @@ const sv: Dict = {
   "complete.saveProductCta": "Spara denna produkt",
   "complete.contributeProductPrompt": "Hjälp oss bygga databasen",
   "complete.contributeProductHint": "Lägg till denna produkt så andra kan hitta den nästa gång. Granskas av Chimiq innan den blir publik.",
-  "complete.contributeProductCta": "Bidra med denna produkt",
+  "complete.contributeProductCta": "Spara produkten",
 
   // ───── Severity / frequency ─────
   "severity.HIGH": "Hög risk",

@@ -246,7 +246,10 @@ export function ProductDetailSheet({
   };
 
   const addToRoutinePending = addToShelfMutation.isPending || patchShelfMutation.isPending;
-  const showVerdictBadge = Boolean(verdict);
+  // Visa ALDRIG "Säker"-skylten — Chimiq går inte i god för att en produkt är
+  // säker (ansvarsskäl). Varningar (caution/danger) visas, men inte safe-stämpeln.
+  // Informationen och varningsingredienserna räcker — användaren bedömer själv.
+  const showVerdictBadge = verdict === "danger" || verdict === "caution";
   const showNoAnalysisHint = !verdict && rawIngredients.length <= 10;
   const ingredientPreview = expanded || rawIngredients.length <= 520
     ? rawIngredients
