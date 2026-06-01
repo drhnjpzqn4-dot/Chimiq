@@ -42,6 +42,8 @@
   --color-sage-deep: var(--sage-deep);
   --color-rose-gold: var(--rose-gold);
   --color-rose-gold-deep: var(--rose-gold-deep);
+  --color-mauve: var(--mauve);
+  --color-mauve-soft: var(--mauve-soft);
   --color-amber-deep: var(--amber-deep);
   --color-amber-soft: var(--amber-soft);
   --color-premium-bg: var(--premium-bg);
@@ -63,8 +65,15 @@
 
 :root {
   /* ── Forest + Clay brand palette (BESLUT-SS-022, 2026-05-13) ── */
-  --rose-gold:        #B5705B;   /* Clay terrakotta — logo, h1/h2 serif, signaturelement */
-  --rose-gold-deep:   #8A4F3B;   /* AA-säker text/links på cream (≥4.5:1) */
+  /* Roséguld korrigerat till loggans ÄKTA dammrosa-mauve (BESLUT-SS-076, 2026-06-01).
+     Tidigare clay-terrakotta (#B5705B/#8A4F3B) matchade ej loggan/login. */
+  --rose-gold:        #A57575;   /* Loggans bas — h1/h2 serif, signaturelement (AA stor text 3.38:1) */
+  --rose-gold-deep:   #8E5F5A;   /* Loggans skugga — AA-säker brödtext/links på cream (4.64:1) */
+
+  /* ── Mauve-accent (BESLUT-SS-076) — ATMOSFÄR endast, aldrig funktionsfärg.
+     Återskapar login-känslan (burkarna). Bryter ej SS-067. ── */
+  --mauve:            #BA8B89;   /* Loggans signaturton — dekor/fill, ej text på cream */
+  --mauve-soft:       #EFE3E2;   /* Ljus mauve-tvätt — tomma tillstånd, Discover, firande-bakgrund */
   --sage:             #3C5C44;   /* Skogsgrön — ALLA CTA-knappar, aktiva states */
   --sage-deep:        #284430;   /* Sage hover, focus-ring, text på cream (AA) */
   --gold:             #BC8F3D;   /* ENBART Premium-accent (badge, paywall CTA) */

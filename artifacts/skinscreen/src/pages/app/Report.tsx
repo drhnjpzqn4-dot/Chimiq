@@ -188,7 +188,7 @@ function ProductCard({ product }: { product: ShelfProduct }) {
               margin: 0,
               fontSize: 11,
               fontWeight: 700,
-              color: "#B5705B",
+              color: "#8E5F5A",
               textTransform: "uppercase",
               letterSpacing: "0.06em",
             }}
