@@ -178,7 +178,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!user) return;
     setLocalDisplayName(user.displayName ?? user.firstName ?? "");
-    setLocalAvatarEmoji(resolveAvatarColor(user.avatarEmoji));
+    setLocalAvatarEmoji(resolveAvatarColor(user.avatarEmoji ?? undefined));
     // Ladda lokalt sparad profilbild
     try {
       const saved = window.localStorage.getItem(AVATAR_PHOTO_PREFIX + user.id);
@@ -305,7 +305,7 @@ export default function ProfileScreen() {
     void refetch();
   };
 
-  const pickAvatarEmoji = async (emoji: string) => {
+  const pickAvatarEmoji = async (emoji: AvatarColorId) => {
     const previous = localAvatarEmoji;
     setLocalAvatarEmoji(emoji);
     setEmojiPickerOpen(false);

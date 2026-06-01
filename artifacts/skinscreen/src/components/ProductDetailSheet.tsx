@@ -662,8 +662,7 @@ export function ProductDetailSheet({
                 {editBarcode.trim().replace(/\D/g, "").length >= 8 &&
                   !isValidEanCheckDigit(editBarcode) && (
                     <p className="text-xs" style={{ color: "var(--amber-deep)" }}>
-                      Kontrollera EAN — kontrollsiffran stämmer inte. Du kan
-                      spara ändå.
+                      {t("product.eanCheckWarning")}
                     </p>
                   )}
               </div>
@@ -703,11 +702,10 @@ export function ProductDetailSheet({
               style={{ backgroundColor: "var(--mauve-soft)" }}
             >
               <p className="text-sm font-medium" style={{ color: "var(--ink)" }}>
-                Den här produkten verkar inte finnas i vår databas ännu.
+                {t("product.notInDbTitle")}
               </p>
               <p className="mt-1 text-xs" style={{ color: "var(--ink-soft)" }}>
-                Hjälp oss lägga in den, så analyserar vi den åt dig — fyll i
-                namn, EAN, ingredienser och en bild nedan.
+                {t("product.notInDbHint")}
               </p>
             </div>
           </div>

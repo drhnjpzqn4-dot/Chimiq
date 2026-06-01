@@ -517,7 +517,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                 {pasteText.trim().length > 0 && (
                   <div className="mt-3">
                     <p className="text-sm text-[var(--ink-muted)] mb-2">
-                      Vilken typ av produkt är det?
+                      {t("scanEntry.productTypeQuestion")}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {(["skincare", "cosmetics", "other"] as const).map((type) => (
@@ -532,10 +532,10 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                           }`}
                         >
                           {type === "skincare"
-                            ? "Hudvård"
+                            ? t("scanEntry.typeSkincare")
                             : type === "cosmetics"
-                              ? "Smink"
-                              : "Övrigt"}
+                              ? t("scanEntry.typeCosmetics")
+                              : t("scanEntry.typeOther")}
                         </button>
                       ))}
                     </div>
