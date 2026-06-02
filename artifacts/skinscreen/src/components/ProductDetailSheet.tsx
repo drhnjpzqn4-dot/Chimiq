@@ -774,18 +774,9 @@ export function ProductDetailSheet({
               </p>
             )}
 
-            {/* 3. Lägg i rutin */}
-            {canAddToRoutine && !addedConfirm && (
-              <button
-                type="button"
-                disabled={addToRoutinePending}
-                onClick={() => setSlotPickerOpen((o) => !o)}
-                className="w-full rounded-xl py-3 text-base font-semibold disabled:opacity-60"
-                style={{ backgroundColor: "var(--cream-warm)", color: "var(--sage-deep)", border: "1px solid var(--line)" }}
-              >
-                {addToRoutinePending ? t("myShelf.adding") : t("product.addToRoutine")}
-              </button>
-            )}
+            {/* SS-078: "Lägg till i rutin" flyttad — fanns dubbelt (här + i kropps-
+                sektionen nedan). Endast knappen med slot-väljaren (morgon/kväll/
+                ibland) behålls, annars såg det ut som att appen inte frågade VAR. */}
           </div>
         )}
 

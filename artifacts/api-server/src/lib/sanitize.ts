@@ -112,13 +112,22 @@ export function sanitizeIngredients(raw: unknown, allowEmpty = false): string {
   // ingredients with newlines instead of commas; without this normalization
   // the "at least 3 ingredients" check would reject a legitimate paste.
   let normalized: unknown = raw;
-  if (typeof raw === "string" && /\r|\n/.test(raw)) {
-    normalized = raw
-      .replace(/\r\n?/g, "\n")
-      .split("\n")
-      .map((line) => line.trim().replace(/[,;\s]+$/g, ""))
-      .filter((line) => line.length > 0)
-      .join(", ");
+  if (typeof raw === "string") {
+    let s = raw;
+    // Normalisera punkt-/bullet-separatorer till kommatecken. Vanligt på vissa
+    // etiketter (t.ex. L'Oréal): "AQUA/WATER • GLYCERIN • DIMETHICONE • …".
+    // Utan detta blev hela listan EN token och avvisades (400). OBS: snedstreck
+    // (/) lämnas orört — det är en del av enskilda INCI-namn som "AQUA/WATER".
+    s = s.replace(/[•·∙●▪‣・･|]+/g, ", ");
+    if (/\r|\n/.test(s)) {
+      s = s
+        .replace(/\r\n?/g, "\n")
+        .split("\n")
+        .map((line) => line.trim().replace(/[,;\s]+$/g, ""))
+        .filter((line) => line.length > 0)
+        .join(", ");
+    }
+    normalized = s;
   }
   const cleaned = sanitizeText(normalized, {
     fieldName: "Ingredient list",

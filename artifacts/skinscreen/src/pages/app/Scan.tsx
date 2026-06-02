@@ -386,6 +386,31 @@ export default function ScanScreen() {
       productType: product.productType,
     };
     setDetailProduct(detail);
+
+    // SS-078: registrera produkten i "Senaste skanningar" redan när kortet
+    // öppnas (streckkod / OCR / bidrag) — inte bara när en cachad analys finns.
+    // Tidigare dök t.ex. streckkods-skanningar aldrig upp i recents eftersom
+    // analysen körs INNE i kortet och detta var den "analyslösa" grenen.
+    if (name) {
+      setRecent((prev) => {
+        const entry: RecentScan = {
+          name,
+          verdict: "safe", // okänd tills användaren kör "Analysera nu"; ej visad som prick
+          at: Date.now(),
+          product: detail,
+        };
+        const deduped = prev.filter(
+          (r) => r.name.toLowerCase() !== name.toLowerCase(),
+        );
+        const updated = [entry, ...deduped].slice(0, MAX_RECENT);
+        try {
+          localStorage.setItem(RECENT_SCANS_KEY, JSON.stringify(updated));
+        } catch {
+          // ignore quota / private-mode errors
+        }
+        return updated;
+      });
+    }
   };
 
   return (

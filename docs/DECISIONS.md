@@ -504,4 +504,26 @@ barcode-lookup finns redan (`barcode-lookup.ts`); INCI-parsing hanterar redan Ap
 
 ---
 
-*Senast uppdaterad: 2026-06-02 (SS-077: nattlig lokal-AI-verifiering + retailer-scraping beslutad).*
+### SS-078 — 2026-06-02 — Smart capture (en bild → allt) + ingrediens-fullständighetskoll
+Från Pias andra TestFlight-test (2026-06-02). Tre småfixar **gjorda + tsc rent**:
+1. **Bullet-INCI gav 400** (L'Oréal Lumi Glotion `AQUA • GLYCERIN • …`). `sanitizeIngredients`
+   normaliserar nu `• · ∙ ● ▪ ‣ ・ ･ |` → komma före tokenisering (slash `/` lämnas).
+   `artifacts/api-server/src/lib/sanitize.ts`.
+2. **Dubbel "Lägg till i rutin"** — tog bort CTA-radens dubblett; kvar är knappen med slot-väljaren
+   (morgon/kväll/ibland). `ProductDetailSheet.tsx`.
+3. **Streckkods-skanning saknades i "Senaste skanningar"** — `handleScanResult` registrerar nu
+   produkten i recents redan när kortet öppnas (inte bara vid cachad analys). `Scan.tsx`.
+
+Större spår (specat, ej byggt) — `docs/cursor-prompts/2026-06-02-SS-078-smart-capture-and-completeness.md`:
+- **Smart capture:** max två foton (fram/bak) → AI extraherar namn, varumärke, bild, ingredienser
+  OCH EAN-streckkod via ny `/api/extract/label` (återanvänd vision-pipelinen i `contribute.ts`).
+  Slut på separat namnfoto och manuell EAN-inknappning. Berikning (SS-077) körs först när streckkod
+  finns → runda flaskor slipper baksidesbild. Kräver vision-modell (Qwen2-VL lokalt / Anthropic i
+  moln / Apple Vision on-device).
+- **Fullständighetskoll:** mjuk bekräftelse före analys om foto-/OCR-listan ser avklippt ut
+  (slutar mitt i ord, saknar konserveringsmedel trots många tokens, ovanligt få tokens). Inte
+  blockerande — falska positiva ska gå att klicka förbi.
+
+---
+
+*Senast uppdaterad: 2026-06-02 (SS-078: smart capture-spec + tre småfixar från TestFlight-test).*
