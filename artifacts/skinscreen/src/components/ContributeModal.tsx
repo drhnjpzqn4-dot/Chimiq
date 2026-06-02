@@ -10,6 +10,12 @@ interface ContributeModalProps {
   initialIngredients?: string;
   initialImageUrl?: string | null;
   onSuccess?: (ingredients: string, productName: string, imageUrl?: string | null) => void;
+  /**
+   * SS-075: hela det insamlade produktresultatet (inkl. bild, varumärke,
+   * produkttyp). Används för att öppna ETT produktkort (ProductDetailSheet)
+   * istället för att tappa data via (ings, name, imageUrl)-vägen.
+   */
+  onProductReady?: (result: ProductResult) => void;
   onClose: () => void;
 }
 
@@ -20,6 +26,7 @@ export function ContributeModal({
   initialIngredients = "",
   initialImageUrl = null,
   onSuccess,
+  onProductReady,
   onClose,
 }: ContributeModalProps) {
   const { t } = useTranslation();
@@ -29,6 +36,8 @@ export function ContributeModal({
       result.productName ?? result.product_name ?? t("contribute.scannedProductFallback");
     const ing = result.ingredients ?? initialIngredients;
     const imageUrl = result.imageUrl ?? result.image_url ?? null;
+    // SS-075: lämna över HELA resultatet så produktkortet får bild + typ + märke.
+    onProductReady?.(result);
     if (ing && onSuccess) {
       onSuccess(ing, name, imageUrl);
     }

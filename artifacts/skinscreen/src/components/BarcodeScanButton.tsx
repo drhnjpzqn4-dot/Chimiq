@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Barcode, X, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributeModal } from "@/components/ContributeModal";
+import type { ProductResult } from "@/components/ScanEntry";
 import { isNative } from "@/lib/native";
 import { BarcodeScanner } from "capacitor-barcode-scanner";
 import { useTranslation } from "@/lib/i18n";
@@ -14,6 +15,12 @@ interface BarcodeScanButtonProps {
     barcode?: string,
     productType?: string,
   ) => void;
+  /**
+   * SS-075: Anropas när användaren bidragit med en okänd produkt via
+   * ContributeModal. Lämnar över HELA ProductResult (inkl. bild + produkttyp)
+   * så att ETT produktkort (ProductDetailSheet) kan öppnas utan att tappa data.
+   */
+  onContributedProduct?: (result: ProductResult) => void;
   disabled?: boolean;
   /**
    * Optional override for the trigger element. When provided, renders a button
@@ -46,6 +53,7 @@ declare const BarcodeDetector: {
 
 export function BarcodeScanButton({
   onResult,
+  onContributedProduct,
   disabled,
   triggerClassName,
   triggerContent,
@@ -443,10 +451,28 @@ export function BarcodeScanButton({
           barcode={scannedBarcode ?? undefined}
           initialProductName={prefillName}
           initialBrand={prefillBrand}
-          onSuccess={(ings, name) => {
+          onProductReady={(result) => {
+            // SS-075: lämna över HELA resultatet (bild, varumärke, produkttyp)
+            // så ETT produktkort kan öppnas. Säkerställ att den skannade
+            // streckkoden följer med även om formuläret lämnade den tom.
+            const withBarcode: ProductResult = {
+              ...result,
+              barcode: result.barcode ?? scannedBarcode ?? null,
+            };
             setShowContribute(false);
             close();
-            onResult(ings, name, scannedBarcode ?? undefined);
+            if (onContributedProduct) {
+              onContributedProduct(withBarcode);
+            } else {
+              // Fallback (knappen används utan full-result-hanterare): behåll
+              // det gamla beteendet så inget bryts.
+              onResult(
+                withBarcode.ingredients ?? "",
+                withBarcode.productName ?? withBarcode.product_name,
+                withBarcode.barcode ?? undefined,
+                withBarcode.productType,
+              );
+            }
           }}
           onClose={() => {
             setShowContribute(false);

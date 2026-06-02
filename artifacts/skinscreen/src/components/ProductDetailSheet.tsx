@@ -57,6 +57,10 @@ export interface ProductDetailProduct {
   analysisResultJson?: ProductAnalysis | null;
   routineSlot?: RoutineSlot | string | null;
   productType?: ProductType | string | null;
+  /** SS-075: false när produkten skannats/sökts men ännu inte finns i
+   * cached_products. Då ska "Bidra till databasen"-CTA:n visas även om en
+   * streckkod finns. undefined/true = anta att den finns (bakåtkompatibelt). */
+  inCache?: boolean;
 }
 
 interface ProductDetailSheetProps {
@@ -305,7 +309,12 @@ export function ProductDetailSheet({
   // Products without a real barcode cannot be patched in cached_products.
   // Offer a contribution flow instead so OCR/paste scans can be saved.
   const hasRealBarcode = Boolean(barcode && !barcode.startsWith("CHIMIQ_"));
-  const isNotInDb = !hasRealBarcode && !product.shelfId;
+  // SS-075: en produkt som skannats/sökts men ännu inte finns i cached_products
+  // (inCache === false) ska behandlas som "inte i databasen" även när den HAR
+  // en streckkod — annars saknas "Bidra till databasen"-CTA:n. DB-träffar och
+  // hyll-produkter har inCache true/undefined och påverkas inte.
+  const notInCache = product.inCache === false;
+  const isNotInDb = (!hasRealBarcode || notInCache) && !product.shelfId;
   const missingField = isNotInDb
     ? null
     : !imageUrl

@@ -466,4 +466,42 @@ applicerad bredare (skincare → kläder/material → mat). Ej beslutat scope/or
 
 ---
 
-*Senast uppdaterad: 2026-06-02 (SS-076: forskningsreferenser i PDF + filtrerings-vision loggad).*
+### SS-077 — 2026-06-02 — Nattlig lokal-AI-verifiering + retailer-scraping ("scraping for value")
+**Status:** Beslutad — implementeras när Mac mini + Ollama/Qwen-setup är på plats.
+
+**Beslut:** När en produkt inte finns i `cached_products` (okänd streckkod ELLER bara namn-sök),
+ska systemet försöka *berika* den automatiskt istället för att lägga hela bördan på användaren:
+
+1. **Synkron berikning vid scan/sök:** OBF (Open Beauty Facts) först → därefter retailer-scraping
+   (Apotea, Kicks; senare Lyko/Hudoteket) på EAN eller namn. Hittas ingredienslista/bild →
+   förifyll produktkortet, användaren bekräftar bara. Löser bl.a. "runda flaskor går inte att
+   fota"-problemet eftersom listan hämtas från källan istället för kameran.
+2. **Nattlig batch (lokal AI):** Mac mini med Ollama + Qwen (jfr SS-002 chimiq-social) kör ett
+   cron-jobb som för varje overifierad användarinmatning söker OBF + retailers, jämför
+   ingredienslistan, och:
+   - matchar mot betrodd källa inom tolerans → **auto-godkänn** till `cached_products`
+     (uppdatera ingredienser/bild, invalidera analyscache enl. SS-074).
+   - kan inte verifieras → skicka till **admin-kö**.
+3. **Admin endast för det som INTE kan agent-verifieras.** Bygger på befintlig `autoApprove`-
+   heuristik i `contribute.ts` (~rad 87–111). Tidigare gick ALLA tillägg via admin — det togs bort
+   (ologiskt för kunden). SS-077 formaliserar: admin = sista utväg, inte default.
+
+**Befintligt att återanvända (INTE bygga om):** Kicks- och Apotea-scrapers skrevs 2026-06-01
+(föregående session). De ligger INTE i `chimiq-code`-repot — måste lokaliseras (troligen
+`PiasVentures/Cimiq/` eller tidigare Cowork-output) och wire:as in i berikningssteget. OBF-
+barcode-lookup finns redan (`barcode-lookup.ts`); INCI-parsing hanterar redan Apotea-formatet
+(mellanslags-separerad INCI, `sanitize.ts` rad ~145, commit 5d4bfbe).
+
+**Att tänka på (icke-uppenbart, flaggat för Pia):**
+- Vision behövs för att läsa retailer-*sidor*/runda flaskor → text-only Qwen räcker inte; använd
+  Qwen2-VL eller behåll on-device-OCR (Apple Vision, SS-008). Text-Qwen räcker för INCI-jämförelse.
+- Mac mini hemma = perfekt för nattbatch men single point of failure → den *synkrona* live-
+  berikningen vid scan bör vara alltid-på/molnfallback, inte bero på hemmaservern.
+- Scraping har ToS/robots-juridik → OBF (öppen data) först, cacha resultat, attributera källa.
+
+**Nästa steg:** (a) lokalisera + länka scrapers, (b) sätt upp Mac mini + Ollama/Qwen,
+(c) implementera berikningssteg + nattbatch. Påminnelse satt till 2026-06-06 om ej gjort.
+
+---
+
+*Senast uppdaterad: 2026-06-02 (SS-077: nattlig lokal-AI-verifiering + retailer-scraping beslutad).*

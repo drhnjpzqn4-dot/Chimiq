@@ -23,6 +23,10 @@ export interface ProductResult {
   imageUrl?: string | null;
   ingredients?: string;
   analysis_result_json?: ProductDetailAnalysis | null;
+  /** SS-075: false när produkten kommer från en skanning/sök men ännu inte
+   * finns i cached_products. Styr om produktkortet visar "Bidra till
+   * databasen"-CTA:n även när en streckkod finns. */
+  inCache?: boolean;
 }
 
 interface ProductDetailAnalysis {
@@ -260,6 +264,8 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
       imageUrl: data.imageUrl ?? null,
       analysis_result_json: data.analysis ?? null,
       productType: data.productType,
+      // SS-075: en träff från lookup kommer från cached_products.
+      inCache: true,
     });
     return true;
   };
@@ -282,6 +288,9 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         imageUrl: null,
         analysis_result_json: null,
         productType,
+        // SS-075: ren ingredienslista (klistrad/OCR) utan streckkod — ny produkt
+        // som ännu inte finns i cached_products.
+        inCache: false,
       });
       return;
     }
@@ -349,6 +358,9 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                   imageUrl: null,
                   analysis_result_json: null,
                   productType: scannedProductType as ProductType | undefined,
+                  // SS-075: BarcodeScanButton.onResult fyrar bara för träffar i
+                  // cached_products (data.found && data.ingredients).
+                  inCache: true,
                 });
                 if (barcode) {
                   try {
@@ -358,6 +370,10 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                   }
                 }
               }}
+              // SS-075: en okänd produkt som bidragits via ContributeModal
+              // levereras som ett komplett ProductResult (med bild + typ) och
+              // öppnar ETT produktkort direkt.
+              onContributedProduct={(result) => onResult?.(result)}
               triggerClassName={rowClassName}
               triggerContent={rowContent(kind)}
             />
@@ -477,7 +493,10 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                       <div className="mt-3 rounded-2xl border border-[var(--line)] bg-white p-4">
                         <ProductCapture
                           initialData={{
+                            // Förifyll det användaren skrev: siffror → streckkod,
+                            // annars → produktnamn, så kortet öppnas med kontext.
                             barcode: /^\d{8,14}$/.test(trimmedInput) ? trimmedInput : undefined,
+                            productName: /^\d{8,14}$/.test(trimmedInput) ? undefined : trimmedInput,
                           }}
                           onAnalyzed={(result) => {
                             onResult?.(result);
@@ -489,17 +508,25 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
                         />
                       </div>
                     ) : (
-                      <div className="mt-2 flex items-center justify-between">
-                        <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
+                      // SS-075: tydligt "vi har inte den här än — lägg till"-kort,
+                      // i paritet med streckkods-flödets not_found-vy. Ersätter den
+                      // tidigare diskreta text-länken som var lätt att missa.
+                      <div
+                        className="mt-3 rounded-2xl border p-4 text-center"
+                        style={{ borderColor: "var(--line)", backgroundColor: "var(--cream-warm)" }}
+                      >
+                        <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                          {t("barcodeScan.notInDatabase")}
+                        </p>
+                        <p className="mt-1 text-xs" style={{ color: "var(--ink-soft)" }}>
                           {t("myShelf.productNotFound")}
                         </p>
                         <button
                           type="button"
                           onClick={() => setShowCapture(true)}
-                          className="text-xs font-semibold"
-                          style={{ color: "var(--premium-gold)" }}
+                          className="btn-premium mt-3 w-full"
                         >
-                          {t("productCapture.addManually")}
+                          {t("barcodeScan.addAndEarn")}
                         </button>
                       </div>
                     )
