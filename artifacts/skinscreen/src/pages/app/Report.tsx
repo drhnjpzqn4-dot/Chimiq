@@ -19,7 +19,46 @@ type FlaggedIngredient = {
   reason?: string;
   explanation?: string;
   severity?: string;
+  citation?: string;
+  citationUrl?: string;
 };
+
+/**
+ * Renders a research reference (author/year + clickable DOI/PubMed link).
+ * Citation text stays in English by design (SS-076) — Swedish UI labels,
+ * English source references. Prints as visible text in the PDF.
+ */
+function CitationLine({
+  citation,
+  citationUrl,
+}: {
+  citation?: string | null;
+  citationUrl?: string | null;
+}) {
+  const text = citation?.trim();
+  if (!text) return null;
+  const url = citationUrl?.trim();
+  return (
+    <p
+      style={{
+        margin: "4px 0 0",
+        fontSize: 10,
+        color: "#6B6F6A",
+        lineHeight: 1.4,
+        fontStyle: "italic",
+      }}
+    >
+      Källa:{" "}
+      {url ? (
+        <a href={url} style={{ color: "#3C5C44", textDecoration: "underline" }}>
+          {text}
+        </a>
+      ) : (
+        text
+      )}
+    </p>
+  );
+}
 
 type AnalysisResult = {
   verdict?: string;
@@ -214,6 +253,7 @@ function ProductCard({ product }: { product: ShelfProduct }) {
                     {flag.reason ?? flag.explanation}
                   </p>
                 )}
+                <CitationLine citation={flag.citation} citationUrl={flag.citationUrl} />
               </div>
             ))}
         </div>
@@ -273,6 +313,7 @@ function ConflictSection({ conflicts }: { conflicts: RoutineConflict[] }) {
           >
             {conflict.severity === "HIGH_RISK" ? "⚠ Hög risk" : "⚠ Försiktighet"}
           </span>
+          <CitationLine citation={conflict.citation} citationUrl={conflict.citationUrl} />
         </div>
       ))}
     </div>

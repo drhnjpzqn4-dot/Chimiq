@@ -433,6 +433,37 @@ Regel: duplicera aldrig UI — extrahera till `/components/` och kalla på kompo
 `ALTER TABLE shelf_products ADD COLUMN IF NOT EXISTS analysis_result_json JSONB;`.
 Hyll-API:t returnerar fältet som `analysisResultJson` och PATCH `/api/shelf/:id` kan spara ny analys per shelf-rad.
 
+### SS-075 — 2026-06-02 — Ett produktkort: ta bort mellansteget (ProductCapture-analysen)
+Forts. på SS-074. `ProductCapture` ska sluta vara ett eget mini-kort med inline-analys ("Säker") +
+"Spara i min rutin"/"Bidra till databasen". Den blir ett rent insamlingsformulär som lämnar över ett
+komplett `ProductResult` (inkl. bild + produkttyp + varumärke + streckkod) till `ProductDetailSheet`
+— det enda produktkortet, där analys, bild och bidrag till databasen sker. Fixar även
+`isNotInDb`-logiken i `ProductDetailSheet` (rad ~308) så att skannade-men-okända produkter som HAR
+streckkod också får den gyllene "Bidra till databasen"-CTA:n (ny `inCache`-flagga). Upptäckt vid
+Pias butikstest av Isadora CC+ Cream (EAN 7333352079039).
+Full spec: `docs/cursor-prompts/2026-06-02-SS-075-one-card-no-intermediate.md`.
+
 ---
 
-*Senast uppdaterad: 2026-05-14 (BESLUT-SS-019 profil-tillägg: ålder + mål i `SkinProfileChips`).*
+### SS-076 — 2026-06-02 — Forskningsreferenser i PDF + vision "filtrera fram det säkra"
+Diskussion med Pia. Två spår:
+
+**A. Forskningsreferenser (nära klart).** Citat-data finns redan end-to-end: `analyze`-API:t
+returnerar `citation` + `citationUrl` för både konflikter och flaggade ingredienser; Upptäck →
+ingredienslexikon (`DiscoverDetail.tsx`) renderar redan källänkar. ENDA luckan: PDF-rapporten
+(`Report.tsx`, browser-print) skriver INTE ut källorna trots att datan finns i analysresultatet.
+→ Åtgärd: rendera `citation`/`citationUrl` för konflikter + kombinationer i Report.tsx (yt-ändring,
+ingen ny data). Översättning av ingrediens-/säkerhetstext SE finns redan på roadmap (idag engelska ok).
+✅ KLART 2026-06-02: `CitationLine`-komponent tillagd i Report.tsx; renderar "Källa: …" med klickbar
+DOI/PubMed-länk under varje flaggad ingrediens OCH varje konflikt/kombination. tsc rent. Äldre sparade
+analyser utan citat döljer raden tyst (graceful).
+
+**B. Vision: kunskapsdriven filtrering ("välj bara bland det säkra").** Mål: SPF-säkra
+alternativ-ingredienser, sök DB på ingrediens-säkerhet, ranka solskydd låg→hög risk, filter
+"visa bara säkra produkter". Bygger vidare på befintligt: `suggest-alternatives`-route +
+`safe-ingredients.ts` / `risky-ingredients.ts` / `conflict-pairs.ts`. Långsiktigt samma motor
+applicerad bredare (skincare → kläder/material → mat). Ej beslutat scope/ordning — väntar på Pias svar.
+
+---
+
+*Senast uppdaterad: 2026-06-02 (SS-076: forskningsreferenser i PDF + filtrerings-vision loggad).*
