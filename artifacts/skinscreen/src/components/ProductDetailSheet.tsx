@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { BookOpen, CalendarDays, Camera, CheckCircle2, FlaskConical, Moon, Plus, Save, Sun } from "lucide-react";
+import { BookOpen, CalendarDays, Camera, CheckCircle2, Flag, FlaskConical, Moon, Plus, Save, Sun } from "lucide-react";
 import {
   getGetShelfQueryKey,
   useAddToShelf,
@@ -208,6 +208,13 @@ export function ProductDetailSheet({
   const [editImageError, setEditImageError] = useState<string | null>(null);
   const [isSavingToShelf, setIsSavingToShelf] = useState(false);
   const [savedToShelf, setSavedToShelf] = useState(false);
+  // SS-079 (#flag): "Rapportera felaktig info" — POSTs to the existing
+  // /api/products/:barcode/report endpoint (product_reports table).
+  const [flagOpen, setFlagOpen] = useState(false);
+  const [flagReason, setFlagReason] = useState("");
+  const [flagSaving, setFlagSaving] = useState(false);
+  const [flagDone, setFlagDone] = useState(false);
+  const [flagError, setFlagError] = useState<string | null>(null);
   const [localShelfId, setLocalShelfId] = useState<number | undefined>(product.shelfId);
   const [localRoutineSlot, setLocalRoutineSlot] = useState<string | null | undefined>(
     product.routineSlot ?? null,
@@ -274,6 +281,7 @@ export function ProductDetailSheet({
         });
         setLocalShelfId(created.id);
         setLocalRoutineSlot(slot);
+        contributeToCatalog();
       }
       await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
       setSlotPickerOpen(false);
@@ -415,6 +423,33 @@ export function ProductDetailSheet({
     }
   };
 
+  // SS-079 (#3): make a saved scan findable in SEARCH, not just "recent".
+  // A product is only searchable once it's in the shared cached_products table.
+  // When the user saves a product that has a real barcode + ingredients but
+  // isn't in the catalog yet (notInCache), push it via /contribute/manual,
+  // which upserts cached_products (source='user') — i.e. auto-approve-if-
+  // consistent. Logged-in only (the endpoint requires auth). Fire-and-forget.
+  const contributeToCatalog = () => {
+    if (!notInCache || !hasRealBarcode || !barcode) return;
+    if (rawIngredients.length < 20) return;
+    const permanentImage =
+      imageUrl && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))
+        ? imageUrl
+        : undefined;
+    void apiFetch("/api/contribute/manual", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        barcode,
+        productName: productName || undefined,
+        brand: localBrand.trim() || undefined,
+        ingredients: rawIngredients,
+        imageUrl: permanentImage,
+      }),
+    }).catch(() => { /* non-blocking: catalog contribution is best-effort */ });
+  };
+
   const handleSaveToShelf = async () => {
     if (isSavingToShelf || savedToShelf || effectiveShelfId) return;
     setIsSavingToShelf(true);
@@ -436,6 +471,7 @@ export function ProductDetailSheet({
       setLocalRoutineSlot("wishlist");
       await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
       setSavedToShelf(true);
+      contributeToCatalog();
     } catch {
       // silent — user kan försöka igen
     } finally {
@@ -515,19 +551,25 @@ export function ProductDetailSheet({
       if (res.ok) {
         const data = await res.json() as ProductAnalysis;
         setLocalAnalysis(data);
-        if (product.shelfId && ingredientsToAnalyze === rawIngredients) {
+        // SS-079 (#4): persist the analysis back to the shelf row so the verdict
+        // survives closing/reopening the card. Use effectiveShelfId (localShelfId
+        // ?? product.shelfId) — when the user saves a freshly-scanned product the
+        // new id lands in localShelfId while product.shelfId stays undefined, so
+        // the old `product.shelfId` guard silently dropped every just-saved scan.
+        const shelfIdToPersist = effectiveShelfId;
+        if (shelfIdToPersist && ingredientsToAnalyze === rawIngredients) {
           queryClient.setQueryData<ShelfResponse>(getGetShelfQueryKey(), (current) => {
             if (!current) return current;
             return {
               ...current,
               products: current.products.map((shelfProduct) =>
-                shelfProduct.id === product.shelfId
+                shelfProduct.id === shelfIdToPersist
                   ? { ...shelfProduct, analysisResultJson: data }
                   : shelfProduct,
               ),
             };
           });
-          void apiFetch(`/api/shelf/${product.shelfId}`, {
+          void apiFetch(`/api/shelf/${shelfIdToPersist}`, {
             method: "PATCH",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
@@ -545,6 +587,28 @@ export function ProductDetailSheet({
       );
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleFlag = async () => {
+    const reason = flagReason.trim();
+    if (!reason || flagSaving || !hasRealBarcode || !barcode) return;
+    setFlagSaving(true);
+    setFlagError(null);
+    try {
+      const res = await apiFetch(`/api/products/${encodeURIComponent(barcode)}/report`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setFlagDone(true);
+      setFlagOpen(false);
+    } catch {
+      setFlagError("Kunde inte skicka rapporten. Försök igen.");
+    } finally {
+      setFlagSaving(false);
     }
   };
 
@@ -1209,6 +1273,62 @@ export function ProductDetailSheet({
             <p className="border-t border-[var(--line)] pt-5 text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
               {t("complete.thanks")}
             </p>
+          )}
+
+          {/* SS-079 (#flag): community correction. Only for products with a real
+              barcode (those live in cached_products and can be reported). */}
+          {hasRealBarcode && !editMode && (
+            <section className="border-t border-[var(--line)] pt-5">
+              {flagDone ? (
+                <p className="text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
+                  Tack! Vi har tagit emot din rapport och granskar uppgifterna.
+                </p>
+              ) : flagOpen ? (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+                    Vad stämmer inte?
+                  </h3>
+                  <textarea
+                    value={flagReason}
+                    onChange={(event) => setFlagReason(event.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    placeholder="T.ex. fel ingredienslista, fel bild eller fel namn"
+                    className="textarea-base text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={flagSaving || !flagReason.trim()}
+                      onClick={() => void handleFlag()}
+                      className="rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                      style={{ backgroundColor: "var(--rose-gold-deep)" }}
+                    >
+                      {flagSaving ? "Skickar…" : "Skicka rapport"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setFlagOpen(false); setFlagError(null); }}
+                      className="btn-secondary"
+                      style={{ height: 38, fontSize: 13 }}
+                    >
+                      Avbryt
+                    </button>
+                  </div>
+                  {flagError && <p className="text-xs text-red-500">{flagError}</p>}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setFlagOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold"
+                  style={{ color: "var(--ink-soft)" }}
+                >
+                  <Flag className="h-3.5 w-3.5" aria-hidden />
+                  Rapportera felaktig info
+                </button>
+              )}
+            </section>
           )}
         </div>
       </SheetContent>

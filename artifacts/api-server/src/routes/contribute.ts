@@ -144,6 +144,9 @@ const ManualContributionBody = z.object({
   source_note: z.string().trim().max(500).optional(),
   // SS-074: base64-bilddata från frontendens ProductCapture
   imageDataUrl: z.string().max(5_000_000).optional(),
+  // SS-079 (#3): permanent bild-URL (redan uppladdad) som ska följa med när en
+  // sparad skanning auto-bidras till cached_products, så katalog-kortet får bild.
+  imageUrl: z.string().url().max(2000).optional(),
 }).refine((data) => Boolean(data.ingredients?.trim() || data.barcode?.trim()), {
   message: "Ingredients or barcode is required.",
 });
@@ -434,7 +437,7 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
   }
 
   const userId = (req as { user?: { id?: string } }).user?.id ?? null;
-  const { barcode, productName, brand, ingredients, productType, imageDataUrl } = parseResult.data;
+  const { barcode, productName, brand, ingredients, productType, imageDataUrl, imageUrl } = parseResult.data;
 
   let safeName: string | null = null;
   let safeBrand: string | null = null;
@@ -507,6 +510,7 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
       };
       if (safeIngredients?.trim()) patch.ingredients = safeIngredients;
       if (uploadedImageUrl) patch.image_url = uploadedImageUrl;
+      else if (imageUrl) patch.image_url = imageUrl;
 
       const { error: cacheError } = await supabaseAdmin
         .from("cached_products")

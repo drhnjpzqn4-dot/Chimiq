@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Camera, Loader2 } from "lucide-react";
+import { AlertTriangle, Camera, Loader2, X } from "lucide-react";
 import { useScanLabel } from "@workspace/api-client-react";
 import { useTranslation } from "@/lib/i18n";
 import { resizeImageFileToBase64 } from "@/lib/imageUtils";
@@ -49,6 +49,10 @@ export function IngredientsCapture({
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [ocrError, setOcrError] = useState<string | null>(null);
+  // SS-079 (#2): after a PHOTO OCR we show a soft "verify the whole list came
+  // through" notice. Round/curved bottles lose their edges in a flat photo and
+  // the old flow said nothing. Non-blocking — the textarea below is editable.
+  const [showCompletenessNotice, setShowCompletenessNotice] = useState(false);
 
   const isTouchDevice = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -62,6 +66,7 @@ export function IngredientsCapture({
       onSuccess: (data) => {
         onChange(data.ingredients);
         setOcrError(null);
+        setShowCompletenessNotice(true);
       },
       onError: (err) => {
         const apiError = (err as Error & { response?: { data?: { error?: string } } })?.response
@@ -142,6 +147,28 @@ export function IngredientsCapture({
         <p className="mt-2 text-xs" style={{ color: "var(--rose-gold-deep)" }}>
           {ocrError}
         </p>
+      )}
+
+      {showCompletenessNotice && value.trim() && (
+        <div
+          className="mt-2 flex items-start gap-2 rounded-xl px-3 py-2"
+          style={{ backgroundColor: "var(--amber-soft)", color: "var(--amber-deep)" }}
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <p className="flex-1 text-xs leading-relaxed">
+            Obs: på runda eller böjda flaskor kan kanterna falla bort i fotot.
+            Kontrollera att <strong>hela</strong> ingredienslistan kom med — komplettera
+            i rutan ovan vid behov.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowCompletenessNotice(false)}
+            aria-label="Stäng"
+            className="shrink-0 opacity-60 transition-opacity hover:opacity-100"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        </div>
       )}
     </div>
   );

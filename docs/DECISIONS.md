@@ -526,4 +526,59 @@ Större spår (specat, ej byggt) — `docs/cursor-prompts/2026-06-02-SS-078-smar
 
 ---
 
-*Senast uppdaterad: 2026-06-02 (SS-078: smart capture-spec + tre småfixar från TestFlight-test).*
+### SS-079 — 2026-06-08 — TestFlight-test (ACO Spotless): databas-diagnos + 4 fixar
+
+Pia testade att lägga till två ACO Spotless-produkter i iOS-appen och rapporterade 5 problem.
+Diagnos kördes direkt mot `Chimiq-prod` (Supabase `wzzoipnaucqxnasubljk`). **Inget var förlorat** —
+scraping landar i Supabase och hennes produkter sparades (med bild).
+
+**Grundorsak (förklarar #3 + #5): två produkttabeller, appen söker bara i en.**
+- `cached_products` (2 227 rader) = den live, *sökbara* katalogen. Nyaste rad: 26 maj.
+- `scraped_products` (1 266 rader) = staging där veckans Lyko/Kicks-scraping hamnar. 1 262 var
+  fortfarande `unmatched` — aldrig promotade till live. Appen kan alltså inte se veckans arbete.
+- Tillagda produkter skrevs bara till `shelf_products` (privat hylla), inte till katalogen →
+  syns under "Senaste skanningar" men inte i sök.
+
+**Lyko-scrapern var trasig (viktigast).** `harvest_lyko.py` `isInci()` valde det DOM-element med
+flest kommatecken + ett ingrediensord — på Lyko fångade den **kundrecensioner och kampanjbanners**
+("Inlägget skapades 1 vecka", "Betyg: 5 av 5", "25% på utvalda brands"). 398 av 403 promotbara
+Lyko-rader var skräp. Endast 13 rena INCI-listor fanns totalt — alla från Kicks.
+→ **Åtgärd:** hårdare validator i `harvest_lyko.py` som REJEKTERAR prosa/kampanj/recensioner och
+kräver list-struktur. Hellre tom ingredienslista (kan berikas via OBF/EAN) än fel lista (förgiftar
+all analys). **OBS:** om Lyko inte exponerar INCI i DOM:en alls returnerar den nu *ingenting* —
+då är Lykos värde EAN+namn+bild för OBF-berikning (SS-077), och Kicks är källan för direkt INCI.
+
+**Gjort denna session:**
+1. **DB-promotering:** 13 verifierat rena Kicks-produkter flyttade `scraped_products` → `cached_products`
+   (source='retailer'), staging-rader markerade `merged`. Resten INTE promoterade (skräp/saknar INCI).
+2. **#4 — analys sparas inte (FIXAT):** `ProductDetailSheet.handleAnalyze` persisterade bara om
+   `product.shelfId` var satt — men vid spara-av-skanning hamnar nya id:t i `localShelfId` medan
+   `product.shelfId` förblir undefined, så varje nysparad skanning tappade analysen. Bytt till
+   `effectiveShelfId`.
+3. **#3 — tillagt blir sökbart (FIXAT):** spara-flödet (`handleSaveToShelf`/`handleAddToRoutine`)
+   anropar nu `/api/contribute/manual` när produkten har riktig streckkod + ingredienser och saknas
+   i katalogen. Den endpointen upsertar redan `cached_products` (source='user') = **auto-godkänn
+   om konsekvent** (Pias beslut). Inloggade endast (endpointen kräver auth). Server: `contribute.ts`
+   tar nu emot `imageUrl` så katalog-kortet behåller bilden.
+4. **#2 — runda flaskor (FIXAT):** `IngredientsCapture` visar en mjuk, stängbar notis efter foto-OCR
+   ("kontrollera att HELA listan kom med — runda/böjda flaskor tappar kanterna"). Icke-blockerande,
+   textrutan är redigerbar (precis som Pia bekräftade fungerar).
+5. **Flag-knapp (FIXAT):** "Rapportera felaktig info" i produktkortet → befintlig
+   `POST /api/products/:barcode/report` (`product_reports`-tabellen fanns redan).
+
+**#1 (en bild → namn+märke+bild+ingredienser, SS-078) — EJ byggt.** Större vision-pipeline-feature;
+kräver vision-endpoint (Qwen2-VL/Anthropic/Apple Vision). Kvarstår som separat bygge.
+
+**Verifierat:** `tsc --noEmit` rent i både `api-server` och `skinscreen`.
+
+**Ändrade filer:** `harvest_lyko.py`, `artifacts/api-server/src/routes/contribute.ts`,
+`artifacts/skinscreen/src/components/ProductDetailSheet.tsx`,
+`artifacts/skinscreen/src/components/IngredientsCapture.tsx`.
+
+**Att göra (Pia):** (a) stoppa pågående Lyko-scrape, (b) `scp` nya `harvest_lyko.py` till Stina,
+(c) commit + push + deploy api-server (server-delen av #3 kräver deploy), (d) rebuilda iOS i Xcode
+för klient-fixarna. Öppen fråga: kan Lyko-INCI extraheras alls, eller ska vi gå helt på OBF-by-EAN?
+
+---
+
+*Senast uppdaterad: 2026-06-08 (SS-079: DB-diagnos + 4 fixar från ACO Spotless-test, 13 Kicks-produkter promoterade, Lyko-scraper härdad).*
