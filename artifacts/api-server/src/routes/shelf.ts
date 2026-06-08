@@ -9,6 +9,18 @@ import {
   sanitizeIngredients,
   SanitizationError,
 } from "../lib/sanitize.js";
+import {
+  computeCompareHash,
+  getCacheEntry,
+  saveCacheEntry,
+  bumpCacheUsage,
+} from "../lib/analysis-cache.js";
+import {
+  FREE_DAILY_SCAN_LIMIT,
+  claimDailyScanSlot,
+  incrementTodayScanCount,
+  releaseDailyScanSlot,
+} from "../lib/scanQuota.js";
 
 const router: IRouter = Router();
 
@@ -294,6 +306,58 @@ async function analyzePair(
   }
 }
 
+// SS-081c (kostnad): cacha parvisa rutin-analyser per (ordningsoberoende)
+// compare-hash. Upprepade rutinkontroller och par som delas mellan användare
+// kostar då inga nya AI-anrop. Listorna sorteras före hash → (A,B) och (B,A)
+// träffar samma cache; produktnamn fästs på av anroparen efteråt.
+async function analyzePairCached(
+  anthropic: Anthropic,
+  p1Name: string,
+  p1Ingredients: string,
+  p2Name: string,
+  p2Ingredients: string,
+): Promise<Array<z.infer<typeof ConflictResultSchema>>> {
+  let hash: string | null = null;
+  try {
+    const a = sanitizeIngredients(p1Ingredients, false);
+    const b = sanitizeIngredients(p2Ingredients, false);
+    const [x, y] = [a, b].sort();
+    hash = computeCompareHash(x, y, undefined);
+  } catch {
+    hash = null;
+  }
+  if (hash) {
+    const cached = await getCacheEntry(hash).catch(() => null);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached.resultJson);
+        const r = AnalyzePairResponseSchema.safeParse(parsed);
+        if (r.success) {
+          bumpCacheUsage(hash).catch(() => {});
+          return r.data.conflicts;
+        }
+      } catch {
+        /* fall through to a fresh analysis */
+      }
+    }
+  }
+  const conflicts = await analyzePair(anthropic, p1Name, p1Ingredients, p2Name, p2Ingredients);
+  if (hash) {
+    saveCacheEntry(hash, "compare", undefined, JSON.stringify({ conflicts })).catch(() => {});
+  }
+  return conflicts;
+}
+
+// SS-081c (AM/PM): analysera bara par som faktiskt KAN användas samtidigt.
+// morgon+morgon eller kväll+kväll, samt "both"/"occasional" (och null) som
+// wildcard. Annars korsflaggas t.ex. en morgon-C-vitamin mot en kvälls-retinol
+// som aldrig blandas — falska konflikter för serum m.m.
+function slotsCanCombine(a: string | null, b: string | null): boolean {
+  const wild = (s: string | null) => s === "both" || s === "occasional" || s == null;
+  if (wild(a) || wild(b)) return true;
+  return a === b;
+}
+
 router.get("/shelf/status", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     res.json({ hasConflicts: false, hasRecall: false });
@@ -333,6 +397,52 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
     return;
   }
 
+  // SS-081c (kostnad): rutinkontrollen räknas nu mot gratis-taket precis som
+  // /analyze och /analyze-single (tidigare helt o-gateat → gratisanvändare kunde
+  // köra obegränsat, varje körning = flera AI-anrop). En rutinkontroll = EN scan.
+  // Premium har inget tak. Slot släpps om svaret blir fel (release on non-2xx).
+  const userId = req.user.id;
+  let claimedFreeSlot = false;
+  {
+    let plan: "free" | "premium" = "free";
+    try {
+      plan = await getUserPlan(userId);
+    } catch (err) {
+      req.log.warn({ err }, "User plan lookup failed; assuming free tier");
+    }
+    if (plan === "free") {
+      try {
+        const newCount = await claimDailyScanSlot(userId, FREE_DAILY_SCAN_LIMIT);
+        if (newCount === null) {
+          res.status(429).json({
+            error: `You've used all ${FREE_DAILY_SCAN_LIMIT} free scans for today. Upgrade to Premium for unlimited scans.`,
+            scansToday: FREE_DAILY_SCAN_LIMIT,
+            limit: FREE_DAILY_SCAN_LIMIT,
+          });
+          return;
+        }
+        claimedFreeSlot = true;
+      } catch (err) {
+        req.log.warn({ err }, "Daily scan quota claim failed; allowing request");
+      }
+      res.on("finish", () => {
+        if (claimedFreeSlot && (res.statusCode < 200 || res.statusCode >= 300)) {
+          releaseDailyScanSlot(userId).catch((e) =>
+            req.log.warn({ err: e }, "Failed to release scan slot after error"),
+          );
+        }
+      });
+    } else {
+      res.on("finish", () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          incrementTodayScanCount(userId).catch((e) =>
+            req.log.warn({ err: e }, "Failed to increment scan count"),
+          );
+        }
+      });
+    }
+  }
+
   const supabase = supabaseAdmin;
   const { data: rows, error } = await supabase
     .from("shelf_products")
@@ -350,19 +460,48 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
   const CONCURRENCY = 3;
 
   const cappedProducts = products.slice(-MAX_PRODUCTS);
-  const forAnalysis = cappedProducts.filter((p) => p.routineSlot !== "wishlist");
+  const inRoutine = cappedProducts.filter((p) => p.routineSlot !== "wishlist");
 
-  if (forAnalysis.length < 2) {
-    res.status(400).json({ error: "You need at least 2 products on your shelf to analyse your routine." });
+  // SS-081c (SÄKERHET): en produkt UTAN användbar ingredienslista kan inte
+  // konfliktkontrolleras. Tidigare skickades den ändå till modellen (tom sträng)
+  // → inga konflikter → bidrog till "allt klart". Det är ett FALSKT lugn: en
+  // produkt vi inte kunnat läsa redovisas som säker. Skilj ut dem och rapportera
+  // dem så klienten kan varna istället för att tyst påstå att rutinen är ren.
+  const hasUsableInci = (s: string | null | undefined): boolean =>
+    Boolean(s && s.trim().length >= 5 && /[a-zA-Z]/.test(s));
+  const analyzable = inRoutine.filter((p) => hasUsableInci(p.ingredients));
+  const skipped = inRoutine
+    .filter((p) => !hasUsableInci(p.ingredients))
+    .map((p) => p.productName);
+
+  if (analyzable.length < 2) {
+    res.status(400).json({
+      error:
+        skipped.length > 0
+          ? "Need at least 2 products WITH ingredient lists to analyse your routine. Some products are missing ingredients — add them first."
+          : "You need at least 2 products on your shelf to analyse your routine.",
+      skipped,
+      skippedCount: skipped.length,
+    });
     return;
   }
+  const forAnalysis = analyzable;
 
   const anthropic = new Anthropic({ apiKey });
 
+  // SS-081c (AM/PM): bara par som kan användas samtidigt (samma slot eller
+  // wildcard) — annars korsflaggas morgon- mot kvällsprodukter felaktigt.
   const pairs: Array<{ i: number; j: number }> = [];
   for (let i = 0; i < forAnalysis.length - 1; i++) {
     for (let j = i + 1; j < forAnalysis.length; j++) {
-      pairs.push({ i, j });
+      if (
+        slotsCanCombine(
+          forAnalysis[i].routineSlot as string | null,
+          forAnalysis[j].routineSlot as string | null,
+        )
+      ) {
+        pairs.push({ i, j });
+      }
     }
   }
 
@@ -387,7 +526,7 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
     const tasks = pairs.map(({ i, j }) => async () => {
       const p1 = forAnalysis[i];
       const p2 = forAnalysis[j];
-      const conflicts = await analyzePair(
+      const conflicts = await analyzePairCached(
         anthropic,
         p1.productName,
         p1.ingredients,
@@ -420,9 +559,19 @@ router.post("/shelf/analyze-routine", async (req: Request, res: Response) => {
 
     res.json({
       conflicts: allConflicts,
+      // overallSafe = inga konflikter MELLAN de produkter vi kunde läsa. Klienten
+      // måste visa "skipped"-varningen så "allt klart" inte tolkas som att ÄVEN
+      // de oläsbara produkterna är säkra.
       overallSafe: allConflicts.length === 0,
       highRiskCount,
       cautionCount,
+      skipped,
+      skippedCount: skipped.length,
+      // SS-081c: hur många produkter som faktiskt analyserades + max-taket, så
+      // klienten kan informera när äldre produkter föll utanför 10-gränsen.
+      analyzedCount: forAnalysis.length,
+      maxProducts: MAX_PRODUCTS,
+      capped: products.length > MAX_PRODUCTS,
     });
   } catch (err) {
     req.log.error({ err }, "Routine analysis error");

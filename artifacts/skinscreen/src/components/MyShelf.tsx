@@ -43,6 +43,7 @@ import {
   type IngredientStatusLevel,
 } from "@/components/IngredientStatusDot";
 import { ProductDetailSheet, type ProductDetailProduct } from "@/components/ProductDetailSheet";
+import { IngredientCautionNote } from "@/components/IngredientCautionNote";
 import { ReportProductButton } from "@/components/ReportProductButton";
 
 function normName(s: string) {
@@ -319,6 +320,13 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
   }
 
   const { conflicts, overallSafe, highRiskCount, cautionCount } = analysisState.data;
+  // SS-081c (säkerhet): produkter utan ingredienslista kunde inte kontrolleras.
+  const skipped = (analysisState.data as { skipped?: string[] }).skipped ?? [];
+  const skippedCount =
+    (analysisState.data as { skippedCount?: number }).skippedCount ?? skipped.length;
+  // SS-081c: max-10-tak — informera så användaren vet att äldre produkter kan falla utanför.
+  const maxProducts = (analysisState.data as { maxProducts?: number }).maxProducts ?? 10;
+  const capped = (analysisState.data as { capped?: boolean }).capped ?? false;
 
   return (
     <div className="border-t border-border/30">
@@ -394,6 +402,21 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
 
       {open && (
         <div className="px-4 pb-4">
+          {/* SS-081c (säkerhet): varna när vissa produkter inte kunde kontrolleras
+              (saknar ingredienslista) — annars läses "allt klart" som att ÄVEN de
+              är säkra. */}
+          {skippedCount > 0 && (
+            <div
+              className="mb-3 flex items-start gap-2 rounded-2xl border p-3"
+              style={{ backgroundColor: "#FBF3DC", borderColor: "var(--line)", color: "#8A6217" }}
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p className="flex-1 text-xs leading-relaxed">
+                {t("myShelf.skippedWarningFmt").replace("{count}", String(skippedCount))}
+                {skipped.length > 0 && <span className="block mt-1 font-medium">{skipped.join(", ")}</span>}
+              </p>
+            </div>
+          )}
           {overallSafe ? (
             <div
               className="flex items-center gap-3 rounded-2xl border p-4"
@@ -420,6 +443,14 @@ function RoutineCheckPanel({ productCount, analysisState, onRun, onClear }: Rout
               ))}
             </div>
           )}
+          {/* SS-081c: påminn om att rutinkontrollen bygger på de ingredienslistor
+              vi har — formuleringar ändras/varierar mellan länder, foto missar kanter. */}
+          <IngredientCautionNote className="mt-3" />
+          <p className="mt-2 text-center text-[10px] text-muted-foreground/60">
+            {capped
+              ? t("myShelf.maxProductsCappedFmt").replace("{max}", String(maxProducts))
+              : t("myShelf.maxProductsNoteFmt").replace("{max}", String(maxProducts))}
+          </p>
           <button
             onClick={onClear}
             className="mt-3 w-full text-xs text-muted-foreground/60 hover:text-muted-foreground py-1.5 transition-colors"

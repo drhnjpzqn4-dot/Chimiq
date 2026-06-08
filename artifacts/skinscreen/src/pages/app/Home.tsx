@@ -199,7 +199,20 @@ export default function HomeScreen() {
                   <p className="mt-1.5 line-clamp-2 text-[12px] font-semibold leading-snug text-foreground">
                     {r.name}
                   </p>
-                  <StatusBadge status={toStatusLevel(r.verdict)} className="mt-1" />
+                  {/* SS-081c (safety): visa ALDRIG en "Trygg"-prick för en produkt
+                      som inte faktiskt analyserats. Den lagrade verdicten är bara
+                      meningsfull när en analys finns (analysis_result_json). Saknas
+                      den (t.ex. The Ordinary utan INCI) → neutral "Ej analyserad". */}
+                  {(r.product?.analysis_result_json ?? r.product?.analysisResultJson) ? (
+                    <StatusBadge status={toStatusLevel(r.verdict)} className="mt-1" />
+                  ) : (
+                    <span
+                      className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
+                      style={{ backgroundColor: "var(--cream-warm)", color: "var(--ink-soft)" }}
+                    >
+                      {t("home.notAnalyzed")}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

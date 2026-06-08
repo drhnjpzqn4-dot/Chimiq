@@ -17,6 +17,7 @@ import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import type { ProductType } from "@/components/ProductTypeBadge";
 import { ProductNameCapture } from "@/components/ProductNameCapture";
 import { IngredientsCapture } from "@/components/IngredientsCapture";
+import { IngredientCautionNote } from "@/components/IngredientCautionNote";
 
 // Called "Produktdatablad" in product language
 
@@ -359,7 +360,9 @@ export function ProductDetailSheet({
   // (cached_products.analysis_result_json) vid öppning.
   useEffect(() => {
     if (initialHasAnalysis || localAnalysis) return;
-    if (!hasRealBarcode || !barcode || !rawIngredients) return;
+    // Alla produkter med ett id i cached_products — riktig EAN ELLER CHIMIQ_-
+    // platshållare — kan ha en delad, lagrad analys. Hämta och visa den direkt.
+    if (!barcode || !rawIngredients) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -377,7 +380,7 @@ export function ProductDetailSheet({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barcode, hasRealBarcode]);
+  }, [barcode]);
 
   const saveCompletion = async (field: "brand" | "barcode", value: string) => {
     const trimmed = value.trim();
@@ -606,12 +609,11 @@ export function ProductDetailSheet({
           ingredients: ingredientsToAnalyze,
           productType: product.productType ?? undefined,
           locale: locale ?? undefined,
-          // SS-081: skicka EAN så servern sparar analysen DELAT på produktraden
-          // (bara för riktiga streckkoder + oförändrad INCI = produktens egen lista).
+          // SS-081/081c: skicka produktens id (riktig EAN ELLER CHIMIQ_-platshållare)
+          // så servern sparar analysen DELAT på produktraden — när INCI är
+          // produktens egen (oförändrad). Platshållaren räcker som unikt id.
           barcode:
-            hasRealBarcode && barcode && ingredientsToAnalyze === rawIngredients
-              ? barcode
-              : undefined,
+            barcode && ingredientsToAnalyze === rawIngredients ? barcode : undefined,
         }),
       });
       if (res.ok) {
@@ -1161,6 +1163,10 @@ export function ProductDetailSheet({
               </div>
             </section>
           )}
+
+          {/* SS-081c: lugn rosa påminnelse — visas när en analys faktiskt visas.
+              Formuleringar ändras/varierar mellan länder + foto missar kanter. */}
+          {analysis && <IngredientCautionNote />}
 
           <section>
             <h3 className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--rose-gold)" }}>

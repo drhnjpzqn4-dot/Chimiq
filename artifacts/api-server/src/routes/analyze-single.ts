@@ -569,11 +569,14 @@ router.post("/analyze-single", requireAuth, async (req, res) => {
       return;
     }
 
-    // SS-081: spara analysen DELAT på produktraden när vi har en riktig EAN.
-    // Då returnerar GET /products/:barcode den direkt → produktkortet visar
-    // analysen automatiskt vid öppning, för ALLA användare, utan ny AI-kostnad.
+    // SS-081/081c: spara analysen DELAT på produktraden så GET /products/:barcode
+    // returnerar den direkt → produktkortet visar analysen automatiskt vid
+    // öppning, för ALLA användare, utan ny AI-kostnad.
+    // Gäller BÅDE riktig EAN OCH CHIMIQ_-platshållare: platshållaren ÄR ett
+    // unikt id (Pias poäng — "hitta på ett tills någon fyller i EAN"). När raden
+    // senare kompletteras med riktig EAN följer analysen med (uppdateras på plats).
     const barcode = parseResult.data.barcode?.trim();
-    if (barcode && /^[0-9]{8,14}$/.test(barcode)) {
+    if (barcode && (/^[0-9]{8,14}$/.test(barcode) || barcode.startsWith("CHIMIQ_"))) {
       const { error: persistErr } = await supabaseAdmin
         .from("cached_products")
         .update({

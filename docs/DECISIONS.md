@@ -698,6 +698,10 @@ och låt admin godkänna) — flaggat som icke-uppenbart, lätt att glömma.
      ingen förbrukad gratis-scan. Första analysen kostar en gång; därefter gratis för alla.
    - OBS: `analyzeSingleIngredients` cachade redan per ingrediens-hash (ingen LLM vid träff), men UX
      visade inte resultatet automatiskt och förbrukade en scan-slot. Detta löser båda.
+   - **081c (Pias poäng):** gäller även **CHIMIQ_-platshållare** — platshållaren ÄR ett unikt id, så
+     analysen sparas/visas DELAT även för produkter utan registrerad EAN (t.ex. The Ordinary search-only).
+     När raden senare kompletteras med riktig EAN följer analysen med (uppdateras på plats). Endast rena
+     OCR/klistra-skanningar UTAN katalograd saknar delad analys tills de sparas (får då ett CHIMIQ_-id).
 2. **Dubblerat märke i namn** ("ACO ACO Hydrating Booster…"). Orsak: visningsnamnet byggdes som
    `märke + produktnamn`, men produktnamnet i katalogen innehåller redan märket. Ny `joinBrandName()`
    i `ScanEntry.tsx` hoppar över märket när namnet redan börjar med det. Ingen DB-ändring behövs.
@@ -709,6 +713,41 @@ och låt admin godkänna) — flaggat som icke-uppenbart, lätt att glömma.
 
 **Filer:** `analyze-single.ts`, `products.ts` (backend → Railway); `ProductDetailSheet.tsx`,
 `ScanEntry.tsx`, `ProductImage.tsx` (klient → TestFlight).
+
+5. **SÄKERHETSBUGG: falsk "Trygg"-prick.** IDAG/Home visade grön "Trygg" för produkter som INTE
+   analyserats (lagrad platshållar-verdict `"safe"`, men ingen analys — t.ex. The Ordinary utan INCI).
+   Fix: `Home.tsx` visar färgad `StatusBadge` ENDAST när raden faktiskt har en analys
+   (`analysis_result_json`); annars neutral "Ej analyserad"-pill (`home.notAnalyzed`, sv/en/fr/es).
+   Aldrig mer falsk grön prick. (Scan-sidans recents visade ingen prick — bara Home var drabbad.)
+6. **Återanvändbar ingrediens-not (`IngredientCautionNote`).** Lugn rosa not (`--rose-soft`) som visas
+   när en analys VISAS i produktkortet: "Baserat på ingredienslistan som visas. Formuleringar kan ändras
+   över tid och variera mellan länder, och foton på runda flaskor kan missa ingredienser — kontrollera
+   mot din produkt." Ordalydelsen bor på ETT ställe (`ingredientCaution.note`, sv/en/fr/es). OCR-
+   ögonblicket har kvar sin egen starkare runda-flaskan-not i `IngredientsCapture`.
+   - **Källa+datum medvetet UTELÄMNAT** (Pias beslut): EU Safety Gate täcker FARLIGA ändringar/återkall
+     (som vi bevakar → varnar berörda användare), inte rutinmässiga omformuleringar; ett datum gav mer
+     brus än värde. Wording bör regulatoriskt granskas innan bred lansering.
+
+**Filer (runda 2 forts.):** `Home.tsx`, `IngredientCautionNote.tsx` (ny), `ProductDetailSheet.tsx`,
+`i18n.tsx` (klient → TestFlight). `contribute.ts` (analys bärs över vid platshållar→EAN-krock, backend).
+
+7. **Rutin-granskning (Pia bad om kodgenomgång av rutin + fler-produkt-analys).**
+   - **FALSK "allt klart" i rutinkontrollen (SÄKERHET — fixad).** `/shelf/analyze-routine` skickade ÄVEN
+     produkter utan ingredienslista till modellen (tom sträng) → inga konflikter → bidrog till
+     "Rutinkontroll: allt klart". En oläsbar produkt redovisades som säker. Fix: hoppa över produkter
+     utan användbar INCI, kräv ≥2 läsbara, och returnera `skipped`/`skippedCount` → klienten (MyShelf)
+     visar en gul varning med namnen. Caution-noten tillagd i rutinvyn.
+   - **ÅTGÄRDAT (Pias beslut: gör a+b+d+info):**
+     a) **Cache på parvisa rutin-analyser (FIXAT).** `analyzePairCached` cachar varje par per
+        ordningsoberoende compare-hash (`computeCompareHash` på sorterade listor) → upprepade körningar
+        och par som delas mellan användare kostar inga nya AI-anrop.
+     b) **Scan-kvot/premium-gate (FIXAT).** `/shelf/analyze-routine` räknar nu som EN scan mot gratis-taket
+        (samma mönster som `/analyze`), premium obegränsat, slot släpps vid fel.
+     c) **>10-tak — info (FIXAT).** Servern returnerar `maxProducts`/`capped`/`analyzedCount`; MyShelf
+        visar "Upp till 10 produkter analyseras" (och en starkare rad när äldre produkter föll utanför).
+        Högre tier för stora rutiner (makeup m.m.) = senare beslut efter tester.
+     d) **AM/PM (FIXAT).** `slotsCanCombine` parar bara produkter som kan användas samtidigt (samma slot
+        eller "both"/"occasional"/null som wildcard) → ingen falsk morgon-C-vitamin-mot-kvälls-retinol.
 
 ---
 

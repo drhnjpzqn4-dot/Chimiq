@@ -541,19 +541,35 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
       // med unique-constraint. Slå då ihop in i den befintliga riktiga raden och
       // ta bort platshållaren, annars uppdatera platshållarraden direkt.
       let collision = false;
+      let realHasAnalysis = false;
       if (realBarcode) {
         const { data: existingReal } = await supabaseAdmin
           .from("cached_products")
-          .select("barcode")
+          .select("barcode, analysis_result_json")
           .eq("barcode", realBarcode)
-          .maybeSingle<{ barcode: string }>();
+          .maybeSingle<{ barcode: string; analysis_result_json: unknown | null }>();
         collision = Boolean(existingReal);
+        realHasAnalysis = Boolean(existingReal?.analysis_result_json);
       }
 
       if (realBarcode && collision) {
         // Riktig rad finns redan → uppdatera den och rensa platshållaren.
         const mergePatch = { ...patch };
         delete mergePatch.barcode;
+        // SS-081c: bär över platshållarens analys till den riktiga raden om den
+        // saknar en (annars tappas analysen när platshållaren raderas). Analysen
+        // matchar den INCI vi nu skriver in på raden.
+        if (!realHasAnalysis) {
+          const { data: ph } = await supabaseAdmin
+            .from("cached_products")
+            .select("analysis_result_json, analysis_cache_hash")
+            .eq("barcode", placeholderBarcode)
+            .maybeSingle<{ analysis_result_json: unknown | null; analysis_cache_hash: string | null }>();
+          if (ph?.analysis_result_json) {
+            mergePatch.analysis_result_json = ph.analysis_result_json;
+            mergePatch.analysis_cache_hash = ph.analysis_cache_hash ?? null;
+          }
+        }
         const { error: mergeErr } = await supabaseAdmin
           .from("cached_products")
           .update(mergePatch)
