@@ -777,7 +777,23 @@ och låt admin godkänna) — flaggat som icke-uppenbart, lätt att glömma.
 7. **Rutin-konfliktkontroll göms under "Sparat"** (önskelista, inte en rutin) — knapp + panel visas bara
    på morgon/kväll/ibland. (Servern uteslöt redan wishlist från konfliktanalysen.)
 8. **"Rapportera felaktighet" → Supabase `product_reports`** (barcode, reported_by, reason; max 3/dygn).
-   INGEN notis/admin-vy idag → rapporter samlas men ingen larmas. TODO: admin-vy eller digest.
+
+## BESLUT-SS-081e: Positionering — inga "safe/dangerous"-utfästelser + felrapport-admin
+- **Datum:** 2026-06-09 — **Status:** Aktiv. **JURIDIK-KÄNSLIGT — bör granskas av jurist före bred lansering.**
+1. **Vi definierar ALDRIG en produkt som "safe" eller "dangerous/high risk".** Pias beslut (risk att
+   stämmas av stora märken + vill inte ge falsk trygghet):
+   - Grön = **"Granskad"** (vi har kollat, ingen säkerhetsutfästelse).
+   - Orange = **"Värt att veta"** (Worth knowing) — 1+ flaggade ingredienser.
+   - **En ENSKILD produkt blir aldrig röd.** `analysisConcernLevel` cappar på "caution". Kortets
+     verdict-banner cappar också (ingen röd "Hög risk"-banner för en produkt). Röd reserveras för
+     faktiska KOMBINATIONS-konflikter (rutinkontrollen) → vi dömer aldrig ut ett enskilt märke.
+   - Röd (bara konflikter) = **"Granska noga"** (Look closely). "Hög risk"-ordet borttaget överallt.
+   - Värdet ligger i att flagga KOMBINATIONS-risker (som The Ordinary gör för egna produkter), inte i
+     att betygsätta enskilda produkter.
+2. **Felrapport-admin (`product_reports`).** Ny `GET /admin/reports` (admin-gatead) + `ReportsAdmin`-
+   sektion överst på chimiq.com/admin (produktnamn, streckkod, orsak, datum). Varje rapport mejlas
+   till **hello@chimiq.com** (`notifyReportInbox`) — KRÄVER `RESEND_API_KEY` i backend-miljön; Resend
+   ej konfigurerat ännu → mejl hoppas tyst över, raden sparas + syns i admin oavsett.
 
 ---
 

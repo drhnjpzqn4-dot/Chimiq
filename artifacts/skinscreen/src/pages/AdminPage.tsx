@@ -11,6 +11,7 @@ import {
   Clock,
 } from "lucide-react";
 import { DiscoverRatingsAdmin } from "@/components/admin/DiscoverRatingsAdmin";
+import { ReportsAdmin } from "@/components/admin/ReportsAdmin";
 import { FeedbackAdmin } from "@/components/admin/FeedbackAdmin";
 import { TesterPromoAdmin } from "@/components/admin/TesterPromoAdmin";
 import { ScanInsightsAdmin } from "@/components/admin/ScanInsightsAdmin";
@@ -595,6 +596,8 @@ function AdminPageInner() {
             </div>
           )}
         </div>
+
+        <ReportsAdmin />
 
         <TesterPromoAdmin />
 

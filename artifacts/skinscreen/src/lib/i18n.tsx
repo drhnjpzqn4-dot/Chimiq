@@ -63,8 +63,8 @@ const en: Dict = {
   "home.diyComingSoonHint": "Save recipes from Discover straight here.",
   "home.pillUnknown": "Not yet analyzed",
   "home.pillSafe": "Reviewed",
-  "home.pillCaution": "Caution",
-  "home.pillHigh": "High risk",
+  "home.pillCaution": "Worth knowing",
+  "home.pillHigh": "Look closely",
 
   // ───── Common ─────
   "common.signIn": "Sign in",
@@ -1559,8 +1559,8 @@ const sv: Dict = {
   "home.diyComingSoonHint": "Spara recept från Discover direkt hit.",
   "home.pillUnknown": "Ej analyserad",
   "home.pillSafe": "Granskad",
-  "home.pillCaution": "Försiktig",
-  "home.pillHigh": "Hög risk",
+  "home.pillCaution": "Värt att veta",
+  "home.pillHigh": "Granska noga",
 
   // ───── Common ─────
   "common.signIn": "Logga in",
@@ -3063,8 +3063,8 @@ const fr: Dict = {
   "home.diyComingSoonHint": "Enregistrez des recettes depuis Découvrir directement ici.",
   "home.pillUnknown": "Non analysé",
   "home.pillSafe": "Vérifié",
-  "home.pillCaution": "Prudence",
-  "home.pillHigh": "Risque élevé",
+  "home.pillCaution": "Bon à savoir",
+  "home.pillHigh": "À regarder de près",
 
   // ───── Common ─────
   "common.signIn": "Se connecter",
@@ -4561,8 +4561,8 @@ const es: Dict = {
   "home.diyComingSoonHint": "Guarda recetas desde Descubrir directamente aquí.",
   "home.pillUnknown": "No analizado",
   "home.pillSafe": "Revisado",
-  "home.pillCaution": "Precaución",
-  "home.pillHigh": "Alto riesgo",
+  "home.pillCaution": "Bueno saberlo",
+  "home.pillHigh": "Míralo de cerca",
 
   // ───── Common ─────
   "common.signIn": "Iniciar sesión",

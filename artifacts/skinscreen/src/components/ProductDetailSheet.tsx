@@ -106,14 +106,14 @@ const INGREDIENTS_COLLAPSE_AT = 200;
  * ord-prefix och tar bort en kopia.
  */
 /**
- * SS-081d: KANONISK statusnivå för en produkts EGEN analys, kopplad till antalet
- * flaggade ingredienser (inte rutin-tid/användning). Pias beslut:
- *   - "safe"    = 0 concerns  → grön prick ("Granskad", ingen säkerhetsutfästelse)
- *   - "caution" = 1–2 cautions → orange prick
- *   - "high"    = 3+ concerns ELLER någon high-risk → röd triangel
- * Används överallt en produkt-prick visas (IDAG, Rutin-hyllan, kort) så de matchar.
+ * SS-081d: KANONISK statusnivå för en produkts EGEN analys. Pias beslut:
+ *   - "safe"    = 0 concerns → grön prick ("Granskad", INGEN säkerhetsutfästelse)
+ *   - "caution" = 1+ concerns → orange prick ("Värt att veta")
+ * En ENSKILD produkt blir ALDRIG röd — RÖTT är reserverat för faktiska KOMBINATIONS-
+ * konflikter (rutinkontrollen) så vi aldrig "dömer ut" en enskild produkt/märke.
+ * Används överallt en produkt-prick visas (IDAG, Rutin-hyllan) så de matchar.
  */
-export function analysisConcernLevel(analysisJson: unknown): "safe" | "caution" | "high" {
+export function analysisConcernLevel(analysisJson: unknown): "safe" | "caution" {
   if (!analysisJson || typeof analysisJson !== "object") return "safe";
   const a = analysisJson as {
     verdict?: string;
@@ -121,10 +121,8 @@ export function analysisConcernLevel(analysisJson: unknown): "safe" | "caution" 
     flags?: Array<{ severity?: string }>;
   };
   const flags = a.flaggedIngredients ?? a.flags ?? [];
-  const highCount = flags.filter((f) => (f.severity ?? "").toLowerCase().includes("high")).length;
   const concerns = flags.length;
-  if (a.verdict === "danger" || highCount > 0 || concerns >= 3) return "high";
-  if (a.verdict === "caution" || concerns >= 1) return "caution";
+  if (a.verdict === "danger" || a.verdict === "caution" || concerns >= 1) return "caution";
   return "safe";
 }
 
@@ -364,23 +362,20 @@ export function ProductDetailSheet({
   // Visa ALDRIG "Säker"-skylten — Chimiq går inte i god för att en produkt är
   // säker (ansvarsskäl). Varningar (caution/danger) visas, men inte safe-stämpeln.
   // Informationen och varningsingredienserna räcker — användaren bedömer själv.
-  const showVerdictBadge = verdict === "danger" || verdict === "caution";
+  // SS-081d: en ENSKILD produkt visas aldrig som röd "danger" — vi dömer inte ut
+  // en produkt/märke på egen hand. Cap till "caution" (orange). RÖTT är reserverat
+  // för faktiska KOMBINATIONS-konflikter (visas separat via ShelfConflictBanner).
+  const ownVerdict = verdict === "danger" ? "caution" : verdict;
+  const showVerdictBadge = ownVerdict === "caution";
   const showNoAnalysisHint = !verdict && rawIngredients.length <= 10;
   const ingredientPreview = expanded || rawIngredients.length <= 520
     ? rawIngredients
     : `${rawIngredients.slice(0, 520).trim()}...`;
-  const verdictCopy =
-    verdict === "danger"
-      ? t("product.danger")
-      : verdict === "caution"
-        ? t("product.caution")
-        : t("product.safe");
+  const verdictCopy = ownVerdict === "caution" ? t("product.caution") : t("product.safe");
   const verdictStyle =
-    verdict === "danger"
-      ? { backgroundColor: "#C94F4F", color: "#FFFFFF" }
-      : verdict === "caution"
-        ? { backgroundColor: "var(--amber-soft)", color: "var(--amber-deep)" }
-        : { backgroundColor: "var(--sage)", color: "#FFFFFF" };
+    ownVerdict === "caution"
+      ? { backgroundColor: "var(--amber-soft)", color: "var(--amber-deep)" }
+      : { backgroundColor: "var(--sage)", color: "#FFFFFF" };
   // Products without a real barcode cannot be patched in cached_products.
   // Offer a contribution flow instead so OCR/paste scans can be saved.
   const hasRealBarcode = Boolean(barcode && !barcode.startsWith("CHIMIQ_"));
@@ -436,10 +431,9 @@ export function ProductDetailSheet({
   useEffect(() => {
     if (!analysis) return;
     const KEY = "skinscreen.recentScans";
-    // SS-081d: count-baserad nivå (samma kanon som hyllan), mappad till recents-enum.
+    // SS-081d: enskild produkt blir aldrig "high" (rött = bara kombinationer).
     const level = analysisConcernLevel(analysis);
-    const v: "safe" | "warning" | "high" =
-      level === "high" ? "high" : level === "caution" ? "warning" : "safe";
+    const v: "safe" | "warning" | "high" = level === "caution" ? "warning" : "safe";
     const nameLc = (productName || product.product_name || product.productName || "")
       .trim()
       .toLowerCase();
