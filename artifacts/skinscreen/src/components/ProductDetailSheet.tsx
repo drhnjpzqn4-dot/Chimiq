@@ -105,6 +105,29 @@ const INGREDIENTS_COLLAPSE_AT = 200;
  * hyllan/recents; detta städar visningen oavsett källa. Hittar längsta upprepade
  * ord-prefix och tar bort en kopia.
  */
+/**
+ * SS-081d: KANONISK statusnivå för en produkts EGEN analys, kopplad till antalet
+ * flaggade ingredienser (inte rutin-tid/användning). Pias beslut:
+ *   - "safe"    = 0 concerns  → grön prick ("Granskad", ingen säkerhetsutfästelse)
+ *   - "caution" = 1–2 cautions → orange prick
+ *   - "high"    = 3+ concerns ELLER någon high-risk → röd triangel
+ * Används överallt en produkt-prick visas (IDAG, Rutin-hyllan, kort) så de matchar.
+ */
+export function analysisConcernLevel(analysisJson: unknown): "safe" | "caution" | "high" {
+  if (!analysisJson || typeof analysisJson !== "object") return "safe";
+  const a = analysisJson as {
+    verdict?: string;
+    flaggedIngredients?: Array<{ severity?: string }>;
+    flags?: Array<{ severity?: string }>;
+  };
+  const flags = a.flaggedIngredients ?? a.flags ?? [];
+  const highCount = flags.filter((f) => (f.severity ?? "").toLowerCase().includes("high")).length;
+  const concerns = flags.length;
+  if (a.verdict === "danger" || highCount > 0 || concerns >= 3) return "high";
+  if (a.verdict === "caution" || concerns >= 1) return "caution";
+  return "safe";
+}
+
 export function collapseRepeatedBrandPrefix(name: string): string {
   const n = (name ?? "").trim();
   if (!n) return n;
@@ -411,10 +434,12 @@ export function ProductDetailSheet({
   // visar IDAG "Ej analyserad" för en produkt som faktiskt ÄR analyserad (posten
   // skapas vid öppning innan analys och uppdaterades aldrig). Matcha på barcode → namn.
   useEffect(() => {
-    if (!analysis || !verdict) return;
+    if (!analysis) return;
     const KEY = "skinscreen.recentScans";
+    // SS-081d: count-baserad nivå (samma kanon som hyllan), mappad till recents-enum.
+    const level = analysisConcernLevel(analysis);
     const v: "safe" | "warning" | "high" =
-      verdict === "danger" ? "high" : verdict === "caution" ? "warning" : "safe";
+      level === "high" ? "high" : level === "caution" ? "warning" : "safe";
     const nameLc = (productName || product.product_name || product.productName || "")
       .trim()
       .toLowerCase();

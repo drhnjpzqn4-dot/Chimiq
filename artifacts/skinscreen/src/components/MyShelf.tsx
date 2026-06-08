@@ -42,22 +42,16 @@ import {
   ShelfConflictBanner,
   type IngredientStatusLevel,
 } from "@/components/IngredientStatusDot";
-import { ProductDetailSheet, type ProductDetailProduct, collapseRepeatedBrandPrefix } from "@/components/ProductDetailSheet";
+import { ProductDetailSheet, type ProductDetailProduct, collapseRepeatedBrandPrefix, analysisConcernLevel } from "@/components/ProductDetailSheet";
 import { IngredientCautionNote } from "@/components/IngredientCautionNote";
 
-// SS-081c: härled en produkts EGEN status (från dess individuella analys) så
-// hyll-raden inte säger "Ej analyserad" för en produkt användaren faktiskt
-// analyserat. Rutin-konfliktstatus läggs ovanpå (värsta vinner) när den körts.
+// SS-081c/d: en produkts EGEN status (från dess individuella analys) så hyll-raden
+// inte säger "Ej analyserad" för en produkt användaren faktiskt analyserat.
+// Nivån är count-baserad (kanon i analysisConcernLevel). Rutin-konfliktstatus
+// läggs ovanpå (värsta vinner) när rutinkontrollen körts.
 function statusFromAnalysis(json: unknown): StatusLevel | null {
   if (!json || typeof json !== "object") return null;
-  const a = json as { verdict?: string; flaggedIngredients?: Array<{ severity?: string }>; flags?: Array<{ severity?: string }> };
-  if (a.verdict === "danger") return "high";
-  if (a.verdict === "caution") return "caution";
-  if (a.verdict === "safe") return "safe";
-  const flags = a.flaggedIngredients ?? a.flags ?? [];
-  if (flags.some((f) => (f.severity ?? "").toLowerCase().includes("high"))) return "high";
-  if (flags.length > 0) return "caution";
-  return "safe";
+  return analysisConcernLevel(json);
 }
 const STATUS_RANK: Record<StatusLevel, number> = { unknown: 0, safe: 1, caution: 2, high: 3 };
 function worseStatus(a: StatusLevel, b: StatusLevel): StatusLevel {
@@ -958,8 +952,12 @@ export function MyShelf({ displayName }: MyShelfProps) {
             </button>
           )}
 
+          {/* SS-081d: rutin-konfliktkontrollen hör INTE hemma under "Sparat"
+              (= önskelista/intresse, inte en rutin som används samtidigt). Visa
+              knappen bara på morgon/kväll/ibland. */}
           {allProducts.length >= 2 &&
-            analysisState.status === "idle" && (
+            analysisState.status === "idle" &&
+            shelfFilter !== "sparat" && (
             <button
               type="button"
               onClick={handleRunAnalysis}
@@ -1033,12 +1031,15 @@ export function MyShelf({ displayName }: MyShelfProps) {
         />
       )}
 
-      <RoutineCheckPanel
-        productCount={allProducts.length}
-        analysisState={analysisState}
-        onRun={handleRunAnalysis}
-        onClear={resetAnalysis}
-      />
+      {/* SS-081d: visa inte rutin-konfliktpanelen under "Sparat" (önskelista). */}
+      {shelfFilter !== "sparat" && (
+        <RoutineCheckPanel
+          productCount={allProducts.length}
+          analysisState={analysisState}
+          onRun={handleRunAnalysis}
+          onClear={resetAnalysis}
+        />
+      )}
 
       <div className="mx-4 mb-4 mt-2">
         {isPremium ? (

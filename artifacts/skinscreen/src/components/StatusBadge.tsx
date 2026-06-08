@@ -4,6 +4,7 @@
 // aldrig råtext. En ändring här påverkar hela appen.
 // Se docs/DESIGN-SYSTEM.md
 
+import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import type { StatusLevel } from "@/types/design-system";
 
@@ -52,7 +53,12 @@ export function StatusBadge({
         .filter(Boolean)
         .join(" ")}
     >
-      <span className="status-badge__dot" aria-hidden />
+      {/* SS-081d: röd TRIANGEL för high (3+ concerns / high-risk), prick annars. */}
+      {status === "high" ? (
+        <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
+      ) : (
+        <span className="status-badge__dot" aria-hidden />
+      )}
       {label}
     </span>
   );

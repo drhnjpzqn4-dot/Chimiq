@@ -766,6 +766,18 @@ och låt admin godkänna) — flaggat som icke-uppenbart, lätt att glömma.
      för produkter med egen analys. Nu: rad = produktens EGEN analys (`statusFromAnalysis`) + ev.
      konflikter ovanpå (`worseStatus`).
 5. **"+N fler produkter" på IDAG var en passiv span** → nu länk till Rutin-sidan.
+6. **Status-prickar omarbetade (Pias beslut, ansvars-/juridik-känsligt — bör granskas av jurist).**
+   - **Inget "Trygg/Safe" längre** (affirmativ säkerhetsutfästelse = störst ansvar). Grön = **"Granskad"**
+     (sv) / "Reviewed" / "Vérifié" / "Revisado" — säger att vi kollat, inte att produkten är säker.
+   - **Nivåer kopplade till produktens EGEN analys** (antal flaggade ingredienser), inte rutin-tid:
+     grön = 0 concerns, **orange** = 1–2 cautions, **röd triangel** = 3+ concerns ELLER någon high-risk.
+     Kanon i `analysisConcernLevel()` (ProductDetailSheet), används i hyllan, IDAG-recents och kortets
+     recents-återskrivning så prickarna matchar överallt. Röd renderas som triangel i `StatusBadge`.
+   - Rutin-KONFLIKTstatus läggs fortfarande ovanpå (värsta vinner) när rutinkontrollen körts.
+7. **Rutin-konfliktkontroll göms under "Sparat"** (önskelista, inte en rutin) — knapp + panel visas bara
+   på morgon/kväll/ibland. (Servern uteslöt redan wishlist från konfliktanalysen.)
+8. **"Rapportera felaktighet" → Supabase `product_reports`** (barcode, reported_by, reason; max 3/dygn).
+   INGEN notis/admin-vy idag → rapporter samlas men ingen larmas. TODO: admin-vy eller digest.
 
 ---
 
