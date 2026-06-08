@@ -317,7 +317,7 @@ router.get("/products/:barcode", async (req, res) => {
     const supabase = supabaseAdmin;
     const { data, error } = await supabase
       .from("cached_products")
-      .select("barcode,product_name,brand,ingredients,image_url,cached_at")
+      .select("barcode,product_name,brand,ingredients,image_url,cached_at,analysis_result_json")
       .eq("barcode", barcode)
       .maybeSingle();
     if (error) throw error;
@@ -329,6 +329,7 @@ router.get("/products/:barcode", async (req, res) => {
           ingredients: string;
           image_url: string | null;
           cached_at: string;
+          analysis_result_json: unknown | null;
         }
       | null;
     if (!product) {
@@ -337,10 +338,14 @@ router.get("/products/:barcode", async (req, res) => {
     }
     const safetyMap = await lookupSafety(new Map([[barcode, product.ingredients ?? ""]]));
 
-    // Also return the full cached analysis result so the client can skip
-    // the expensive AI call when opening an already-analysed product.
-    let analysisResultJson: unknown = null;
-    if (product.ingredients?.trim()) {
+    // Also return the full cached analysis result so the client can skip the
+    // expensive AI call when opening an already-analysed product.
+    // SS-081: prefer the analysis stored DIRECTLY on the product row (written by
+    // /analyze-single when a real barcode is present) — it's barcode-keyed and
+    // shared across users, robust to ingredient-hash parameter differences.
+    // Fall back to the ingredient-hash cache lookup for legacy rows.
+    let analysisResultJson: unknown = product.analysis_result_json ?? null;
+    if (!analysisResultJson && product.ingredients?.trim()) {
       const hash = computeSingleHash(product.ingredients);
       const { data: cacheRow } = await supabase
         .from("analysis_cache")

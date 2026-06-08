@@ -112,11 +112,23 @@ JS_EXTRACT = r"""
     if (name) name = name.replace(/\s*[|–-]\s*The Ordinary.*$/i, '').trim();
     if (name && /clinical formulations/i.test(name)) name = null;
 
+    // SS-081 (#5): og:image på sajten är en DELAD default-bild för alla The
+    // Ordinary-produkter → använd hellre en riktig produktbild ur galleriet.
+    // Välj den största <img> i produktområdet vars src ser ut som en produkt-
+    // asset (media/cdn) och inte är logo/ikon/betalbadge. Fall tillbaka på og:image.
     const ogi = document.querySelector('meta[property="og:image"]');
-    const image = ogi ? ogi.getAttribute('content') : null;
+    const ogImage = ogi ? ogi.getAttribute('content') : null;
+    const galleryImgs = Array.from(document.querySelectorAll('img'))
+        .filter(im => (im.naturalWidth || 0) >= 400)
+        .filter(im => /(media|images|cdn|scene7|demandware|dwsp|\/products\/)/i.test(im.currentSrc || im.src || ''))
+        .filter(im => !/(logo|icon|sprite|placeholder|payment|klarna|badge|flag)/i.test(im.currentSrc || im.src || ''));
+    galleryImgs.sort((a, b) => ((b.naturalWidth * b.naturalHeight) - (a.naturalWidth * a.naturalHeight)));
+    const image = (galleryImgs[0] && (galleryImgs[0].currentSrc || galleryImgs[0].src)) || ogImage;
 
     // Strikt INCI-validator (samma som övriga skrapor): ren lista eller inget.
-    const PROSE = /(key ingredient|how to use|what it|directions|caution|review|rating|add to|price|usd|sek|view all|description|benefits|suited to|free shipping|klarna)/i;
+    // SS-081 (#3/#4): avvisa spec-tabellen ("Highlights … water-free Yes …") och
+    // navigations-text ("Shop by Ingredients …") som skrapan tidigare tog som INCI.
+    const PROSE = /(key ingredient|how to use|what it|directions|caution|review|rating|add to|price|usd|sek|view all|description|benefits|suited to|free shipping|klarna|highlights|shop by|build my regimen|product details|awards|new at the ordinary|\b(water|alcohol|oil|silicone|gluten|cruelty)-free\b|\bph\s*\d)/i;
     const INCI_WORDS = /aqua|water|glycerin|parfum|fragrance|sodium|niacinamide|hyaluron|panthenol|tocopherol|alcohol|acid|glycol|extract|dimethicone|squalane/i;
     function tok(t){ return t.replace(/[•·∙●▪‣・･|]/g,',').replace(/\s+-\s+/g,',').replace(/\n+/g,',').split(',').map(x=>x.trim()).filter(Boolean); }
     function inciScore(t){
@@ -136,6 +148,13 @@ JS_EXTRACT = r"""
         const s=inciScore(t);
         if(s>best){best=s; inci=t;}
     });
+    // SS-081: putsa bort ledande "Ingredients"-etikett och avslutande
+    // "Our formulations are updated …"-disclaimer innan vi returnerar.
+    if (inci) {
+        inci = inci.replace(/^\s*ingredients\s*[:\-]?\s*/i, '')
+                   .replace(/\n+\s*Our formulations are updated[\s\S]*$/i, '')
+                   .trim();
+    }
     return JSON.stringify({name, image, inci});
 }
 """
@@ -199,6 +218,30 @@ def scrape_product(url, ctx):
         return None
     inci = (data.get("inci") or "").strip() or None
     name = (data.get("name") or "").strip()
+
+    # SS-081 (#4): enkelingrediens-produkter (rena oljor) har ingen kommaseparerad
+    # INCI på sidan — skrapan fångade tidigare marknadsförings-/spec-text istället.
+    # Sätt känt INCI-värde när namnet matchar en ren olja och vi inte fått ren INCI.
+    if not inci:
+        nl = name.lower()
+        SINGLE_INCI = {
+            "marula": "Sclerocarya Birrea Seed Oil",
+            "moroccan argan": "Argania Spinosa Kernel Oil",
+            "argan oil": "Argania Spinosa Kernel Oil",
+            "plant-derived squalane": "Squalane",
+            "100% squalane": "Squalane",
+            "organic cold-pressed rose hip seed": "Rosa Canina Seed Oil",
+            "100% organic cold-pressed borage seed": "Borago Officinalis Seed Oil",
+            "100% organic virgin sea-buckthorn": "Hippophae Rhamnoides Fruit Oil",
+            "100% organic cold-pressed moroccan argan": "Argania Spinosa Kernel Oil",
+            "100% l-ascorbic acid": "Ascorbic Acid",
+            "100% niacinamide": "Niacinamide",
+            "100% organic virgin chia seed": "Salvia Hispanica Seed Oil",
+        }
+        for key, val in SINGLE_INCI.items():
+            if key in nl:
+                inci = val
+                break
     if not name or "clinical formulations" in name.lower():
         # Härled namn från URL-slug: .../glycolic-acid-7-exfoliating-toner-100418.html
         m = re.search(r"/([^/]+?)-\d+\.html", url)

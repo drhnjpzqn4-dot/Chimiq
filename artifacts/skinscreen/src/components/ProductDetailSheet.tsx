@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { BookOpen, CalendarDays, Camera, CheckCircle2, Flag, FlaskConical, Moon, Plus, Save, Sun } from "lucide-react";
 import {
@@ -16,6 +16,7 @@ import { IngredientDetailSheet, type IngredientDetailFlag } from "@/components/I
 import { ProductTypeBadge } from "@/components/ProductTypeBadge";
 import type { ProductType } from "@/components/ProductTypeBadge";
 import { ProductNameCapture } from "@/components/ProductNameCapture";
+import { IngredientsCapture } from "@/components/IngredientsCapture";
 
 // Called "Produktdatablad" in product language
 
@@ -169,7 +170,22 @@ export function ProductDetailSheet({
     rawNameSource.length > 0 && !placeholderProductNames.has(rawNameSource);
   const initialProductName = hasRealProductName ? rawNameSource : "";
   const needsNameInput = !hasRealProductName;
-  const initialIngredients = product.ingredients?.trim() ?? "";
+  // SS-081 (#3): vissa platshållarprodukter (t.ex. The Ordinary-oljor) fick
+  // marknadsföringstext i ingrediensfältet av skrapan. Sådan prosa ska INTE
+  // förifyllas — fältet ska vara tomt med kamera/runda-flaskan-affordans. INCI är
+  // kommaseparerad; prosa har många ord men få kommatecken, eller butiks-fraser.
+  const looksLikeInciJunk = (raw: string): boolean => {
+    const s = raw.trim();
+    if (!s) return false;
+    if (/(www\.|https?:|\bköp\b|rabatt|kampanj|relaterade|recension|frakt|pris:|key ingredient|how to use|discover|build my regimen|product details)/i.test(s)) {
+      return true;
+    }
+    const words = s.split(/\s+/).length;
+    const commas = (s.match(/,/g) ?? []).length;
+    return words > 14 && commas < 2;
+  };
+  const rawInitialIngredients = product.ingredients?.trim() ?? "";
+  const initialIngredients = looksLikeInciJunk(rawInitialIngredients) ? "" : rawInitialIngredients;
   const [localProductName, setLocalProductName] = useState(initialProductName);
   const [localBrand, setLocalBrand] = useState(product.brand ?? "");
   const [localBarcode, setLocalBarcode] = useState(initialBarcode ?? "");
@@ -194,7 +210,10 @@ export function ProductDetailSheet({
   const [editMode, setEditMode] = useState(initialEditMode ?? initialIsUnknownScan);
   const [editName, setEditName] = useState(initialProductName);
   const [editBrand, setEditBrand] = useState(product.brand ?? "");
-  const [editBarcode, setEditBarcode] = useState(initialBarcode ?? "");
+  // SS-081 (#1): förifyll INTE EAN-fältet med CHIMIQ_-platshållaren — fältet ska
+  // vara tomt så användaren skriver in den RIKTIGA EAN:en (annars skickas en
+  // ogiltig "CHIMIQ_..."-sträng som inte matchar siffer-regexen → ingen komplettering).
+  const [editBarcode, setEditBarcode] = useState(initialHasRealBarcode ? (initialBarcode ?? "") : "");
   const [editIngredients, setEditIngredients] = useState(initialIngredients);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -332,6 +351,33 @@ export function ProductDetailSheet({
         : !localBrand.trim()
           ? "brand"
           : null;
+
+  // SS-081: öppnar vi en redan-analyserad produkt ska den DELADE analysen visas
+  // DIREKT — utan "Analysera"-tryck och utan ny AI-kostnad. Detta fångar bl.a.
+  // återöppning från "Senaste skanningar" (där den lokala posten är inaktuell)
+  // och produkter som en ANNAN användare redan analyserat. Hämtar lagrad analys
+  // (cached_products.analysis_result_json) vid öppning.
+  useEffect(() => {
+    if (initialHasAnalysis || localAnalysis) return;
+    if (!hasRealBarcode || !barcode || !rawIngredients) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await apiFetch(`/api/products/${encodeURIComponent(barcode)}`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { analysisResultJson?: ProductAnalysis | null };
+        if (!cancelled && data.analysisResultJson) setLocalAnalysis(data.analysisResultJson);
+      } catch {
+        /* non-fatal — användaren kan fortfarande trycka Analysera */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barcode, hasRealBarcode]);
 
   const saveCompletion = async (field: "brand" | "barcode", value: string) => {
     const trimmed = value.trim();
@@ -493,8 +539,21 @@ export function ProductDetailSheet({
         const body: Record<string, string> = {};
         if (nextName && nextName !== t("shelf.unknownProduct")) body["productName"] = nextName;
         if (nextBrand) body.brand = nextBrand;
-        if (/^[0-9]{8,14}$/.test(nextBarcode)) body.barcode = nextBarcode;
+        const hasRealEan = /^[0-9]{8,14}$/.test(nextBarcode);
+        if (hasRealEan) body.barcode = nextBarcode;
         if (nextIngredients) body.ingredients = nextIngredients;
+        // SS-081 (#1): kompletterar vi en CHIMIQ_-platshållare (t.ex. The Ordinary
+        // search-only)? Skicka med platshållar-koden så servern uppdaterar den
+        // BEFINTLIGA raden på plats istället för att skapa en dublett.
+        const currentBarcode = barcode; // localBarcode || null
+        if (currentBarcode && currentBarcode.startsWith("CHIMIQ_")) {
+          body.placeholderBarcode = currentBarcode;
+        }
+        // Inget att skicka in? Visa snäll inline-text istället för att trigga 400.
+        if (!hasRealEan && !nextIngredients) {
+          setEditError(t("complete.needEanOrIngredients"));
+          return;
+        }
 
         const res = await apiFetch("/api/contribute/manual", {
           method: "POST",
@@ -503,6 +562,7 @@ export function ProductDetailSheet({
           body: JSON.stringify({ ...body, source_type: "package" }),
         });
         if (!res.ok) throw new Error(String(res.status));
+        setEditError(null);
         setCompletionDone(true);
       } else if (barcode) {
         const body: Record<string, string> = {};
@@ -546,6 +606,12 @@ export function ProductDetailSheet({
           ingredients: ingredientsToAnalyze,
           productType: product.productType ?? undefined,
           locale: locale ?? undefined,
+          // SS-081: skicka EAN så servern sparar analysen DELAT på produktraden
+          // (bara för riktiga streckkoder + oförändrad INCI = produktens egen lista).
+          barcode:
+            hasRealBarcode && barcode && ingredientsToAnalyze === rawIngredients
+              ? barcode
+              : undefined,
         }),
       });
       if (res.ok) {
@@ -661,7 +727,7 @@ export function ProductDetailSheet({
               className="relative flex h-[200px] max-h-[200px] w-full items-center justify-center rounded-2xl"
               style={{ backgroundColor: "var(--cream-warm)" }}
             >
-              <FlaskConical className="h-12 w-12" style={{ color: "var(--ink-soft)" }} aria-hidden />
+              <FlaskConical className="h-12 w-12" style={{ color: "var(--rose-gold)" }} aria-hidden />
               {editMode && (
                 <>
                   <input
@@ -1103,11 +1169,15 @@ export function ProductDetailSheet({
             {rawIngredients ? (
               <>
                 {editMode ? (
-                  <textarea
+                  // SS-081 (#2): kamera-OCR i produktkortet. Samma delade modul
+                  // (IngredientsCapture) som i ScanEntry/ContributeModal — foto →
+                  // OCR → fyller fältet, plus runda-flaskan-notisen.
+                  <IngredientsCapture
                     value={editIngredients}
-                    onChange={(event) => setEditIngredients(event.target.value)}
+                    onChange={setEditIngredients}
+                    placeholder={t("contribute.ingredients")}
                     rows={6}
-                    className="textarea-base mt-2 font-mono text-xs"
+                    className="mt-2"
                   />
                 ) : (
                   <div
@@ -1129,12 +1199,14 @@ export function ProductDetailSheet({
                 )}
               </>
             ) : editMode ? (
-              <textarea
+              // SS-081 (#2/#3): tomt INCI-fält (saknas eller var prosa-junk) →
+              // visa kamera-OCR + textfält så användaren kan foto-skanna listan.
+              <IngredientsCapture
                 value={editIngredients}
-                onChange={(event) => setEditIngredients(event.target.value)}
-                rows={6}
-                className="textarea-base mt-2 font-mono text-xs"
+                onChange={setEditIngredients}
                 placeholder={t("contribute.ingredients")}
+                rows={6}
+                className="mt-2"
               />
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
@@ -1164,8 +1236,10 @@ export function ProductDetailSheet({
                   setEditMode(false);
                   setEditName(productName);
                   setEditBrand(localBrand);
-                  setEditBarcode(barcode ?? "");
+                  // SS-081: behåll tomt EAN-fält för platshållarprodukter på avbryt.
+                  setEditBarcode(hasRealBarcode ? (barcode ?? "") : "");
                   setEditIngredients(rawIngredients);
+                  setEditError(null);
                 }}
                 className="btn-secondary"
                 style={{ height: 40, fontSize: 13, flex: "0 0 80px" }}
@@ -1269,7 +1343,7 @@ export function ProductDetailSheet({
             </section>
           )}
 
-          {completionDone && (
+          {completionDone && !editError && (
             <p className="border-t border-[var(--line)] pt-5 text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
               {t("complete.thanks")}
             </p>

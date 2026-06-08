@@ -11,6 +11,7 @@ import {
   isStale,
 } from "../lib/analysis-cache.js";
 import { sanitizeIngredients, SanitizationError } from "../lib/sanitize.js";
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 import { requireAuth } from "../lib/authGate.js";
 import { partitionIngredients } from "../lib/safe-ingredients.js";
 import { getRisksInList, buildMandatoryFlagsBlock } from "../lib/risky-ingredients.js";
@@ -30,6 +31,10 @@ const AnalyzeSingleBody = z.object({
   skinProfile: SkinProfileEnum,
   productType: ProductTypeSchema.optional(),
   locale: z.enum(["en", "sv", "fr", "es"]).optional(),
+  // SS-081: när en produkt med riktig EAN analyseras sparar vi resultatet på
+  // produktraden (cached_products.analysis_result_json) så det blir DELAT — alla
+  // användare som öppnar produkten får analysen utan ny AI-kostnad.
+  barcode: z.string().trim().max(64).optional(),
 });
 
 const FlagCategorySchema = z.enum([
@@ -562,6 +567,23 @@ router.post("/analyze-single", requireAuth, async (req, res) => {
     if (!result) {
       res.status(500).json({ error: "Analysis failed. Please try again." });
       return;
+    }
+
+    // SS-081: spara analysen DELAT på produktraden när vi har en riktig EAN.
+    // Då returnerar GET /products/:barcode den direkt → produktkortet visar
+    // analysen automatiskt vid öppning, för ALLA användare, utan ny AI-kostnad.
+    const barcode = parseResult.data.barcode?.trim();
+    if (barcode && /^[0-9]{8,14}$/.test(barcode)) {
+      const { error: persistErr } = await supabaseAdmin
+        .from("cached_products")
+        .update({
+          analysis_result_json: result,
+          analysis_cache_hash: result.cacheHash ?? null,
+        })
+        .eq("barcode", barcode);
+      if (persistErr) {
+        req.log.warn({ err: persistErr, barcode }, "Failed to persist shared analysis to cached_products (non-fatal)");
+      }
     }
 
     res.json(result);

@@ -16,7 +16,6 @@ const config: CapacitorConfig = {
   // Sökväg relativt denna fil: artifacts/skinscreen/mobile/capacitor → ../../dist/public.
   // Byggflöde:  pnpm --filter @workspace/skinscreen build && npx cap sync
   webDir: "../../dist/public",
-  bundledWebRuntime: false,
   server: {
     androidScheme: "https",
     iosScheme: "https",

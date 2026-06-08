@@ -624,4 +624,94 @@ ingen deploy krävs för katalog). App-fixarna (SS-079) deployade: Railway live 
 
 ---
 
-*Senast uppdaterad: 2026-06-08 (SS-080: katalog 2 466, Apotea sitemap-skrapa + OBF + The Ordinary; kvarstående app-buggar i komplettera-flödet för nästa session).*
+## BESLUT-SS-081: "Komplettera platshållarprodukt"-flödet + The Ordinary-datakvalitet
+- **Datum:** 2026-06-09
+- **Status:** Aktiv
+- **Bakgrund:** Pias TestFlight-test (SS-080) avslöjade att The Ordinary search-only-produkter
+  (`CHIMIQ_<hash>`-barcode) inte gick att komplettera i appen. Tre app-buggar + tre datakvalitetsfel.
+
+**App-fixar (kräver `pnpm build:mobile` → Xcode Archive → TestFlight):**
+1. **Komplettera-på-plats (kärnbeslut).** Nytt fält `placeholderBarcode` i `POST /contribute/manual`
+   (`contribute.ts`). När appen kompletterar en `CHIMIQ_`-produkt skickas den ursprungliga
+   platshållar-koden med, och servern **uppdaterar den BEFINTLIGA `cached_products`-raden** (byter till
+   riktig EAN om sådan anges, annars lägger bara till INCI/bild) i stället för att skapa en **dublett**
+   under den nya EAN:en. Krock med en redan existerande riktig EAN-rad (t.ex. via OBF) hanteras: data
+   slås ihop in i den riktiga raden och platshållaren tas bort.
+2. **EAN-fältet förifylldes med `CHIMIQ_…`-strängen** → matchade inte siffer-regexen → ingen
+   komplettering, och om INCI också tomt: 400 "Inskickning misslyckades". Nu: EAN-fältet **tomt** för
+   platshållare; klienten för-validerar (kräver riktig EAN **eller** INCI) och visar snäll inline-text i
+   stället för 400 (`complete.needEanOrIngredients`, sv/en/fr/es).
+3. **Kamera-OCR i produktkortet.** `IngredientsCapture` (delad modul med `useScanLabel`, foto→OCR→fält +
+   runda-flaskan-notis) ersätter den nakna textarean i `ProductDetailSheet.tsx` (#2).
+4. **Förifylld prosa-junk** i ingrediensfältet gallras klientsidan (`looksLikeInciJunk`) så marknadsförings-
+   text aldrig förifylls — tomt fält + scan-affordans i stället (#3).
+5. **Motsägande "Tack!"-toast** visas inte längre samtidigt som fel (`completionDone && !editError`).
+
+**Review-kö:** Fanns redan — `/contribute/manual` skriver till `user_submitted_products`
+(`status: needs_admin`) med admin-granskningsrutter + `AUTO_APPROVE_ENABLED`-flagga. **Pias beslut för
+testning:** kompletteringar går **live direkt** i `cached_products` (som idag) så buggar är lätta att
+hitta. **Inför produktion** bör katalog-skrivningen gates bakom granskning (sätt `AUTO_APPROVE_ENABLED`
+och låt admin godkänna) — flaggat som icke-uppenbart, lätt att glömma.
+
+**Datakvalitet (LIVE i `cached_products`, ingen deploy krävs):**
+- **45 rader** putsade: ledande `Ingredients`-etikett + avslutande "Our formulations are updated…"-
+  disclaimer borttagna (riktig INCI fanns efter prefixet).
+- **5 bogus-rader borttagna** ("Shop by Ingredients"-navtext som blev påhittade produktnamn: "Vitality
+  Orb", "Energy-Boosting Bar", "Hydrating Vessel", "Cleansing Cylinder", "Vitamin Activator").
+- **18 spec-tabell-rader** ("Highlights … water-free Yes …" = INTE INCI) → INCI satt till tomt (kolumnen
+  är NOT NULL, så `''` i stället för null) på riktiga produkter → de visar nu komplettera/scan-flödet.
+  Undantag: "100% Cold-Pressed Virgin Marula Oil" fick känt enkelingrediens-INCI `Sclerocarya Birrea
+  Seed Oil`.
+- **2 namn** fixade (#6): "Glycolic Acid 7 → 7% Exfoliating Toner", "Volufiline … 1pct → 1%".
+- Katalog: 2 466 → **2 461** produkter (−5 bogus).
+
+**Scraper härdad (`harvest_theordinary.py`, körs på Stina):**
+- INCI-validatorn avvisar nu spec-tabell ("Highlights/water-free/ph N") och navtext ("Shop by").
+- Putsar `Ingredients`-etikett + disclaimer.
+- **Bild:** väljer största riktiga galleribilden i stället för sajtens delade `og:image`-default (#5).
+- Enkelingrediens-karta (rena oljor → känt INCI).
+
+**Kvarstår (uppföljning):**
+- **#5 bilder:** 63 The Ordinary-platshållare saknar fortfarande produktbild. Kräver **omkörning** av
+  den härdade `harvest_theordinary.py` på Stina (Playwright) → uppdaterar `image_url`.
+- **OBF-etikettprefix:** ~17 icke-The-Ordinary-rader (OBF) har "INGREDIENTS (INCI):"-prefix + viss
+  OCR-brus. Utanför kvällens scope; bör fixas i OBF-importören, inte radvis.
+- **Dubblett-namn:** "Glycolic Acid 7% Exfoliating Toner" (nytt namn) finns parallellt med "…7% Toning
+  Solution" (gammalt namn) — samma produkt, båda med korrekt data. Lågprioriterad merge.
+
+## BESLUT-SS-081b: Delad analys-persistens + UX-städning (samma session, runda 2)
+- **Datum:** 2026-06-09
+- **Status:** Aktiv
+- **Bakgrund:** Pias fortsatta TestFlight-test. Tre saker till.
+
+1. **DELAD analys — "betala en gång, servera alla" (kärnbeslut, efterfrågat många gånger).**
+   Tidigare sparades en analys bara på användarens HYLL-rad (`/api/shelf/:id`); en produkt som
+   öppnades från sök/"Senaste skanningar" tappade analysen vid stängning → ny analys + ny kostnad vid
+   återöppning. Nu:
+   - `/api/analyze-single` tar emot `barcode` och sparar resultatet på **produktraden**
+     (`cached_products.analysis_result_json` + `analysis_cache_hash`) när EAN är riktig — alltså DELAT
+     mellan alla användare.
+   - `GET /products/:barcode` returnerar i första hand den lagrade analysen på raden (robust mot
+     ingrediens-hash-skillnader; faller tillbaka på hash-cachen för äldre rader).
+   - Produktkortet **auto-laddar** lagrad analys vid öppning (även från "Senaste skanningar" och när en
+     ANNAN användare redan analyserat) → visas direkt, ingen "Analysera"-knapp, ingen ny AI-kostnad,
+     ingen förbrukad gratis-scan. Första analysen kostar en gång; därefter gratis för alla.
+   - OBS: `analyzeSingleIngredients` cachade redan per ingrediens-hash (ingen LLM vid träff), men UX
+     visade inte resultatet automatiskt och förbrukade en scan-slot. Detta löser båda.
+2. **Dubblerat märke i namn** ("ACO ACO Hydrating Booster…"). Orsak: visningsnamnet byggdes som
+   `märke + produktnamn`, men produktnamnet i katalogen innehåller redan märket. Ny `joinBrandName()`
+   i `ScanEntry.tsx` hoppar över märket när namnet redan börjar med det. Ingen DB-ändring behövs.
+3. **Platshållarbild = vektor-flaska (rose-gold), inte emoji.** 🧴-emojin renderades ibland som "?" i
+   iOS WKWebView. `ProductImage` använder nu en `FlaskConical`-ikon i `--rose-gold`; produktkortets
+   platshållare tonad likadant. (The Ordinary-bilderna är fortfarande nullade → väntar Stina-omkörning.)
+4. **Sök-interstitial borttagen:** att trycka på ett sökträff öppnar nu produktkortet DIREKT (öppnar
+   även med tom INCI → komplett-flödet). Skan-/OCR-vägen behåller sitt "Produkt hittades"-kort.
+
+**Filer:** `analyze-single.ts`, `products.ts` (backend → Railway); `ProductDetailSheet.tsx`,
+`ScanEntry.tsx`, `ProductImage.tsx` (klient → TestFlight).
+
+---
+
+*Senast uppdaterad: 2026-06-09 (SS-081 + 081b: komplettera-platshållare-flödet, kamera-OCR, datastädning
+(katalog 2 461), scraper härdad; DELAD analys-persistens (betala en gång), dubbel-märke-fix, rosa
+flask-platshållare, sök-interstitial borttagen. KVAR: bild-omkörning på Stina, OBF-prefix-städning.)*

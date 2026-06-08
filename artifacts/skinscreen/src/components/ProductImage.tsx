@@ -1,32 +1,38 @@
 import { useEffect, useState } from "react";
+import { FlaskConical } from "lucide-react";
 
 interface ProductImageProps {
   src: string | null | undefined;
   /** className på <img>-elementet, t.ex. "h-10 w-10 rounded-xl object-cover" */
   imgClassName?: string;
-  /** className på emoji-wrapper-spann */
+  /** className på platshållar-spann */
   fallbackClassName?: string;
-  /** Emoji att visa när bild saknas eller felar. Default: 🧴 */
+  /** Valfri emoji-platshållare. Utelämnad → rosa flaskikon (vektor). */
   fallbackEmoji?: string;
   /** Alt-text på bilden. Default: "" (dekorativ) */
   alt?: string;
 }
 
 /**
- * Enhetlig produktbild med automatisk emoji-fallback.
+ * Enhetlig produktbild med automatisk platshållar-fallback.
  *
  * Använder Image()-preload i useEffect istället för React:s syntetiska onError,
  * eftersom onError inte är tillförlitligt i WKWebView (Capacitor/iOS).
  *
- * Visar emoji-platshållare om:
+ * SS-081 (UX): fallbacken är en VEKTOR-flaskikon (rose-gold/rosa) — inte en
+ * emoji. 🧴-emojin renderades ibland som "?" (tofu) i iOS WKWebView. Ikonen
+ * renderas alltid och matchar produktkortets platshållare. Anropare kan fortfarande
+ * skicka `fallbackEmoji` för att tvinga en emoji.
+ *
+ * Visar platshållare om:
  *   - src saknas / är null / undefined
  *   - bilden inte kan laddas (404, nätverksfel, CORS, etc.)
  */
 export function ProductImage({
   src,
   imgClassName = "h-10 w-10 rounded-xl object-cover",
-  fallbackClassName = "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl",
-  fallbackEmoji = "🧴",
+  fallbackClassName = "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+  fallbackEmoji,
   alt = "",
 }: ProductImageProps) {
   const [status, setStatus] = useState<"loading" | "ok" | "failed">(
@@ -52,7 +58,9 @@ export function ProductImage({
         style={{ backgroundColor: "var(--cream-warm)" }}
         aria-hidden
       >
-        {fallbackEmoji}
+        {fallbackEmoji ?? (
+          <FlaskConical className="h-1/2 w-1/2" style={{ color: "var(--rose-gold)" }} />
+        )}
       </span>
     );
   }

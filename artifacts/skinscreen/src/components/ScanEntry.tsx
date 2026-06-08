@@ -68,6 +68,20 @@ type RowKind = "search" | "barcode" | "ocr";
 
 const ROWS: RowKind[] = ["search", "barcode", "ocr"];
 
+/**
+ * SS-081: Bygg visningsnamn "Märke Produktnamn" UTAN att dubbla märket när
+ * produktnamnet redan börjar med det (t.ex. brand "ACO" + namn "ACO Hydrating
+ * Booster…" → "ACO Hydrating Booster…", inte "ACO ACO …").
+ */
+function joinBrandName(brand?: string | null, name?: string | null): string {
+  const b = (brand ?? "").trim();
+  const n = (name ?? "").trim();
+  if (!b) return n;
+  if (!n) return b;
+  if (n.toLowerCase().startsWith(b.toLowerCase())) return n;
+  return `${b} ${n}`;
+}
+
 export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps) {
   const { t } = useTranslation();
   const [active, setActive] = useState<RowKind | null>(mode === "all" ? null : mode);
@@ -194,11 +208,11 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
     };
   }, [input, active]);
 
-  // Pull full product (with ingredients) for a tapped suggestion, then emit
-  // onResult so the parent runs analyse + opens ProductDetailSheet. We pass
-  // the suggestion's barcode straight through so ProductDetailSheet knows
-  // this product is already in cached_products and does NOT show the
-  // "Spara denna produkt"-bidragsknapp.
+  // SS-081 (UX): Tapping a search result IS the intent to open it. Open the
+  // product card DIRECTLY (emit onResult) instead of showing the redundant
+  // "Produkt hittades → Öppna produktkort" interstitial. We open even when INCI
+  // is empty (e.g. cleaned The Ordinary placeholders) so the user lands in the
+  // complete/scan flow. The scan + OCR paths keep their captured card.
   const selectSuggestion = async (suggestion: ProductSuggestion) => {
     setInput("");
     setSuggestions([]);
@@ -216,17 +230,25 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
         ingredients?: string;
         imageUrl?: string | null;
         analysisResultJson?: ProductDetailAnalysis | null;
+        productType?: ProductType;
       };
-      setLookupResult({
-        found: true,
-        productName: data.productName ?? suggestion.productName,
-        brand: data.brand ?? suggestion.brand,
-        ingredients: data.ingredients,
-        imageUrl: data.imageUrl ?? null,
-        // Use cached analysis so "Öppna" doesn't trigger a fresh AI call
-        // for products that have already been analysed.
-        analysis: data.analysisResultJson ?? null,
+      const brand = data.brand ?? suggestion.brand;
+      const baseName = data.productName ?? suggestion.productName;
+      const displayName = joinBrandName(brand, baseName) || baseName;
+      onResult?.({
+        product_name: displayName,
+        productName: displayName,
+        brand,
         barcode: suggestion.barcode,
+        ingredients: data.ingredients,
+        image_url: data.imageUrl ?? null,
+        imageUrl: data.imageUrl ?? null,
+        // Use cached analysis so opening doesn't trigger a fresh AI call for
+        // products that have already been analysed.
+        analysis_result_json: data.analysisResultJson ?? null,
+        productType: data.productType,
+        // SS-075: a search hit comes from cached_products.
+        inCache: true,
       });
     } finally {
       setLoading(false);
@@ -251,7 +273,7 @@ export function ScanEntry({ onResult, mode = "all", className }: ScanEntryProps)
 
   const emitLookupResult = (data: ProductLookupResult, fallbackName: string) => {
     if (!data.found || !data.ingredients) return false;
-    const name = [data.brand, data.productName].filter(Boolean).join(" ");
+    const name = joinBrandName(data.brand, data.productName);
     const looksLikeEan = /^\d{8,14}$/.test(fallbackName);
     const barcode = data.barcode ?? (looksLikeEan ? fallbackName : undefined);
     onResult?.({

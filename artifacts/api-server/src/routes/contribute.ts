@@ -147,9 +147,25 @@ const ManualContributionBody = z.object({
   // SS-079 (#3): permanent bild-URL (redan uppladdad) som ska följa med när en
   // sparad skanning auto-bidras till cached_products, så katalog-kortet får bild.
   imageUrl: z.string().url().max(2000).optional(),
-}).refine((data) => Boolean(data.ingredients?.trim() || data.barcode?.trim()), {
-  message: "Ingredients or barcode is required.",
-});
+  // SS-081 (#1): "komplettera en platshållarprodukt". The Ordinary search-only-
+  // produkter ligger i cached_products med en CHIMIQ_-platshållar-barcode. När en
+  // användare öppnar en sådan och fyller i riktig EAN + INCI/foto skickar appen
+  // med den ursprungliga platshållar-koden här, så servern kan KOMPLETTERA den
+  // befintliga raden på plats (byta barcode, lägga till INCI/bild) istället för
+  // att skapa en dublett under den nya EAN:en.
+  placeholderBarcode: z
+    .string()
+    .trim()
+    .startsWith("CHIMIQ_", "placeholderBarcode måste vara en CHIMIQ_-platshållare.")
+    .max(120)
+    .optional(),
+}).refine(
+  (data) =>
+    Boolean(data.ingredients?.trim() || data.barcode?.trim() || data.placeholderBarcode?.trim()),
+  {
+    message: "Ingredients or barcode is required.",
+  },
+);
 
 const AdminReviewBody = z.object({
   productName: z.string().trim().max(500).optional(),
@@ -437,7 +453,8 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
   }
 
   const userId = (req as { user?: { id?: string } }).user?.id ?? null;
-  const { barcode, productName, brand, ingredients, productType, imageDataUrl, imageUrl } = parseResult.data;
+  const { barcode, productName, brand, ingredients, productType, imageDataUrl, imageUrl, placeholderBarcode } =
+    parseResult.data;
 
   let safeName: string | null = null;
   let safeBrand: string | null = null;
@@ -456,12 +473,15 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
   }
 
   // SS-074: Ladda upp produktbild till Supabase Storage om den skickats med.
+  // SS-081: även när användaren kompletterar en platshållare utan ny EAN ska
+  // bilden kunna laddas upp (använd platshållar-koden som mapp).
+  const imageOwnerBarcode = barcode ?? placeholderBarcode ?? null;
   let uploadedImageUrl: string | null = null;
-  if (imageDataUrl && barcode) {
+  if (imageDataUrl && imageOwnerBarcode) {
     try {
       const base64 = imageDataUrl.includes(",") ? imageDataUrl.split(",")[1] : imageDataUrl;
       const buffer = Buffer.from(base64 ?? "", "base64");
-      const filePath = `products/${barcode}/front-${Date.now()}.jpg`;
+      const filePath = `products/${imageOwnerBarcode}/front-${Date.now()}.jpg`;
       const { error: uploadError } = await supabaseAdmin.storage
         .from("chimiq-uploads")
         .upload(filePath, buffer, {
@@ -499,8 +519,77 @@ router.post("/contribute/manual", requireAuth, async (req, res) => {
       .single<{ id: string }>();
     if (error) throw error;
 
+    // SS-081 (#1): KOMPLETTERA en platshållarprodukt på plats.
+    // The Ordinary search-only-produkter ligger i cached_products med en
+    // CHIMIQ_-barcode. När appen skickar `placeholderBarcode` ska vi uppdatera
+    // EXISTERANDE rad — byta till riktig EAN om sådan finns, annars bara lägga
+    // till INCI/bild — istället för att skapa en dublett under den nya EAN:en.
+    let placeholderCompleted = false;
+    if (placeholderBarcode && placeholderBarcode.startsWith("CHIMIQ_")) {
+      const realBarcode = barcode && !barcode.startsWith("CHIMIQ_") ? barcode : null;
+
+      const patch: Record<string, unknown> = { source: "user" };
+      if (realBarcode) patch.barcode = realBarcode; // platshållare → scanbar produkt
+      if (safeName) patch.product_name = safeName;
+      if (safeBrand) patch.brand = safeBrand;
+      if (productType) patch.product_type = productType;
+      if (safeIngredients?.trim()) patch.ingredients = safeIngredients;
+      if (uploadedImageUrl) patch.image_url = uploadedImageUrl;
+      else if (imageUrl) patch.image_url = imageUrl;
+
+      // Om en riktig EAN-rad redan finns (t.ex. via OBF) krockar barcode-bytet
+      // med unique-constraint. Slå då ihop in i den befintliga riktiga raden och
+      // ta bort platshållaren, annars uppdatera platshållarraden direkt.
+      let collision = false;
+      if (realBarcode) {
+        const { data: existingReal } = await supabaseAdmin
+          .from("cached_products")
+          .select("barcode")
+          .eq("barcode", realBarcode)
+          .maybeSingle<{ barcode: string }>();
+        collision = Boolean(existingReal);
+      }
+
+      if (realBarcode && collision) {
+        // Riktig rad finns redan → uppdatera den och rensa platshållaren.
+        const mergePatch = { ...patch };
+        delete mergePatch.barcode;
+        const { error: mergeErr } = await supabaseAdmin
+          .from("cached_products")
+          .update(mergePatch)
+          .eq("barcode", realBarcode);
+        if (mergeErr) req.log.warn({ err: mergeErr }, "Placeholder merge into real row failed (non-fatal)");
+        const { error: delErr } = await supabaseAdmin
+          .from("cached_products")
+          .delete()
+          .eq("barcode", placeholderBarcode);
+        if (delErr) req.log.warn({ err: delErr }, "Placeholder cleanup delete failed (non-fatal)");
+        else placeholderCompleted = true;
+      } else {
+        const { error: completeErr } = await supabaseAdmin
+          .from("cached_products")
+          .update(patch)
+          .eq("barcode", placeholderBarcode);
+        if (completeErr) {
+          req.log.warn({ err: completeErr }, "Placeholder completion update failed (non-fatal)");
+        } else {
+          placeholderCompleted = true;
+        }
+      }
+
+      // Invalidera ev. analyscache för den nya riktiga koden.
+      if (placeholderCompleted && realBarcode && safeIngredients?.trim()) {
+        await supabaseAdmin
+          .from("analysis_cache")
+          .delete()
+          .eq("product_barcode", realBarcode)
+          .eq("scan_type", "single");
+      }
+    }
+
     // SS-074: Uppdatera existing kort istället för att ignorera dubletter.
-    if (barcode && !barcode.startsWith("CHIMIQ_")) {
+    // (Hoppas över om vi redan kompletterat en platshållare ovan.)
+    if (!placeholderCompleted && barcode && !barcode.startsWith("CHIMIQ_")) {
       const patch: Record<string, unknown> = {
         barcode,
         product_name: safeName ?? "Unknown product",
