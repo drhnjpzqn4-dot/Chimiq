@@ -124,7 +124,8 @@ router.get("/barcode/:code", async (req, res) => {
     .select("product_name, brand, ingredients")
     .eq("barcode", code)
     .in("status", ["needs_admin", "ai_reviewing", "pending"])
-    .order("created_at", { ascending: false })
+    // SS-081e: kolumnen heter submitted_at, inte created_at (gav 42703 i loggen).
+    .order("submitted_at", { ascending: false })
     .limit(1)
     .maybeSingle<{
       product_name: string | null;

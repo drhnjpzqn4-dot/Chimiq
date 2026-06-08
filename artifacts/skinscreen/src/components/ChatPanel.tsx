@@ -96,7 +96,17 @@ export function ChatPanel({ defaultOpen = false }: { defaultOpen?: boolean } = {
           setError(t("chatPanel.errPremium"));
           return;
         }
-        throw new Error("Failed");
+        // SS-081e: visa serverns faktiska felmeddelande istället för en generisk
+        // text, så fel (t.ex. saknad nyckel/plan) går att diagnosticera.
+        let serverMsg = "";
+        try {
+          const j = (await response.json()) as { error?: string };
+          serverMsg = j?.error ?? "";
+        } catch {
+          /* non-JSON error body */
+        }
+        setError(serverMsg || t("chatPanel.errSend"));
+        return;
       }
 
       const data = (await response.json()) as { reply: string };
