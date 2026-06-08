@@ -581,4 +581,47 @@ för klient-fixarna. Öppen fråga: kan Lyko-INCI extraheras alls, eller ska vi 
 
 ---
 
-*Senast uppdaterad: 2026-06-08 (SS-079: DB-diagnos + 4 fixar från ACO Spotless-test, 13 Kicks-produkter promoterade, Lyko-scraper härdad).*
+### SS-080 — 2026-06-08 (kväll) — Katalogpåfyllning: Apotea + OBF + The Ordinary
+
+Fortsättning samma dag. Mål: fylla `cached_products` med riktig produktdata inför svensk lansering.
+
+**Resultat:** katalog 2 227 → **2 466 produkter**. Allt promoterat genom strikt INCI-filter
+(barcode + validerad INCI, avvisar prosa/kampanj/relaterade-varor/recensioner).
+
+**Skrapor (kör på Stina, ligger i repo-roten):**
+- `harvest_apotea.py` — **omskriven till sitemap-baserad URL-discovery** (sitemap-products-1/2)
+  + strikt INCI-validator + produktgrind (LD Product/EAN). Tidigare crawlade den kategorisidans
+  länkar → fångade landningssidor ("Veckans kampanjer"). Nu: 555 EAN, ~186 rena INCI per körning.
+  **Apotea är primärkällan** (CeraVe, La Roche-Posay, Eucerin, Lumene, NIVEA, COSRX m.fl. rena).
+- `harvest_lyko.py` — härdad, men **Lyko exponerar inte INCI i DOM** → 642 rader, 0 rena. **Pensionerad.**
+- `harvest_obf.py` (NY) — importerar HELA varumärken från Open Beauty Facts per brand-tag (EAN+INCI).
+  Använd för märken som saknar EAN i butik. OBF är tunt för The Ordinary (~16 poster).
+- `harvest_theordinary.py` (NY) — Playwright mot theordinary.com (SFCC), sitemap-en_SE.xml (~94 prod),
+  expanderar "view all ingredients", strikt INCI. Märket saknar EAN på sajten → stagas utan barcode.
+
+**Promoterat:** 13 Kicks (morgon-sessionen), 176 Apotea, 5 OBF The Ordinary (riktig EAN, scanbara),
+samt The Ordinary från sajten **search-only med platshållar-barcode** `CHIMIQ_<md5>`. Pias beslut:
+spara dem search-only och be användaren komplettera EAN vid uppslag (befintligt isNotInDb-flöde).
+
+**TestFlight-test (Pia, kväll) — kvarstående buggar (NÄSTA SESSION):**
+1. **Komplettera-produkt-flödet trasigt för CHIMIQ_-produkter.** I produktkortet: ingen kamera för
+   att foto-skanna ingredienser (bara textarea — IngredientsCapture med kamera finns bara i
+   ScanEntry/ContributeModal), ingrediensfältet förifyllt med beskrivningstext, och "Spara produkten"
+   ger "Inskickning misslyckades". Trolig orsak: `/contribute/manual` avvisar CHIMIQ_-barcode
+   (`isValidGtin`-refine → 400); tomt EAN + tom INCI → refine kräver minst ett → 400. Motsägande
+   "Tack! Vi sparade din komplettering" visas samtidigt.
+2. **Enkelingrediens-produkter** ("The Ordinary 100% ... Oil/Squalane") — skrapan tog beskrivningstext
+   istället för den enrads-INCI. 12 sådana raderades ur katalogen denna kväll (fel INCI = fel analys).
+   Behöver enkelingrediens-hantering (eller känt INCI-värde).
+3. **The Ordinary delar generisk bild** (sajtens og:image var samma default). Bilderna nullades →
+   platshållare visas. Behöver produktspecifika bilder.
+
+**Städat denna kväll:** tog bort 16 The Ordinary-set/-collections (ej analyserbara), tog bort 12
+beskrivnings-som-INCI-rader, strippade dubbel "The Ordinary"-prefix i namn, nullade generiska bilder.
+
+**Verifierat:** sök i appen returnerar ~80 The Ordinary + breda märken; allt live (cached_products,
+ingen deploy krävs för katalog). App-fixarna (SS-079) deployade: Railway live + TestFlight arkiverad.
+
+---
+
+*Senast uppdaterad: 2026-06-08 (SS-080: katalog 2 466, Apotea sitemap-skrapa + OBF + The Ordinary; kvarstående app-buggar i komplettera-flödet för nästa session).*
