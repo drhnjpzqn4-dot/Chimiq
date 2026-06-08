@@ -749,6 +749,24 @@ och låt admin godkänna) — flaggat som icke-uppenbart, lätt att glömma.
      d) **AM/PM (FIXAT).** `slotsCanCombine` parar bara produkter som kan användas samtidigt (samma slot
         eller "both"/"occasional"/null som wildcard) → ingen falsk morgon-C-vitamin-mot-kvälls-retinol.
 
+## BESLUT-SS-081d: UX-polish efter TestFlight-test (klient)
+- **Datum:** 2026-06-09 — **Status:** Aktiv. Allt KLIENT (bara TestFlight, ingen Railway).
+1. **Ingredienslistan klipptes utan "Visa alla".** Boxen klipptes vid 160px men knappen kom bara vid
+   >520 tecken → medellånga listor (ACO 270 tecken) doldes utan expandering. Ny tröskel
+   `INGREDIENTS_COLLAPSE_AT = 200`: box klipps bara när listan också får en "Visa alla"-knapp.
+2. **"Analysen visar"-rubrik** över analyssammanfattningen (`product.analysisHeading`) så man förstår att
+   texten ÄR analysresultatet.
+3. **Dubblerat märke i namn** ("ACO ACO…", "L'Oréal Paris L'Oréal Paris…") — produkter sparade INNAN
+   sök-fixen ligger dubblerade i hylla/recents. `collapseRepeatedBrandPrefix` städar visningen överallt
+   (produktkort-titel, IDAG recents + sparade, Rutin-hyllan). Ingen DB-ändring.
+4. **"Ej analyserad" fel på IDAG + Rutin för analyserade produkter.**
+   - IDAG-pricken läste recents-postens lagrade analys (null vid öppning). Kortet skriver nu tillbaka
+     analys+verdict till recents-posten; IDAG läser om vid stängning.
+   - Rutin-hyllans rad-status var "unknown" tills RUTIN-konfliktkontrollen kördes → "Ej analyserad" även
+     för produkter med egen analys. Nu: rad = produktens EGEN analys (`statusFromAnalysis`) + ev.
+     konflikter ovanpå (`worseStatus`).
+5. **"+N fler produkter" på IDAG var en passiv span** → nu länk till Rutin-sidan.
+
 ---
 
 *Senast uppdaterad: 2026-06-09 (SS-081 + 081b: komplettera-platshållare-flödet, kamera-OCR, datastädning

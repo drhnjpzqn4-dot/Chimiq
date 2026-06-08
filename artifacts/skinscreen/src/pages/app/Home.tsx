@@ -5,7 +5,7 @@ import { useGetShelf, getGetShelfQueryKey } from "@workspace/api-client-react";
 import { ChevronRight, Lock, X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import BatchRecallBanner from "@/components/BatchRecallBanner";
-import { ProductDetailSheet, type ProductDetailProduct } from "@/components/ProductDetailSheet";
+import { ProductDetailSheet, type ProductDetailProduct, collapseRepeatedBrandPrefix } from "@/components/ProductDetailSheet";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -197,7 +197,7 @@ export default function HomeScreen() {
                     fallbackClassName="flex h-[60px] w-full items-center justify-center rounded-xl text-[22px]"
                   />
                   <p className="mt-1.5 line-clamp-2 text-[12px] font-semibold leading-snug text-foreground">
-                    {r.name}
+                    {collapseRepeatedBrandPrefix(r.name)}
                   </p>
                   {/* SS-081c (safety): visa ALDRIG en "Trygg"-prick för en produkt
                       som inte faktiskt analyserats. Den lagrade verdicten är bara
@@ -258,7 +258,7 @@ export default function HomeScreen() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13px] font-semibold" style={{ color: "var(--ink)" }}>
-                        {name}
+                        {collapseRepeatedBrandPrefix(name)}
                       </span>
                       {brand && (
                         <span className="block truncate text-[11px]" style={{ color: "var(--ink-soft)" }}>
@@ -270,11 +270,17 @@ export default function HomeScreen() {
                 );
               })}
               {shelfProducts.length > 5 && (
-                <div className="px-4 py-2.5 text-center">
+                // SS-081c: tidigare en passiv <span> som inte gick att klicka.
+                // Nu en länk till Rutin-sidan där hela hyllan visas.
+                <Link
+                  href="/app/shelf"
+                  className="flex items-center justify-center gap-1 px-4 py-2.5 text-center transition-colors hover:bg-[var(--cream)]"
+                >
                   <span className="text-xs font-semibold" style={{ color: "var(--sage)" }}>
                     +{shelfProducts.length - 5} {t("home.moreProducts")}
                   </span>
-                </div>
+                  <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--sage)" }} aria-hidden />
+                </Link>
               )}
             </div>
           ) : (
@@ -383,7 +389,12 @@ export default function HomeScreen() {
         {detailProduct && (
           <ProductDetailSheet
             product={detailProduct}
-            onClose={() => setDetailProduct(null)}
+            onClose={() => {
+              setDetailProduct(null);
+              // SS-081c: läs om recents — kortet kan ha skrivit tillbaka en analys
+              // (verdict/analysis_result_json) så pricken uppdateras från "Ej analyserad".
+              setRecent(readRecentScans());
+            }}
           />
         )}
 

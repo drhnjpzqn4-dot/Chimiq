@@ -93,6 +93,30 @@ interface ProductDetailSheetProps {
   fromScan?: boolean;
 }
 
+// SS-081c: ingredienslistor längre än så här fälls ihop (160px) med en
+// "Visa alla"-knapp. Tröskeln matchar nu klipp-höjden så inget göms utan knapp.
+const INGREDIENTS_COLLAPSE_AT = 200;
+
+/**
+ * SS-081c: kollapsa ett dubblerat märkes-prefix i visningsnamnet, t.ex.
+ * "ACO ACO Hydrating…" → "ACO Hydrating…" och
+ * "L'Oréal Paris L'Oréal Paris Vitamin C…" → "L'Oréal Paris Vitamin C…".
+ * Produkter som sparades INNAN sök-fixen (joinBrandName) ligger dubblerade i
+ * hyllan/recents; detta städar visningen oavsett källa. Hittar längsta upprepade
+ * ord-prefix och tar bort en kopia.
+ */
+export function collapseRepeatedBrandPrefix(name: string): string {
+  const n = (name ?? "").trim();
+  if (!n) return n;
+  const words = n.split(/\s+/);
+  for (let k = Math.floor(words.length / 2); k >= 1; k--) {
+    const first = words.slice(0, k).join(" ").toLowerCase();
+    const second = words.slice(k, 2 * k).join(" ").toLowerCase();
+    if (first === second) return words.slice(k).join(" ");
+  }
+  return n;
+}
+
 function verdictFromProduct(product: ProductDetailProduct, status?: IngredientStatusLevel): ProductVerdict | null {
   // SS-074: Undvik falsk "safe" när ingredienslista saknas eller är för kort.
   const rawIngredients = product.ingredients ?? product.ingredient_list ?? "";
@@ -381,6 +405,46 @@ export function ProductDetailSheet({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barcode]);
+
+  // SS-081c: när kortet HAR en analys (kört eller auto-laddad delad analys), skriv
+  // tillbaka den + verdict till "Senaste skanningar"-posten i localStorage. Annars
+  // visar IDAG "Ej analyserad" för en produkt som faktiskt ÄR analyserad (posten
+  // skapas vid öppning innan analys och uppdaterades aldrig). Matcha på barcode → namn.
+  useEffect(() => {
+    if (!analysis || !verdict) return;
+    const KEY = "skinscreen.recentScans";
+    const v: "safe" | "warning" | "high" =
+      verdict === "danger" ? "high" : verdict === "caution" ? "warning" : "safe";
+    const nameLc = (productName || product.product_name || product.productName || "")
+      .trim()
+      .toLowerCase();
+    type RecentEntry = {
+      name?: string;
+      verdict?: string;
+      product?: { barcode?: string | null; analysis_result_json?: unknown } & Record<string, unknown>;
+    } & Record<string, unknown>;
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      const list = JSON.parse(raw) as RecentEntry[];
+      if (!Array.isArray(list)) return;
+      let changed = false;
+      const updated = list.map((e) => {
+        if (!e || typeof e !== "object") return e;
+        const eBarcode = e.product?.barcode ?? null;
+        const matchBc = barcode && eBarcode === barcode;
+        const matchNm = nameLc && typeof e.name === "string" && e.name.trim().toLowerCase() === nameLc;
+        if (!matchBc && !matchNm) return e;
+        if (e.product?.analysis_result_json && e.verdict === v) return e; // redan korrekt
+        changed = true;
+        return { ...e, verdict: v, product: { ...(e.product ?? {}), analysis_result_json: analysis } };
+      });
+      if (changed) localStorage.setItem(KEY, JSON.stringify(updated));
+    } catch {
+      /* ignore quota / private-mode errors */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, verdict, barcode]);
 
   const saveCompletion = async (field: "brand" | "barcode", value: string) => {
     const trimmed = value.trim();
@@ -791,7 +855,7 @@ export function ProductDetailSheet({
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               <SheetTitle className="font-serif text-2xl font-medium leading-tight" style={{ color: "var(--ink)" }}>
-                {productName}
+                {collapseRepeatedBrandPrefix(productName)}
               </SheetTitle>
               <ProductTypeBadge productType={product.productType} />
             </div>
@@ -1114,9 +1178,15 @@ export function ProductDetailSheet({
           )}
 
           {summary && (
-            <p className="text-sm leading-relaxed" style={{ color: "var(--ink-soft)" }}>
-              {summary}
-            </p>
+            <div>
+              {/* SS-081c: tydliggör att texten ÄR analysresultatet ("Analysen visar"). */}
+              <h3 className="text-xs font-medium uppercase tracking-widest" style={{ color: "var(--rose-gold)" }}>
+                {t("product.analysisHeading")}
+              </h3>
+              <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--ink-soft)" }}>
+                {summary}
+              </p>
+            </div>
           )}
 
           {substantiveConflicts.length > 0 && (
@@ -1187,13 +1257,20 @@ export function ProductDetailSheet({
                   />
                 ) : (
                   <div
-                    className="mt-2 max-h-40 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--cream-warm)] p-3 leading-relaxed"
-                    style={{ maxHeight: expanded ? "none" : 160 }}
+                    className="mt-2 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--cream-warm)] p-3 leading-relaxed"
+                    style={{
+                      // SS-081c: klipp BARA långa listor (och bara när hopfällda).
+                      // Tidigare klipptes alltid vid 160px medan "Visa alla"-knappen
+                      // bara dök upp vid >520 tecken → medellånga listor (t.ex. ACO,
+                      // 270 tecken) klipptes UTAN sätt att expandera. Nu följs de åt.
+                      maxHeight:
+                        expanded || rawIngredients.length <= INGREDIENTS_COLLAPSE_AT ? "none" : 160,
+                    }}
                   >
                     <IngredientTokenList ingredientsText={ingredientPreview} />
                   </div>
                 )}
-                {!editMode && rawIngredients.length > 520 && (
+                {!editMode && rawIngredients.length > INGREDIENTS_COLLAPSE_AT && (
                   <button
                     type="button"
                     onClick={() => setExpanded((value) => !value)}
