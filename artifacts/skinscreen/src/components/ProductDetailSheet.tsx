@@ -273,6 +273,7 @@ export function ProductDetailSheet({
   const [editImageError, setEditImageError] = useState<string | null>(null);
   const [isSavingToShelf, setIsSavingToShelf] = useState(false);
   const [savedToShelf, setSavedToShelf] = useState(false);
+  const [addedToCatalog, setAddedToCatalog] = useState(false);
   // SS-079 (#flag): "Rapportera felaktig info" — POSTs to the existing
   // /api/products/:barcode/report endpoint (product_reports table).
   const [flagOpen, setFlagOpen] = useState(false);
@@ -603,7 +604,12 @@ export function ProductDetailSheet({
       setLocalRoutineSlot("wishlist");
       await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
       setSavedToShelf(true);
-      contributeToCatalog();
+      // SS-082: catalog write now happens server-side; infer receipt locally
+      // using the same conditions: real EAN + INCI ≥ 20 chars.
+      if (hasRealBarcode && barcode && rawIngredients.length >= 20) {
+        setAddedToCatalog(true);
+      }
+      contributeToCatalog(); // keep for now until server-side fully tested
     } catch {
       // silent — user kan försöka igen
     } finally {
@@ -960,10 +966,18 @@ export function ProductDetailSheet({
                 {isSavingToShelf ? t("common.loading") : t("contribute.save")}
               </button>
             ) : (
-              <p className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
-                <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
-                {t("product.addedToRoutine")}
-              </p>
+              <div className="space-y-1">
+                <p className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                  {t("product.addedToRoutine")}
+                </p>
+                {addedToCatalog && (
+                  <p className="flex items-center gap-2 text-xs" style={{ color: "var(--sage-deep)", opacity: 0.8 }}>
+                    <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden />
+                    {t("product.addedToCatalog")}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* 2. Analysera */}

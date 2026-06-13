@@ -9,6 +9,7 @@ import {
   sanitizeIngredients,
   SanitizationError,
 } from "../lib/sanitize.js";
+import { isValidGtin } from "../lib/ean.js";
 import {
   computeCompareHash,
   getCacheEntry,
@@ -143,7 +144,60 @@ router.post("/shelf", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to add product" });
     return;
   }
-  res.json(mapShelfRow(product as Record<string, unknown>));
+
+  // SS-082: flytta katalog-skrivningen hit från klienten.
+  // Alla spara-ytor (kortet, scanner-blocket, MyShelf-formuläret) går genom
+  // POST /api/shelf — om produkten har riktig EAN + INCI skrivs den in i
+  // cached_products (upsert, source='user') och köas för granskning.
+  // Klienten behöver inte längre hålla koll på inCache-flaggan för detta.
+  let addedToCatalog = false;
+  const barcode = parsed.data.barcode ?? null;
+  const isRealEan = Boolean(barcode && /^[0-9]{8,14}$/.test(barcode) && isValidGtin(barcode));
+  if (isRealEan && safeIngredients.length >= 20) {
+    try {
+      // Upsert into shared catalog. Do not overwrite a better existing entry.
+      const { error: cacheError } = await supabase
+        .from("cached_products")
+        .upsert(
+          {
+            barcode,
+            product_name: safeName,
+            brand: safeName.split(" ")[0] ?? safeName,
+            ingredients: safeIngredients,
+            image_url: parsed.data.image_url ?? null,
+            cached_at: new Date().toISOString(),
+            source: "user",
+          },
+          { onConflict: "barcode", ignoreDuplicates: false },
+        );
+      if (cacheError) {
+        req.log?.warn?.({ err: cacheError }, "catalog upsert failed (non-fatal)");
+      } else {
+        addedToCatalog = true;
+        // Queue for admin review (non-fatal if this fails)
+        await supabase
+          .from("user_submitted_products")
+          .insert({
+            barcode,
+            product_name: safeName,
+            brand: null,
+            ingredients: safeIngredients,
+            submitted_by: req.user.id,
+            status: "needs_admin",
+            obf_contributed: "pending",
+            reward_granted: false,
+          })
+          .then(({ error: subErr }) => {
+            if (subErr) req.log?.warn?.({ err: subErr }, "submission queue insert failed (non-fatal)");
+          });
+      }
+    } catch (err) {
+      req.log?.warn?.({ err }, "catalog contribution threw (non-fatal)");
+    }
+  }
+
+  const row = mapShelfRow(product as Record<string, unknown>);
+  res.json({ ...row, addedToCatalog });
 });
 
 router.patch("/shelf/:id", async (req: Request, res: Response) => {

@@ -27,7 +27,7 @@ interface ContributeStats {
 
 interface RecentScan {
   name: string;
-  verdict: "safe" | "warning" | "high";
+  verdict?: "safe" | "warning" | "high"; // undefined = not yet analysed
   at: number; // ms epoch
   product?: ProductDetailProduct;
 }
@@ -73,8 +73,7 @@ function readRecent(): RecentScan[] {
           typeof r === "object" &&
           r !== null &&
           typeof (r as RecentScan).name === "string" &&
-          typeof (r as RecentScan).at === "number" &&
-          (r as RecentScan).verdict !== undefined,
+          typeof (r as RecentScan).at === "number",
       )
       .slice(0, MAX_RECENT);
   } catch {
@@ -167,7 +166,7 @@ export default function ScanScreen() {
       if (detail?.productName) {
         const entry: RecentScan = {
           name: detail.productName,
-          verdict: detail.verdict ?? "safe",
+          verdict: detail.verdict, // SS-082: no false "safe" for unanalysed products
           at: Date.now(),
           product: detail.product ?? {
             product_name: detail.productName,
@@ -395,7 +394,7 @@ export default function ScanScreen() {
       setRecent((prev) => {
         const entry: RecentScan = {
           name,
-          verdict: "safe", // okänd tills användaren kör "Analysera nu"; ej visad som prick
+          verdict: undefined, // SS-082: no false "safe" for unanalysed products; shown as neutral dot
           at: Date.now(),
           product: detail,
         };
