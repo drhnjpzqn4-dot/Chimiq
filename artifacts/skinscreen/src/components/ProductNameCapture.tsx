@@ -17,6 +17,12 @@ export interface ProductNameCaptureProps {
   brand: string;
   onProductNameChange: (value: string) => void;
   onBrandChange: (value: string) => void;
+  /**
+   * SS-083 (#2): tvinga namn/märke-kameran dold. Används i ProductCapture där
+   * framsidesfotot redan tas av ProductImageCapture (som även kör namn/märke-OCR),
+   * så ett andra framsidesfoto är överflödigt. Default: auto-detect touch/native.
+   */
+  showCamera?: boolean;
   className?: string;
 }
 
@@ -25,6 +31,7 @@ export function ProductNameCapture({
   brand,
   onProductNameChange,
   onBrandChange,
+  showCamera,
   className,
 }: ProductNameCaptureProps) {
   const { t } = useTranslation();
@@ -37,7 +44,7 @@ export function ProductNameCapture({
     if (typeof window === "undefined") return false;
     return "ontouchstart" in window || navigator.maxTouchPoints > 0;
   }, []);
-  const cameraVisible = isTouchDevice || isNative();
+  const cameraVisible = showCamera ?? (isTouchDevice || isNative());
 
   const scanProductName = useScanProductName({
     mutation: {

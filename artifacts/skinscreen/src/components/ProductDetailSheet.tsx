@@ -271,8 +271,11 @@ export function ProductDetailSheet({
   const [openIngredient, setOpenIngredient] = useState<string | null>(null);
   const [openIngredientFlag, setOpenIngredientFlag] = useState<IngredientDetailFlag | null>(null);
   const [editImageError, setEditImageError] = useState<string | null>(null);
-  const [isSavingToShelf, setIsSavingToShelf] = useState(false);
-  const [savedToShelf, setSavedToShelf] = useState(false);
+  // SS-083 (#3): "Spara" sparar nu till KATALOGEN (databasen/contribute), INTE till
+  // användarens hylla. Att lägga i egen rutin/hylla är ett separat, uttryckligt steg
+  // (canAddToRoutine-sektionen längre ned). Ordning: Spara i katalog → Analysera → Lägg i rutin.
+  const [isSavingToCatalog, setIsSavingToCatalog] = useState(false);
+  const [saveCatalogError, setSaveCatalogError] = useState<string | null>(null);
   const [addedToCatalog, setAddedToCatalog] = useState(false);
   // SS-079 (#flag): "Rapportera felaktig info" — POSTs to the existing
   // /api/products/:barcode/report endpoint (product_reports table).
@@ -385,6 +388,10 @@ export function ProductDetailSheet({
   // en streckkod — annars saknas "Bidra till databasen"-CTA:n. DB-träffar och
   // hyll-produkter har inCache true/undefined och påverkas inte.
   const notInCache = product.inCache === false;
+  // SS-083 (#3): produkten räknas som "i katalogen" om den redan fanns där (sök/streckkods-
+  // träff, inCache !== false) ELLER om användaren just sparat den. Analysera-knappen i
+  // scan-flödet låses upp först när detta är sant (Pias ordning: spara → analysera).
+  const inCatalog = !notInCache || addedToCatalog;
   const isNotInDb = (!hasRealBarcode || notInCache) && !product.shelfId;
   const missingField = isNotInDb
     ? null
@@ -583,37 +590,48 @@ export function ProductDetailSheet({
     }).catch(() => { /* non-blocking: catalog contribution is best-effort */ });
   };
 
-  const handleSaveToShelf = async () => {
-    if (isSavingToShelf || savedToShelf || effectiveShelfId) return;
-    setIsSavingToShelf(true);
+  // SS-083 (#3): "Spara" sparar produkten till den DELADE katalogen (cached_products
+  // via /contribute/manual) — INTE till användarens egen hylla. Det var förvirrande att
+  // "Spara" lade produkten direkt i ens rutin. Att lägga i rutinen är nu ett separat steg.
+  // Kräver INCI (≥ 20 tecken) så katalogposten är meningsfull. Streckkod är valfri:
+  // servern skapar en CHIMIQ_-platshållare när EAN saknas (samma väg som handleSaveEdits).
+  const handleSaveToCatalog = async () => {
+    if (isSavingToCatalog || addedToCatalog) return;
+    if (rawIngredients.length < 20) {
+      setSaveCatalogError(t("complete.needEanOrIngredients"));
+      return;
+    }
+    setIsSavingToCatalog(true);
+    setSaveCatalogError(null);
     try {
-      const imageUrlForShelf =
+      const digits = (barcode ?? "").replace(/\D/g, "");
+      const hasRealEan = /^[0-9]{8,14}$/.test(digits);
+      const permanentImage =
         imageUrl && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))
           ? imageUrl
           : undefined;
-      const created = await addToShelfMutation.mutateAsync({
-        data: {
-          productName: displayName,
-          ingredients: rawIngredients,
-          routineSlot: "wishlist",
-          image_url: imageUrlForShelf ?? null,
-          barcode: barcode ?? null,
-        },
+      const body: Record<string, string> = {
+        source_type: "package",
+        ingredients: rawIngredients,
+      };
+      if (hasRealEan) body.barcode = digits;
+      if (productName) body.productName = productName;
+      if (localBrand.trim()) body.brand = localBrand.trim();
+      if (permanentImage) body.imageUrl = permanentImage;
+      // Kompletterar vi en CHIMIQ_-platshållare? Uppdatera befintlig rad, skapa ingen dublett.
+      if (barcode && barcode.startsWith("CHIMIQ_")) body.placeholderBarcode = barcode;
+      const res = await apiFetch("/api/contribute/manual", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
-      setLocalShelfId(created.id);
-      setLocalRoutineSlot("wishlist");
-      await queryClient.invalidateQueries({ queryKey: getGetShelfQueryKey() });
-      setSavedToShelf(true);
-      // SS-082: catalog write now happens server-side; infer receipt locally
-      // using the same conditions: real EAN + INCI ≥ 20 chars.
-      if (hasRealBarcode && barcode && rawIngredients.length >= 20) {
-        setAddedToCatalog(true);
-      }
-      contributeToCatalog(); // keep for now until server-side fully tested
+      if (!res.ok) throw new Error(String(res.status));
+      setAddedToCatalog(true);
     } catch {
-      // silent — user kan försöka igen
+      setSaveCatalogError(t("complete.saveError"));
     } finally {
-      setIsSavingToShelf(false);
+      setIsSavingToCatalog(false);
     }
   };
 
@@ -950,38 +968,40 @@ export function ProductDetailSheet({
           </div>
         )}
 
-        {/* fromScan CTA-rad: Spara → Analysera → Lägg i rutin */}
+        {/* SS-083 (#3) fromScan CTA-ordning: 1) Spara i katalogen (databasen, INTE hyllan)
+            → 2) Analysera (upplåst när produkten är i katalogen) → 3) Lägg i rutin (separat
+            steg i canAddToRoutine-sektionen längre ned). */}
         {fromScan && !verdict && (
           <div className="space-y-2 px-5 pt-3">
-            {/* 1. Spara */}
-            {!effectiveShelfId && !savedToShelf ? (
-              <button
-                type="button"
-                onClick={() => void handleSaveToShelf()}
-                disabled={isSavingToShelf}
-                className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-base font-semibold text-white disabled:opacity-60"
-                style={{ backgroundColor: "var(--sage)" }}
-              >
-                <Save className="h-4 w-4" aria-hidden />
-                {isSavingToShelf ? t("common.loading") : t("contribute.save")}
-              </button>
-            ) : (
-              <div className="space-y-1">
-                <p className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
-                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
-                  {t("product.addedToRoutine")}
-                </p>
-                {addedToCatalog && (
-                  <p className="flex items-center gap-2 text-xs" style={{ color: "var(--sage-deep)", opacity: 0.8 }}>
-                    <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden />
-                    {t("product.addedToCatalog")}
-                  </p>
-                )}
-              </div>
+            {/* 1. Spara i katalogen — bara för produkter som inte redan finns där och
+                som har INCI. Saknas INCI visas "lägg till ingredienser"-blocket nedan. */}
+            {notInCache && !addedToCatalog ? (
+              rawIngredients.length >= 20 && (
+                <button
+                  type="button"
+                  onClick={() => void handleSaveToCatalog()}
+                  disabled={isSavingToCatalog}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-base font-semibold text-white disabled:opacity-60"
+                  style={{ backgroundColor: "var(--sage)" }}
+                >
+                  <Save className="h-4 w-4" aria-hidden />
+                  {isSavingToCatalog ? t("common.loading") : t("product.saveToCatalog")}
+                </button>
+              )
+            ) : addedToCatalog ? (
+              <p className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--sage-deep)" }}>
+                <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                {t("product.addedToCatalog")}
+              </p>
+            ) : null}
+            {saveCatalogError && (
+              <p className="text-sm" style={{ color: "#C94F4F" }}>
+                {saveCatalogError}
+              </p>
             )}
 
-            {/* 2. Analysera */}
-            {showAnalyzeButton && !isAnalyzing && (
+            {/* 2. Analysera — tillgänglig först när produkten är i katalogen. */}
+            {inCatalog && showAnalyzeButton && !isAnalyzing && (
               <button
                 type="button"
                 onClick={handleAnalyze}
@@ -1003,9 +1023,8 @@ export function ProductDetailSheet({
               </p>
             )}
 
-            {/* SS-078: "Lägg till i rutin" flyttad — fanns dubbelt (här + i kropps-
-                sektionen nedan). Endast knappen med slot-väljaren (morgon/kväll/
-                ibland) behålls, annars såg det ut som att appen inte frågade VAR. */}
+            {/* 3. "Lägg till i rutin" = separat, uttryckligt steg i canAddToRoutine-
+                sektionen längre ned (slot-väljare morgon/kväll/ibland). */}
           </div>
         )}
 

@@ -795,8 +795,49 @@ och låt admin godkänna) — flaggat som icke-uppenbart, lätt att glömma.
    till **hello@chimiq.com** (`notifyReportInbox`) — KRÄVER `RESEND_API_KEY` i backend-miljön; Resend
    ej konfigurerat ännu → mejl hoppas tyst över, raden sparas + syns i admin oavsett.
 
+## BESLUT-SS-083: Färre foton (#2), spara-till-katalog före hylla (#3), Safety Gate live-feed (#4)
+- **Datum:** 2026-06-22 — **Status:** Aktiv. #2/#3 = KLIENT (TestFlight-build krävs), #4 = BACKEND (Railway).
+
+1. **#2 — ETT framsidesfoto istället för två (klient).** Uppladdningsflödet bad tidigare om TVÅ
+   framsidesfoton: ett för produktbilden (`ProductImageCapture`) och ett till för namn/märke-OCR
+   (`ProductNameCapture`s egen kamera) — samma flaska. Nu tar `ProductImageCapture` ETT foto som
+   blir BÅDE produktbilden OCH körs genom namn/märke-OCR (`extractProductNameFromImage`) när
+   `onScanResult` ges. Nytt flöde: streckkod → 1 framsidesfoto (bild + namn/märke) → 1 ingrediensfoto.
+   - `ProductImageCapture`: ny valfri `onScanResult`-prop + inbyggd OCR (samma `useScanProductName`-hook
+     som ProductNameCapture) + nativ kamera (Capacitor) på iOS. Utan `onScanResult` = oförändrat beteende.
+   - `ProductNameCapture`: ny `showCamera`-prop; i `ProductCapture` sätts `showCamera={false}` så
+     namn/märke-fälten är redigerbara men kameran är dold (inget andra foto av samma flaska).
+   - Ny i18n: `productImage.frontPhotoHint` (EN/SV/FR/ES).
+
+2. **#3 — "Spara" sparar till KATALOGEN, inte till hyllan (klient).** Tidigare la "Spara"-knappen i
+   scan-kortet produkten direkt i användarens rutin/hylla (`addToShelf`, slot `wishlist`) — förvirrande.
+   Pias ordning nu: **(1) Spara i katalogen (contribute) → (2) Analysera (upplåst när produkten är i
+   katalogen) → (3) Lägg i rutin (separat, uttryckligt steg).**
+   - `ProductDetailSheet`: `handleSaveToShelf` ersatt av `handleSaveToCatalog` (POST
+     `/api/contribute/manual`, kräver INCI ≥ 20 tecken; EAN valfritt — servern skapar CHIMIQ_-platshållare).
+     Spar-knappen rör inte längre hyllan.
+   - Analysera-knappen i scan-flödet gatas på `inCatalog` (`!notInCache || addedToCatalog`).
+   - "Lägg till i rutin" kvar som separat steg (`canAddToRoutine`-sektionen, slot-väljare).
+   - Ny i18n: `product.saveToCatalog` (EN/SV/FR/ES). `product.addedToCatalog` återanvänds som kvitto.
+   - Bygger vidare på ss-082 (server-side katalogskrivning) — nu är även KLIENT-knappen katalog-först.
+
+3. **#4 — Safety Gate-pollern pekar på en levande feed (backend).** Gamla RAPEX-URL:en
+   (`…/RAPEX_ALERTS_1_3.xml`) returnerar numera HTML (`non_xml_response`) → inga recalls in. EU:s nya
+   "Safety Gate"-portal är en JS-SPA med JSON-API utan enkel publik RSS. `DEFAULT_FEED_URL` pekar nu på
+   OpenDataSoft-spegeln av samma RAPEX-dataset (`healthref-europe-rapex-en`, RSS-export) som den
+   beroendefria regex-parsern kan läsa som den är. Ny `SAFETY_GATE_FEED_URL` env-override (Railway
+   Variables) → byt feed utan kod-deploy. Ny admin-gatead `POST /api/recalls/poll` för verifiering på begäran.
+   - **Trade-off (för icke-utvecklare):** OpenDataSoft-spegeln byggs om från EU:s Excel-export och kan
+     släpa några dagar efter den officiella portalen. OK för veckovis recall-bevakning; behövs samma-dag
+     kan `SAFETY_GATE_FEED_URL` pekas om senare.
+   - ⚠️ **KVAR att verifiera:** web_fetch timeoutade i Cowork-sessionen → ingen live-poll kördes. Efter
+     Railway-deploy: logga in som admin och kör `POST /api/recalls/poll`; om `matched: 0` behöver
+     parsern (titel/kategori-filtret) justeras mot OpenDataSoft-RSS:ens faktiska fältformat.
+
 ---
 
-*Senast uppdaterad: 2026-06-09 (SS-081 + 081b: komplettera-platshållare-flödet, kamera-OCR, datastädning
-(katalog 2 461), scraper härdad; DELAD analys-persistens (betala en gång), dubbel-märke-fix, rosa
-flask-platshållare, sök-interstitial borttagen. KVAR: bild-omkörning på Stina, OBF-prefix-städning.)*
+*Senast uppdaterad: 2026-06-22 (SS-083: ett framsidesfoto (#2), spara-till-katalog-först + analysera-
+gate + separat lägg-i-rutin (#3), Safety Gate OpenDataSoft-feed + env-override + admin-poll-endpoint (#4 —
+KVAR: live-poll-verifiering på Railway). Typecheck grön i båda paketen. — tidigare: SS-081 + 081b:
+komplettera-platshållare-flödet, kamera-OCR, datastädning (katalog 2 461), scraper härdad; DELAD
+analys-persistens (betala en gång), dubbel-märke-fix, rosa flask-platshållare, sök-interstitial borttagen.)*

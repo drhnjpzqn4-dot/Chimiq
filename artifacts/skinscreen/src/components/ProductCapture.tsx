@@ -69,18 +69,31 @@ export function ProductCapture({ initialData, onAnalyzed, className }: ProductCa
 
   return (
     <div className={className}>
-      {/* Bild-fältet — kamera + förhandsgranskning */}
-      <div className="mb-4">
-        <ProductImageCapture value={imageDataUrl} onChange={setImageDataUrl} />
+      {/* SS-083 (#2): ETT framsidesfoto — blir både produktbilden OCH läser
+          namn/märke via OCR. Namn/märke-fälten nedan förifylls och är redigerbara. */}
+      <div className="mb-1">
+        <ProductImageCapture
+          value={imageDataUrl}
+          onChange={setImageDataUrl}
+          onScanResult={(r) => {
+            if (r.productName) setProductName(r.productName);
+            if (r.brand) setBrand(r.brand);
+          }}
+        />
       </div>
+      <p className="mb-4 text-xs" style={{ color: "var(--ink-soft)" }}>
+        {t("productImage.frontPhotoHint")}
+      </p>
 
-      {/* Formulärfält */}
+      {/* Formulärfält — namn/märke kommer från framsidesfotot ovan (kamera dold här
+          så användaren inte ombeds fota samma flaska två gånger). */}
       <div className="space-y-3">
         <ProductNameCapture
           productName={productName}
           brand={brand}
           onProductNameChange={setProductName}
           onBrandChange={setBrand}
+          showCamera={false}
         />
         <input
           type="text"

@@ -1,8 +1,28 @@
 import { createHash } from "node:crypto";
 import { supabaseAdmin } from "./supabase-admin.js";
 
+// SS-083: the legacy RAPEX repository XML (…/RAPEX_ALERTS_1_3.xml) was retired when
+// the EU moved to the "Safety Gate" portal — a JavaScript single-page app backed by a
+// JSON API with no simple public RSS/XML list endpoint. The old URL now returns an HTML
+// page, so the poller saw `non_xml_response` and ingested nothing.
+//
+// We instead poll the OpenDataSoft mirror of the same Safety Gate / RAPEX dataset, which
+// exposes a stable, standards-compliant RSS export that the existing regex parser can
+// read as-is (<item>/<title>/<description>/<link>/<pubDate>). Override at runtime with the
+// SAFETY_GATE_FEED_URL env var (Railway → Variables) — no code deploy needed to repoint.
+//
+// Trade-off worth knowing (non-developer summary): this mirror is rebuilt from the EU's
+// published Excel exports, so it can lag the official portal by a few days. For weekly
+// recall monitoring that delay is fine; if we ever need same-day alerts we just set
+// SAFETY_GATE_FEED_URL to an official feed once the EU exposes one.
 const DEFAULT_FEED_URL =
-  "https://ec.europa.eu/consumers/consumers_safety/safety_products/rapex/alerts/repository/RAPEX_ALERTS_1_3.xml";
+  "https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/healthref-europe-rapex-en/exports/rss?lang=en";
+
+/** DEFAULT_FEED_URL unless an explicit arg or the SAFETY_GATE_FEED_URL env var overrides it. */
+function resolveFeedUrl(explicit?: string): string {
+  const fromEnv = process.env.SAFETY_GATE_FEED_URL?.trim();
+  return explicit ?? (fromEnv && fromEnv.length > 0 ? fromEnv : DEFAULT_FEED_URL);
+}
 
 function stripCdata(raw: string): string {
   return raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, "$1").trim();
@@ -114,9 +134,10 @@ export interface PollSafetyGateResult {
  * Parsing is intentionally dependency-free (regex / string ops only).
  */
 export async function pollSafetyGate(
-  feedUrl: string = DEFAULT_FEED_URL,
+  feedUrl?: string,
 ): Promise<PollSafetyGateResult> {
-  const res = await fetch(feedUrl, {
+  const url = resolveFeedUrl(feedUrl);
+  const res = await fetch(url, {
     headers: {
       Accept: "application/rss+xml, application/xml, text/xml, */*",
       "User-Agent": "ChimiqSafetyGatePoller/1.0 (+https://chimiq)",
@@ -125,7 +146,7 @@ export async function pollSafetyGate(
   if (!res.ok) {
     return {
       ok: false,
-      feedUrl,
+      feedUrl: url,
       reason: `http_${res.status}`,
       itemBlocks: 0,
       matched: 0,
@@ -137,7 +158,7 @@ export async function pollSafetyGate(
   if (trimmed.startsWith("<!") || trimmed.toLowerCase().startsWith("<html")) {
     return {
       ok: false,
-      feedUrl,
+      feedUrl: url,
       reason: "non_xml_response",
       itemBlocks: 0,
       matched: 0,
@@ -178,7 +199,7 @@ export async function pollSafetyGate(
 
   return {
     ok: true,
-    feedUrl,
+    feedUrl: url,
     itemBlocks: blocks.length,
     matched,
     inserted,
