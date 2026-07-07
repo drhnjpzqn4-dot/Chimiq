@@ -4,7 +4,11 @@ import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/
 import { useScanProductName } from "@workspace/api-client-react";
 import { useTranslation } from "@/lib/i18n";
 import { isNative } from "@/lib/native";
-import { resizeImageDataUrlToBase64, resizeImageFileToBase64 } from "@/lib/imageUtils";
+import {
+  resizeImageDataUrlToBase64,
+  resizeImageFileToBase64,
+  padToSquareDataUrl,
+} from "@/lib/imageUtils";
 
 /**
  * ProductImageCapture — EN front-of-bottle-bild som blir produktbilden
@@ -96,13 +100,24 @@ export function ProductImageCapture({
     scanProductName.mutate({ data: { imageBase64: base64, mimeType: "image/jpeg" } });
   };
 
+  // SS-092: alla vägar in i produktbilden går via denna — paddar till 1:1 vit
+  // kvadrat (butiks-packshot-format) innan den sparas/visas. Faller tillbaka på
+  // originalet om canvas skulle fela, så en bild aldrig går förlorad.
+  const setSquaredImage = async (rawDataUrl: string) => {
+    try {
+      onChange(await padToSquareDataUrl(rawDataUrl));
+    } catch {
+      onChange(rawDataUrl);
+    }
+  };
+
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => onChange(reader.result as string);
+    reader.onload = () => void setSquaredImage(reader.result as string);
     reader.readAsDataURL(file);
-    // Kör namn/märke-OCR på samma fil (egen resize-pipeline för OCR-endpointen).
+    // Kör namn/märke-OCR på ORIGINALfilen (full upplösning läser text bäst).
     if (onScanResult) {
       resizeImageFileToBase64(file)
         .then(runScan)
@@ -122,7 +137,7 @@ export function ProductImageCapture({
           source: CameraSource.Camera,
         });
         if (!photo.dataUrl) return;
-        onChange(photo.dataUrl);
+        void setSquaredImage(photo.dataUrl);
         if (onScanResult) {
           const base64 = await resizeImageDataUrlToBase64(photo.dataUrl);
           runScan(base64);
@@ -151,11 +166,11 @@ export function ProductImageCapture({
 
       {value ? (
         // Bild laddad — visa preview + kryss för att ta bort
-        <div className="relative overflow-hidden rounded-xl border border-[var(--line)]">
+        <div className="relative mx-auto aspect-square w-full max-w-xs overflow-hidden rounded-xl border border-[var(--line)] bg-white">
           <img
             src={value}
             alt=""
-            className="block h-40 w-full object-cover"
+            className="block h-full w-full object-contain"
           />
           <button
             type="button"
@@ -193,28 +208,38 @@ export function ProductImageCapture({
           )}
         </div>
       ) : (
-        // Tom state — klickbar yta som öppnar kamera/filväljare
+        // Tom state — kvadratisk (1:1) yta med inramningsguide som visar önskat
+        // format: produkten centrerad, fyller rutan, på neutral bakgrund.
         <button
           type="button"
           data-touch-target
           onClick={() => void openCapture()}
           disabled={scanning}
-          className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-colors hover:bg-[var(--cream)] disabled:opacity-60"
+          className="relative mx-auto flex aspect-square w-full max-w-xs flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-colors hover:bg-[var(--cream)] disabled:opacity-60"
           style={{
             borderColor: "var(--line)",
             backgroundColor: "var(--cream-warm)",
             color: "var(--ink-soft)",
           }}
         >
+          {/* Inramningsguide: hörnmarkeringar + flask-silhuett (rent visuell hint) */}
+          <span aria-hidden className="pointer-events-none absolute inset-3">
+            <span className="absolute left-0 top-0 h-5 w-5 rounded-tl-md border-l-2 border-t-2" style={{ borderColor: "var(--sage)" }} />
+            <span className="absolute right-0 top-0 h-5 w-5 rounded-tr-md border-r-2 border-t-2" style={{ borderColor: "var(--sage)" }} />
+            <span className="absolute bottom-0 left-0 h-5 w-5 rounded-bl-md border-b-2 border-l-2" style={{ borderColor: "var(--sage)" }} />
+            <span className="absolute bottom-0 right-0 h-5 w-5 rounded-br-md border-b-2 border-r-2" style={{ borderColor: "var(--sage)" }} />
+          </span>
           {scanning ? (
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--sage)" }} aria-hidden />
+            <Loader2 className="h-7 w-7 animate-spin" style={{ color: "var(--sage)" }} aria-hidden />
           ) : (
-            <Camera className="h-6 w-6" style={{ color: "var(--sage)" }} aria-hidden />
+            <Camera className="h-7 w-7" style={{ color: "var(--sage)" }} aria-hidden />
           )}
           <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>
             {t("productImage.addProductPhoto")}
           </span>
-          <span className="text-xs">{t("productImage.tapToPhotograph")}</span>
+          <span className="max-w-[80%] text-center text-xs leading-snug">
+            {t("productImage.framingHint")}
+          </span>
         </button>
       )}
 

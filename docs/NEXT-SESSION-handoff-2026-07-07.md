@@ -16,9 +16,9 @@ There's a leftover git lock from the sandbox. In Terminal:
 ```bash
 cd ~/PiasVentures/chimiq-code
 rm -f .git/index.lock                 # clear the stuck lock
-git reset git                         # unstage the stray 0-byte file named "git"
-git add artifacts/api-server docs/DECISIONS.md docs/NEXT-SESSION-handoff-2026-07-07.md
-git commit -m "SS-090/091: ground routine-check citations in curated conflict db; expand ingredient encyclopedia 88->130"
+git reset git 2>/dev/null || true     # unstage the stray 0-byte file named "git"
+git add artifacts/ harvest_lyko.py skinscreen/DECISIONS.md docs/
+git commit -m "SS-090/091/092: routine-check citation grounding; ingredient encyclopedia 88->130; square 1:1 product-image capture; Lyko scraper rewrite"
 git push origin main
 ```
 Railway rebuilds the backend automatically from `main`. That ships:
@@ -31,6 +31,17 @@ Railway rebuilds the backend automatically from `main`. That ships:
   sv+en explanation and a real source. New: phthalates, Lilial & Zinc Pyrithione (EU-banned 2022), PFAS,
   hair-dye allergens (PPD), nail toxins (toluene, TPHP), synthetic musks, aluminium salts, boron
   (reprotoxic), illegal mercury lighteners, heavy-metal contaminants, and more.
+
+## NEW (SS-092): square product-image frame + Lyko scraper rewrite
+- **Square 1:1 packshot capture** (`ProductImageCapture.tsx`, `imageUtils.ts`, `i18n.tsx`): the front
+  photo is now padded to a 1:1 white square (same format Lyko/Apotea/Kicks use — verified they all
+  display 1:1 on white). Empty state shows a square frame with corner guides + hint "Center the
+  product, fill the frame, plain background". Never crops the bottle; pads short edges white. OCR still
+  runs on the full-res original. Ships in the **same TestFlight build** as the 2-photo flow below.
+- **Lyko scraper rewrite** (`harvest_lyko.py`, runs on Stina): robust accordion open + waits for the
+  INCI panel to actually fill + scoped extraction (no more whole-page fallback that leaked reviews).
+  New diagnostic per line: `INCI:–(rubrik fanns)` = Lyko has no INCI for that product (enrich via OBF),
+  vs a real miss. Old version saved in `_files-to-delete/`. Run the 5-item test first, send me counts.
 
 ## ⚠️ Needs you: the 2-photo add flow (your other request) — ONE TestFlight build
 Good news: the "one front photo + one ingredients photo → save → analyze or add to routine" flow you

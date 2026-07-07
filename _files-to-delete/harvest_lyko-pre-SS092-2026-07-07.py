@@ -183,41 +183,8 @@ JS_EXTRACT = r"""
         return good;                                  // higher = more complete list
     }
 
-    // SS-092: SCOPED extraction. Lyko laddar INCI i "Ingredienser"-panelen via JS.
-    // Vi letar EFTER den panelen specifikt istället för att skanna hela sidan (den
-    // gamla fallbacken drog in recensioner/promo). Strategi, i prioritetsordning:
-    //   1. Element vars aria-label/id/class nämner ingrediens/inci.
-    //   2. Panelen som hör till en "Ingredienser"-rubrik/knapp (accordion):
-    //      hitta elementet vars EGEN text är ~"Ingredienser" och läs dess
-    //      syskon/container-text.
-    //   3. INGEN blind helsides-fallback. Hellre null än fel lista.
-    function panelForHeading() {
-        var out = [];
-        var all = document.querySelectorAll('button, h2, h3, h4, summary, [role=tab], span, div, a');
-        for (var i = 0; i < all.length; i++) {
-            var el = all[i];
-            var own = (el.childElementCount === 0 ? (el.innerText || '') : '').trim();
-            if (!/^ingredienser$|^ingredients$|^inci$/i.test(own)) continue;
-            // Gå uppåt några nivåer och samla text från containern (utan själva rubriken).
-            var node = el;
-            for (var up = 0; up < 4 && node; up++) {
-                node = node.parentElement;
-                if (!node) break;
-                var txt = (node.innerText || '').trim();
-                // ta bort rubrikordet i början
-                txt = txt.replace(/^\s*(ingredienser|ingredients|inci)\s*/i, '').trim();
-                if (txt.length > 30) out.push(txt);
-                // syskonpanel (vanligt i accordions: knapp följs av panel-div)
-                if (node.nextElementSibling && node.nextElementSibling.innerText) {
-                    out.push(node.nextElementSibling.innerText.trim());
-                }
-            }
-            if (el.nextElementSibling && el.nextElementSibling.innerText) {
-                out.push(el.nextElementSibling.innerText.trim());
-            }
-        }
-        return out;
-    }
+    // Prefer an explicit "Ingredienser/INCI" container; fall back to whole page,
+    // but every candidate must pass the strict validator above.
     function collectInciCandidates() {
         var out = [];
         var labelled = document.querySelectorAll('[aria-label],[id],[class]');
@@ -228,30 +195,21 @@ JS_EXTRACT = r"""
                         (el.getAttribute('class') || ''));
             if (/ingrediens|inci/i.test(meta) && el.innerText) out.push(el.innerText.trim());
         }
-        // Scoped panel-kandidater (ersätter den gamla helsides-skanningen).
-        var scoped = panelForHeading();
-        for (var s = 0; s < scoped.length; s++) out.push(scoped[s]);
+        var elems = document.querySelectorAll('p, div, span, section, li, td');
+        for (var j = 0; j < elems.length; j++) {
+            out.push(elems[j].innerText ? elems[j].innerText.trim() : '');
+        }
         return out;
     }
     var inci = null, best = 0;
     var cands = collectInciCandidates();
     for (var i = 0; i < cands.length; i++) {
-        var sc = inciScore(cands[i]);
-        if (sc > best) { best = sc; inci = cands[i]; }
-    }
-
-    // Signalera om vi hittade rubriken men ingen giltig INCI — hjälper diagnos
-    // (produkten saknar troligen INCI hos Lyko → berika via OBF/EAN istället).
-    var headingSeen = false;
-    var hs = document.querySelectorAll('button, h2, h3, h4, summary, [role=tab], span, div, a');
-    for (var q = 0; q < hs.length; q++) {
-        var t = (hs[q].childElementCount === 0 ? (hs[q].innerText || '') : '').trim();
-        if (/^ingredienser$|^ingredients$|^inci$/i.test(t)) { headingSeen = true; break; }
+        var s = inciScore(cands[i]);
+        if (s > best) { best = s; inci = cands[i]; }
     }
 
     return JSON.stringify({name: name, brand: brand, price: price,
-                           ean: ean, image: image, inci: inci,
-                           headingSeen: headingSeen});
+                           ean: ean, image: image, inci: inci});
 }
 """
 
@@ -393,60 +351,34 @@ def scrape_lyko_product(url, ctx, category=None):
     data = None
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=35000)
-        page.wait_for_timeout(1500)
+        page.wait_for_timeout(1800)
         dismiss_cookies(page)
 
-        # SS-092: Öppna "Ingredienser"-accordionen ROBUST. Lyko renderar den som
-        # en exakt-text-knapp/rubrik. Vi klickar ALLA matchande (accordion kan ha
-        # både "Beskrivning" och "Ingredienser") och scrollar in dem först.
+        # Klicka "Ingredienser"-fliken
         inci_clicked = False
-        try:
-            # exact=True → matchar bara elementet vars egen text ÄR "Ingredienser"
-            loc = page.get_by_text(re.compile(r"^\s*(Ingredienser|Ingredients|INCI)\s*$", re.I))
-            n = loc.count()
-            for i in range(min(n, 4)):
-                try:
-                    el = loc.nth(i)
-                    el.scroll_into_view_if_needed(timeout=2000)
-                    el.click(timeout=2500)
-                    inci_clicked = True
-                    page.wait_for_timeout(500)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        # Fallback: äldre selektorer om get_by_text inte fångade något.
-        if not inci_clicked:
-            for sel in ["button:has-text('Ingredienser')",
-                        "[role='tab']:has-text('Ingredienser')",
-                        "summary:has-text('Ingredienser')",
-                        "text=Ingredienser"]:
-                try:
-                    l = page.locator(sel)
-                    if l.count() > 0:
-                        l.first.scroll_into_view_if_needed(timeout=2000)
-                        l.first.click(timeout=2500)
-                        inci_clicked = True
-                        page.wait_for_timeout(500)
-                        break
-                except Exception:
-                    pass
-
-        # SS-092: VÄNTA på att panelen faktiskt fylls med INCI-liknande text
-        # (poll upp till ~4 s) istället för en fast timeout. Lyko hämtar INCI
-        # asynkront efter klick → fast timeout missade ofta innehållet.
-        INCI_HINT = re.compile(r"aqua|water|glycerin|parfum|sodium|cetearyl|alcohol|acid|glycol", re.I)
-        raw = None
-        for _ in range(8):
-            page.wait_for_timeout(500)
-            raw = page.evaluate(JS_EXTRACT)
+        for sel in [
+            "a:has-text('Ingredienser')",
+            "button:has-text('Ingredienser')",
+            "[role='tab']:has-text('Ingredienser')",
+            "span:has-text('Ingredienser')",
+            "li:has-text('Ingredienser')",
+            "text=Ingredienser",
+        ]:
             try:
-                probe = json.loads(raw) if raw else {}
+                loc = page.locator(sel)
+                if loc.count() > 0:
+                    loc.first.scroll_into_view_if_needed(timeout=2000)
+                    loc.first.click(timeout=3000)
+                    page.wait_for_timeout(900)
+                    inci_clicked = True
+                    break
             except Exception:
-                probe = {}
-            if probe.get("inci") and INCI_HINT.search(probe["inci"]):
-                break
+                pass
+
+        if inci_clicked:
+            page.wait_for_timeout(400)
+
+        raw = page.evaluate(JS_EXTRACT)
         if raw:
             data = json.loads(raw)
 
@@ -460,10 +392,7 @@ def scrape_lyko_product(url, ctx, category=None):
 
     has_inci = bool(data.get("inci"))
     has_ean  = bool(data.get("ean"))
-    # SS-092: 'H' = Ingredienser-rubriken hittades men gav ingen giltig INCI →
-    # produkten saknar troligen INCI hos Lyko (berika via OBF/EAN), inte en scraper-bugg.
-    diag = "INCI:✅" if has_inci else ("INCI:–(rubrik fanns)" if data.get("headingSeen") else "INCI:–")
-    print(f"    {data['name'][:55]} | EAN:{'✅' if has_ean else '–'} {diag}",
+    print(f"    {data['name'][:55]} | EAN:{'✅' if has_ean else '–'} INCI:{'✅' if has_inci else '–'}",
           flush=True)
 
     return {
