@@ -22,6 +22,11 @@ import {
   incrementTodayScanCount,
   releaseDailyScanSlot,
 } from "../lib/scanQuota.js";
+import {
+  getConflicts,
+  buildMandatoryConflictsBlock,
+  type MatchedConflict,
+} from "../lib/conflict-pairs.js";
 
 const router: IRouter = Router();
 
@@ -309,7 +314,8 @@ Rules:
 - Only include SAFE pairs when addressing a very common concern
 - Sort: HIGH_RISK first, CAUTION, SAFE last
 - If no meaningful conflicts exist, return empty array with overallSafe: true
-- Use real citations (PubMed/DOI links preferred)
+- If a MANDATORY CONFLICTS block is present in the user message, you MUST include every listed pair with the given severity and use the suggested citation verbatim
+- For any additional conflict you add yourself: only cite a source you are certain exists. If you are not certain of the exact PubMed/DOI URL, leave citationUrl as an empty string "" rather than guessing
 - Return ONLY valid JSON — no markdown, no extra text
 
 Response format:
@@ -326,6 +332,73 @@ Response format:
   "overallSafe": false
 }`;
 
+// Rutinkontroll-grounding (SS-090): samma regelverk som /api/analyze.
+// Splitta INCI-strängen till en lista för conflict-pairs-matchning.
+function splitInciList(raw: string): string[] {
+  return raw
+    .split(/[,;\n]+/)
+    .map((s) => s.trim().replace(/^\d+\.\s*/, "").replace(/[*()[\]]/g, "").trim())
+    .filter((s) => s.length > 1 && s.length < 100);
+}
+
+// Domäner vi litar på för modell-tillagda (ej kurerade) källänkar. Allt annat
+// blankas — hellre ingen länk än en påhittad länk.
+const TRUSTED_CITATION_HOSTS = [
+  "pubmed.ncbi.nlm.nih.gov",
+  "www.ncbi.nlm.nih.gov",
+  "ncbi.nlm.nih.gov",
+  "doi.org",
+  "dx.doi.org",
+  "onlinelibrary.wiley.com",
+  "www.sciencedirect.com",
+  "sciencedirect.com",
+  "academic.oup.com",
+  "link.springer.com",
+  "www.tandfonline.com",
+  "jamanetwork.com",
+  "www.karger.com",
+  "www.mdpi.com",
+  "www.nature.com",
+  "ec.europa.eu",
+  "echa.europa.eu",
+] as const;
+
+function sanitizeCitationUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return "";
+    return (TRUSTED_CITATION_HOSTS as readonly string[]).includes(u.hostname) ? url : "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Om modellens konflikt-par matchar en kurerad konflikt: skriv över citation +
+ * citationUrl med de VERIFIERADE källorna ur conflict-pairs.ts. Modellen får
+ * aldrig sista ordet om källan för kurerade par (hallucinerings-skydd).
+ */
+function applyCuratedCitations(
+  conflicts: Array<z.infer<typeof ConflictResultSchema>>,
+  matches: MatchedConflict[],
+): Array<z.infer<typeof ConflictResultSchema>> {
+  return conflicts.map((c) => {
+    const pairLower = c.pair.toLowerCase();
+    const curated = matches.find(
+      (m) =>
+        pairLower === m.pair.display.toLowerCase() ||
+        (m.matchedA.some((a) => pairLower.includes(a.toLowerCase())) &&
+          m.matchedB.some((b) => pairLower.includes(b.toLowerCase()))),
+    );
+    if (curated) {
+      return { ...c, citation: curated.pair.citation, citationUrl: curated.pair.citationUrl };
+    }
+    // Ej kurerad → behåll modellens källtext men släpp igenom länken bara om
+    // den pekar på en betrodd forskningsdomän.
+    return { ...c, citationUrl: sanitizeCitationUrl(c.citationUrl) };
+  });
+}
+
 async function analyzePair(
   anthropic: Anthropic,
   product1Name: string,
@@ -333,6 +406,14 @@ async function analyzePair(
   product2Name: string,
   product2Ingredients: string,
 ): Promise<Array<z.infer<typeof ConflictResultSchema>>> {
+  // SS-090: injicera den kurerade konfliktdatabasen som deterministisk baslinje,
+  // precis som /api/analyze gör. Tidigare fick modellen hitta på källor själv i
+  // rutinkontrollen → risk för påhittade PubMed-länkar.
+  const list1 = splitInciList(product1Ingredients);
+  const list2 = splitInciList(product2Ingredients);
+  const curatedMatches = getConflicts(list1, list2);
+  const mandatoryBlock = buildMandatoryConflictsBlock(curatedMatches);
+
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 4096,
@@ -340,7 +421,7 @@ async function analyzePair(
     messages: [
       {
         role: "user",
-        content: `Product 1 (${product1Name}) ingredients:\n${product1Ingredients}\n\nProduct 2 (${product2Name}) ingredients:\n${product2Ingredients}\n\nReturn ONLY valid JSON.`,
+        content: `Product 1 (${product1Name}) ingredients:\n${product1Ingredients}\n\nProduct 2 (${product2Name}) ingredients:\n${product2Ingredients}\n${mandatoryBlock}\n\nReturn ONLY valid JSON.`,
       },
     ],
   });
@@ -354,7 +435,7 @@ async function analyzePair(
     const parsed = JSON.parse(jsonStr);
     const result = AnalyzePairResponseSchema.safeParse(parsed);
     if (!result.success) return [];
-    return result.data.conflicts;
+    return applyCuratedCitations(result.data.conflicts, curatedMatches);
   } catch {
     return [];
   }
@@ -376,7 +457,9 @@ async function analyzePairCached(
     const a = sanitizeIngredients(p1Ingredients, false);
     const b = sanitizeIngredients(p2Ingredients, false);
     const [x, y] = [a, b].sort();
-    hash = computeCompareHash(x, y, undefined);
+    // "routine-v2" som salt (SS-090): ogiltigförklarar gamla cachade rutin-svar
+    // från tiden FÖRE citation-groundingen, utan att röra /analyze-cachen.
+    hash = computeCompareHash(x, y, "routine-v2");
   } catch {
     hash = null;
   }

@@ -841,3 +841,51 @@ gate + separat lägg-i-rutin (#3), Safety Gate OpenDataSoft-feed + env-override 
 KVAR: live-poll-verifiering på Railway). Typecheck grön i båda paketen. — tidigare: SS-081 + 081b:
 komplettera-platshållare-flödet, kamera-OCR, datastädning (katalog 2 461), scraper härdad; DELAD
 analys-persistens (betala en gång), dubbel-märke-fix, rosa flask-platshållare, sök-interstitial borttagen.)*
+
+## BESLUT-SS-090/091: Rutinkontroll-grounding, katalog-merge, encyklopedi-expansion
+- **Datum:** 2026-07-07 — **Status:** Aktiv. Backend (Railway) + databas (Supabase Chimiq-prod). Ingen klient/TestFlight-build krävs för detta.
+
+### SS-090 — Rutinkontrollen hittade tidigare på egna källor (FIXAT)
+- **Problem (Pia frågade "är analysen på riktig eller en hallucination?"):** `/shelf/analyze-routine`
+  laddar RIKTIGA sparade produkter och skickar RIKTIGA ingredienslistor till Claude par-för-par — så
+  strukturen var äkta. MEN till skillnad från `/analyze` (enkelprodukt) injicerade rutinkontrollen INTE
+  den kurerade konfliktdatabasen (`conflict-pairs.ts`). Modellen ombads hitta egna PubMed-källor →
+  källänkarna KUNDE vara påhittade.
+- **Fix i `shelf.ts` `analyzePair`:** injicerar nu `buildMandatoryConflictsBlock(getConflicts(...))` i
+  user-meddelandet (samma deterministiska baslinje som `/analyze`). Efter svar körs `applyCuratedCitations`:
+  för par som matchar den kurerade databasen skrivs citation + URL över med de VERIFIERADE källorna;
+  för modellens egna extra-par släpps länken igenom bara om den pekar på en betrodd forskningsdomän
+  (`TRUSTED_CITATION_HOSTS`: pubmed, doi, sciencedirect, ECHA, EUR-Lex m.fl.), annars blankas den.
+  Systemprompten säger nu uttryckligen: gissa aldrig en URL — lämna tom hellre än att hitta på.
+- **Cache-salt bytt** till `"routine-v2"` → gamla cachade rutin-svar (med ev. påhittade källor)
+  ogiltigförklaras utan att röra `/analyze`-cachen.
+- Typecheck grön. URL-guarden enhetstestad (behåller pubmed, släpper påhittad blogg/http/skräp).
+
+### SS-091 — Katalog-merge: butiksprodukter live (scan "hittades inte" i svenska butiker)
+- **Problem:** Scan slog bara mot `cached_products` (OBF-data, tunn på svenska butiksprodukter) + OBF live-API.
+  Junis harvest (Lyko/Apotea/Kicks/The Ordinary) låg kvar i staging (`scraped_products`, 2 008 rader),
+  ALDRIG mergead → butiksskanning misslyckades.
+- **Gjort:** mergeade kvalitetsrader (giltig EAN + ≥3 kommaseparerade INCI-tokens, skräpfilter mot
+  rea/cookie/frakt-text) → `cached_products` med `source='retailer'`. Deduplicerat på barcode (befintliga
+  rörs ej). Produkttyp härledd (skincare/haircare/cosmetics). Städade dessutom 15 gamla review-text-rader
+  (Lyko-kommentarer som felaktigt scrape:ats som INCI).
+- **Resultat:** `cached_products` 2 463 → **2 704 rader** (476 retailer). Fler svenska butiksskanningar
+  träffar nu direkt.
+- **KVAR (för icke-utvecklare, förklarat):** Lykos INCI-scraper fångade bara ~17 rena listor av 434 —
+  resten var sidbrus. Apotea/Kicks var betydligt renare. En bättre Lyko-scraper (INCI ligger i en
+  JS-utfälld flik) skulle ge några hundra produkter till. Inte blockerande; noteras för nästa harvest-runda.
+
+### SS-091 — Encyklopedi: 88 → 130 kurerade skadliga ingredienser
+- Lade till 42 väldokumenterade ämnen (namn, riskkategori, allvarsgrad, sv+en-beskrivning, källa+länk):
+  ftalater (DEP/DBP/DEHP), EU-förbjudna 2022 (Lilial, Zinc Pyrithione), PFAS (PTFE m.fl.),
+  hårfärgsaminer (PPD, Toluene-2,5-Diamine), nageltoxiner (Toluene, TPHP), syntetiska myskdofter,
+  aluminiumsalter, bor-föreningar (reprotox), illegala blekningsmedel (kvicksilver), tungmetall-
+  föroreningar (arsenik/kadmium), förorenings-risker (bensen, etylenoxid), persulfat-blekmedel,
+  fler doftallergener (Lyral, ekmossa), m.m. Inga dubblettnycklar. Typecheck grön.
+- **Beslut om "hela EU-förbudslistan":** EU:s bilaga II är 1 600+ ämnen, men de flesta är obskyra
+  industrikemikalier/läkemedel som ALDRIG förekommer i kosmetika. Att dumpa alla i en konsument-
+  encyklopedi skapar brus, inte trygghet. Vi kurerar därför de ~130 som faktiskt kan dyka upp (eller
+  historiskt dykt upp) i produkter. CosIng-CSV:n går inte att hämta i Cowork-sessionen (JS-portal +
+  arkiv blockerat); en separat importör kan köras senare om vi vill ha hela bilaga II som sökbart lager.
+
+*Senast uppdaterad: 2026-07-07 (SS-090 rutin-källgrounding + SS-091 katalog-merge + encyklopedi-expansion).*
