@@ -11,9 +11,30 @@ const MessageSchema = z.object({
   content: z.string().min(1).max(2000),
 });
 
+/**
+ * SS-093 — hyllkontexten trunkeras i stället för att avvisas.
+ *
+ * Tidigare: `shelfContext: z.string().max(4000)`. Klienten skickade HELA hyllan
+ * med FULLSTÄNDIGA INCI-listor, utan tak. En enda ingredienslista är ofta
+ * 500–1 500 tecken, så efter ~4 sparade produkter sprängdes gränsen och zod
+ * svarade 400 "Invalid input" — chatten blev obrukbar för alla med en riktig
+ * hylla, vilket är precis de användare som betalat för premium.
+ *
+ * Klienten skickar nu bara produktnamn (se ChatPanel.tsx). Men redan
+ * installerade iOS-builds bär med sig den GAMLA koden tills Pia hinner göra en
+ * ny TestFlight-release — därför avvisar servern inte längre stora kontexter,
+ * den klipper dem. Så fort backend deployas på Railway slutar chatten fela
+ * även i de appar som redan sitter på folks telefoner, utan App Store-släpp.
+ */
+const SHELF_CONTEXT_LIMIT = 4000;
+
 const ChatBodySchema = z.object({
   messages: z.array(MessageSchema).min(1).max(20),
-  shelfContext: z.string().max(4000).optional(),
+  shelfContext: z
+    .string()
+    .max(200_000)
+    .transform((s) => s.slice(0, SHELF_CONTEXT_LIMIT))
+    .optional(),
 });
 
 const client = new Anthropic();

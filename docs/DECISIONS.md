@@ -889,3 +889,52 @@ analys-persistens (betala en gång), dubbel-märke-fix, rosa flask-platshållare
   arkiv blockerat); en separat importör kan köras senare om vi vill ha hela bilaga II som sökbart lager.
 
 *Senast uppdaterad: 2026-07-07 (SS-090 rutin-källgrounding + SS-091 katalog-merge + encyklopedi-expansion).*
+
+## BESLUT-SS-093: AI-chatten lagad — hyllkontext takad + servern trunkerar i stället för att avvisa
+- **Datum:** 2026-08-05 — **Status:** Aktiv. Klient (`ChatPanel.tsx`) + backend (`routes/chat.ts`).
+  Typecheck grön i båda paketen.
+
+### Problemet (diagnosticerat 23 juni, aldrig åtgärdat)
+`ChatPanel.tsx` byggde `shelfContext` av HELA hyllan med FULLSTÄNDIGA INCI-listor, utan tak:
+`products.map(p => \`${p.productName}: ${p.ingredients}\`).join("\n")`. Serverns schema tillät max
+4 000 tecken. En enda ingredienslista är ofta 500–1 500 tecken → efter ~4 sparade produkter sprängdes
+gränsen → zod svarade **400 "Invalid input"** → klienten visade generiskt "Något gick fel".
+400 loggas inte som "Chat failed" i Railway, därför syntes inget i loggarna.
+
+Chatten är premium-gated (`requirePremium`) OCH betatestare får premium via TESTER6M-koden → felet
+träffade exakt de användare som skulle utvärdera premiumvärdet. Panelen nollställdes inte heller mellan
+öppningar, så den kom tillbaka med förra frågan och förra felet kvar.
+
+Handoffen 2026-06-23 listade detta som prioritet 1. Commiten samma dag (`0c62760`) levererade punkt
+2, 3 och 4 — punkt 1 hoppades över. Chatten har varit trasig sedan dess.
+
+### Åtgärd 1 — klienten skickar bara produktNAMN, hårt takade
+`shelfContext` byggs nu i `useMemo` av enbart produktnamn, max 25 produkter och max 1 200 tecken
+(`(+N more)` när listan kapas). Gränsen kan därmed inte spräckas igen oavsett hyllans storlek.
+
+**Varför namn räcker:** chatten är en allmän rådgivare. Den detaljerade ingrediensanalysen görs av
+`/analyze` (enkelprodukt) och `/shelf/analyze-routine` (rutinkontroll), som får hela INCI-listan och har
+den kurerade konfliktdatabasen bakom sig (SS-090). Att dubbla den logiken i chatten gav inget mervärde
+— bara 400-fel. Namnen räcker för att assistenten ska kunna säga "du har X i din rutin".
+
+Vill man stänga av hyllkontexten helt: returnera `""` i `useMemo` och ta bort `chatPanel.shelfNote`
+i hälsningen.
+
+### Åtgärd 2 — servern trunkerar i stället för att avvisa
+`ChatBodySchema.shelfContext` gick från `.max(4000)` till `.max(200_000).transform(s => s.slice(0, 4000))`.
+
+**Varför (förklarat för icke-utvecklare):** iOS-appen bär med sig sin egen kopia av webbfilerna. Alla
+TestFlight-builds som redan sitter på folks telefoner innehåller den GAMLA klientkoden som skickar hela
+hyllan — och de fortsätter göra det tills Pia hinner göra en ny Xcode-release. Genom att låta servern
+klippa kontexten i stället för att kasta 400 slutar chatten fela **även i redan installerade appar**, så
+fort backend deployas på Railway. Ingen App Store-runda krävs för att stoppa blödningen.
+
+### Åtgärd 3 — panelen nollställs vid öppning
+Ny `useEffect` på `open` som tömmer `messages`, `input` och `error`.
+
+### Konsekvens för release
+- **chimiq.com (Vercel):** fixad vid push till `main`. Ingen Xcode inblandad.
+- **iOS:** backend-deployen stoppar 400-felen direkt; den bättre klientvarianten (namn i stället för
+  hela INCI, lägre tokenkostnad) kommer med nästa TestFlight-build.
+
+*Senast uppdaterad: 2026-08-05 (SS-093 chattfix).*

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { MessageCircle, X, Send, Loader2, Bot, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,15 +47,53 @@ export function ChatPanel({ defaultOpen = false }: { defaultOpen?: boolean } = {
     query: { queryKey: ["/api/shelf"], enabled: isAuthenticated },
   });
 
-  const shelfContext = shelfQuery.data?.products
-    ?.map((p) => `${p.productName}: ${p.ingredients}`)
-    .join("\n") ?? "";
+  /**
+   * SS-093 — bara produktNAMN, hårt takade.
+   *
+   * Tidigare skickades hela hyllan med kompletta INCI-listor. Serverns gräns är
+   * 4 000 tecken och en enda ingredienslista är ofta 500–1 500, så chatten dog
+   * med 400 "Invalid input" så fort någon hade fyra–fem produkter sparade.
+   *
+   * Chatten är en allmän rådgivare — den detaljerade ingrediensanalysen görs av
+   * /analyze och rutinkontrollen, som får hela INCI-listan och har den kurerade
+   * konfliktdatabasen bakom sig. Här räcker namnen för att assistenten ska kunna
+   * säga "du har X i din rutin". Taken nedan gör att gränsen inte kan spräckas
+   * igen oavsett hur många produkter användaren sparar.
+   *
+   * Vill du stänga av hyllkontexten helt: returnera "" här, och ta bort
+   * `chatPanel.shelfNote`-raden i hälsningen längre ned.
+   */
+  const shelfContext = useMemo(() => {
+    const MAX_PRODUCTS = 25;
+    const MAX_CHARS = 1200;
+    const names =
+      shelfQuery.data?.products
+        ?.map((p) => p.productName?.trim())
+        .filter((n): n is string => Boolean(n)) ?? [];
+    if (names.length === 0) return "";
+    const listed = names.slice(0, MAX_PRODUCTS);
+    const rest = names.length - listed.length;
+    const text = listed.join("\n") + (rest > 0 ? `\n(+${rest} more)` : "");
+    return text.slice(0, MAX_CHARS);
+  }, [shelfQuery.data]);
 
   useEffect(() => {
     if (open && messages.length === 0) {
       setTimeout(() => inputRef.current?.focus(), 200);
     }
   }, [open, messages.length]);
+
+  /**
+   * SS-093 — nollställ panelen varje gång den öppnas. Tidigare kom den tillbaka
+   * med förra frågan OCH förra felmeddelandet kvar, vilket fick det att se ut
+   * som att chatten var trasig igen direkt vid öppning.
+   */
+  useEffect(() => {
+    if (!open) return;
+    setMessages([]);
+    setInput("");
+    setError(null);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
