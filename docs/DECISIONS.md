@@ -938,3 +938,55 @@ Ny `useEffect` på `open` som tömmer `messages`, `input` och `error`.
   hela INCI, lägre tokenkostnad) kommer med nästa TestFlight-build.
 
 *Senast uppdaterad: 2026-08-05 (SS-093 chattfix).*
+
+## BESLUT-SS-094: Streckkodsläsning i Safari — polyfill i stället för dödläge
+- **Datum:** 2026-08-06 — **Status:** Aktiv, KRÄVER `pnpm add barcode-detector` innan build.
+  Klient (`lib/barcodeDetector.ts` ny, `BarcodeScanButton.tsx` ändrad).
+
+### Problemet
+Webbversionen använde webbläsarens inbyggda `BarcodeDetector`. Chrome och Android har det,
+**Safari har det inte** — varken iPhone eller Mac. Målgruppen (13–20 år i Sverige) är iPhone-tung,
+så på chimiq.com var scanna-knappen antingen helt dold (`state = "unsupported"` → `return null`)
+eller ledde direkt till manuell inmatning av en trettonsiffrig EAN-kod.
+
+Det var också det som gjorde att vi la om till Xcode och iPhone-app som lanseringsväg. Den
+begränsningen gäller inte längre.
+
+### Lösningen
+`barcode-detector` (Sec-Ant) är en ponyfill som exponerar **exakt samma API** som det inbyggda,
+med ZXing-C++ kompilerat till WASM under huven. Eftersom API:et är identiskt behövde scan-loopen
+inte skrivas om — bara var detektorn kommer ifrån.
+
+- Ny `lib/barcodeDetector.ts` kapslar in valet. `createBarcodeDetector()` ger inbyggd detektor när
+  den finns, annars ponyfillen, annars `null` (→ manuell inmatning som förut).
+- Laddas med `await import("barcode-detector/ponyfill")` **först när användaren trycker på knappen**,
+  och bara i webbläsare som saknar det inbyggda API:et. Chrome/Android laddar aldrig ned den och den
+  ligger inte i startpaketet.
+- Knappens synlighet gick från "har inbyggd BarcodeDetector" till "har kamera"
+  (`hasCameraScanSupport()`), så den syns nu i Safari.
+- Scan-loopen throttlad till ~8 avläsningar/sekund (`MIN_FRAME_INTERVAL_MS = 120`). WASM-avkodning
+  på varje animationsruta värmer telefonen utan att hitta koden snabbare.
+- Misslyckad import = `null` = manuell inmatning. Inget kraschar.
+
+### ⚠️ Kvar innan bred lansering: self-hosta WASM-filen
+`zxing-wasm` hämtar som standard sin `.wasm` från **jsDelivrs CDN** vid första scanningen. Följder:
+1. Safari-scanning fungerar inte offline.
+2. Användarens webbläsare gör en förfrågan till en tredjepart — vi riktar oss mot minderåriga och
+   har EU-hosting (Supabase Frankfurt) just för att undvika sådant.
+
+För beta: acceptabelt. Innan bred lansering: lägg `.wasm` i `public/` och peka om via
+`prepareZXingModule({ overrides: { locateFile: ... } })`. Liten ändring, bör göras.
+
+### Installation (Pia kör detta)
+```bash
+cd ~/PiasVentures/chimiq-code/artifacts/skinscreen
+pnpm add barcode-detector
+```
+Regenererar `pnpm-lock.yaml` automatiskt — committa lockfilen i SAMMA commit, annars failar Vercel
+med `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`.
+
+### Konsekvens för strategin
+Streckkodsläsning fungerar nu i alla moderna webbläsare, inte bara Chrome/Android. Webben kan därmed
+bära en riktig beta av huvudflödet, och iterationer går på minuter i stället för TestFlight-rundor.
+
+*Senast uppdaterad: 2026-08-06 (SS-094 Safari-streckkod).*

@@ -7,6 +7,12 @@ import { isNative } from "@/lib/native";
 import { BarcodeScanner } from "capacitor-barcode-scanner";
 import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
+import {
+  BARCODE_FORMATS,
+  createBarcodeDetector,
+  hasCameraScanSupport,
+  type FrameBarcodeDetector,
+} from "@/lib/barcodeDetector";
 
 interface BarcodeScanButtonProps {
   onResult: (
@@ -44,6 +50,8 @@ type ScanState =
   | "manual"
   | "unsupported";
 
+// SS-094: själva detektorn (inbyggd i Chrome/Android, polyfill i Safari) bor nu
+// i @/lib/barcodeDetector. Typen nedan behålls bara för äldre referenser.
 declare const BarcodeDetector: {
   new (options?: { formats?: string[] }): {
     detect(source: HTMLVideoElement): Promise<Array<{ rawValue: string }>>;
@@ -59,8 +67,12 @@ export function BarcodeScanButton({
   triggerContent,
 }: BarcodeScanButtonProps) {
   const { t } = useTranslation();
+  // SS-094: tidigare krävdes webbläsarens inbyggda BarcodeDetector, vilket
+  // Safari saknar → knappen doldes helt för iPhone-användare på webben. Nu
+  // räcker det att enheten har en kamera; saknas det inbyggda API:et laddas
+  // polyfillen när användaren trycker på knappen.
   const [state, setState] = useState<ScanState>(
-    typeof window !== "undefined" && (isNative() || "BarcodeDetector" in window)
+    typeof window !== "undefined" && (isNative() || hasCameraScanSupport())
       ? "idle"
       : "unsupported",
   );
@@ -76,7 +88,7 @@ export function BarcodeScanButton({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
-  const detectorRef = useRef<InstanceType<typeof BarcodeDetector> | null>(null);
+  const detectorRef = useRef<FrameBarcodeDetector | null>(null);
   const scannedRef = useRef(false);
 
   const stopCamera = useCallback(() => {
@@ -165,24 +177,34 @@ export function BarcodeScanButton({
         }
         return;
       } catch (err) {
-        if (!("BarcodeDetector" in window)) {
+        if (!hasCameraScanSupport()) {
           setState("error");
           setErrorMsg(
             err instanceof Error ? err.message : t("barcodeScan.errNativeUnavail"),
           );
           return;
         }
-        // Fall through to web BarcodeDetector
+        // Fall through to the web scanner below.
       }
-    }
-
-    if (!("BarcodeDetector" in window)) {
-      setState("unsupported");
-      return;
     }
 
     setState("requesting");
     setModalOpen(true);
+
+    // SS-094: hämtar inbyggd detektor, eller laddar Safari-polyfillen. `null`
+    // = enheten kan inte läsa streckkoder → manuell inmatning.
+    let detector: FrameBarcodeDetector | null = null;
+    try {
+      detector = await createBarcodeDetector(BARCODE_FORMATS);
+    } catch {
+      detector = null;
+    }
+    if (!detector) {
+      setModalOpen(true);
+      setManualCode("");
+      setState("manual");
+      return;
+    }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -199,21 +221,31 @@ export function BarcodeScanButton({
         await videoRef.current.play();
       }
 
-      detectorRef.current = new BarcodeDetector({
-        formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr_code"],
-      });
+      detectorRef.current = detector;
 
       setState("scanning");
 
-      const tick = async () => {
+      // SS-094: polyfillen avkodar i WASM och är tyngre än det inbyggda API:et.
+      // Att köra den på varje animationsruta (60/s) värmer telefonen utan att
+      // hitta streckkoden snabbare — ögat hinner ändå inte rikta om oftare än
+      // så. Vi throttlar därför till ~8 avläsningar per sekund. Det inbyggda
+      // API:et påverkas knappt av väntetiden.
+      const MIN_FRAME_INTERVAL_MS = 120;
+      let lastRun = 0;
+
+      const tick = async (now?: number) => {
         if (!videoRef.current || scannedRef.current) return;
-        try {
-          const barcodes = await detectorRef.current!.detect(videoRef.current);
-          if (barcodes.length > 0 && barcodes[0].rawValue) {
-            await handleBarcodeFound(barcodes[0].rawValue);
-            return;
+        const ts = now ?? performance.now();
+        if (ts - lastRun >= MIN_FRAME_INTERVAL_MS) {
+          lastRun = ts;
+          try {
+            const barcodes = await detectorRef.current!.detect(videoRef.current);
+            if (barcodes.length > 0 && barcodes[0].rawValue) {
+              await handleBarcodeFound(barcodes[0].rawValue);
+              return;
+            }
+          } catch {
           }
-        } catch {
         }
         animFrameRef.current = requestAnimationFrame(tick);
       };
