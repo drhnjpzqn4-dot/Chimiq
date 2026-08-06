@@ -22,13 +22,30 @@
  * och anroparen faller tillbaka på manuell inmatning precis som tidigare — inget
  * kraschar.
  *
- * ⚠️ ATT KÄNNA TILL: WASM-filen hämtas som standard från jsDelivrs CDN vid första
- * scanningen. Det betyder (a) att Safari-scanning inte fungerar offline, och (b)
- * att användarens webbläsare gör en förfrågan till en tredjepart. För en beta är
- * det oproblematiskt, men innan bred lansering mot minderåriga bör vi self-hosta
- * .wasm-filen från chimiq.com i stället — det görs med `prepareZXingModule` och
- * en egen `locateFile`. Se DECISIONS.md SS-094.
+ * SJÄLVHOSTAD WASM (SS-095)
+ * Som standard hämtar zxing-wasm sin .wasm-fil från jsDelivrs CDN
+ * (`fastly.jsdelivr.net`). Vi serverar den från chimiq.com i stället — se
+ * `wasmUrl` nedan. Ingen tredjepartsförfrågan från våra användares webbläsare,
+ * och scanning fungerar även när CDN:en är blockerad eller nere.
  */
+
+/**
+ * SS-095 — WASM-filen serveras från vår egen domän.
+ *
+ * `?url` är Vites sätt att säga "ge mig adressen till den här filen, ladda den
+ * inte". Vid bygget kopieras `zxing_reader.wasm` in bland våra egna statiska
+ * filer (med innehållshash i namnet) och `wasmUrl` blir en sträng som pekar dit.
+ * Kostar ingenting vid sidladdning — det ÄR bara en sträng. Själva filen på
+ * ~900 kB hämtas först när någon faktiskt scannar i Safari.
+ *
+ * Varför inte kopiera filen till `public/` för hand: då måste någon komma ihåg
+ * att kopiera om den varje gång paketet uppdateras. JS-koden och .wasm-filen
+ * måste vara byggda ur samma version — annars kraschar avkodaren. Med importen
+ * nedan följer filen automatiskt med paketversionen. Därför är `zxing-wasm`
+ * också pinnad till exakt `3.1.1` i package.json (ingen `^`): det är den version
+ * `barcode-detector@3.2.1` är byggd mot.
+ */
+import wasmUrl from "zxing-wasm/reader/zxing_reader.wasm?url";
 
 /** Delmängden av BarcodeDetector-API:et som vi faktiskt använder. */
 export interface FrameBarcodeDetector {
@@ -73,6 +90,23 @@ async function loadPolyfill(formats: string[]): Promise<FrameBarcodeDetector | n
     // "ponyfill" = ge oss klassen, men rör inte globala objekt. (Entryn hette
     // "/pure" i det gamla paketnamnet @sec-ant/barcode-detector före v2.)
     const mod = await import("barcode-detector/ponyfill");
+
+    // SS-095: peka om .wasm-hämtningen från jsDelivr till vår egen domän.
+    // Egen try/catch: skulle API:et ändras i en framtida version vill vi hellre
+    // falla tillbaka på CDN:en (scanning fungerar, men med tredjepartsanrop) än
+    // att tappa streckkodsläsningen helt.
+    try {
+      mod.prepareZXingModule({
+        overrides: {
+          locateFile: (path: string, prefix: string) =>
+            path.endsWith(".wasm") ? wasmUrl : `${prefix}${path}`,
+        },
+        fireImmediately: false,
+      });
+    } catch {
+      /* faller tillbaka på paketets inbyggda CDN-adress */
+    }
+
     return new mod.BarcodeDetector({ formats: formats as never });
   } catch {
     return null;

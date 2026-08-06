@@ -990,3 +990,41 @@ Streckkodsläsning fungerar nu i alla moderna webbläsare, inte bara Chrome/Andr
 bära en riktig beta av huvudflödet, och iterationer går på minuter i stället för TestFlight-rundor.
 
 *Senast uppdaterad: 2026-08-06 (SS-094 Safari-streckkod).*
+
+## BESLUT-SS-095: WASM-filen självhostad — inga tredjepartsanrop vid scanning
+- **Datum:** 2026-08-06 — **Status:** Aktiv. Kräver `pnpm install` i roten innan build.
+  Bygger direkt på SS-094.
+
+### Problemet
+`zxing-wasm` hämtar som standard sin `.wasm` från jsDelivrs CDN
+(`https://fastly.jsdelivr.net/npm/zxing-wasm@3.1.1/dist/reader/zxing_reader.wasm`) första gången någon
+scannar i Safari. Två invändningar:
+
+1. **Konsekvens.** Vi har medvetet valt EU-hosting (Supabase Frankfurt) och riktar oss mot minderåriga.
+   Att då låta deras webbläsare göra en oannonserad förfrågan till en amerikansk CDN rimmar illa — både
+   med hur vi beskriver oss i integritetspolicyn och med varför vi valde Frankfurt från början.
+2. **Robusthet.** Scanning slutar fungera om CDN:en är nere, blockerad av en brandvägg/adblockare, eller
+   om användaren är offline.
+
+### Lösningen
+`import wasmUrl from "zxing-wasm/reader/zxing_reader.wasm?url"` + `prepareZXingModule` med en egen
+`locateFile` som pekar dit. Vite kopierar filen till våra statiska assets med innehållshash i namnet.
+
+**Varför `?url`-import och inte en kopia i `public/` (för icke-utvecklare):** JS-koden och `.wasm`-filen
+måste komma från exakt samma version — de är två halvor av samma program. Lägger man en kopia i
+`public/` måste någon manuellt komma ihåg att byta ut den varje gång paketet uppdateras, och glömmer man
+det kraschar avkodaren på ett sätt som är svårt att förstå. Med importen följer filen automatiskt med
+paketversionen. Av samma skäl är `zxing-wasm` pinnad till **exakt `3.1.1`** i package.json, utan `^`:
+det är versionen `barcode-detector@3.2.1` är byggd mot.
+
+`prepareZXingModule` ligger i egen try/catch. Ändras API:et i en framtida version faller vi tillbaka på
+paketets inbyggda CDN-adress — scanning fungerar då fortfarande, bara med tredjepartsanropet tillbaka.
+Bättre än att tappa streckkodsläsningen helt.
+
+### ⚠️ Verifiering som återstår
+Typecheck är grön, men det **bevisar inget här** — `vite/client` deklarerar ett generellt `*?url`-mönster,
+så TypeScript godkänner importen utan att paketet ens är länkat. Att specifieraren faktiskt löser ut visar
+sig först vid `pnpm build`. Kontrollera efter bygget att en `zxing_reader-*.wasm` hamnat i
+`artifacts/skinscreen/dist/assets/`, och testa en riktig scanning i Safari på iPhone.
+
+*Senast uppdaterad: 2026-08-06 (SS-095 självhostad WASM).*

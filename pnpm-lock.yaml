@@ -171,7 +171,7 @@ importers:
         version: 3.1.0
       vitest:
         specifier: ^4.1.4
-        version: 4.1.4(@types/node@25.3.5)(vite@7.3.1(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.2))
+        version: 4.1.4(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.2)
 
   artifacts/skinscreen:
     dependencies:
@@ -190,6 +190,9 @@ importers:
       workbox-window:
         specifier: ^7.4.0
         version: 7.4.0
+      zxing-wasm:
+        specifier: 3.1.1
+        version: 3.1.1
     devDependencies:
       '@axe-core/playwright':
         specifier: ^4.11.3
@@ -394,7 +397,7 @@ importers:
         version: 1.2.0(@types/babel__core@7.20.5)(vite@7.3.1(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.2))(workbox-window@7.4.0)
       vitest:
         specifier: ^4.1.4
-        version: 4.1.4(@types/node@25.3.5)(vite@7.3.1(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.2))
+        version: 4.1.4(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.2)
       wouter:
         specifier: ^3.3.5
         version: 3.9.0(react@19.1.0)
@@ -1142,7 +1145,6 @@ packages:
   '@esbuild/darwin-arm64@0.27.3':
     resolution: {integrity: sha512-Re491k7ByTVRy0t3EKWajdLIr0gz2kKKfzafkth4Q8A5n1xTHrkqZgLLjFEHVD+AXdUGgQMq+Godfq45mGpCKg==}
     engines: {node: '>=18'}
-    cpu: [arm64]
     os: [darwin]
 
   '@esbuild/darwin-x64@0.18.20':
@@ -2426,7 +2428,6 @@ packages:
 
   '@rollup/rollup-darwin-arm64@4.60.3':
     resolution: {integrity: sha512-vo6Y5Qfpx7/5EaamIwi0WqW2+zfiusVihKatLvtN1VFVy3D13uERk/6gZLU1UiHRL6fDXqj/ELIeVRGnvcTE1g==}
-    cpu: [arm64]
     os: [darwin]
 
   '@rollup/rollup-darwin-x64@4.59.0':
@@ -2655,7 +2656,6 @@ packages:
   '@tailwindcss/oxide-darwin-arm64@4.3.0':
     resolution: {integrity: sha512-oMN/WZRb+SO37BmUElEgeEWuU8E/HXRkiODxJxLe1UTHVXLrdVSgfaJV7pSlhRGMSOiXLuxTIjfsF3wYvz8cgQ==}
     engines: {node: '>= 20'}
-    cpu: [arm64]
     os: [darwin]
 
   '@tailwindcss/oxide-darwin-x64@4.2.1':
@@ -4113,7 +4113,6 @@ packages:
   lightningcss-darwin-arm64@1.31.1:
     resolution: {integrity: sha512-02uTEqf3vIfNMq3h/z2cJfcOXnQ0GRwQrkmPafhueLb2h7mqEidiCzkE4gBMEH65abHRiQvhdcQ+aP0D0g67sg==}
     engines: {node: '>= 12.0.0'}
-    cpu: [arm64]
     os: [darwin]
 
   lightningcss-darwin-x64@1.31.1:
@@ -5330,7 +5329,6 @@ packages:
       '@vitest/ui': 4.1.4
       happy-dom: '*'
       jsdom: '*'
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
     peerDependenciesMeta:
       '@edge-runtime/vm':
         optional: true
@@ -10386,7 +10384,7 @@ snapshots:
       tsx: 4.21.0
       yaml: 2.8.2
 
-  vitest@4.1.4(@types/node@25.3.5)(vite@7.3.1(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.2)):
+  vitest@4.1.4(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       '@vitest/expect': 4.1.4
       '@vitest/mocker': 4.1.4(vite@7.3.1(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.2))
@@ -10411,7 +10409,17 @@ snapshots:
     optionalDependencies:
       '@types/node': 25.3.5
     transitivePeerDependencies:
+      - jiti
+      - less
+      - lightningcss
       - msw
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - terser
+      - tsx
+      - yaml
 
   web-streams-polyfill@3.3.3: {}
 
