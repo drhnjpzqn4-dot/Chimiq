@@ -12,20 +12,35 @@
  *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
  *     pnpm tsx artifacts/api-server/scripts/seed-knowledge.ts
  */
-import { createClient } from "@supabase/supabase-js";
-import { getRiskEntries } from "../src/lib/risky-ingredients.js";
-import { __INTERNAL } from "../src/lib/conflict-pairs.js";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// VIKTIGT: .env måste laddas INNAN någon modul som läser process.env importeras.
+// src/lib/supabase-admin.ts skapar sin klient redan vid import, så statiska
+// importer av kunskapsmodulerna nedan måste vara dynamiska och komma efter detta.
+const here = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.join(here, "..", ".env");
+try {
+  (process as unknown as { loadEnvFile: (p: string) => void }).loadEnvFile(envPath);
+} catch {
+  // Ingen .env — då förväntar vi oss variablerna direkt i miljön.
+}
 
 const url = process.env.SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!url || !serviceKey) {
   console.error(
-    "Saknar SUPABASE_URL och/eller SUPABASE_SERVICE_ROLE_KEY i miljön.\n" +
-      "Hämta dem i Supabase → Project Settings → API.",
+    "Saknar SUPABASE_URL och/eller SUPABASE_SERVICE_ROLE_KEY.\n" +
+      `Letade i ${envPath} och i miljön.\n` +
+      "Värdena finns i Supabase → Project Settings → API.",
   );
   process.exit(1);
 }
+
+const { createClient } = await import("@supabase/supabase-js");
+const { getRiskEntries } = await import("../src/lib/risky-ingredients.js");
+const { __INTERNAL } = await import("../src/lib/conflict-pairs.js");
 
 const db = createClient(url, serviceKey, { auth: { persistSession: false } });
 const now = new Date().toISOString();

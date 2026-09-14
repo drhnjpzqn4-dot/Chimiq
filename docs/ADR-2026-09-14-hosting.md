@@ -283,3 +283,48 @@ chimiq.com-zonen hos Websupport.
 
 `chimiq.app` behövs inte för något av detta. Behåll den gärna som skydd för
 varumärket, men den ska inte peka på något system.
+
+---
+
+## Läget 2026-09-14 16:45 — backend uppe igen
+
+Deployen gick igenom efter pnpm-bumpen. Ur byggloggen:
+
+```
+node │ 22.23.2 │ idiomatic-version-file
+pnpm │ 10.17.0 │ idiomatic-version-file
+pnpm install  Done in 45.1s
+pnpm --filter @workspace/api-server build  Done in 394ms
+```
+
+`GET /api/healthz` → `{"status":"ok"}`. Tjänsten kör i EU West, 1 replica,
+node 22.23.2.
+
+### Två saker som loggen avslöjade
+1. **Hälso-endpointen heter `/api/healthz`**, inte `/api/health`
+   (`src/routes/health.ts`). `/api/health` ger 404 även när allt fungerar —
+   vilket förvillade felsökningen. Den schemalagda hälsokollen är rättad.
+2. **`artifacts/api-server/railway.toml` läses inte.** Startkommandot i loggen är
+   `pnpm --filter @workspace/api-server start`, alltså package.json-skriptet —
+   inte railway.tomls `startCommand` som sätter `NODE_ENV=production`. Tjänsten
+   byggs från repo-roten, så filen ligger utanför byggkontexten.
+   **Kontrollerat:** `NODE_ENV=production` är redan satt som variabel i Railway,
+   så produktionsläget gäller ändå. Inget att åtgärda där.
+   Kvarstår: railway.toml bör flyttas till roten eller tas bort — den beskriver
+   ett startkommando som inte används, och nästa person som läser den blir lurad.
+
+### Seedning klar
+`pnpm tsx artifacts/api-server/scripts/seed-knowledge.ts` körd av Pia:
+130 ingrediensrisker och 29 konflikter ligger i Chimiq-prod. 126 av 130 är
+medicinskt granskade, 47 klassade HIGH_RISK, 10 kategorier.
+
+**Innehållsglapp som blev synligt först när datan blev sökbar:** endast
+**17 av 130** ingredienser har svensk långtext (`description_se`). Alla har kort
+svensk hint, men encyklopedins detaljsidor är engelska för 113 ingredienser.
+Går nu att fylla på utan ny deploy.
+
+### Kvar
+- Certifikat för `api.chimiq.com` rullar fortfarande ut hos Railway.
+- Ny TestFlight-build så onboarding-fixen och `api.chimiq.com` når telefonen.
+- Etapp 2: tvålagersuppdelning + cache-nyckel (nu möjlig att verifiera mot en
+  levande backend).
