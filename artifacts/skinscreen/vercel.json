@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://api.chimiq.app/api/:path*"
+      "destination": "https://api.chimiq.com/api/:path*"
     },
     {
       "source": "/(.*)",

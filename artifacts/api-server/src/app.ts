@@ -48,9 +48,9 @@ app.use(
 const CORS_ALLOWED_ORIGINS = [
   "capacitor://localhost", // iOS-skalet
   "https://localhost", // Android-skalet
-  "https://chimiq.app",
-  "https://www.chimiq.app",
-  "https://app.chimiq.app",
+  "https://chimiq.com",
+  "https://www.chimiq.com",
+  "https://app.chimiq.com",
   "http://localhost:5173", // vite dev
   ...(process.env.CORS_EXTRA_ORIGINS ?? "")
     .split(",")

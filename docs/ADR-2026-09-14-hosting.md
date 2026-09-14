@@ -254,3 +254,32 @@ hoppa dit mitt i en incident vore att byta lockfile-format i onödan.)
 
 **Reservplan om bygget faller igen:** sätt byggaren till Nixpacks i Railway
 (Settings → Build → Builder) så återgår den till den väg som fungerade i juni.
+
+---
+
+## Rättelse 2026-09-14 — domänen är chimiq.com, inte chimiq.app
+
+Pia upptäckte vid DNS-arbetet hos Websupport att `chimiq.app` aldrig kopplats.
+Kontroll av koden och av vad som faktiskt svarar:
+
+- `chimiq.com` är **live** (OG-taggar, admin-länkar, `hello@chimiq.com`,
+  lösenordsåterställning mot `www.chimiq.com/reset-password`).
+- `app.chimiq.app` går **inte att slå upp** — domänen finns inte i DNS.
+
+**Latent bugg som detta avslöjade:** `NATIVE_AUTH_HOST` i `useAuth.tsx` pekade på
+`https://app.chimiq.app`. Det är adressen native-appen öppnar vid inloggning, så
+native-inloggning har varit trasig för alla som inte redan hade en sparad session.
+Ändrad till `https://www.chimiq.com`.
+
+Övriga rättelser (allt `.app` → `.com`):
+- `NATIVE_API_BASE_URL` → `https://api.chimiq.com`
+- `vercel.json` rewrite → `https://api.chimiq.com/api/:path*`
+- CORS-listan i `app.ts` → chimiq.com, www.chimiq.com, app.chimiq.com
+- Den dagliga hälsokollen kollar numera `api.chimiq.com`
+
+Kvarstår: `api.chimiq.com` som Custom Domain på Railway-**tjänsten**
+(Service → Settings → Networking, inte Project Settings) + CNAME `api` i
+chimiq.com-zonen hos Websupport.
+
+`chimiq.app` behövs inte för något av detta. Behåll den gärna som skydd för
+varumärket, men den ska inte peka på något system.

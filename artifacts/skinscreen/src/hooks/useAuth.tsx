@@ -17,7 +17,9 @@ export type { AuthUser };
 
 export const AUTH_REFRESH_EVENT = "skinscreen:auth-refresh";
 
-const NATIVE_AUTH_HOST = "https://app.chimiq.app";
+// app.chimiq.app fanns aldrig i DNS — native-inloggning öppnade en död adress
+// (upptäckt 2026-09-14). Allt Chimiq ligger på chimiq.com.
+const NATIVE_AUTH_HOST = "https://www.chimiq.com";
 const NATIVE_AUTH_CALLBACK = "skinscreen://auth/callback";
 
 function isNative(): boolean {
