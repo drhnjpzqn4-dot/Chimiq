@@ -48,37 +48,96 @@ interface AuthState {
   logout: () => Promise<void>;
   /** Hämtar om session + backend-profil (t.ex. efter onboarding). Returnerar aktuell AuthUser efter uppdatering. */
   refetch: () => Promise<AuthUser | null>;
+  /** False när Chimiq-backend inte gick att nå vid senaste profilhämtningen. */
+  backendReachable: boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
 
+type BackendProfile = Partial<
+  Pick<AuthUser, "onboardingCompleted" | "displayName" | "avatarEmoji">
+>;
+
+/**
+ * `reachable: false` betyder att vi inte fick något svar från Chimiq-backend
+ * (nätverksfel, timeout, 5xx eller Railway-404 när tjänsten ligger nere).
+ * Det får ALDRIG tolkas som "ny användare" — då kastas en färdig användare
+ * in i onboardingen igen och fastnar där (SS-096).
+ */
+type ProfileResult =
+  | { reachable: true; profile: BackendProfile | null }
+  | { reachable: false };
+
+const ONBOARDING_CACHE_PREFIX = "chimiq.onboardingCompleted:";
+const PROFILE_TIMEOUT_MS = 15000;
+
+function readCachedOnboarding(userId: string): boolean {
+  try {
+    return (
+      window.localStorage.getItem(ONBOARDING_CACHE_PREFIX + userId) === "true"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function writeCachedOnboarding(userId: string, completed: boolean): void {
+  try {
+    window.localStorage.setItem(
+      ONBOARDING_CACHE_PREFIX + userId,
+      completed ? "true" : "false",
+    );
+  } catch {
+    // ignore (private mode / quota)
+  }
+}
+
 async function fetchBackendUserProfile(
   accessToken: string,
-): Promise<Partial<
-  Pick<AuthUser, "onboardingCompleted" | "displayName" | "avatarEmoji">
-> | null> {
+): Promise<ProfileResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PROFILE_TIMEOUT_MS);
   try {
     const res = await apiFetch("/api/auth/user", {
       credentials: "include",
       headers: { Authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
     });
-    if (!res.ok) return null;
+    // 401/403 = backend nås, men token duger inte. Då är "ingen profil" ett riktigt svar.
+    if (res.status === 401 || res.status === 403) {
+      return { reachable: true, profile: null };
+    }
+    if (!res.ok) {
+      console.warn(
+        "[Chimiq auth] /api/auth/user svarade",
+        res.status,
+        res.statusText,
+      );
+      return { reachable: false };
+    }
     const data = (await res.json()) as { user: AuthUser | null };
-    return data.user
-      ? {
-          onboardingCompleted: data.user.onboardingCompleted,
-          displayName: data.user.displayName ?? null,
-          avatarEmoji: data.user.avatarEmoji ?? null,
-        }
-      : null;
-  } catch {
-    return null;
+    return {
+      reachable: true,
+      profile: data.user
+        ? {
+            onboardingCompleted: data.user.onboardingCompleted,
+            displayName: data.user.displayName ?? null,
+            avatarEmoji: data.user.avatarEmoji ?? null,
+          }
+        : null,
+    };
+  } catch (err) {
+    console.warn("[Chimiq auth] når inte /api/auth/user", err);
+    return { reachable: false };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [backendReachable, setBackendReachable] = useState(true);
 
   const applySession = useCallback(async (session: Session | null): Promise<AuthUser | null> => {
     if (!session?.user) {
@@ -87,8 +146,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
     const token = session.access_token;
-    const extra = await fetchBackendUserProfile(token);
-    const onboardingCompleted = extra?.onboardingCompleted ?? false;
+    const result = await fetchBackendUserProfile(token);
+    const uid = session.user.id;
+    let extra: BackendProfile | null = null;
+    let onboardingCompleted: boolean;
+    if (result.reachable) {
+      extra = result.profile;
+      onboardingCompleted = extra?.onboardingCompleted ?? false;
+      writeCachedOnboarding(uid, onboardingCompleted);
+    } else {
+      // Backend onåbar: falla tillbaka på senast kända status i stället för false.
+      onboardingCompleted = readCachedOnboarding(uid);
+      console.warn(
+        "[Chimiq auth] backend onåbar — använder senast kända onboarding-status:",
+        onboardingCompleted,
+      );
+    }
+    setBackendReachable(result.reachable);
     const nextUser = {
       ...mapSupabaseUserToAuthUser(session.user, onboardingCompleted),
       displayName: extra?.displayName ?? null,
@@ -165,6 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     refetch,
+    backendReachable,
   };
 
   return (

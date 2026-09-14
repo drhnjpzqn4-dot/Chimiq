@@ -129,17 +129,19 @@ export async function saveCacheEntry(
 ): Promise<void> {
   const existing = await getCacheEntry(hash).catch(() => null);
   const now = new Date().toISOString();
+  // created_at sätts BARA vid insert. Skrevs det om vid varje upsert nollställdes
+  // STALE_DAYS-klockan och cachade analyser blev aldrig gamla.
   const { error } = await supabaseAdmin
     .from("analysis_cache")
     .upsert(
       {
-      hash,
+        hash,
         scan_type: scanType,
         skin_profile: skinProfile ?? null,
         result_json: resultJson,
         use_count: (existing?.useCount ?? 0) + 1,
         flagged_outdated: false,
-        created_at: now,
+        created_at: existing?.createdAt.toISOString() ?? now,
         last_used_at: now,
       },
       { onConflict: "hash" },

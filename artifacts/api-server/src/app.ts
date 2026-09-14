@@ -42,21 +42,45 @@ app.use(
   }),
 );
 
-const CORS_ALLOWED_ORIGINS = ["capacitor://localhost"];
+// Listan gäller på riktigt sedan 2026-09-14. Tidigare släppte sista raden
+// igenom precis alla origins (callback(null, origin)) trots att listan såg
+// restriktiv ut — med credentials: true var det slarvigt.
+const CORS_ALLOWED_ORIGINS = [
+  "capacitor://localhost", // iOS-skalet
+  "https://localhost", // Android-skalet
+  "https://chimiq.app",
+  "https://www.chimiq.app",
+  "https://app.chimiq.app",
+  "http://localhost:5173", // vite dev
+  ...(process.env.CORS_EXTRA_ORIGINS ?? "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+];
+
+// Vercels preview-deployer får slumpade adresser — tillåt bara våra egna.
+const PREVIEW_ORIGIN = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
+
+function isAllowedOrigin(origin: string): boolean {
+  if (CORS_ALLOWED_ORIGINS.includes(origin)) return true;
+  return PREVIEW_ORIGIN.test(origin);
+}
 
 app.use(
   cors({
     credentials: true,
     origin(origin, callback) {
+      // Inget Origin-huvud = same-origin, curl eller en native-klient. Släpp igenom.
       if (!origin) {
         callback(null, true);
         return;
       }
-      if (CORS_ALLOWED_ORIGINS.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, origin);
         return;
       }
-      callback(null, origin);
+      logger.warn({ origin }, "CORS: blockerade okänt origin");
+      callback(null, false);
     },
   }),
 );

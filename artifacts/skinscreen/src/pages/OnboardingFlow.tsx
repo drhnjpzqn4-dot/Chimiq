@@ -8,6 +8,7 @@ import { useTranslation } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 
 const ASSET_BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/+$/, "") || "";
+const SUBMIT_TIMEOUT_MS = 20000;
 
 type SkinId = "sensitive" | "oily" | "dry" | "combination" | "mature";
 type AgeId = "under16" | "16-17" | "18-25" | "26-35" | "36-45" | "46plus";
@@ -86,7 +87,8 @@ function headingStyle(): CSSProperties {
 
 export default function OnboardingFlow() {
   const { t } = useTranslation();
-  const { user, isLoading, isAuthenticated, refetch } = useAuth();
+  const { user, isLoading, isAuthenticated, refetch, backendReachable } =
+    useAuth();
   const [, navigate] = useLocation();
   const [step, setStep] = useState(0);
   const [firstName, setFirstName] = useState("");
@@ -161,12 +163,17 @@ export default function OnboardingFlow() {
     if (needsParentalStep && !parentalConsentGiven) return;
     setSubmitting(true);
     setError(null);
+    // Utan timeout kan knappen fastna i submitting för alltid om backend hänger
+    // (t.ex. Railway nere) — då ser det ut som att "Klar" inte gör någonting.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
     try {
       console.info("[Chimiq onboarding] Done: POST /api/profile/onboarding (apiFetch)");
       const res = await apiFetch("/api/profile/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        signal: controller.signal,
         body: JSON.stringify({
           firstName: firstName.trim(),
           skinType: skin,
@@ -178,8 +185,13 @@ export default function OnboardingFlow() {
       console.info("[Chimiq onboarding] POST response", res.status, res.statusText);
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
-        console.warn("[Chimiq onboarding] POST failed", j);
-        setError(j.error ?? t("onboarding.saveError"));
+        console.warn("[Chimiq onboarding] POST failed", res.status, j);
+        // 404/5xx = servern svarar inte som sig själv (nere eller felkonfigurerad).
+        const serverDown = res.status === 404 || res.status >= 500;
+        setError(
+          j.error ??
+            (serverDown ? t("onboarding.offlineError") : t("onboarding.saveError")),
+        );
         setSubmitting(false);
         return;
       }
@@ -203,8 +215,10 @@ export default function OnboardingFlow() {
       navigate("/app/scan", { replace: true });
     } catch (err) {
       console.error("[Chimiq onboarding] submitAll error", err);
-      setError(t("onboarding.saveError"));
+      setError(t("onboarding.offlineError"));
       setSubmitting(false);
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -214,6 +228,30 @@ export default function OnboardingFlow() {
       style={{ backgroundColor: "var(--cream)" }}
     >
       <div className="mx-auto w-full max-w-md">
+        {!backendReachable && (
+          <div
+            className="mb-4 rounded-2xl border-[1.5px] p-3"
+            style={{
+              borderColor: "#E0B84C",
+              backgroundColor: "#FBF3DF",
+              color: "#5E544C",
+            }}
+            role="status"
+          >
+            <p className="text-[13px] leading-relaxed">
+              {t("onboarding.offlineBanner")}
+            </p>
+            <button
+              type="button"
+              className="mt-2 text-[13px] font-semibold underline"
+              style={{ color: "var(--ink)" }}
+              onClick={() => void refetch()}
+              data-touch-target
+            >
+              {t("onboarding.offlineRetry")}
+            </button>
+          </div>
+        )}
         {step >= 1 && step <= 5 && (
           <ProgressDots activeIndex={progressActive} total={progressDotCount} />
         )}

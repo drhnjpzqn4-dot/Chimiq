@@ -245,6 +245,11 @@ const en: Dict = {
   "onboarding.continue": "Continue →",
   "onboarding.done": "Done →",
   "onboarding.saveError": "Could not save. Please try again.",
+  "onboarding.offlineError":
+    "We can't reach the Chimiq server right now, so your answers weren't saved. Try again in a moment.",
+  "onboarding.offlineBanner":
+    "We can't reach the Chimiq server right now, so we can't see whether you've already set up your profile. Your answers can't be saved until the connection is back.",
+  "onboarding.offlineRetry": "Try again",
   "onboarding.skinTitle": "How would you describe your skin?",
   "onboarding.skin.sensitive.title": "Sensitive",
   "onboarding.skin.sensitive.desc": "Flushes easily, reacts to fragrance and strong actives",
@@ -1745,6 +1750,11 @@ const sv: Dict = {
   "onboarding.continue": "Fortsätt →",
   "onboarding.done": "Klar →",
   "onboarding.saveError": "Kunde inte spara. Försök igen.",
+  "onboarding.offlineError":
+    "Vi når inte Chimiq-servern just nu, så dina svar sparades inte. Försök igen om en liten stund.",
+  "onboarding.offlineBanner":
+    "Vi når inte Chimiq-servern just nu, så vi kan inte se om du redan har fyllt i din profil. Dina svar kan inte sparas förrän kopplingen är tillbaka.",
+  "onboarding.offlineRetry": "Försök igen",
   "onboarding.skinTitle": "Hur skulle du beskriva din hud?",
   "onboarding.skin.sensitive.title": "Känslig",
   "onboarding.skin.sensitive.desc": "Rodnar lätt, reagerar på parfym och starka ingredienser",
@@ -3257,6 +3267,11 @@ const fr: Dict = {
   "onboarding.continue": "Continuer →",
   "onboarding.done": "Terminer →",
   "onboarding.saveError": "Impossible d'enregistrer. Réessayez.",
+  "onboarding.offlineError":
+    "Nous ne parvenons pas à joindre le serveur Chimiq pour l'instant : vos réponses n'ont pas été enregistrées. Réessayez dans un moment.",
+  "onboarding.offlineBanner":
+    "Nous ne parvenons pas à joindre le serveur Chimiq pour l'instant et ne pouvons pas voir si votre profil est déjà configuré. Vos réponses ne pourront pas être enregistrées tant que la connexion n'est pas rétablie.",
+  "onboarding.offlineRetry": "Réessayer",
   "onboarding.skinTitle": "Comment décririez-vous votre peau ?",
   "onboarding.skin.sensitive.title": "Sensible",
   "onboarding.skin.sensitive.desc": "Rougit facilement, réagit aux parfums et aux actifs forts",
@@ -4759,6 +4774,11 @@ const es: Dict = {
   "onboarding.continue": "Continuar →",
   "onboarding.done": "Listo →",
   "onboarding.saveError": "No se pudo guardar. Inténtalo de nuevo.",
+  "onboarding.offlineError":
+    "Ahora mismo no podemos conectar con el servidor de Chimiq, así que tus respuestas no se guardaron. Inténtalo de nuevo en un momento.",
+  "onboarding.offlineBanner":
+    "Ahora mismo no podemos conectar con el servidor de Chimiq, así que no sabemos si ya has configurado tu perfil. Tus respuestas no podrán guardarse hasta que vuelva la conexión.",
+  "onboarding.offlineRetry": "Reintentar",
   "onboarding.skinTitle": "¿Cómo describirías tu piel?",
   "onboarding.skin.sensitive.title": "Sensible",
   "onboarding.skin.sensitive.desc": "Se enrojece con facilidad, reacciona a fragancias y activos fuertes",

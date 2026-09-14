@@ -17,9 +17,13 @@ export function nativePlatform(): "ios" | "android" | "web" {
  * is `capacitor://localhost` (iOS) or `https://localhost` (Android), so any
  * relative `/api/...` fetch would hit the local origin. The fetch
  * interceptor below rewrites them to absolute URLs against this host.
+ *
+ * VIKTIGT: detta ska ALLTID vara vår egen domän, aldrig en leverantörs-URL.
+ * Adressen bakas in i iOS-binären — med egen domän blir ett värdbyte en
+ * DNS-ändring i stället för en ny App Store-release (ADR 2026-09-14).
+ * CNAME: api.chimiq.app -> backend-värden (DNS hos Websupport).
  */
-export const NATIVE_API_BASE_URL =
-  "https://workspaceapi-server-production-58f9.up.railway.app";
+export const NATIVE_API_BASE_URL = "https://api.chimiq.app";
 
 export const MANAGE_SUBSCRIPTION_WEB_URL = `${NATIVE_API_BASE_URL}/pricing`;
 
